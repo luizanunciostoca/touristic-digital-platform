@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-PERFORMANCE-ASSET-ACCOUNTING-20261018",
+  "objective": "reject-empty-zero-byte-asset-roots-and-count-linked-assets-correctly",
+  "baseSha": "13b2f53a938c4aefef25a4ac228972e399956b11",
+  "branch": "fix/performance-asset-accounting-20261018",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-PERFORMANCE-ASSET-ACCOUNTING-20261018.json",
+      "tooling/performance/check-morro-digital-budget.mjs",
+      "tooling/performance/check-morro-digital-budget.test.mjs",
+      "tooling/ci/performance-budget-accounting.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "asset-accounting-acquisition-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
