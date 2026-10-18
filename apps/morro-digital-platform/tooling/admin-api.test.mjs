@@ -1367,6 +1367,158 @@ describe("Control Center Admin API", () => {
     },
   );
 
+  describe("session-route admission before target lookup", () => {
+    const businessSession = {
+      ...platformOwner,
+      subject: businessOwner.id,
+      email: businessOwner.email,
+      role: "BUSINESS_OWNER",
+      businessIds: ["toca-do-morcego"],
+    };
+    const auditor = { ...platformOwner, role: "AUDITOR" };
+    const targets = ["business-owner", "synthetic-missing-user"];
+    const handles = ["a".repeat(64), "b".repeat(64)];
+    const unsupportedRoutes = [
+      ["HEAD", ""],
+      ["PUT", ""],
+      ["HEAD", `/${handles[0]}/revoke`],
+      ["PUT", `/${handles[0]}/revoke`],
+    ];
+
+    it.each([
+      ["anonymous", null, 401, "AUTH_REQUIRED"],
+      ["business owner", businessSession, 403, "ADMIN_SURFACE_DENIED"],
+      ["auditor", auditor, 403, "CAPABILITY_DENIED"],
+    ])(
+      "denies %s revocation without disclosing the target user or session",
+      async (_label, actor, status, error) => {
+        const payloads = [];
+        for (const userId of targets) {
+          for (const handle of handles) {
+            const calls = [];
+            const { api } = fixture(actor, {
+              onAuthCall(name) {
+                calls.push(name);
+                if (name !== "resolveSession") {
+                  throw new Error("DENIED_REVOCATION_REACHED_TARGET_LOOKUP");
+                }
+              },
+            });
+            const path = `/api/admin/v1/users/${userId}/sessions/${handle}/revoke`;
+            const response = responseRecorder();
+            await api.handle(
+              request(path, {
+                method: "POST",
+                body: {
+                  reason: "Authorized test of admission ordering",
+                  confirmation: "REVOGAR",
+                },
+              }),
+              response,
+              new URL(`http://localhost${path}`),
+            );
+            expect(response.statusCode).toBe(status);
+            const payload = JSON.parse(response.body);
+            expect(payload).toMatchObject({
+              error,
+              capability: "users.sessions.revoke",
+            });
+            expect(calls.length).toBeGreaterThan(0);
+            expect(calls.every((name) => name === "resolveSession")).toBe(true);
+            expect(response.body).not.toContain(userId);
+            expect(response.body).not.toContain(handle);
+            expect(response.body).not.toContain("alreadyRevoked");
+            payloads.push(payload);
+          }
+        }
+        for (const payload of payloads) expect(payload).toEqual(payloads[0]);
+      },
+    );
+
+    it.each([
+      ["anonymous", null, 401, "AUTH_REQUIRED"],
+      ["business owner", businessSession, 403, "ADMIN_SURFACE_DENIED"],
+    ])(
+      "denies %s unsupported session methods before target lookup",
+      async (_label, actor, status, error) => {
+        for (const [method, suffix] of unsupportedRoutes) {
+          const payloads = [];
+          for (const userId of targets) {
+            const calls = [];
+            const { api } = fixture(actor, {
+              onAuthCall(name) {
+                calls.push(name);
+                if (name !== "resolveSession") {
+                  throw new Error("DENIED_METHOD_REACHED_TARGET_LOOKUP");
+                }
+              },
+            });
+            const path = `/api/admin/v1/users/${userId}/sessions${suffix}`;
+            const response = responseRecorder();
+            await api.handle(
+              request(path, { method }),
+              response,
+              new URL(`http://localhost${path}`),
+            );
+            expect(response.statusCode).toBe(status);
+            const payload = JSON.parse(response.body);
+            expect(payload).toMatchObject({ error, capability: "users.read" });
+            expect(calls.length).toBeGreaterThan(0);
+            expect(calls.every((name) => name === "resolveSession")).toBe(true);
+            expect(response.body).not.toContain(userId);
+            payloads.push(payload);
+          }
+          expect(payloads[0]).toEqual(payloads[1]);
+        }
+      },
+    );
+
+    it.each([
+      ["platform owner", platformOwner],
+      ["auditor", auditor],
+    ])(
+      "preserves authorized %s reads and unsupported-method status without revocation",
+      async (_label, actor) => {
+        for (const [method, suffix] of [["GET", ""], ...unsupportedRoutes]) {
+          for (const userId of targets) {
+            const calls = [];
+            const { api } = fixture(actor, {
+              onAuthCall(name) {
+                calls.push(name);
+              },
+            });
+            const path = `/api/admin/v1/users/${userId}/sessions${suffix}`;
+            const response = responseRecorder();
+            await api.handle(
+              request(path, { method }),
+              response,
+              new URL(`http://localhost${path}`),
+            );
+            const exists = userId === businessOwner.id;
+            const allowedRead = method === "GET" && suffix === "";
+            expect(response.statusCode).toBe(
+              exists ? (allowedRead ? 200 : 405) : 404,
+            );
+            expect(calls[0]).toBe("resolveSession");
+            expect(
+              calls.filter((name) => name === "findConfiguredUser"),
+            ).toHaveLength(1);
+            expect(calls).not.toContain("revokeUserSession");
+            if (exists && allowedRead) {
+              expect(calls).toContain("listUserSessions");
+              expect(JSON.parse(response.body).sessions).toHaveLength(1);
+            } else {
+              expect(calls).not.toContain("listUserSessions");
+              expect(JSON.parse(response.body).error).toBe(
+                exists ? "METHOD_NOT_ALLOWED" : "USER_NOT_FOUND",
+              );
+            }
+          }
+        }
+      },
+    );
+  });
+
   it("lists user sessions without exposing raw session identifiers", async () => {
     const { api } = fixture();
     const response = responseRecorder();
