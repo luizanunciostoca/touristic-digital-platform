@@ -46,21 +46,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-18T13:58:28.010Z"
     },
-    "MD-ADMIN-SESSION-ADMISSION-20261018": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/admin-session-admission-20261018",
-      "baseSha": "32d27971565b3f7dfd3f463e41205ef3679bfc88",
-      "paths": [
-        ".morro/changesets/MD-ADMIN-SESSION-ADMISSION-20261018.json",
-        "apps/morro-digital-platform/tooling/admin-api.mjs",
-        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
-      ],
-      "domains": ["auth"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-18T13:00:00.000Z"
-    },
     "MD-AFFILIATES-READINESS-20261018": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
