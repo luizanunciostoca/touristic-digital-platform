@@ -93,6 +93,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-18T18:30:00.000Z"
+    },
+    "MD-ASSISTANT-FAILURE-RECOVERY-20261018": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/assistant-failure-recovery-20261018",
+      "baseSha": "6f115089f96e7d6c058614c84aa52092f38a421b",
+      "paths": [
+        ".morro/changesets/MD-ASSISTANT-FAILURE-RECOVERY-20261018.json",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+        "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-18T20:00:00.000Z"
     }
   }
 }
