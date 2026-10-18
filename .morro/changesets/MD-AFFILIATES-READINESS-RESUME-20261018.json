@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-AFFILIATES-READINESS-RESUME-20261018",
   "objective": "compose-critical-affiliates-readiness-and-allowlisted-startup-failure-details",
-  "baseSha": "2b2cad6159d1d63f8fe717a4f4fec56544274ccc",
+  "baseSha": "4154e3e9ccf86ba5d38a82eb6a9785cbe6a58817",
   "branch": "fix/affiliates-readiness-resume-20261018",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
