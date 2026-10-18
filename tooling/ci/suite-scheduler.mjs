@@ -101,7 +101,7 @@ export function selectSuites(report, manifest = suiteManifest) {
     report.files.length === 0
   )
     return [];
-  if (report.needsFullRegression) return all;
+  let needsFullRegression = report.needsFullRegression;
   // Evaluate each newly managed runtime file independently: a covered file
   // in the same PR must never mask a second file with unknown suite coverage.
   for (const file of report.files) {
@@ -111,7 +111,7 @@ export function selectSuites(report, manifest = suiteManifest) {
     });
     if (fileImpact.classificationBlocked || fileImpact.unknownFiles.length > 0)
       return [];
-    if (fileImpact.needsFullRegression) return all;
+    needsFullRegression ||= fileImpact.needsFullRegression;
     const requiresCoverage = fileImpact.domains.some(
       (domain) => impactManifest.domains[domain]?.requiresScheduledSuite,
     );
@@ -124,6 +124,7 @@ export function selectSuites(report, manifest = suiteManifest) {
       throw new Error(`CI_SUITE_COVERAGE_UNPROVEN:${file}`);
     }
   }
+  if (needsFullRegression) return all;
   return manifest.suites
     .filter(
       (suite) =>
