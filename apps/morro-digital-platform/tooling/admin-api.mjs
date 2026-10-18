@@ -992,10 +992,14 @@ export function createAdminApi({
       return true;
     }
     const handle = match[2] ?? null;
-    if (!handle && request.method === "GET") {
-      const actor = await requireCapability(request, response, "users.read");
-      if (!actor) return true;
-    }
+    const mutation = Boolean(handle && request.method === "POST");
+    const actor = await requireCapability(
+      request,
+      response,
+      mutation ? "users.sessions.revoke" : "users.read",
+      { mutation },
+    );
+    if (!actor) return true;
 
     const user = authApi.findConfiguredUser(userId);
     if (!user) {
@@ -1020,14 +1024,6 @@ export function createAdminApi({
       json(response, 405, { error: "METHOD_NOT_ALLOWED" });
       return true;
     }
-
-    const actor = await requireCapability(
-      request,
-      response,
-      "users.sessions.revoke",
-      { mutation: true },
-    );
-    if (!actor) return true;
 
     const requestSecurity = authApi.authorizeMutation(
       request,
