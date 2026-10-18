@@ -15,9 +15,7 @@
     "contracts": []
   },
   "reads": {
-    "contracts": [
-      "TDP-CONTROL-PLANE-V3.2"
-    ]
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
   },
   "produces": {
     "events": [],
