@@ -450,3 +450,93 @@ test("broad Security Scanning is asynchronous to pull-request bugfixes", () => {
   assert.match(workflow, /^  schedule:/mu);
   assert.match(workflow, /^  workflow_dispatch:/mu);
 });
+
+test("critical fan-out never masks an uncovered runtime file in either order", () => {
+  for (const uncovered of [
+    "apps/morro-digital-platform/src/business-location-discovery-adapter.ts",
+    "apps/control-center/public/control-center-business-cms.js",
+  ]) {
+    for (const critical of [
+      "pnpm-lock.yaml",
+      ".github/workflows/quality.yml",
+      "services/financial/src/provider.ts",
+    ]) {
+      for (const files of [
+        [uncovered, critical],
+        [critical, uncovered],
+      ]) {
+        const report = analyzeFiles(files);
+        assert.equal(report.needsFullRegression, true, files.join(", "));
+        assert.throws(
+          () => selectSuites(report),
+          (error) =>
+            error.message === "CI_SUITE_COVERAGE_UNPROVEN:" + uncovered,
+          files.join(", "),
+        );
+      }
+    }
+  }
+});
+
+test("a release-candidate flag never supplies missing per-file coverage", () => {
+  const file = "apps/morro-digital-platform/src/business-dashboard-client.ts";
+  const report = analyzeFiles([file], { releaseCandidate: true });
+  assert.equal(report.needsFullRegression, true);
+  assert.throws(
+    () => selectSuites(report),
+    (error) => error.message === "CI_SUITE_COVERAGE_UNPROVEN:" + file,
+  );
+});
+
+test("rediscovered critical impact does not stop checking later files", () => {
+  const uncovered = "apps/morro-digital-platform/tooling/business-api.test.mjs";
+  const critical = "pnpm-lock.yaml";
+  for (const files of [
+    [uncovered, critical],
+    [critical, uncovered],
+  ]) {
+    const report = analyzeFiles(files);
+    // A complete report can carry a stale aggregate flag; per-file analysis
+    // must still check every file before choosing full regression.
+    report.needsFullRegression = false;
+    assert.equal(isCompleteImpactReport(report), true);
+    assert.throws(
+      () => selectSuites(report),
+      (error) => error.message === "CI_SUITE_COVERAGE_UNPROVEN:" + uncovered,
+      files.join(", "),
+    );
+  }
+});
+
+test("critical fan-out does not conceal an unclassified file on recomputation", () => {
+  for (const files of [
+    ["pnpm-lock.yaml", "unknown/runtime.ts"],
+    ["unknown/runtime.ts", "pnpm-lock.yaml"],
+  ]) {
+    assert.deepEqual(selectSuites(analyzeFiles(files)), []);
+    const report = completeReport({
+      files,
+      risk: "CRITICAL",
+      domains: ["dependencies"],
+      needsFullRegression: true,
+      qualityProfile: "DEEP_PROOF",
+    });
+    assert.equal(isCompleteImpactReport(report), true);
+    assert.deepEqual(selectSuites(report), [], files.join(", "));
+  }
+});
+
+test("critical candidates with proven or nonrequired coverage retain full fan-out", () => {
+  for (const files of [
+    ["pnpm-lock.yaml"],
+    [".github/workflows/quality.yml", "tooling/ci/suite-scheduler.mjs"],
+    ["services/financial/src/provider.ts", "docs/overview.md"],
+    ["packages/business/migrations/001.sql"],
+  ]) {
+    const report = analyzeFiles(files);
+    assert.equal(report.needsFullRegression, true, files.join(", "));
+    assert.deepEqual(selectSuites(report), all, files.join(", "));
+    report.needsFullRegression = false;
+    assert.deepEqual(selectSuites(report), all, files.join(", "));
+  }
+});
