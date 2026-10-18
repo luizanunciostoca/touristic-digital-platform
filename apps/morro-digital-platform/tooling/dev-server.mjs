@@ -211,7 +211,6 @@ for (const ids of Object.values(destinationPublicHosts)) {
 let platformOperations = null;
 let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
-let affiliatesRuntimeReady = false;
 let contentAdminRuntime = null;
 let commerceApi = null;
 let destinationRuntimeReady = false;
@@ -274,11 +273,7 @@ platformOperations = createPlatformOperations({
     },
     {
       name: "affiliates-commercial-runtime",
-      status: affiliatesRuntimeReady ? "pass" : "fail",
-      critical: false,
-      detail: affiliatesRuntimeReady
-        ? "affiliates-runtime-ready"
-        : "AFFILIATES_RUNTIME_UNAVAILABLE",
+      ...affiliatesApi.readinessCheck(),
     },
     {
       name: "control-center-audit",
@@ -340,7 +335,7 @@ platformOperations = createPlatformOperations({
   ],
 });
 await authApi.start();
-affiliatesRuntimeReady = await affiliatesApi.start();
+await affiliatesApi.start();
 await analyticsApi.start();
 notificationsRuntime = createNotificationsRuntime({
   getEnvironmentValue,
@@ -597,7 +592,8 @@ function serveLiveness(response) {
   );
 }
 
-function serveReadiness(response, correlationId) {
+async function serveReadiness(response, correlationId) {
+  await affiliatesApi.refreshReadiness();
   const snapshot = platformOperations.healthSnapshot(correlationId);
   response.statusCode = snapshot.readiness === "ready" ? 200 : 503;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -767,7 +763,7 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (requestUrl.pathname === "/readyz") {
-      serveReadiness(response, correlationId);
+      await serveReadiness(response, correlationId);
       return;
     }
     if (!platformOperations.isAcceptingTraffic()) {
@@ -1058,6 +1054,7 @@ async function shutdown(signal) {
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
+    affiliatesApi.stop(),
     affiliateAdminRuntime.stop(),
     ticketingApi.stop(),
     commerceApi ? commerceApi.stop() : Promise.resolve(),

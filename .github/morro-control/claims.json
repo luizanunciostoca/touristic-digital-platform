@@ -97,7 +97,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/affiliates-readiness-resume-20261018",
-      "baseSha": "2b2cad6159d1d63f8fe717a4f4fec56544274ccc",
+      "baseSha": "cf4d848f68538e8f422d221d12127f9fe15a3afb",
       "paths": [
         ".morro/changesets/MD-AFFILIATES-READINESS-RESUME-20261018.json",
         "apps/morro-digital-platform/tooling/dev-server.mjs",
