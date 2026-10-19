@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ASSISTANT-MAP-FIXTURE-20261019",
   "objective": "repair-inherited-map-recovery-fixture-application-boundary",
-  "baseSha": "1b31e2d3e733cb08149b4ae5af0afddb62209e6c",
-  "branch": "fix/assistant-map-fixture-20261019",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "7a80b2f6fccf47a3b8be15f1fce266be2f7472aa",
+  "branch": "chore/retire-assistant-map-fixture-20261019",
+  "state": "MERGED",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
