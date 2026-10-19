@@ -164,6 +164,13 @@ esac
     FIXTURE_GRAPH: JSON.stringify(dry),
   };
   delete env.NODE_TEST_CONTEXT;
+  for (const key of [
+    "GITHUB_EVENT_NAME",
+    "GITHUB_EVENT_PATH",
+    "GITHUB_REF",
+    "GITHUB_SHA",
+  ])
+    delete env[key];
   const invoke = (local = false, extra = [], baseArg = base) =>
     spawnSync(
       process.execPath,
@@ -184,6 +191,22 @@ esac
       },
     );
   return { root, put, git, base, head, invoke, env };
+}
+function mainPushFixture(t) {
+  const f = fixture(t);
+  f.git("update-ref", "refs/heads/main", f.head);
+  f.put(".git/push-event.json", {
+    ref: "refs/heads/main",
+    before: f.base,
+    after: f.head,
+  });
+  Object.assign(f.env, {
+    GITHUB_EVENT_NAME: "push",
+    GITHUB_REF: "refs/heads/main",
+    GITHUB_SHA: f.head,
+    GITHUB_EVENT_PATH: join(f.root, ".git/push-event.json"),
+  });
+  return f;
 }
 function pass(result) {
   assert.ifError(result.error);
@@ -218,7 +241,7 @@ for (const mutation of ["checker", "delete", "two"]) {
     assert.equal(dryArgv(remote.stdout), expected);
     assert.equal(dryArgv(local.stdout), expected);
     for (const result of [remote, local]) {
-      assert.match(result.stdout, /ROOT_EXECUTED/);
+      assert.equal((result.stdout.match(/ROOT_EXECUTED/g) ?? []).length, 1);
       assert.match(result.stdout, /WORKSPACE_EXECUTED/);
       assert.match(result.stdout, new RegExp(f.head));
       assert.match(result.stdout, new RegExp(f.base));
@@ -264,6 +287,73 @@ test("stale base is rejected by both actual entrypoints", (t) => {
     /FAST_GATE_BASE_STALE|FAST_GATE_MAIN_NOT_SYNCHRONIZED/,
   );
 });
+test("main push uses its real before/after interval when remote main is already HEAD", (t) => {
+  const f = mainPushFixture(t);
+  const result = f.invoke();
+  pass(result);
+  assert.equal((result.stdout.match(/ROOT_EXECUTED/g) ?? []).length, 1);
+  assert.match(result.stdout, /WORKSPACE_EXECUTED/);
+  const proofLine = result.stdout.match(/(\{[^\r\n]*\})\s*$/u)?.[1];
+  assert.ok(proofLine, "AFFECTED_PROOF_JSON_MISSING");
+  const proof = JSON.parse(proofLine);
+  assert.equal(proof.baseSha, f.base);
+  assert.equal(proof.headSha, f.head);
+  assert.equal(proof.treeSha, f.git("rev-parse", "HEAD^{tree}"));
+});
+for (const [field, expectedError] of [
+  ["before", /AFFECTED_QUALITY_PUSH_BASE_MISMATCH/],
+  ["after", /AFFECTED_QUALITY_PUSH_HEAD_MISMATCH/],
+  ["ref", /AFFECTED_QUALITY_PUSH_REF_MISMATCH/],
+]) {
+  test(`main push rejects mismatched event ${field} before executing proof`, (t) => {
+    const f = mainPushFixture(t);
+    const event = JSON.parse(readFileSync(f.env.GITHUB_EVENT_PATH, "utf8"));
+    event[field] = field === "ref" ? "refs/heads/other" : "0".repeat(40);
+    f.put(".git/push-event.json", event);
+    const result = f.invoke();
+    reject(result, expectedError);
+    assert.doesNotMatch(result.stdout, /ROOT_EXECUTED/);
+  });
+}
+test("main push rejects a GITHUB_SHA different from the checkout", (t) => {
+  const f = mainPushFixture(t);
+  f.env.GITHUB_SHA = f.base;
+  const result = f.invoke();
+  reject(result, /AFFECTED_QUALITY_EVENT_SHA_MISMATCH/);
+  assert.doesNotMatch(result.stdout, /ROOT_EXECUTED/);
+});
+for (const malformed of [false, true]) {
+  test(`main push rejects ${malformed ? "malformed" : "missing"} event payload`, (t) => {
+    const f = mainPushFixture(t);
+    if (malformed) f.put(".git/push-event.json", "{invalid-json");
+    else delete f.env.GITHUB_EVENT_PATH;
+    const result = f.invoke();
+    reject(result, /AFFECTED_QUALITY_PUSH_EVENT_INVALID/);
+    assert.doesNotMatch(result.stdout, /ROOT_EXECUTED/);
+  });
+}
+test("main push rejects remote main different from its exact HEAD", (t) => {
+  const f = mainPushFixture(t);
+  f.git("update-ref", "refs/heads/main", f.base);
+  const result = f.invoke();
+  reject(result, /AFFECTED_QUALITY_REMOTE_HEAD_STALE/);
+  assert.doesNotMatch(result.stdout, /ROOT_EXECUTED/);
+});
+for (const [eventName, ref] of [
+  ["pull_request", "refs/pull/1/merge"],
+  ["merge_group", "refs/heads/gh-readonly-queue/main/fixture"],
+  ["workflow_dispatch", "refs/heads/main"],
+  ["push", "refs/heads/other"],
+]) {
+  test(`${eventName} on ${ref} retains the remote-main-equals-base rule`, (t) => {
+    const f = mainPushFixture(t);
+    f.env.GITHUB_EVENT_NAME = eventName;
+    f.env.GITHUB_REF = ref;
+    const result = f.invoke();
+    reject(result, /AFFECTED_QUALITY_BASE_STALE/);
+    assert.doesNotMatch(result.stdout, /ROOT_EXECUTED/);
+  });
+}
 for (const extra of [
   ["--filter=@touristic/other"],
   ["--report=fabricated.json"],
