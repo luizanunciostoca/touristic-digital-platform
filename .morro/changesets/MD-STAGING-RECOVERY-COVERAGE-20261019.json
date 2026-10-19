@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-RECOVERY-COVERAGE-20261019",
+  "objective": "cover-eleven-staging-recovery-domains-and-clean-failed-partial-dumps",
+  "baseSha": "455cf22ca77e2891f21c15bf4d1e395d0d3fc42d",
+  "branch": "fix/staging-recovery-coverage-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-RECOVERY-COVERAGE-20261019.json",
+      "tooling/render/mysql-staging/backup-restore-drill.sh",
+      "tooling/render/mysql-staging/backup-restore-drill.contract.mjs",
+      "docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "recovery-safety-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/mysql-staging/backup-restore-drill.contract.mjs"
+        ],
+        "timeoutSeconds": 120
+      },
+      {
+        "id": "staging-blueprint-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/render-staging-blueprint.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
