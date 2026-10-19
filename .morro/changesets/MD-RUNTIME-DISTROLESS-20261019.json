@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RUNTIME-DISTROLESS-20261019",
+  "objective": "replace-vulnerable-runtime-base-and-prove-security-of-the-final-immutable-release-digest",
+  "baseSha": "1d6be132e17962f38cd6a4fbbc2a9fe34fac9ea4",
+  "branch": "fix/runtime-distroless-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-RUNTIME-DISTROLESS-20261019.json",
+      ".morro/ownership.json",
+      "Dockerfile",
+      "tooling/ci/runtime-image-contract.mjs",
+      "tooling/ci/runtime-image-contract.test.mjs",
+      ".github/workflows/security-scanning.yml",
+      ".github/workflows/release-oci-image.yml"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 180
+    },
+    "commands": [
+      {
+        "id": "exact-ownership-mapping",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
