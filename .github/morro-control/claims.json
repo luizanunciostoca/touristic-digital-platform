@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/analytics-live-locale-20261019",
-      "baseSha": "7ddbf1cac31d899d0c6126c492367b6bac950baf",
+      "baseSha": "05e414c9350ba8d183940ae93e6fc4dfbd6496f6",
       "paths": [
         ".morro/changesets/MD-ANALYTICS-LIVE-LOCALE-20261019.json",
         "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
