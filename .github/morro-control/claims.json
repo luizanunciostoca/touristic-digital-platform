@@ -1,25 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-RUNTIME-DISTROLESS-20261019": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/runtime-distroless-20261019",
-      "baseSha": "8d500551d4b0e4643ab5dbc20b154a3e8965ac19",
-      "paths": [
-        ".morro/changesets/MD-RUNTIME-DISTROLESS-20261019.json",
-        ".morro/ownership.json",
-        "Dockerfile",
-        "tooling/ci/runtime-image-contract.mjs",
-        "tooling/ci/runtime-image-contract.test.mjs",
-        ".github/workflows/security-scanning.yml",
-        ".github/workflows/release-oci-image.yml"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-19T09:00:00.000Z"
-    }
-  }
+  "claims": {}
 }

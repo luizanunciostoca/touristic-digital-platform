@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RUNTIME-DISTROLESS-20261019",
   "objective": "replace-vulnerable-runtime-base-and-prove-security-of-the-final-immutable-release-digest",
-  "baseSha": "8d500551d4b0e4643ab5dbc20b154a3e8965ac19",
-  "branch": "fix/runtime-distroless-20261019",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "beddd9335c14e9ed605d1ca2de967310ec8747c4",
+  "branch": "chore/retire-runtime-distroless-20261019",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
