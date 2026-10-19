@@ -3,6 +3,7 @@ import test from "node:test";
 import { analyzeFiles } from "./impact-analyzer.mjs";
 import { buildAffectedTurboArgs } from "./affected-quality.mjs";
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import {
   buildQualityProof,
   isCompleteImpactReport,
@@ -438,6 +439,83 @@ test("Quality workflow uses affected fast profiles and conditional database", ()
       "quality_profile == 'DEEP_PROOF' && needs.impact.outputs.needs_database == 'true'",
     ),
   );
+});
+
+test("Quality selects one root CI authority and one scheduler guard per affected profile", () => {
+  const workflow = readFileSync(".github/workflows/quality.yml", "utf8");
+  const names = [
+    "Validate CI scheduler governance",
+    "Validate CI selection and candidate identity",
+    "Run affected workspace quality",
+  ];
+  const commands = [
+    "node --test tooling/quality/ci-scheduler-governance.test.mjs",
+    "node --test tooling/ci/*.test.mjs",
+    'node tooling/ci/affected-quality.mjs "$CI_IMPACT_BASE"',
+  ];
+  const blocks = workflow.split(/^      - /mu);
+  const steps = names.map((name, index) => {
+    const matches = blocks.filter((block) =>
+      block.startsWith(`name: ${name}\n`),
+    );
+    assert.equal(matches.length, 1, name);
+    const condition = /^        if: (.+)$/mu.exec(matches[0])?.[1];
+    const command = /^        run: (.+)$/mu.exec(matches[0])?.[1];
+    assert.ok(condition, `${name}: condition required`);
+    assert.equal(command, commands[index]);
+    assert.equal(
+      workflow.split(`run: ${commands[index]}\n`).length - 1,
+      1,
+      `${name}: duplicate command`,
+    );
+    return condition;
+  });
+  const selected = (profile, domains) =>
+    steps.map((condition) =>
+      runInNewContext(
+        `(${condition})`,
+        {
+          needs: {
+            impact: {
+              outputs: {
+                quality_profile: profile,
+                domains: JSON.stringify(domains),
+              },
+            },
+          },
+          contains: (collection, value) => collection.includes(value),
+          fromJSON: JSON.parse,
+        },
+        { timeout: 100 },
+      ),
+    );
+  for (const profile of [
+    "BUGFIX_FAST",
+    "UI_BUGFIX_FAST",
+    "DB_BUGFIX_FAST",
+    "CONTRACT_BUGFIX",
+  ]) {
+    for (const domain of ["ci-tooling", "cicd"]) {
+      assert.deepEqual(
+        selected(profile, [domain]),
+        [true, false, true],
+        `${profile}/${domain}`,
+      );
+    }
+    assert.deepEqual(
+      selected(profile, ["auth"]),
+      [false, false, true],
+      profile,
+    );
+  }
+  for (const domains of [[], ["ci-tooling"], ["cicd"]]) {
+    assert.deepEqual(selected("DEEP_PROOF", domains), [true, true, false]);
+  }
+  for (const domain of ["ci-tooling", "cicd"]) {
+    assert.deepEqual(selected("NON_RUNTIME", [domain]), [true, true, false]);
+  }
+  assert.deepEqual(selected("NON_RUNTIME", []), [false, false, false]);
+  assert.deepEqual(selected("CLASSIFICATION_BLOCK", []), [false, false, false]);
 });
 
 test("broad Security Scanning is asynchronous to pull-request bugfixes", () => {

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { runAffectedProof } from "./affected-task-proof.mjs";
@@ -67,7 +68,32 @@ export function resolveExactAffectedSelection(
     "refs/heads/main",
     "AFFECTED_QUALITY_REMOTE_BASE_INVALID",
   );
-  assert.equal(remote[0], baseSha, "AFFECTED_QUALITY_BASE_STALE");
+  if (
+    process.env.GITHUB_EVENT_NAME === "push" &&
+    process.env.GITHUB_REF === "refs/heads/main"
+  ) {
+    let event;
+    try {
+      event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
+    } catch {
+      throw new Error("AFFECTED_QUALITY_PUSH_EVENT_INVALID");
+    }
+    assert.equal(
+      event?.ref,
+      "refs/heads/main",
+      "AFFECTED_QUALITY_PUSH_REF_MISMATCH",
+    );
+    assert.equal(event?.before, baseSha, "AFFECTED_QUALITY_PUSH_BASE_MISMATCH");
+    assert.equal(event?.after, headSha, "AFFECTED_QUALITY_PUSH_HEAD_MISMATCH");
+    assert.equal(
+      process.env.GITHUB_SHA,
+      headSha,
+      "AFFECTED_QUALITY_EVENT_SHA_MISMATCH",
+    );
+    assert.equal(remote[0], headSha, "AFFECTED_QUALITY_REMOTE_HEAD_STALE");
+  } else {
+    assert.equal(remote[0], baseSha, "AFFECTED_QUALITY_BASE_STALE");
+  }
   execFileSync("git", ["merge-base", "--is-ancestor", baseSha, headSha], {
     stdio: "ignore",
   });

@@ -116,9 +116,12 @@ jobs:
       - name: Enforce workflow supply chain
         if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm ci:supply-chain:strict
-      - name: Validate CI selection and candidate identity
+      - name: Validate CI scheduler governance
         if: needs.impact.outputs.quality_profile == 'DEEP_PROOF' || contains(needs.impact.outputs.domains, 'ci-tooling') || contains(needs.impact.outputs.domains, 'cicd')
-        run: node --test tooling/ci/*.test.mjs tooling/quality/ci-scheduler-governance.test.mjs
+        run: node --test tooling/quality/ci-scheduler-governance.test.mjs
+      - name: Validate CI selection and candidate identity
+        if: (needs.impact.outputs.quality_profile == 'DEEP_PROOF' || contains(needs.impact.outputs.domains, 'ci-tooling') || contains(needs.impact.outputs.domains, 'cicd')) && !contains(fromJSON('["BUGFIX_FAST","UI_BUGFIX_FAST","DB_BUGFIX_FAST","CONTRACT_BUGFIX"]'), needs.impact.outputs.quality_profile)
+        run: node --test tooling/ci/*.test.mjs
       - name: Validate operational tooling contracts
         if: needs.impact.outputs.serialized_control_transition_only != 'true'
         env:
