@@ -48,8 +48,16 @@ function harness({ failReal = true, failFallback = false } = {}) {
   const installs = [];
   const destroyed = [];
   const starts = [];
+  const nativeMapAssignments = [];
   const context = vm.createContext({
     document,
+    application: {
+      exploreLocations: {
+        setNativeMap(map) {
+          nativeMapAssignments.push(map);
+        },
+      },
+    },
     mapContainer: {
       setAttribute() {},
       removeAttribute() {},
@@ -106,6 +114,7 @@ function harness({ failReal = true, failFallback = false } = {}) {
     installs,
     destroyed,
     starts,
+    nativeMapAssignments,
     run: (provider) => context.startBrowserWithProvider(provider),
   };
 }
@@ -116,6 +125,7 @@ test("map construction recovery restores assistant runtime and cleans each previ
     await h.run({ mode: "real", sdk: {}, environment: {} });
   assert.equal(h.installs.length, 2, "exactly one runtime per recovered map");
   assert.deepEqual(h.destroyed, ["previous", h.installs[0].runtime]);
+  assert.deepEqual(h.nativeMapAssignments, [undefined, undefined]);
   for (const { options } of h.installs) {
     assert.equal(options.map, h.fallbackMap);
     assert.equal(options.sdk, h.fallbackSdk);
@@ -139,6 +149,7 @@ test("initial fallback keeps browser.ts default installation without adding a se
   );
   assert.equal(h.installs.length, 0);
   assert.equal(h.destroyed.length, 0);
+  assert.deepEqual(h.nativeMapAssignments, []);
 });
 
 test("failed fallback stays failed and does not install an assistant against an unavailable map", async () => {
@@ -149,4 +160,5 @@ test("failed fallback stays failed and does not install an assistant against an 
   );
   assert.equal(h.installs.length, 0);
   assert.deepEqual(h.destroyed, ["previous"]);
+  assert.deepEqual(h.nativeMapAssignments, [undefined]);
 });
