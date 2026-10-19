@@ -20,6 +20,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-19T09:00:00.000Z"
+    },
+    "MD-RELEASE-RUNTIME-FIXTURE-20261019": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/release-container-fixture-20261019",
+      "baseSha": "d921f8f07f5925561181dce8584bc89de8203257",
+      "paths": [
+        ".morro/changesets/MD-RELEASE-RUNTIME-FIXTURE-20261019.json",
+        "tooling/quality/release-container-entrypoint.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-19T10:00:00.000Z"
     }
   }
 }
