@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-LEAD-DETAIL-MYSQL-BOUNDS-20261019",
+  "objective": "bound-lead-detail-mysql-pull-start-and-sql-readiness-with-safe-diagnostics-and-cleanup",
+  "baseSha": "4473d74711d9f12a2a07bac76932e01f1a2c7321",
+  "branch": "fix/crm-lead-detail-mysql-bounds-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CRM-LEAD-DETAIL-MYSQL-BOUNDS-20261019.json",
+      ".github/workflows/crm-lead-detail-browser-contract.yml",
+      "tooling/ci/crm-lead-detail-mysql.sh",
+      "tooling/ci/crm-lead-detail-mysql.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "crm-lead-detail-mysql-process-control",
+        "argv": ["node", "--test", "tooling/ci/crm-lead-detail-mysql.test.mjs"],
+        "timeoutSeconds": 60
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
