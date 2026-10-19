@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ASSISTANT-MAP-FIXTURE-20261019",
+  "objective": "repair-inherited-map-recovery-fixture-application-boundary",
+  "baseSha": "259c6768a7ac079580aaceed6c72dd9228c3cfa9",
+  "branch": "fix/assistant-map-fixture-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ASSISTANT-MAP-FIXTURE-20261019.json",
+      "tooling/quality/assistant-map-recovery.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "map-fixture-claim-lifecycle-authority",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      },
+      {
+        "id": "assistant-map-recovery-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/assistant-map-recovery.test.mjs"
+        ],
+        "timeoutSeconds": 120
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
