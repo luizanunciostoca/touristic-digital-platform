@@ -14,7 +14,7 @@
         "tooling/ci/runtime-image-contract.mjs",
         "tooling/ci/runtime-image-contract.test.mjs",
         ".github/workflows/security-scanning.yml",
-        ".github/workflows/oci-release-promotion-gate.yml"
+        ".github/workflows/release-oci-image.yml"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
