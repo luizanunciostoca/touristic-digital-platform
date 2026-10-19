@@ -1,22 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-STAGING-RECOVERY-COVERAGE-20261019": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-recovery-coverage-20261019",
-      "baseSha": "9bd3913598f728ef7b6b4ab54c5290a67572e148",
-      "paths": [
-        ".morro/changesets/MD-STAGING-RECOVERY-COVERAGE-20261019.json",
-        "tooling/render/mysql-staging/backup-restore-drill.sh",
-        "tooling/render/mysql-staging/backup-restore-drill.contract.mjs",
-        "docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-19T23:45:00.000Z"
-    }
-  }
+  "claims": {}
 }
