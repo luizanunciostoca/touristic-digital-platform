@@ -4,7 +4,7 @@
   "objective": "replace-vulnerable-runtime-base-and-prove-security-of-the-final-immutable-release-digest",
   "baseSha": "39fb9f2798ab51dbb1dd2d215feaba12282ab142",
   "branch": "fix/runtime-distroless-20261019",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
