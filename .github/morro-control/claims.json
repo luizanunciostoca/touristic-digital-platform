@@ -2,21 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-PERFORMANCE-BUDGET-PIPEFAIL-20261017": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/performance-budget-pipefail-20261017",
-      "baseSha": "765983a14662e4d2056121ea405a1f764835e381",
-      "paths": [
-        ".morro/changesets/MD-PERFORMANCE-BUDGET-PIPEFAIL-20261017.json",
-        ".github/workflows/morro-performance-budget.yml",
-        "tooling/ci/performance-budget-workflow-failclosed.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-18T20:31:38.413Z"
-    },
     "MD-CRM-GLOBAL-ACCESS-20261018": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
