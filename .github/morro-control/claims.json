@@ -33,6 +33,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-19T06:00:00.000Z"
+    },
+    "MD-CI-QUALITY-PROOF-SELECTION-20261019": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/ci-quality-proof-selection-20261019",
+      "baseSha": "85dd8d955b6f2524ac7fa41fa5aebade9eb25640",
+      "paths": [
+        ".morro/changesets/MD-CI-QUALITY-PROOF-SELECTION-20261019.json",
+        ".github/workflows/quality.yml",
+        "tooling/ci/affected-quality.mjs",
+        "tooling/ci/affected-quality.test.mjs",
+        "tooling/ci/suite-scheduler.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-19T06:00:00.000Z"
     }
   }
 }
