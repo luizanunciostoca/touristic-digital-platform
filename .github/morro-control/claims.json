@@ -18,22 +18,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-19T06:00:00.000Z"
     },
-    "MD-CRM-LEAD-DETAIL-MYSQL-BOUNDS-20261019": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/crm-lead-detail-mysql-bounds-20261019",
-      "baseSha": "51a1309c45f485d8f06683e449d6b86246faf2c8",
-      "paths": [
-        ".morro/changesets/MD-CRM-LEAD-DETAIL-MYSQL-BOUNDS-20261019.json",
-        ".github/workflows/crm-lead-detail-browser-contract.yml",
-        "tooling/ci/crm-lead-detail-mysql.sh",
-        "tooling/ci/crm-lead-detail-mysql.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-19T06:00:00.000Z"
-    },
     "MD-CI-QUALITY-PROOF-SELECTION-20261019": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
