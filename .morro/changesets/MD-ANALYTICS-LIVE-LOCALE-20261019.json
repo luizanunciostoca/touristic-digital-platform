@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ANALYTICS-LIVE-LOCALE-20261019",
+  "objective": "resolve-current-browser-locale-for-analytics-events-after-language-switch",
+  "baseSha": "7ddbf1cac31d899d0c6126c492367b6bac950baf",
+  "branch": "fix/analytics-live-locale-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ANALYTICS-LIVE-LOCALE-20261019.json",
+      "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
+      "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts",
+      "tooling/ci/analytics-live-locale.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 120
+    },
+    "commands": [
+      {
+        "id": "analytics-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 120
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
