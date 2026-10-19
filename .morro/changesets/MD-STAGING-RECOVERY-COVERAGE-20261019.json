@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-RECOVERY-COVERAGE-20261019",
   "objective": "cover-eleven-staging-recovery-domains-and-clean-failed-partial-dumps",
-  "baseSha": "9bd3913598f728ef7b6b4ab54c5290a67572e148",
-  "branch": "fix/staging-recovery-coverage-20261019",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "cb9f36e83d72f0e1f1546837df6a6239d18151ed",
+  "branch": "chore/retire-staging-recovery-20261019",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
