@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RUNTIME-DISTROLESS-20261019",
   "objective": "replace-vulnerable-runtime-base-and-prove-security-of-the-final-immutable-release-digest",
-  "baseSha": "1d6be132e17962f38cd6a4fbbc2a9fe34fac9ea4",
+  "baseSha": "39fb9f2798ab51dbb1dd2d215feaba12282ab142",
   "branch": "fix/runtime-distroless-20261019",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {

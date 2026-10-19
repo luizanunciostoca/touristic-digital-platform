@@ -188,6 +188,7 @@
         "tooling/workspace/",
         "tooling/control-state/",
         ".gitignore",
+        "Dockerfile",
         "package.json",
         "pnpm-lock.yaml",
         "packages/design-system/package.json",
