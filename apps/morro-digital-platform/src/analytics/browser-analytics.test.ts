@@ -79,7 +79,10 @@ function installedBrowserHarness(consent: "granted" | "unknown" = "granted") {
   }
   const events: AnalyticsEvent[] = [];
   const fetcher = vi.fn<typeof fetch>(async (_input, init) => {
-    events.push(JSON.parse(String(init?.body)) as AnalyticsEvent);
+    if (typeof init?.body !== "string") {
+      throw new TypeError("Analytics request body must be JSON text");
+    }
+    events.push(JSON.parse(init.body) as AnalyticsEvent);
     return { ok: true } as Response;
   });
   const original = Object.getOwnPropertyDescriptor(
