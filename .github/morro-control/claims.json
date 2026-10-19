@@ -2,22 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-PERFORMANCE-ASSET-ACCOUNTING-20261018": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/performance-asset-accounting-20261018",
-      "baseSha": "13b2f53a938c4aefef25a4ac228972e399956b11",
-      "paths": [
-        ".morro/changesets/MD-PERFORMANCE-ASSET-ACCOUNTING-20261018.json",
-        "tooling/performance/check-morro-digital-budget.mjs",
-        "tooling/performance/check-morro-digital-budget.test.mjs",
-        "tooling/ci/performance-budget-accounting.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-18T14:30:00.000Z"
-    },
     "MD-AFFILIATES-READINESS-MYSQL-PROOF-20261018": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
