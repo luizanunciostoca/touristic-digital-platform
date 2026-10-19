@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-READINESS-DISTROLESS-20261019",
+  "objective": "accept-verified-distroless-node-command-while-preserving-release-readiness-guards",
+  "baseSha": "81b114d0a750996b142cc0a25db809abdd0a0344",
+  "branch": "chore/acquire-release-readiness-distroless-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-RELEASE-READINESS-DISTROLESS-20261019.json",
+      "tooling/quality/check-release-readiness.mjs",
+      "tooling/quality/release-container-entrypoint.mjs",
+      "tooling/quality/release-container-entrypoint.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 180
+    },
+    "commands": [
+      {
+        "id": "release-runtime-guardrails",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/release-target-governance.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
