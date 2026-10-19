@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-RUNTIME-FIXTURE-20261019",
   "objective": "make-release-container-entrypoint-regression-independent-of-current-runtime-image",
-  "baseSha": "d921f8f07f5925561181dce8584bc89de8203257",
+  "baseSha": "a458995f31dea06f23ec2db40854e88e9e0b305e",
   "branch": "fix/release-container-fixture-20261019",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
