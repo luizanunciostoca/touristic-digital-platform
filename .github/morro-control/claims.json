@@ -2,21 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-AFFILIATES-READINESS-MYSQL-PROOF-20261018": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/affiliates-readiness-mysql-proof-20261018",
-      "baseSha": "c243c9c589ff7dc3ab8b248c1d909d488b12bc90",
-      "paths": [
-        ".morro/changesets/MD-AFFILIATES-READINESS-MYSQL-PROOF-20261018.json",
-        ".github/workflows/affiliates-readiness-mysql-contract.yml",
-        "tooling/ci/affiliates-readiness-mysql-contract.mysql.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-18T18:30:00.000Z"
-    },
     "MD-ASSISTANT-FAILURE-RECOVERY-20261018": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
