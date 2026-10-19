@@ -114,6 +114,82 @@ jobs:
           remote="$(docker buildx imagetools inspect "$IMAGE_REPOSITORY:$EXPECTED_SHA" --format '{{json .Manifest}}' | jq -r '.digest // empty')"
           test "$remote" = "$DIGEST"
 
+      - name: Smoke the exact immutable release digest
+        env:
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="$IMAGE_REPOSITORY@$DIGEST"
+          docker pull "$ref"
+          user="$(docker image inspect --format '{{.Config.User}}' "$ref")"
+          case "$user" in
+            65532|65532:65532|nonroot) ;;
+            *) echo "RUNTIME_USER_NOT_NONROOT:$user" >&2; exit 1 ;;
+          esac
+          container_name="morro-release-smoke-$GITHUB_RUN_ID"
+          cleanup() {
+            docker rm --force "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker run --detach --name "$container_name" \
+            --publish 127.0.0.1:43173:4173 \
+            --env HOST=0.0.0.0 --env PORT=4173 \
+            --env NODE_ENV=production \
+            --env ANALYTICS_FEATURE_ENABLED=false \
+            "$ref"
+          for attempt in {1..35}; do
+            if curl --silent --show-error --fail \
+              http://127.0.0.1:43173/healthz \
+              --output /tmp/morro-release-health.json; then
+              break
+            fi
+            if test "$(docker inspect --format '{{.State.Running}}' "$container_name")" != true; then
+              docker logs "$container_name" >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          import assert from "node:assert/strict";
+          const health = JSON.parse(readFileSync("/tmp/morro-release-health.json","utf8"));
+          assert.equal(health.status, "live");
+          assert.equal(health.release?.sha, process.env.EXPECTED_SHA);
+          NODE
+
+      - name: Scan immutable digest for embedded secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ steps.publish.outputs.image }}@${{ steps.publish.outputs.digest }}
+          scanners: secret
+          exit-code: "1"
+          format: table
+
+      - name: Scan immutable digest for HIGH and CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ steps.publish.outputs.image }}@${{ steps.publish.outputs.digest }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+          format: json
+          output: trivy-immutable-release-vulnerabilities.json
+
+      - name: Upload immutable digest scan evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: immutable-image-security-${{ steps.invocation.outputs.expected_sha }}
+          path: trivy-immutable-release-vulnerabilities.json
+          if-no-files-found: warn
+          retention-days: 90
+
       - name: Write release provenance
         env:
           EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}

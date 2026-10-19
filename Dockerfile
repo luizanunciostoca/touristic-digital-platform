@@ -29,10 +29,10 @@ FROM base AS build
 ENV NODE_ENV=production
 RUN pnpm build && pnpm install --frozen-lockfile --prod
 
-# Production stage: current Debian 13 runtime, patched OS packages, no package
-# managers, and no root process. Keeping build tooling out of this stage avoids
-# shipping npm/pnpm dependency trees that are not part of the application.
-FROM node:22.23.2-trixie-slim AS production
+# Production stage: no shell, package manager, login utilities, or root user.
+# The upstream Node.js distroless Debian 13 image receives patched releases.
+# CI scans the exact published image digest before release provenance is emitted.
+FROM gcr.io/distroless/nodejs22-debian13:nonroot AS production
 WORKDIR /app
 
 ARG MORRO_RELEASE_SHA=unknown
@@ -43,25 +43,8 @@ ENV NODE_ENV=production \
     MORRO_RELEASE_VERSION=$MORRO_RELEASE_VERSION \
     MORRO_RELEASE_IMAGE_RUN_ID=$MORRO_RELEASE_IMAGE_RUN_ID
 
-RUN set -eux; \
-    apt-get update; \
-    apt-get upgrade -y; \
-    apt-get clean; \
-    rm -rf /var/lib/apt/lists/* \
-      /usr/local/lib/node_modules/npm \
-      /usr/local/lib/node_modules/corepack \
-      /opt/yarn-*; \
-    rm -f /usr/local/bin/npm \
-      /usr/local/bin/npx \
-      /usr/local/bin/corepack \
-      /usr/local/bin/pnpm \
-      /usr/local/bin/pnpx \
-      /usr/local/bin/yarn \
-      /usr/local/bin/yarnpkg
-
-COPY --from=build --chown=node:node /app /app
-
-USER node
-
+# Node.js is the runtime entrypoint in distroless nodejs images.
+COPY --from=build --chown=65532:65532 /app /app
+USER 65532:65532
 EXPOSE 3000
-CMD ["node", "apps/morro-digital-platform/tooling/dev-server.mjs"]
+CMD ["apps/morro-digital-platform/tooling/dev-server.mjs"]

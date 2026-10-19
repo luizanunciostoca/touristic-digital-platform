@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/runtime-distroless-20261019",
-      "baseSha": "39fb9f2798ab51dbb1dd2d215feaba12282ab142",
+      "baseSha": "8d500551d4b0e4643ab5dbc20b154a3e8965ac19",
       "paths": [
         ".morro/changesets/MD-RUNTIME-DISTROLESS-20261019.json",
         ".morro/ownership.json",

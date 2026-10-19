@@ -1,6 +1,14 @@
 name: Security Scanning
 
 on:
+  # Scan the exact image-bearing PR candidate before merging.
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".github/workflows/release-oci-image.yml"
+      - ".github/workflows/security-scanning.yml"
+      - "tooling/ci/runtime-image-contract.mjs"
+      - "tooling/ci/runtime-image-contract.test.mjs"
   workflow_dispatch:
   push:
     branches:
@@ -168,6 +176,7 @@ jobs:
 
   mysql-container:
     name: Staging MySQL container
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -209,6 +218,7 @@ jobs:
 
   production-mysql-container:
     name: Production MySQL containers
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-RUNTIME-DISTROLESS-20261019",
   "objective": "replace-vulnerable-runtime-base-and-prove-security-of-the-final-immutable-release-digest",
-  "baseSha": "39fb9f2798ab51dbb1dd2d215feaba12282ab142",
+  "baseSha": "8d500551d4b0e4643ab5dbc20b154a3e8965ac19",
   "branch": "fix/runtime-distroless-20261019",
   "state": "LOCAL_PROVEN",
   "risk": "critical",
@@ -70,8 +70,13 @@
     },
     "commands": [
       {
-        "id": "exact-ownership-mapping",
-        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "id": "immutable-runtime-contracts",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/runtime-image-contract.test.mjs",
+          "tooling/quality/release-container-entrypoint.test.mjs"
+        ],
         "timeoutSeconds": 180
       }
     ],
