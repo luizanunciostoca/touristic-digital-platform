@@ -40,10 +40,7 @@ function git(...args) {
   }).trim();
 }
 
-export function resolveExactAffectedSelection(
-  baseSha,
-  headSha = git("rev-parse", "HEAD"),
-) {
+function resolveAffectedSelection(baseSha, headSha, useGithubPush = false) {
   assert.match(baseSha ?? "", SHA, "AFFECTED_QUALITY_BASE_SHA_INVALID");
   assert.match(headSha ?? "", SHA, "AFFECTED_QUALITY_HEAD_SHA_INVALID");
   assert.equal(
@@ -69,6 +66,7 @@ export function resolveExactAffectedSelection(
     "AFFECTED_QUALITY_REMOTE_BASE_INVALID",
   );
   if (
+    useGithubPush &&
     process.env.GITHUB_EVENT_NAME === "push" &&
     process.env.GITHUB_REF === "refs/heads/main"
   ) {
@@ -170,8 +168,19 @@ export function resolveExactAffectedSelection(
   };
 }
 
+export function resolveExactAffectedSelection(
+  baseSha,
+  headSha = git("rev-parse", "HEAD"),
+) {
+  return resolveAffectedSelection(baseSha, headSha);
+}
+
 export function runAffectedQuality(baseSha) {
-  const selection = resolveExactAffectedSelection(baseSha);
+  const selection = resolveAffectedSelection(
+    baseSha,
+    git("rev-parse", "HEAD"),
+    true,
+  );
   const proof = runAffectedProof(
     { mode: "AFFECTED", affectedQualityArgs: selection.args },
     selection.report.domains,
