@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { validateReleaseContainerEntrypoint } from "./release-container-entrypoint.mjs";
 
 const root = process.cwd();
 
@@ -86,11 +87,7 @@ const productionWeb = serviceBlock(
 requireText(production, "production blueprint", "name: morro-digital-v2");
 requireText(production, "production blueprint", "runtime: node");
 requireText(production, "production blueprint", "healthCheckPath: /readyz");
-requireText(
-  dockerfile,
-  "production Dockerfile",
-  'CMD ["node", "apps/morro-digital-platform/tooling/dev-server.mjs"]',
-);
+validateReleaseContainerEntrypoint(dockerfile);
 forbidText(
   dockerfile,
   "production Dockerfile",
