@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CRM-LEAD-DETAIL-MYSQL-BOUNDS-20261019",
   "objective": "bound-lead-detail-mysql-pull-start-and-sql-readiness-with-safe-diagnostics-and-cleanup",
-  "baseSha": "51a1309c45f485d8f06683e449d6b86246faf2c8",
-  "branch": "fix/crm-lead-detail-mysql-bounds-20261019",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "3b7b0e6529746e8ed42000210a51b4bbd269b73f",
+  "branch": "chore/retire-crm-mysql-bounds-f052-20261019",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
