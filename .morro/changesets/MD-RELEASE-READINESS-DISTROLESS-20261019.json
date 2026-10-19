@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-READINESS-DISTROLESS-20261019",
   "objective": "accept-verified-distroless-node-command-while-preserving-release-readiness-guards",
-  "baseSha": "81b114d0a750996b142cc0a25db809abdd0a0344",
+  "baseSha": "d3ff4193cb73fc56e5846d526d6cff035f89ae98",
   "branch": "chore/acquire-release-readiness-distroless-20261019",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {

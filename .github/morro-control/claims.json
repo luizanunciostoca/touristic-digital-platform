@@ -25,7 +25,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/acquire-release-readiness-distroless-20261019",
-      "baseSha": "81b114d0a750996b142cc0a25db809abdd0a0344",
+      "baseSha": "d3ff4193cb73fc56e5846d526d6cff035f89ae98",
       "paths": [
         ".morro/changesets/MD-RELEASE-READINESS-DISTROLESS-20261019.json",
         "tooling/quality/check-release-readiness.mjs",
