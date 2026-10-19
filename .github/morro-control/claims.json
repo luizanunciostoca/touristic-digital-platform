@@ -2,21 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CRM-GLOBAL-ACCESS-20261018": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/crm-global-access-20261018",
-      "baseSha": "ee358a004d2c8e0164cee2eabc0b03d7dd4030ec",
-      "paths": [
-        ".morro/changesets/MD-CRM-GLOBAL-ACCESS-20261018.json",
-        "apps/morro-digital-platform/tooling/crm-api.mjs",
-        "services/crm/src/crm-private-auth-order.test.mjs"
-      ],
-      "domains": ["auth"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-18T13:42:27.758Z"
-    },
     "MD-PERFORMANCE-ASSET-ACCOUNTING-20261018": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
