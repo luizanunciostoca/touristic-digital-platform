@@ -8,6 +8,8 @@ on:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/crm-lead-detail-browser-contract.yml"
       - "tooling/crm/**"
+      - "tooling/ci/crm-lead-detail-mysql.sh"
+      - "tooling/ci/crm-lead-detail-mysql.test.mjs"
       - "apps/admin-crm/public/index.html"
       - "apps/admin-crm/public/lead-detail.html"
       - "apps/admin-crm/public/lead-detail.js"
@@ -38,6 +40,8 @@ on:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/crm-lead-detail-browser-contract.yml"
       - "tooling/crm/**"
+      - "tooling/ci/crm-lead-detail-mysql.sh"
+      - "tooling/ci/crm-lead-detail-mysql.test.mjs"
       - "apps/admin-crm/public/index.html"
       - "apps/admin-crm/public/lead-detail.html"
       - "apps/admin-crm/public/lead-detail.js"
@@ -75,24 +79,16 @@ jobs:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: crm-pass
-          MYSQL_DATABASE: morro_crm
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -pcrm-pass"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
+
+      - name: Start bounded MySQL
+        timeout-minutes: 5
+        shell: bash
+        run: bash tooling/ci/crm-lead-detail-mysql.sh start
 
       - name: Validate focused CRM contracts
         run: |
@@ -284,3 +280,15 @@ jobs:
         if: always()
         run: |
           if [ -f /tmp/crm-m140-server.pid ]; then kill "$(cat /tmp/crm-m140-server.pid)" 2>/dev/null || true; fi
+
+      - name: Diagnose MySQL failure
+        if: failure()
+        timeout-minutes: 1
+        shell: bash
+        run: bash tooling/ci/crm-lead-detail-mysql.sh diagnostics
+
+      - name: Remove disposable MySQL
+        if: always()
+        timeout-minutes: 1
+        shell: bash
+        run: bash tooling/ci/crm-lead-detail-mysql.sh cleanup

@@ -22,7 +22,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/crm-lead-detail-mysql-bounds-20261019",
-      "baseSha": "4473d74711d9f12a2a07bac76932e01f1a2c7321",
+      "baseSha": "51a1309c45f485d8f06683e449d6b86246faf2c8",
       "paths": [
         ".morro/changesets/MD-CRM-LEAD-DETAIL-MYSQL-BOUNDS-20261019.json",
         ".github/workflows/crm-lead-detail-browser-contract.yml",
