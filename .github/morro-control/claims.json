@@ -20,22 +20,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-19T09:00:00.000Z"
-    },
-    "MD-RELEASE-READINESS-DISTROLESS-20261019": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/acquire-release-readiness-distroless-20261019",
-      "baseSha": "d3ff4193cb73fc56e5846d526d6cff035f89ae98",
-      "paths": [
-        ".morro/changesets/MD-RELEASE-READINESS-DISTROLESS-20261019.json",
-        "tooling/quality/check-release-readiness.mjs",
-        "tooling/quality/release-container-entrypoint.mjs",
-        "tooling/quality/release-container-entrypoint.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-19T09:00:00.000Z"
     }
   }
 }
