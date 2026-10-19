@@ -3,10 +3,25 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { validateReleaseContainerEntrypoint } from "./release-container-entrypoint.mjs";
 
-const legacy = readFileSync(
+const canonical = readFileSync(
   new URL("../../Dockerfile", import.meta.url),
   "utf8",
 );
+// Exercise stable runtime fixtures independently of the current deploy image.
+const legacy = canonical
+  .replace(
+    "FROM gcr.io/distroless/nodejs22-debian13:nonroot AS production",
+    "FROM node:22.23.2-trixie-slim AS production",
+  )
+  .replace(
+    "COPY --from=build --chown=65532:65532 /app /app",
+    "COPY --from=build --chown=node:node /app /app",
+  )
+  .replace("USER 65532:65532", "USER node")
+  .replace(
+    'CMD ["apps/morro-digital-platform/tooling/dev-server.mjs"]',
+    'CMD ["node", "apps/morro-digital-platform/tooling/dev-server.mjs"]',
+  );
 const modern = legacy
   .replace(
     "FROM node:22.23.2-trixie-slim AS production",
@@ -22,6 +37,11 @@ const modern = legacy
     'CMD ["node", "apps/morro-digital-platform/tooling/dev-server.mjs"]',
     'CMD ["apps/morro-digital-platform/tooling/dev-server.mjs"]',
   );
+
+test("checked-in Dockerfile must match the exact trusted runtime contract", () => {
+  const state = validateReleaseContainerEntrypoint(canonical);
+  assert.ok(["node", "65532:65532"].includes(state.nonrootUser));
+});
 
 test("existing Node 22 runtime continues to satisfy exact nonroot readiness", () => {
   assert.equal(validateReleaseContainerEntrypoint(legacy).nonrootUser, "node");

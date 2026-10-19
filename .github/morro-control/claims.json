@@ -25,7 +25,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/release-container-fixture-20261019",
-      "baseSha": "d921f8f07f5925561181dce8584bc89de8203257",
+      "baseSha": "a458995f31dea06f23ec2db40854e88e9e0b305e",
       "paths": [
         ".morro/changesets/MD-RELEASE-RUNTIME-FIXTURE-20261019.json",
         "tooling/quality/release-container-entrypoint.test.mjs"
