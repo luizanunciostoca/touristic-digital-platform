@@ -48,6 +48,8 @@ case "$restore_database" in
 esac
 
 source_allowed=false
+# CRM has a fixed staging identity; the exact service guard above is mandatory.
+# Keep this literal aligned with tooling/render/staging-crm-credentials.mjs.
 for candidate in \
   "${AUTH_DATABASE_NAME:-}" \
   "${ORDERING_DATABASE_NAME:-}" \
@@ -55,8 +57,11 @@ for candidate in \
   "${AFFILIATES_DATABASE_NAME:-}" \
   "${BUSINESS_DATABASE_NAME:-}" \
   "${CONTENT_DATABASE_NAME:-}" \
+  "${COMMERCE_DATABASE_NAME:-}" \
   "${DESTINATIONS_DATABASE_NAME:-}" \
-  "${NOTIFICATIONS_DATABASE_NAME:-}"; do
+  "${NOTIFICATIONS_DATABASE_NAME:-}" \
+  "${TICKETING_DATABASE_NAME:-}" \
+  "morro_crm_staging"; do
   if [ -n "$candidate" ]; then
     validate_identifier "$candidate"
     if [ "$source_database" = "$candidate" ]; then
@@ -160,7 +165,7 @@ restore_exists="$(
 [ "$restore_exists" = "0" ] || fail "DRILL_RESTORE_DATABASE_ALREADY_EXISTS"
 
 backup_started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-MYSQL_PWD="$mysql_password" mysqldump \
+if ! MYSQL_PWD="$mysql_password" mysqldump \
   --protocol=tcp \
   --host="$mysql_host" \
   --port="$mysql_port" \
@@ -172,7 +177,10 @@ MYSQL_PWD="$mysql_password" mysqldump \
   --events \
   --hex-blob \
   --set-gtid-purged=OFF \
-  "$source_database" >"$backup_file"
+  "$source_database" >"$backup_file"; then
+  rm -f "$backup_file"
+  fail "DRILL_BACKUP_FAILED"
+fi
 backup_created=true
 backup_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 

@@ -18,11 +18,15 @@ The command fails closed unless all of the following are true:
 - `DRILL_CONFIRM=BACKUP_RESTORE_STAGING_ONLY`;
 - `RENDER_SERVICE_NAME=morro-digital-v2-staging-mysql` is present, so the command cannot run from another Render service;
 - `DRILL_SOURCE_QUIESCED_CONFIRMED=true` explicitly records that writes to the source have been paused for the drill;
-- the source database equals one of the four staging database names already injected into the MySQL private service;
+- the source database equals one of the ten staging database names injected into the MySQL private service, or the fixed CRM staging identity `morro_crm_staging`;
 - the restore database is different from the source and begins with `<source>_restore_drill_`;
 - the backup directory is not the MySQL data volume `/var/lib/mysql`.
 
 The script never changes the source schema. It creates only the isolated restore schema. By default the restore schema is dropped after validation and the SQL dump is removed from the temporary backup directory. Set `DRILL_KEEP_RESTORE=true` or `DRILL_KEEP_BACKUP=true` only when an operator explicitly needs to retain those artifacts and accepts responsibility for secure cleanup.
+
+CRM uses the canonical identity defined in `tooling/render/staging-crm-credentials.mjs`; `CRM_DATABASE_NAME` is not injected into the private MySQL service and cannot override this allowlist entry. Commerce and Ticketing use `COMMERCE_DATABASE_NAME` and `TICKETING_DATABASE_NAME`, respectively. The exact staging service guard applies to all eleven domains.
+
+If `mysqldump` fails, the partial SQL file is removed even with `DRILL_KEEP_BACKUP=true`, and the helper exits with `DRILL_BACKUP_FAILED` before creating or importing any restore schema. Successful dump retention semantics are unchanged.
 
 The row-count comparison assumes the staging source stays quiesced from backup start through restore validation. If writes resume during the drill, discard the evidence and run again.
 
@@ -50,17 +54,18 @@ Run from an authenticated shell **inside the private staging MySQL service**, ne
 
 ```sh
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_DIRECTORY="$(mktemp -d /tmp/morro-dr.XXXXXXXX)"
 
 DRILL_ENVIRONMENT=staging \
 DRILL_CONFIRM=BACKUP_RESTORE_STAGING_ONLY \
 DRILL_SOURCE_QUIESCED_CONFIRMED=true \
 DRILL_SOURCE_DATABASE="$ORDERING_DATABASE_NAME" \
 DRILL_RESTORE_DATABASE="${ORDERING_DATABASE_NAME}_restore_drill_${STAMP}" \
-DRILL_BACKUP_DIRECTORY=/tmp/morro-dr \
+DRILL_BACKUP_DIRECTORY="$BACKUP_DIRECTORY" \
 /usr/local/bin/morro-mysql-backup-restore-drill
 ```
 
-Before the live command, pause or otherwise quiesce the V2 staging web workload so no writes can occur until validation finishes. Repeat for Auth, Ordering, Financial and Affiliates when the release gate requires a complete database drill.
+Before the live command, pause or otherwise quiesce the V2 staging web workload so no writes can occur until validation finishes. Use a unique, previously unused backup directory for every attempt so retries cannot overwrite a retained recovery point. Repeat for Auth, Ordering, Financial, Affiliates, Business, Content, Commerce, Destinations, Notifications, Ticketing and CRM when the release gate requires a complete eleven-domain drill. Use `morro_crm_staging` directly for CRM; use each other domain's injected database name.
 
 A successful execution returns a single `MYSQL-BACKUP-RESTORE-DRILL` JSON record with:
 

@@ -4,7 +4,7 @@
   "objective": "cover-eleven-staging-recovery-domains-and-clean-failed-partial-dumps",
   "baseSha": "9bd3913598f728ef7b6b4ab54c5290a67572e148",
   "branch": "fix/staging-recovery-coverage-20261019",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
