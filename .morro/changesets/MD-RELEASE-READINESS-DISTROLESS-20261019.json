@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-READINESS-DISTROLESS-20261019",
   "objective": "accept-verified-distroless-node-command-while-preserving-release-readiness-guards",
-  "baseSha": "d3ff4193cb73fc56e5846d526d6cff035f89ae98",
-  "branch": "chore/acquire-release-readiness-distroless-20261019",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "e320cfd3c63c1926a4912c1c9360a3a7ab5a36e7",
+  "branch": "chore/retire-release-readiness-distroless-20261019",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
