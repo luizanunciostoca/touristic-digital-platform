@@ -293,7 +293,9 @@ test("main push uses its real before/after interval when remote main is already 
   pass(result);
   assert.equal((result.stdout.match(/ROOT_EXECUTED/g) ?? []).length, 1);
   assert.match(result.stdout, /WORKSPACE_EXECUTED/);
-  const proof = JSON.parse(result.stdout.trim().split("\n").at(-1));
+  const proofLine = result.stdout.match(/(\{[^\r\n]*\})\s*$/u)?.[1];
+  assert.ok(proofLine, "AFFECTED_PROOF_JSON_MISSING");
+  const proof = JSON.parse(proofLine);
   assert.equal(proof.baseSha, f.base);
   assert.equal(proof.headSha, f.head);
   assert.equal(proof.treeSha, f.git("rev-parse", "HEAD^{tree}"));
