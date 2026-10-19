@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-recovery-coverage-20261019",
-      "baseSha": "455cf22ca77e2891f21c15bf4d1e395d0d3fc42d",
+      "baseSha": "9bd3913598f728ef7b6b4ab54c5290a67572e148",
       "paths": [
         ".morro/changesets/MD-STAGING-RECOVERY-COVERAGE-20261019.json",
         "tooling/render/mysql-staging/backup-restore-drill.sh",

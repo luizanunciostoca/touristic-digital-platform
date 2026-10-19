@@ -1,5 +1,17 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const script = fileURLToPath(
@@ -9,6 +21,7 @@ const script = fileURLToPath(
 function run(extraEnvironment = {}) {
   return spawnSync("sh", [script], {
     encoding: "utf8",
+    timeout: 10_000,
     env: {
       ...process.env,
       DRILL_ENVIRONMENT: "staging",
@@ -20,6 +33,14 @@ function run(extraEnvironment = {}) {
       ORDERING_DATABASE_NAME: "morro_ordering_staging",
       FINANCIAL_DATABASE_NAME: "morro_financial_staging",
       AFFILIATES_DATABASE_NAME: "morro_affiliates_staging",
+      BUSINESS_DATABASE_NAME: "morro_business_staging",
+      CONTENT_DATABASE_NAME: "morro_content_staging",
+      COMMERCE_DATABASE_NAME: "morro_commerce_staging",
+      DESTINATIONS_DATABASE_NAME: "morro_destinations_staging",
+      TICKETING_DATABASE_NAME: "morro_ticketing_staging",
+      CRM_DATABASE_NAME: "",
+      DRILL_KEEP_BACKUP: "false",
+      DRILL_KEEP_RESTORE: "false",
       NOTIFICATIONS_DATABASE_NAME: "morro_notifications_staging",
       DRILL_SOURCE_DATABASE: "morro_ordering_staging",
       DRILL_RESTORE_DATABASE: "morro_ordering_staging_restore_drill_ci",
@@ -87,3 +108,172 @@ assert.match(
 console.log(
   "Staging MySQL backup/restore drill contract valid: staging-only, explicit confirmation, isolated restore schema, no secret output.",
 );
+
+const stagingDatabases = [
+  "morro_auth_staging",
+  "morro_ordering_staging",
+  "morro_financial_staging",
+  "morro_affiliates_staging",
+  "morro_business_staging",
+  "morro_content_staging",
+  "morro_commerce_staging",
+  "morro_destinations_staging",
+  "morro_notifications_staging",
+  "morro_ticketing_staging",
+  "morro_crm_staging",
+];
+
+for (const source of stagingDatabases) {
+  test(`dry-run covers ${source}`, () => {
+    const result = run({
+      DRILL_SOURCE_DATABASE: source,
+      DRILL_RESTORE_DATABASE: `${source}_restore_drill_ci`,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const plannedRecord = JSON.parse(result.stdout);
+    assert.equal(plannedRecord.status, "planned");
+    assert.equal(plannedRecord.sourceDatabase, source);
+    assert.doesNotMatch(
+      result.stdout + result.stderr,
+      /ci-not-a-secret-value/u,
+    );
+  });
+}
+
+test("CRM cannot be redirected through an arbitrary environment identity", () => {
+  const result = run({
+    CRM_DATABASE_NAME: "arbitrary_crm_database",
+    DRILL_SOURCE_DATABASE: "arbitrary_crm_database",
+    DRILL_RESTORE_DATABASE: "arbitrary_crm_database_restore_drill_ci",
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /DRILL_SOURCE_DATABASE_DENIED/u);
+});
+
+for (const domain of ["COMMERCE", "TICKETING"]) {
+  test(`${domain} requires its injected database identity`, () => {
+    const source = `morro_${domain.toLowerCase()}_staging`;
+    const result = run({
+      [`${domain}_DATABASE_NAME`]: "",
+      DRILL_SOURCE_DATABASE: source,
+      DRILL_RESTORE_DATABASE: `${source}_restore_drill_ci`,
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /DRILL_SOURCE_DATABASE_DENIED/u);
+  });
+}
+
+for (const [name, environment, code] of [
+  [
+    "production environment",
+    { DRILL_ENVIRONMENT: "production" },
+    "DRILL_ENVIRONMENT_DENIED",
+  ],
+  [
+    "missing confirmation",
+    { DRILL_CONFIRM: "" },
+    "DRILL_CONFIRMATION_REQUIRED",
+  ],
+  [
+    "same restore schema",
+    { DRILL_RESTORE_DATABASE: "morro_ordering_staging" },
+    "DRILL_RESTORE_DATABASE_MUST_DIFFER",
+  ],
+  [
+    "invalid identifier",
+    { DRILL_SOURCE_DATABASE: "unsafe-source" },
+    "DRILL_IDENTIFIER_INVALID",
+  ],
+  [
+    "CRM in another service",
+    {
+      RENDER_SERVICE_NAME: "morro-digital-v2",
+      DRILL_SOURCE_DATABASE: "morro_crm_staging",
+      DRILL_RESTORE_DATABASE: "morro_crm_staging_restore_drill_ci",
+    },
+    "DRILL_SERVICE_DENIED",
+  ],
+]) {
+  test(`preserves guard: ${name}`, () => {
+    const result = run(environment);
+    assert.notEqual(result.status, 0);
+    assert.ok(result.stderr.includes(code), result.stderr);
+    assert.doesNotMatch(
+      result.stdout + result.stderr,
+      /ci-not-a-secret-value/u,
+    );
+  });
+}
+
+for (const keepBackup of ["false", "true"]) {
+  test(`failed dump removes partial backup with keepBackup=${keepBackup}`, () => {
+    const fixture = mkdtempSync(join(tmpdir(), "morro-drill-failure-"));
+    try {
+      const bin = join(fixture, "bin");
+      const backup = join(fixture, "backup");
+      const calls = join(fixture, "calls.log");
+      mkdirSync(bin);
+      const mysql = join(bin, "mysql");
+      writeFileSync(
+        mysql,
+        [
+          "#!/bin/sh",
+          "set -eu",
+          'printf "%s\\n" "mysql $*" >> "$DRILL_STUB_CALLS"',
+          'case "$*" in',
+          '  *"--execute=SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME="*) printf "0\\n" ;;',
+          "  *) exit 91 ;;",
+          "esac",
+          "",
+        ].join("\n"),
+      );
+      const dump = join(bin, "mysqldump");
+      writeFileSync(
+        dump,
+        [
+          "#!/bin/sh",
+          "set -eu",
+          'printf "%s\\n" "mysqldump $*" >> "$DRILL_STUB_CALLS"',
+          'printf "INCOMPLETE_DUMP_STUB\\n"',
+          "exit 23",
+          "",
+        ].join("\n"),
+      );
+      chmodSync(mysql, 0o700);
+      chmodSync(dump, 0o700);
+      const result = run({
+        PATH: `${bin}:${process.env.PATH}`,
+        DRILL_STUB_CALLS: calls,
+        DRILL_DRY_RUN: "false",
+        DRILL_BACKUP_DIRECTORY: backup,
+        DRILL_KEEP_BACKUP: keepBackup,
+      });
+      assert.equal(result.error, undefined);
+      assert.notEqual(result.status, 0);
+      assert.deepEqual(
+        readdirSync(backup),
+        [],
+        "a failed dump must never be retained",
+      );
+      assert.match(result.stderr, /DRILL_BACKUP_FAILED/u);
+      assert.doesNotMatch(result.stdout, /"status":"pass"/u);
+      const invocations = readFileSync(calls, "utf8");
+      assert.equal(invocations.trim().split("\n").length, 2);
+      assert.match(
+        invocations,
+        /SELECT COUNT\(\*\) FROM INFORMATION_SCHEMA\.SCHEMATA/u,
+      );
+      assert.match(invocations, /mysqldump /u);
+      assert.doesNotMatch(
+        invocations,
+        /CREATE DATABASE|DROP DATABASE|--execute=.*INSERT/iu,
+      );
+      assert.doesNotMatch(
+        result.stdout + result.stderr + invocations,
+        /ci-not-a-secret-value/u,
+      );
+    } finally {
+      rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+}
