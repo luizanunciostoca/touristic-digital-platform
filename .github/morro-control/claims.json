@@ -23,7 +23,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/assistant-map-fixture-20261019",
-      "baseSha": "259c6768a7ac079580aaceed6c72dd9228c3cfa9",
+      "baseSha": "1b31e2d3e733cb08149b4ae5af0afddb62209e6c",
       "paths": [
         ".morro/changesets/MD-ASSISTANT-MAP-FIXTURE-20261019.json",
         "tooling/quality/assistant-map-recovery.test.mjs"
