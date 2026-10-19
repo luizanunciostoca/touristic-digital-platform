@@ -49,14 +49,20 @@ test("provenance must follow every security and runtime acceptance gate", () => 
   );
 });
 
-test("candidate image security scan must run before merge", () => {
+test("exact-head candidate image scan requires an explicitly scoped owner dispatch", () => {
   assert.throws(() =>
     validateRuntimeImageContract({
       ...current,
-      scanner: current.scanner.replace(
-        "pull_request:",
-        "never_on_pull_request:",
-      ),
+      scanner: current.scanner.replace("scan_scope:", "scan_scope_disabled:"),
+    }),
+  );
+});
+
+test("broad scanning must remain asynchronous to ordinary pull requests", () => {
+  assert.throws(() =>
+    validateRuntimeImageContract({
+      ...current,
+      scanner: current.scanner.replace("workflow_dispatch:", "pull_request:"),
     }),
   );
 });

@@ -1,15 +1,18 @@
 name: Security Scanning
 
 on:
-  # Scan the exact image-bearing PR candidate before merging.
-  pull_request:
-    paths:
-      - "Dockerfile"
-      - ".github/workflows/release-oci-image.yml"
-      - ".github/workflows/security-scanning.yml"
-      - "tooling/ci/runtime-image-contract.mjs"
-      - "tooling/ci/runtime-image-contract.test.mjs"
+  # Image-bearing candidates use an explicit exact-ref owner dispatch.
+  # Broad Security Scanning remains asynchronous to ordinary pull requests.
   workflow_dispatch:
+    inputs:
+      scan_scope:
+        description: Full scan or only application image and repository controls
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - application
   push:
     branches:
       - main
@@ -176,7 +179,7 @@ jobs:
 
   mysql-container:
     name: Staging MySQL container
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'workflow_dispatch' || inputs.scan_scope != 'application'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -218,7 +221,7 @@ jobs:
 
   production-mysql-container:
     name: Production MySQL containers
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'workflow_dispatch' || inputs.scan_scope != 'application'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

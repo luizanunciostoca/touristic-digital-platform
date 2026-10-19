@@ -18,8 +18,16 @@ export function validateRuntimeImageContract({ dockerfile, scanner, release }) {
     dockerfile,
     /CMD \["apps\/morro-digital-platform\/tooling\/dev-server[.]mjs"\]/u,
   );
-  assert.match(scanner, /^  pull_request:\s*\n    paths:/mu);
-  assert.match(scanner, /^      - "Dockerfile"$/mu);
+  assert.doesNotMatch(scanner, /^  pull_request:/mu);
+  assert.match(scanner, /^  workflow_dispatch:\s*\n    inputs:/mu);
+  assert.match(scanner, /^      scan_scope:$/mu);
+  const scopedMysqlGate =
+    "if: github.event_name != 'workflow_dispatch' || inputs.scan_scope != 'application'";
+  assert.equal(
+    scanner.split(scopedMysqlGate).length - 1,
+    2,
+    "MYSQL_SCANNING_MUST_SKIP_ONLY_ON_FOCUSED_MANUAL_DISPATCH",
+  );
   const milestones = [
     "Build and publish immutable image",
     "Verify immutable registry digest",
