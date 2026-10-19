@@ -38,7 +38,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ci-quality-proof-selection-20261019",
-      "baseSha": "5e6cf8ead04038422d9fa9fdf0ec0cc76a5e5f0b",
+      "baseSha": "b3d949fa99cda6c3a998055c71bf435562e85ffd",
       "paths": [
         ".morro/changesets/MD-CI-QUALITY-PROOF-SELECTION-20261019.json",
         ".github/workflows/quality.yml",

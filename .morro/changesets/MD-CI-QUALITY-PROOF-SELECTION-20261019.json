@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CI-QUALITY-PROOF-SELECTION-20261019",
   "objective": "validate-main-push-diff-identity-and-execute-ci-tests-once-per-quality-profile",
-  "baseSha": "5e6cf8ead04038422d9fa9fdf0ec0cc76a5e5f0b",
+  "baseSha": "b3d949fa99cda6c3a998055c71bf435562e85ffd",
   "branch": "fix/ci-quality-proof-selection-20261019",
   "state": "LOCAL_PROVEN",
   "risk": "high",
