@@ -300,6 +300,31 @@ test("main push uses its real before/after interval when remote main is already 
   assert.equal(proof.headSha, f.head);
   assert.equal(proof.treeSha, f.git("rev-parse", "HEAD^{tree}"));
 });
+for (const emptyGraph of [false, true]) {
+  test(`local certify ignores inherited main-push identity with ${emptyGraph ? "empty" : "complete"} task graph`, (t) => {
+    const f = fixture(t, { dry: emptyGraph ? graph([]) : graph() });
+    f.put(".git/inherited-push-event.json", {
+      ref: "refs/heads/main",
+      before: "a".repeat(40),
+      after: "b".repeat(40),
+    });
+    Object.assign(f.env, {
+      GITHUB_EVENT_NAME: "push",
+      GITHUB_REF: "refs/heads/main",
+      GITHUB_SHA: "b".repeat(40),
+      GITHUB_EVENT_PATH: join(f.root, ".git/inherited-push-event.json"),
+    });
+    const result = f.invoke(true);
+    if (emptyGraph) {
+      reject(result, /FAST_GATE_AFFECTED_GRAPH_EMPTY/);
+    } else {
+      pass(result);
+      assert.match(result.stdout, /WORKSPACE_EXECUTED/);
+      assert.match(result.stdout, /"mode":"CERTIFIED"/);
+    }
+    assert.equal((result.stdout.match(/ROOT_EXECUTED/g) ?? []).length, 1);
+  });
+}
 for (const [field, expectedError] of [
   ["before", /AFFECTED_QUALITY_PUSH_BASE_MISMATCH/],
   ["after", /AFFECTED_QUALITY_PUSH_HEAD_MISMATCH/],
