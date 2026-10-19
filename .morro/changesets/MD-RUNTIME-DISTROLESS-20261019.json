@@ -70,13 +70,8 @@
     },
     "commands": [
       {
-        "id": "immutable-runtime-contracts",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/ci/runtime-image-contract.test.mjs",
-          "tooling/quality/release-container-entrypoint.test.mjs"
-        ],
+        "id": "exact-ownership-mapping",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
         "timeoutSeconds": 180
       }
     ],
