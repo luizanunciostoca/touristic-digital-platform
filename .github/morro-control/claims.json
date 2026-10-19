@@ -1,22 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-ANALYTICS-LIVE-LOCALE-20261019": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/analytics-live-locale-20261019",
-      "baseSha": "05e414c9350ba8d183940ae93e6fc4dfbd6496f6",
-      "paths": [
-        ".morro/changesets/MD-ANALYTICS-LIVE-LOCALE-20261019.json",
-        "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
-        "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts",
-        "tooling/ci/analytics-live-locale.test.mjs"
-      ],
-      "domains": ["map", "ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-19T06:00:00.000Z"
-    }
-  }
+  "claims": {}
 }
