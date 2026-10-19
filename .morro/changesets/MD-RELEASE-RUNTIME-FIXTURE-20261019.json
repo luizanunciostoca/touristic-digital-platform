@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-RUNTIME-FIXTURE-20261019",
+  "objective": "make-release-container-entrypoint-regression-independent-of-current-runtime-image",
+  "baseSha": "d921f8f07f5925561181dce8584bc89de8203257",
+  "branch": "fix/release-container-fixture-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-RELEASE-RUNTIME-FIXTURE-20261019.json",
+      "tooling/quality/release-container-entrypoint.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 180
+    },
+    "commands": [
+      {
+        "id": "stable-fixtures",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/release-container-entrypoint.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
