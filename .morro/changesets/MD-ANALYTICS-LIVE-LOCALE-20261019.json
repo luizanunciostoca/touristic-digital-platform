@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ANALYTICS-LIVE-LOCALE-20261019",
   "objective": "resolve-current-browser-locale-for-analytics-events-after-language-switch",
-  "baseSha": "05e414c9350ba8d183940ae93e6fc4dfbd6496f6",
-  "branch": "fix/analytics-live-locale-20261019",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "eed33bac24a48ac4df5064f462036088c786cfce",
+  "branch": "chore/retire-analytics-locale-f052-20261019",
+  "state": "MERGED",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
