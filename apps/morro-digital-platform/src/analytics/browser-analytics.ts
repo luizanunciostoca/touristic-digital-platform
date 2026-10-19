@@ -57,6 +57,7 @@ export interface BrowserAnalyticsInstrumentationOptions {
   readonly document: Document;
   readonly collector: AnalyticsCollector;
   readonly context: AnalyticsContext;
+  readonly getContext?: () => AnalyticsContext;
   readonly now?: () => number;
 }
 
@@ -226,26 +227,34 @@ export function installBrowserAnalyticsInstrumentation(
     name: AnalyticsEventName,
     attributes?: Readonly<Record<string, unknown>>,
   ): void => {
-    void options.collector
-      .track({
-        name,
-        context: options.context,
-        ...(attributes ? { attributes } : {}),
-      })
-      .catch(() => undefined);
+    try {
+      void options.collector
+        .track({
+          name,
+          context: options.getContext?.() ?? options.context,
+          ...(attributes ? { attributes } : {}),
+        })
+        .catch(() => undefined);
+    } catch {
+      // Optional telemetry must not interrupt product events if context fails.
+    }
   };
 
   const trackSessionStarted = (): void => {
     if (sessionSent) return;
-    void options.collector
-      .track({
-        name: "session_started",
-        context: options.context,
-      })
-      .then((result) => {
-        if (result.status === "sent") sessionSent = true;
-      })
-      .catch(() => undefined);
+    try {
+      void options.collector
+        .track({
+          name: "session_started",
+          context: options.getContext?.() ?? options.context,
+        })
+        .then((result) => {
+          if (result.status === "sent") sessionSent = true;
+        })
+        .catch(() => undefined);
+    } catch {
+      // A later consent event can retry when the context becomes available.
+    }
   };
 
   const listen = (name: string, listener: EventListener): void => {
@@ -665,7 +674,6 @@ export function installMorroBrowserAnalytics(
   const context: AnalyticsContext = Object.freeze({
     sessionId: createSessionId(options.window),
     destinationId: "morro-de-sao-paulo",
-    locale: options.document.documentElement.lang || "pt",
     source: "browser",
   });
   const collector = createAnalyticsCollector({
@@ -676,6 +684,11 @@ export function installMorroBrowserAnalytics(
     document: options.document,
     collector,
     context,
+    getContext: () =>
+      Object.freeze({
+        ...context,
+        locale: options.document.documentElement.lang || "pt",
+      }),
   });
 
   const controller: BrowserAnalyticsController = Object.freeze({

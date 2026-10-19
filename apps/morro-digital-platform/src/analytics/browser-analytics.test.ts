@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type {
   AnalyticsCollector,
+  AnalyticsEvent,
   AnalyticsEventInput,
   AnalyticsTrackResult,
 } from "@touristic/analytics";
@@ -13,6 +14,7 @@ import {
   applyBrowserAnalyticsConsentChoice,
   browserAnalyticsConsentPreferenceCopy,
   installBrowserAnalyticsInstrumentation,
+  installMorroBrowserAnalytics,
   readBrowserAnalyticsConsent,
   writeBrowserAnalyticsConsent,
 } from "./browser-analytics.js";
@@ -65,6 +67,192 @@ function storage(): Storage {
     },
   };
 }
+
+function installedBrowserHarness(consent: "granted" | "unknown" = "granted") {
+  const document = Object.assign(new EventTarget(), {
+    documentElement: { lang: "pt-BR" },
+    getElementById: () => null,
+  }) as unknown as Document;
+  const localStorage = storage();
+  if (consent === "granted") {
+    writeBrowserAnalyticsConsent(document, localStorage, "granted");
+  }
+  const events: AnalyticsEvent[] = [];
+  const fetcher = vi.fn<typeof fetch>(async (_input, init) => {
+    events.push(JSON.parse(String(init?.body)) as AnalyticsEvent);
+    return { ok: true } as Response;
+  });
+  const original = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "__MORRO_ANALYTICS__",
+  );
+  const controller = installMorroBrowserAnalytics({
+    document,
+    window: {
+      localStorage,
+      sessionStorage: storage(),
+      crypto: { randomUUID: () => "session-live-locale" },
+    } as unknown as Window,
+    fetcher,
+  });
+  return {
+    document,
+    events,
+    controller,
+    cleanup() {
+      controller.destroy();
+      if (original) {
+        Object.defineProperty(globalThis, "__MORRO_ANALYTICS__", original);
+      } else {
+        Reflect.deleteProperty(globalThis, "__MORRO_ANALYTICS__");
+      }
+    },
+  };
+}
+
+describe("browser analytics live locale", () => {
+  it("emits the current locale after a language switch", () => {
+    const h = installedBrowserHarness();
+    try {
+      expect(h.events[0]?.locale).toBe("pt-BR");
+      const firstPayload = JSON.stringify(h.events[0]);
+      for (const locale of ["en", "es", "he"]) {
+        h.document.documentElement.lang = locale;
+        dispatch(h.document, ANALYTICS_SEARCH_SUBMITTED_EVENT, {
+          queryLength: 3,
+        });
+        expect(h.events.at(-1)).toMatchObject({
+          name: "search_submitted",
+          locale,
+          sessionId: "session-live-locale",
+          destinationId: "morro-de-sao-paulo",
+          source: "browser",
+        });
+      }
+      expect(h.events).toHaveLength(4);
+      expect(JSON.stringify(h.events[0])).toBe(firstPayload);
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it("uses current locale for delayed session consent and honors denial and destroy", async () => {
+    const h = installedBrowserHarness("unknown");
+    try {
+      expect(h.events).toHaveLength(0);
+      h.document.documentElement.lang = "he";
+      dispatch(h.document, "morro:navigation-requested", {});
+      expect(h.events).toHaveLength(0);
+      h.controller.setConsent("granted");
+      expect(h.events).toHaveLength(1);
+      expect(h.events[0]).toMatchObject({
+        name: "session_started",
+        locale: "he",
+        sessionId: "session-live-locale",
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+
+      h.controller.setConsent("denied");
+      h.document.documentElement.lang = "es";
+      dispatch(h.document, "morro:navigation-requested", {});
+      expect(h.events).toHaveLength(1);
+
+      h.controller.setConsent("granted");
+      dispatch(h.document, "morro:navigation-requested", {});
+      expect(h.events).toHaveLength(2);
+      expect(h.events[1]).toMatchObject({
+        name: "directions_started",
+        locale: "es",
+      });
+      expect(
+        h.events.filter((event) => event.name === "session_started"),
+      ).toHaveLength(1);
+
+      h.controller.destroy();
+      h.document.documentElement.lang = "en";
+      dispatch(h.document, "morro:navigation-requested", {});
+      h.controller.setConsent("granted");
+      expect(h.events).toHaveLength(2);
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it("preserves the empty-language fallback and existing payload normalization", () => {
+    const h = installedBrowserHarness();
+    try {
+      for (const [locale, expected] of [
+        ["", "pt"],
+        [" en-US ", "en-US"],
+        ["   ", undefined],
+      ] as const) {
+        h.document.documentElement.lang = locale;
+        dispatch(h.document, "morro:navigation-requested", {});
+        expect(h.events.at(-1)?.locale).toBe(expected);
+      }
+      expect(h.events).toHaveLength(4);
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it("resolves fresh context for commercial milestones without changing their attributes", () => {
+    const h = installedBrowserHarness();
+    try {
+      const milestones = [
+        [ANALYTICS_TRANSACTION_EVENTS.offerSelected, "offer_selected"],
+        [
+          ANALYTICS_TRANSACTION_EVENTS.reservationStarted,
+          "reservation_started",
+        ],
+        [ANALYTICS_TRANSACTION_EVENTS.checkoutStarted, "checkout_started"],
+        [ANALYTICS_TRANSACTION_EVENTS.paymentApproved, "payment_approved"],
+        [ANALYTICS_TRANSACTION_EVENTS.ticketIssued, "ticket_issued"],
+      ] as const;
+      for (const [eventName, name] of milestones) {
+        h.document.documentElement.lang = "es";
+        dispatch(h.document, eventName, { offerId: "offer-1" });
+        expect(h.events.at(-1)).toMatchObject({ name, locale: "es" });
+      }
+      expect(h.events).toHaveLength(6);
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it("contains context failures and recovers session and subsequent emissions", async () => {
+    const { collector, inputs } = collectorHarness();
+    const document = new EventTarget() as unknown as Document;
+    let unavailable = true;
+    const instrumentation = installBrowserAnalyticsInstrumentation({
+      document,
+      collector,
+      context: { sessionId: "session-context-failure" },
+      getContext: () => {
+        if (unavailable) throw new Error("Context unavailable");
+        return { sessionId: "session-context-failure", locale: "en" };
+      },
+    });
+    try {
+      dispatch(document, "morro:navigation-requested", {});
+      expect(inputs).toHaveLength(0);
+      unavailable = false;
+      dispatch(document, ANALYTICS_CONSENT_CHANGED_EVENT, { state: "granted" });
+      dispatch(document, "morro:navigation-requested", {});
+      expect(inputs.map((input) => [input.name, input.context.locale])).toEqual(
+        [
+          ["session_started", "en"],
+          ["directions_started", "en"],
+        ],
+      );
+      await Promise.resolve();
+      dispatch(document, ANALYTICS_CONSENT_CHANGED_EVENT, { state: "granted" });
+      expect(inputs).toHaveLength(2);
+    } finally {
+      instrumentation.destroy();
+    }
+  });
+});
 
 describe("browser analytics consent", () => {
   it("defaults to unknown and persists only explicit decisions", () => {
