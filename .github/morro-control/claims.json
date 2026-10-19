@@ -18,6 +18,20 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-20T02:00:00.000Z"
+    },
+    "MD-ASSISTANT-MAP-FIXTURE-20261019": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/assistant-map-fixture-20261019",
+      "baseSha": "259c6768a7ac079580aaceed6c72dd9228c3cfa9",
+      "paths": [
+        ".morro/changesets/MD-ASSISTANT-MAP-FIXTURE-20261019.json",
+        "tooling/quality/assistant-map-recovery.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-20T02:00:00.000Z"
     }
   }
 }
