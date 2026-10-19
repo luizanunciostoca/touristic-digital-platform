@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ASSISTANT-RECOVERY-STAGING-20261019",
+  "objective": "recover-assistant-failure-retry-and-prove-isolated-browser-lifecycle",
+  "baseSha": "fd3c03e31d24e41afb23be6f69d6a0b27c4a93b6",
+  "branch": "fix/assistant-recovery-staging-20261019",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ASSISTANT-RECOVERY-STAGING-20261019.json",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
+      "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "assistant-claim-lifecycle-authority",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
