@@ -1168,7 +1168,10 @@ async function verifyAssistantFailureRecovery(browser) {
     ["127.0.0.1", "localhost", "[::1]"].includes(base.hostname),
     "Recovery fixture requires localhost",
   );
-  const fixtureUrl = new URL("/__assistant_failure_fixture__", base).href;
+  const fixtureUrl = new URL(
+    "/apps/morro-digital-platform/__assistant_failure_fixture__",
+    base,
+  ).href;
   const imports = Object.fromEntries(
     [
       "analytics",
@@ -1228,9 +1231,9 @@ async function verifyAssistantFailureRecovery(browser) {
         document.documentElement.dir = locale === "he" ? "rtl" : "ltr";
         localStorage.setItem("voice-enabled", "false");
         const { installBrowserAssistantRuntime } =
-          await import("/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js");
+          await import("./dist/assistant/browser-assistant-runtime.js");
         const { installAssistantShellUi } =
-          await import("/apps/morro-digital-platform/dist/assistant/assistant-shell-ui.js");
+          await import("./dist/assistant/assistant-shell-ui.js");
         const fixture = {
           mode: "reject",
           calls: [],
