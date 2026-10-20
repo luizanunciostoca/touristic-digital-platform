@@ -763,6 +763,16 @@ export function installBrowserAssistantRuntime(
       }
     },
   });
+  const runtimeErrorResponse = (): AssistantDialogResponse => ({
+    text: assistantUiStateStatus(
+      "error",
+      options.document.documentElement.lang,
+    ),
+    metadata: { domain: "assistant_runtime", state: "error", retryable: true },
+  });
+  const isRuntimeErrorResponse = (response: AssistantDialogResponse): boolean =>
+    response.metadata?.domain === "assistant_runtime" &&
+    response.metadata.state === "error";
   const controller = createAssistantDialogController({
     context,
     profile,
@@ -774,6 +784,7 @@ export function installBrowserAssistantRuntime(
     llm: createAssistantLlmHandler({
       ...(options.fetch ? { fetch: options.fetch } : {}),
     }),
+    errorResponse: runtimeErrorResponse,
   });
 
   const view = options.document.defaultView;
@@ -896,6 +907,8 @@ export function installBrowserAssistantRuntime(
   let requestGeneration = 0;
   let assistantUiGeneration = 0;
   let assistantVoiceUiGeneration = -1;
+  let composerRevision = 0;
+  let composerComposing = false;
   const dropStaleResponse = (): AssistantDialogResponse => {
     conversation.recordStaleResponseDropped();
     return supersededResponse();
@@ -1049,7 +1062,7 @@ export function installBrowserAssistantRuntime(
     }
   };
 
-  const processInputTurn = async (
+  const executeInputTurn = async (
     rawInput: string,
     optionOverride?: readonly AssistantDomOption[],
     preservePreviousOptions = false,
@@ -1427,6 +1440,24 @@ export function installBrowserAssistantRuntime(
     return response;
   };
 
+  const processInputTurn = async (
+    ...args: Parameters<typeof executeInputTurn>
+  ): Promise<AssistantDialogResponse> => {
+    const generation = assistantUiGeneration;
+    try {
+      return await executeInputTurn(...args);
+    } catch (error) {
+      if (!destroyed && generation === assistantUiGeneration) {
+        appendStandardMessage(
+          "assistant",
+          runtimeErrorResponse().text,
+          args[0],
+        );
+      }
+      throw error;
+    }
+  };
+
   const processInput = async (
     rawInput: string,
     optionOverride?: readonly AssistantDomOption[],
@@ -1434,6 +1465,7 @@ export function installBrowserAssistantRuntime(
     source: AssistantInputSource = "programmatic",
     suppressOptionValues: readonly string[] = [],
   ): Promise<AssistantDialogResponse> => {
+    if (destroyed) return supersededResponse();
     if (!rawInput.trim()) {
       return processInputTurn(
         rawInput,
@@ -1457,7 +1489,12 @@ export function installBrowserAssistantRuntime(
       if (!destroyed && uiGeneration === assistantUiGeneration) {
         dispatchAssistantUiState(
           options.document,
-          response.metadata?.state === "superseded" ? "idle" : "success",
+          response.metadata?.state === "superseded"
+            ? "idle"
+            : response.metadata?.domain === "assistant_runtime" &&
+                response.metadata.state === "error"
+              ? "error"
+              : "success",
         );
       }
       return response;
@@ -1482,7 +1519,10 @@ export function installBrowserAssistantRuntime(
           options.document.documentElement.lang,
         ),
         onResult: (transcript) => {
-          void processInput(transcript, undefined, false, "voice");
+          // processInput presents failures; the DOM callback owns the rejection.
+          void processInput(transcript, undefined, false, "voice").catch(
+            () => undefined,
+          );
         },
         onError: () => {
           if (destroyed || assistantVoiceUiGeneration !== assistantUiGeneration)
@@ -1517,17 +1557,45 @@ export function installBrowserAssistantRuntime(
     : null;
 
   const submitInput = (source: "button" | "keyboard"): void => {
-    if (destroyed || !(input instanceof HTMLInputElement)) return;
+    if (destroyed || composerComposing || !(input instanceof HTMLInputElement))
+      return;
     const value = input.value;
     if (!value.trim()) return;
     input.value = "";
-    void processInput(value, undefined, false, source);
+    const revision = composerRevision;
+    const pending = processInput(value, undefined, false, source);
+    const generation = assistantUiGeneration;
+    const restoreFailedDraft = (): void => {
+      if (
+        !destroyed &&
+        !composerComposing &&
+        generation === assistantUiGeneration &&
+        revision === composerRevision &&
+        input.value === ""
+      )
+        input.value = value;
+    };
+    void pending.then((response) => {
+      if (isRuntimeErrorResponse(response)) restoreFailedDraft();
+    }, restoreFailedDraft);
+  };
+
+  const onComposerInput = (): void => {
+    composerRevision += 1;
+  };
+  const onCompositionStart = (): void => {
+    composerComposing = true;
+    composerRevision += 1;
+  };
+  const onCompositionEnd = (): void => {
+    composerComposing = false;
+    composerRevision += 1;
   };
 
   const onSendClick = (): void => submitInput("button");
   const onInputKeyDown = (event: Event): void => {
     if (!(event instanceof KeyboardEvent) || event.key !== "Enter") return;
-    if (event.shiftKey || event.isComposing) return;
+    if (event.shiftKey || event.isComposing || composerComposing) return;
     event.preventDefault();
     submitInput("keyboard");
   };
@@ -1552,7 +1620,7 @@ export function installBrowserAssistantRuntime(
       value.trim().toLowerCase() === "ver fotos" && optionOverride === null,
       "option",
       suppressOptionValues,
-    );
+    ).catch(() => undefined);
   };
   const onVoiceClick = (): void => {
     if (destroyed) return;
@@ -1709,6 +1777,9 @@ export function installBrowserAssistantRuntime(
 
   sendButton?.addEventListener("click", onSendClick);
   input?.addEventListener("keydown", onInputKeyDown);
+  input?.addEventListener("input", onComposerInput);
+  input?.addEventListener("compositionstart", onCompositionStart);
+  input?.addEventListener("compositionend", onCompositionEnd);
   voiceButton?.setAttribute("aria-pressed", "false");
   voiceButton?.addEventListener("click", onVoiceClick);
   if (options.explore) {
@@ -1749,6 +1820,9 @@ export function installBrowserAssistantRuntime(
       view?.removeEventListener("navigationEnded", onNavigationEnded);
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);
+      input?.removeEventListener("input", onComposerInput);
+      input?.removeEventListener("compositionstart", onCompositionStart);
+      input?.removeEventListener("compositionend", onCompositionEnd);
       voiceButton?.removeEventListener("click", onVoiceClick);
       if (options.explore) {
         options.document.removeEventListener(

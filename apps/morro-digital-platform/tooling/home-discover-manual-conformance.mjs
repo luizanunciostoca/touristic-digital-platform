@@ -5,6 +5,18 @@ const { chromium } = playwright;
 const BASE_URL = process.env.MORRO_BROWSER_URL || "http://127.0.0.1:4173/";
 const OUTPUT_DIR =
   process.env.HOME_MANUAL_EVIDENCE_DIR || "/tmp/home-discover-manual";
+const recoveryOnly = process.argv.includes("--assistant-recovery-only");
+const chromiumArgument = process.argv.indexOf("--chromium-executable");
+const chromiumExecutable =
+  chromiumArgument < 0 ? undefined : process.argv[chromiumArgument + 1];
+if (
+  chromiumArgument >= 0 &&
+  (!recoveryOnly || !chromiumExecutable?.startsWith("/"))
+) {
+  throw new Error(
+    "An absolute Chromium executable is allowed only for the isolated recovery fixture",
+  );
+}
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
@@ -1148,7 +1160,359 @@ async function verifyVariants(page, viewport, evidence) {
   await page.emulateMedia({ reducedMotion: "no-preference" });
 }
 
-const browser = await chromium.launch({ headless: true });
+// This is a real DOM/runtime fixture with controlled Explore boundaries, not
+// provider acceptance. Existing real-map cases below remain mandatory by default.
+async function verifyAssistantFailureRecovery(browser) {
+  const base = new URL(BASE_URL);
+  assert(
+    ["127.0.0.1", "localhost", "[::1]"].includes(base.hostname),
+    "Recovery fixture requires localhost",
+  );
+  const fixtureUrl = new URL("/__assistant_failure_fixture__", base).href;
+  const imports = Object.fromEntries(
+    [
+      "analytics",
+      "assistant",
+      "core",
+      "geospatial",
+      "navigation",
+      "search",
+    ].map((name) => [`@touristic/${name}`, `/packages/${name}/dist/index.js`]),
+  );
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><script type="importmap">${JSON.stringify({ imports })}</script></head><body>
+    <section id="assistant-messages"><div class="messages-area"></div><div class="navigation-instruction-area"></div></section>
+    <p id="assistant-dialog-status" role="status" aria-live="polite"></p>
+    <div id="assistant-input-area"><label for="assistantInput">Message</label><input id="assistantInput"><button id="sendButton">Send</button></div>
+    <div id="assistant-category-results-message">Fixture command completed</div>
+    </body></html>`;
+  const results = [];
+  const expectedErrors = {
+    "pt-BR": "Não foi possível concluir a resposta.",
+    en: "The response could not be completed.",
+    es: "No se pudo completar la respuesta.",
+    he: "לא ניתן היה להשלים את התשובה.",
+  };
+  for (const [language, errorText] of Object.entries(expectedErrors)) {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      serviceWorkers: "block",
+    });
+    const forbiddenRequests = [];
+    const pageErrors = [];
+    try {
+      await context.route("**/*", async (route) => {
+        const url = new URL(route.request().url());
+        if (url.href === fixtureUrl)
+          return route.fulfill({
+            status: 200,
+            contentType: "text/html",
+            body: html,
+          });
+        if (
+          url.origin === base.origin &&
+          /^\/(?:apps\/morro-digital-platform|packages\/(?:analytics|assistant|core|geospatial|navigation|search))\/dist\/.+\.js$/u.test(
+            url.pathname,
+          ) &&
+          !url.search &&
+          !url.hash
+        )
+          return route.continue();
+        forbiddenRequests.push({ origin: url.origin, pathname: url.pathname });
+        return route.abort("blockedbyclient");
+      });
+      const page = await context.newPage();
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      await page.goto(fixtureUrl, { waitUntil: "domcontentloaded" });
+      await page.evaluate(async (locale) => {
+        document.documentElement.lang = locale;
+        document.documentElement.dir = locale === "he" ? "rtl" : "ltr";
+        localStorage.setItem("voice-enabled", "false");
+        const { installBrowserAssistantRuntime } =
+          await import("/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js");
+        const { installAssistantShellUi } =
+          await import("/apps/morro-digital-platform/dist/assistant/assistant-shell-ui.js");
+        const fixture = {
+          mode: "reject",
+          calls: [],
+          pending: [],
+          states: [],
+          unhandled: [],
+          fetches: 0,
+        };
+        addEventListener("unhandledrejection", (event) =>
+          fixture.unhandled.push(String(event.reason?.message ?? event.reason)),
+        );
+        document.addEventListener("morro:assistant-ui-state", (event) =>
+          fixture.states.push(event.detail.state),
+        );
+        const options = {
+          document,
+          navigation: {
+            start: async () => {
+              throw new Error("unexpected navigation");
+            },
+            stop() {},
+          },
+          explore: {
+            getState: () => ({
+              stage: "menu",
+              category: null,
+              place: null,
+              markerCount: 0,
+              locationCount: 0,
+            }),
+            execute: async (command) => {
+              fixture.calls.push(command.type);
+              if (fixture.mode === "reject")
+                throw new Error("controlled Explore failure");
+              if (fixture.mode === "pending")
+                return new Promise((resolve, reject) =>
+                  fixture.pending.push({ resolve, reject }),
+                );
+              return true;
+            },
+          },
+          fetch: async () => {
+            fixture.fetches += 1;
+            throw new Error("unexpected fixture fetch");
+          },
+        };
+        fixture.shell = installAssistantShellUi({ document, focusDelayMs: 0 });
+        fixture.install = () => {
+          fixture.runtime = installBrowserAssistantRuntime(options);
+        };
+        fixture.install();
+        globalThis.__assistantFailureFixture = fixture;
+      }, language);
+      const input = page.locator("#assistantInput");
+      const send = page.locator("#sendButton");
+      const waitState = (state) =>
+        page.waitForFunction(
+          (wanted) =>
+            document.getElementById("assistant-messages").dataset
+              .assistantState === wanted,
+          state,
+        );
+      await input.fill("praias");
+      await send.click();
+      await waitState("error");
+      assert(
+        (await input.inputValue()) === "praias",
+        "Failed input was not restored",
+        language,
+      );
+      assert(
+        (await page.locator("#assistant-dialog-status").textContent()) ===
+          errorText,
+        "Failure status was not localized",
+        language,
+      );
+      assert(
+        (await page
+          .locator("#assistant-messages .message")
+          .allTextContents()
+          .then(
+            (texts) => texts.filter((text) => text === errorText).length,
+          )) === 1,
+        "Failure message must appear once",
+        language,
+      );
+      assert(
+        (await page
+          .locator("#assistant-messages")
+          .getAttribute("aria-busy")) === "false",
+        "Failure remained busy",
+      );
+      await page.evaluate(() => {
+        globalThis.__assistantFailureFixture.mode = "success";
+      });
+      await input.press("Enter");
+      await waitState("success");
+      assert(
+        (await input.inputValue()) === "",
+        "Successful retry did not keep composer clear",
+      );
+      assert(
+        (await page.evaluate(
+          () => globalThis.__assistantFailureFixture.calls.length,
+        )) === 2,
+        "Retry must be explicit and execute once",
+      );
+
+      // Editing and then clearing is intentional; a late failure must not restore it.
+      await page.evaluate(() => {
+        globalThis.__assistantFailureFixture.mode = "pending";
+      });
+      await input.fill("praias");
+      await send.click();
+      await waitState("loading");
+      await input.fill("new draft");
+      await input.fill("");
+      await page.evaluate(() =>
+        globalThis.__assistantFailureFixture.pending
+          .shift()
+          .reject(new Error("edited pending failure")),
+      );
+      await waitState("error");
+      assert(
+        (await input.inputValue()) === "",
+        "Late failure overwrote an intentionally cleared draft",
+      );
+
+      // A newer successful attempt owns the UI even if the old attempt rejects.
+      await input.fill("praias");
+      await send.click();
+      await waitState("loading");
+      await page.evaluate(() => {
+        globalThis.__assistantFailureFixture.mode = "success";
+      });
+      await input.fill("praias");
+      await input.press("Enter");
+      await waitState("success");
+      const statesBeforeLateFailure = await page.evaluate(
+        () => globalThis.__assistantFailureFixture.states.length,
+      );
+      await page.evaluate(async () => {
+        globalThis.__assistantFailureFixture.pending
+          .shift()
+          .reject(new Error("superseded failure"));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      assert(
+        (await page.evaluate(
+          () => globalThis.__assistantFailureFixture.states.length,
+        )) === statesBeforeLateFailure,
+        "Superseded failure changed UI state",
+      );
+      assert(
+        (await input.inputValue()) === "",
+        "Superseded failure restored stale input",
+      );
+
+      // Browser composition events and real keyboard handlers keep unfinished text.
+      await input.fill("praias");
+      const callsBeforeIme = await page.evaluate(
+        () => globalThis.__assistantFailureFixture.calls.length,
+      );
+      await input.dispatchEvent("compositionstart");
+      await send.click();
+      await input.press("Enter");
+      assert(
+        (await page.evaluate(
+          () => globalThis.__assistantFailureFixture.calls.length,
+        )) === callsBeforeIme,
+        "IME text was prematurely submitted",
+      );
+      assert((await input.inputValue()) === "praias", "IME text was cleared");
+      await input.dispatchEvent("compositionend");
+      await input.press("Shift+Enter");
+      assert(
+        (await page.evaluate(
+          () => globalThis.__assistantFailureFixture.calls.length,
+        )) === callsBeforeIme,
+        "Shift+Enter submitted",
+      );
+      await input.press("Enter");
+      await waitState("success");
+
+      // Teardown must detach both old listeners and pending callbacks.
+      await page.evaluate(() => {
+        globalThis.__assistantFailureFixture.mode = "pending";
+      });
+      await input.fill("praias");
+      await send.click();
+      await waitState("loading");
+      const beforeDestroy = await page.evaluate(() => {
+        const f = globalThis.__assistantFailureFixture;
+        f.runtime.destroy();
+        return {
+          states: f.states.length,
+          calls: f.calls.length,
+          messages: document.querySelectorAll("#assistant-messages .message")
+            .length,
+        };
+      });
+      await page.evaluate(async () => {
+        globalThis.__assistantFailureFixture.pending
+          .shift()
+          .reject(new Error("destroyed failure"));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      assert(
+        (await input.inputValue()) === "",
+        "Destroyed runtime restored a draft",
+      );
+      await input.fill("praias");
+      await send.click();
+      const afterDestroy = await page.evaluate(() => ({
+        states: globalThis.__assistantFailureFixture.states.length,
+        calls: globalThis.__assistantFailureFixture.calls.length,
+        messages: document.querySelectorAll("#assistant-messages .message")
+          .length,
+      }));
+      assert(
+        JSON.stringify(afterDestroy) === JSON.stringify(beforeDestroy),
+        "Destroyed runtime retained listeners or presentation",
+      );
+      await page.evaluate(() => {
+        const f = globalThis.__assistantFailureFixture;
+        f.mode = "success";
+        f.install();
+      });
+      await send.click();
+      await waitState("success");
+      assert(
+        (await page.evaluate(
+          () => globalThis.__assistantFailureFixture.calls.length,
+        )) ===
+          beforeDestroy.calls + 1,
+        "Reinstallation duplicated submit listeners",
+      );
+      const result = await page.evaluate(() => {
+        const f = globalThis.__assistantFailureFixture;
+        f.runtime.destroy();
+        f.shell.destroy();
+        return {
+          calls: f.calls.length,
+          states: f.states,
+          unhandled: f.unhandled,
+          fetches: f.fetches,
+          language: document.documentElement.lang,
+          direction: document.documentElement.dir,
+        };
+      });
+      assert(
+        result.fetches === 0 && result.unhandled.length === 0,
+        "Fixture used fetch or leaked a rejection",
+        result,
+      );
+      assert(
+        pageErrors.length === 0 && forbiddenRequests.length === 0,
+        "Fixture browser/network errors",
+        { pageErrors, forbiddenRequests },
+      );
+      results.push({
+        ...result,
+        viewport: "390x844",
+        externalRequests: forbiddenRequests.length,
+        result: "PASS",
+      });
+    } finally {
+      await context.close();
+    }
+  }
+  return {
+    kind: "ASSISTANT_RECOVERY_FIXTURE",
+    providerAcceptance: "NOT_RUN",
+    boundaryDoubles: ["Explore", "navigation", "fetch"],
+    results,
+  };
+}
+
+const browser = await chromium.launch({
+  headless: true,
+  ...(chromiumExecutable ? { executablePath: chromiumExecutable } : {}),
+});
 const evidence = {
   authority: "UX Design V2 Section 32 + Appendix A",
   beforeAuthority:
@@ -1163,82 +1527,97 @@ const evidence = {
 };
 
 try {
-  for (const viewport of viewports) {
-    const context = await browser.newContext({
-      viewport: { width: viewport.width, height: viewport.height },
-      geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
-      permissions: ["geolocation"],
-    });
-    await context.addInitScript(() => {
-      localStorage.setItem("morro-digital-onboarded", "1");
-      localStorage.setItem("voice-enabled", "false");
-      localStorage.setItem("morro-analytics-consent-v1", "denied");
-    });
-    const page = await context.newPage();
-    const pageErrors = [];
-    page.on("pageerror", (error) => pageErrors.push(error.message));
-    await page.route("**/api/weather", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(weather),
-      }),
+  if (recoveryOnly) {
+    evidence.assistantRecovery = await verifyAssistantFailureRecovery(browser);
+    writeFileSync(
+      `${OUTPUT_DIR}/assistant-recovery-fixture.json`,
+      JSON.stringify(evidence.assistantRecovery, null, 2),
     );
-    await page.goto(BASE_URL, {
-      waitUntil: "domcontentloaded",
-      timeout: 30000,
-    });
-    await waitForReady(page);
-    const state = await assertPureDiscover(page, viewport);
-    await page.screenshot({
-      path: `${OUTPUT_DIR}/after-${viewport.name}.png`,
-      fullPage: false,
-      animations: "disabled",
-    });
-
-    if (
-      [
-        "320x568",
-        "390x844",
-        "768x1024",
-        "1440x900",
-        "landscape-844x390",
-      ].includes(viewport.name)
-    ) {
-      evidence.manualNavigation ??= [];
-      evidence.manualNavigation.push({
-        viewport: viewport.name,
-        result: await verifyManualNavigation(page),
+    writeFileSync(
+      `${OUTPUT_DIR}/ASSISTANT_RECOVERY_FIXTURE.txt`,
+      "ASSISTANT_RECOVERY_FIXTURE = PASS\n",
+    );
+    console.log(
+      "ASSISTANT_RECOVERY_FIXTURE = PASS; HOME_MANUAL_CONFORMANCE = NOT_RUN",
+    );
+  } else {
+    for (const viewport of viewports) {
+      const context = await browser.newContext({
+        viewport: { width: viewport.width, height: viewport.height },
+        geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+        permissions: ["geolocation"],
       });
-    }
-    if (viewport.name === "390x844") {
-      await verifyLocales(page);
-      await verifyProfileAndPrivacy(page);
-      await verifyAssistantEntry(page);
-      await verifyBoundedAssistantMessage(page);
-      await verifyVariants(page, viewport, evidence);
+      await context.addInitScript(() => {
+        localStorage.setItem("morro-digital-onboarded", "1");
+        localStorage.setItem("voice-enabled", "false");
+        localStorage.setItem("morro-analytics-consent-v1", "denied");
+      });
+      const page = await context.newPage();
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      await page.route("**/api/weather", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(weather),
+        }),
+      );
+      await page.goto(BASE_URL, {
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+      });
+      await waitForReady(page);
+      const state = await assertPureDiscover(page, viewport);
+      await page.screenshot({
+        path: `${OUTPUT_DIR}/after-${viewport.name}.png`,
+        fullPage: false,
+        animations: "disabled",
+      });
+
+      if (
+        [
+          "320x568",
+          "390x844",
+          "768x1024",
+          "1440x900",
+          "landscape-844x390",
+        ].includes(viewport.name)
+      ) {
+        evidence.manualNavigation ??= [];
+        evidence.manualNavigation.push({
+          viewport: viewport.name,
+          result: await verifyManualNavigation(page),
+        });
+      }
+      if (viewport.name === "390x844") {
+        await verifyLocales(page);
+        await verifyProfileAndPrivacy(page);
+        await verifyAssistantEntry(page);
+        await verifyBoundedAssistantMessage(page);
+        await verifyVariants(page, viewport, evidence);
+      }
+
+      await verifyAppliedMapFilters(page);
+      assert(pageErrors.length === 0, "Browser page errors", pageErrors);
+      evidence.viewports.push({ viewport, state, pageErrors });
+      await context.close();
     }
 
-    await verifyAppliedMapFilters(page);
-    assert(pageErrors.length === 0, "Browser page errors", pageErrors);
-    evidence.viewports.push({ viewport, state, pageErrors });
-    await context.close();
+    writeFileSync(
+      `${OUTPUT_DIR}/manual-conformance.json`,
+      JSON.stringify(evidence, null, 2),
+    );
+    writeFileSync(
+      `${OUTPUT_DIR}/HOME_MANUAL_CONFORMANCE.txt`,
+      "HOME_MANUAL_CONFORMANCE = PASS\n",
+    );
+    console.log("HOME_MANUAL_CONFORMANCE = PASS");
   }
-
-  writeFileSync(
-    `${OUTPUT_DIR}/manual-conformance.json`,
-    JSON.stringify(evidence, null, 2),
-  );
-  writeFileSync(
-    `${OUTPUT_DIR}/HOME_MANUAL_CONFORMANCE.txt`,
-    "HOME_MANUAL_CONFORMANCE = PASS\n",
-  );
-  console.log("HOME_MANUAL_CONFORMANCE = PASS");
 } catch (error) {
   writeFileSync(`${OUTPUT_DIR}/failure.txt`, String(error?.stack || error));
   writeFileSync(
-    `${OUTPUT_DIR}/HOME_MANUAL_CONFORMANCE.txt`,
-    "HOME_MANUAL_CONFORMANCE = FAIL\n",
+    `${OUTPUT_DIR}/${recoveryOnly ? "ASSISTANT_RECOVERY_FIXTURE" : "HOME_MANUAL_CONFORMANCE"}.txt`,
+    `${recoveryOnly ? "ASSISTANT_RECOVERY_FIXTURE" : "HOME_MANUAL_CONFORMANCE"} = FAIL\n`,
   );
   throw error;
 } finally {
