@@ -1,3 +1,4 @@
+import type { DestinationConfig } from "@touristic/core";
 import type {
   MapboxGlMapLike,
   MapboxGlModuleLike,
@@ -28,6 +29,7 @@ export interface BrowserDocument {
 }
 
 export interface StartMorroDigitalBrowserOptions {
+  readonly destination?: DestinationConfig;
   readonly sdk: MapboxGlModuleLike;
   readonly environment: RuntimeEnvironment;
   readonly document: BrowserDocument;
@@ -81,7 +83,9 @@ export async function startMorroDigitalBrowser(
         : undefined);
 
     const result = await bootstrapMorroDigital({
+      ...(options.destination ? { destination: options.destination } : {}),
       initializeGeospatial: createMorroGeospatialInitializer({
+        ...(options.destination ? { destination: options.destination } : {}),
         sdk: options.sdk,
         ...config,
         createMarkerElement: (input) =>

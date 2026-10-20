@@ -995,7 +995,11 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
 }
 
 async function start(): Promise<void> {
-  const resolvedDestination = await loadPublicDestination();
+  const resolvedDestination = await loadPublicDestination(
+    fetch,
+    window.location.pathname,
+    true,
+  );
   activeDestination = resolvedDestination.destination;
   document.documentElement.dataset.destinationSource =
     resolvedDestination.source;

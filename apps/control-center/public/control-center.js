@@ -1040,7 +1040,7 @@ function destinationPayload(form, id) {
     throw new Error("Feature flags aceitam somente valores booleanos.");
   }
   const modules = String(values.get("modules") || "")
-    .split(/[\\n,]+/u)
+    .split(/[\n,]+/u)
     .map((value) => value.trim())
     .filter(Boolean);
   return {
@@ -1091,7 +1091,7 @@ function destinationEditor(destination = {}) {
       <label>Longitude <input name="lng" type="number" step="any" min="-180" max="180" required value="${escapeHtml(center.lng ?? "")}"></label>
       <label>Zoom <input name="zoom" type="number" step="any" min="0" max="24" required value="${escapeHtml(center.zoom ?? 13)}"></label>
       <label>Módulos
-        <textarea name="modules" required placeholder="map, navigation, assistant">${escapeHtml((destination.modules ?? []).join(", "))}</textarea>
+        <textarea name="modules" placeholder="map, navigation, assistant">${escapeHtml((destination.modules ?? []).join(", "))}</textarea>
       </label>
       <label>Feature flags (JSON booleano)
         <textarea name="featureFlags" required spellcheck="false">${escapeHtml(JSON.stringify(destination.featureFlags ?? {}, null, 2))}</textarea>

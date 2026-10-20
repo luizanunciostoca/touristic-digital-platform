@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR" dir="ltr" data-destination-theme="pending">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="theme-color" content="#005f8d" />
+    <meta
+      name="description"
+      content="Explore lugares publicados no destino com o ecossistema digital da Touristic Digital Platform."
+    />
+    <title>Explorar destino — Touristic Digital Platform</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/assets/brand/tdp-micro-v2.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/design-system-v2.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/destination.css"
+    />
+    <!-- The trusted server substitutes a destination-scoped public configuration URL. -->
+    <script src="__DESTINATION_SCOPED_RUNTIME_CONFIG__"></script>
+    <script
+      type="module"
+      src="/apps/morro-digital-platform/dist/destinations/destination-browser-entry.js"
+    ></script>
+  </head>
+  <body>
+    <a id="destination-skip" class="destination-skip" href="#destination-main"
+      >Ir para o conteúdo</a
+    >
+    <header class="destination-header">
+      <div class="destination-lockup">
+        <img
+          id="destination-brand"
+          src="/assets/brand/tdp-symbol-v2.svg"
+          alt=""
+          width="46"
+          height="46"
+        />
+        <div>
+          <span class="destination-endorsement"
+            >Touristic Digital Platform</span
+          >
+          <strong id="destination-name">Destino</strong>
+        </div>
+      </div>
+      <label class="destination-locale">
+        <span id="destination-language-label">Idioma</span>
+        <select id="destination-language" aria-label="Selecionar idioma">
+          <option value="pt-BR">Português</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="he">עברית</option>
+        </select>
+      </label>
+    </header>
+    <main id="destination-main" class="destination-main" aria-busy="true">
+      <section class="destination-intro">
+        <p id="destination-eyebrow" class="destination-eyebrow">
+          Destino digital
+        </p>
+        <h1 id="destination-title">Conheça o destino</h1>
+        <p id="destination-description">
+          Os lugares disponíveis são publicados e verificados pelo sistema de
+          conteúdo do destino.
+        </p>
+        <p id="destination-status" role="status" aria-live="polite">
+          Validando contexto do destino...
+        </p>
+      </section>
+      <div class="destination-layout">
+        <section
+          id="destination-map-region"
+          class="destination-map-region"
+          aria-label="Mapa do destino"
+        >
+          <h2 id="destination-map-title">Mapa</h2>
+          <div
+            id="destination-map"
+            role="region"
+            aria-label="Mapa interativo do destino"
+          ></div>
+          <p id="destination-map-status" role="status" aria-live="polite">
+            O mapa será carregado quando houver provedor disponível.
+          </p>
+        </section>
+        <section
+          id="destination-places-region"
+          class="destination-places-region"
+          aria-label="Lugares publicados"
+        >
+          <div class="destination-places-heading">
+            <h2 id="destination-places-title">Lugares para conhecer</h2>
+            <span id="destination-places-count" aria-live="polite"></span>
+          </div>
+          <label for="destination-place-search" id="destination-search-label"
+            >Buscar lugares</label
+          >
+          <input
+            id="destination-place-search"
+            type="search"
+            autocomplete="off"
+            disabled
+            placeholder="Busque por nome ou categoria"
+          />
+          <ul id="destination-places" class="destination-places"></ul>
+          <button id="destination-places-more" type="button" hidden>
+            Carregar mais
+          </button>
+          <p id="destination-places-status" role="status" aria-live="polite">
+            Aguardando conteúdo do destino...
+          </p>
+          <section
+            id="destination-place-detail"
+            hidden
+            aria-live="polite"
+          ></section>
+        </section>
+      </div>
+    </main>
+    <footer class="destination-footer">
+      <span>Touristic Digital Platform</span>
+      <span id="destination-footer-note"
+        >Informações e serviços sujeitos à publicação e disponibilidade
+        local.</span
+      >
+    </footer>
+  </body>
+</html>

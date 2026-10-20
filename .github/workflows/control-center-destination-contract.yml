@@ -65,6 +65,32 @@ jobs:
       DESTINATIONS_DATABASE_URL: mysql://root:destination-ci@127.0.0.1:3306/destinations_owner_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Record exact candidate identity
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const { writeFileSync } = require('node:fs');
+          const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+          const head = git('rev-parse', 'HEAD');
+          const tree = git('rev-parse', 'HEAD^{tree}');
+          if (head !== process.env.EXPECTED_CANDIDATE_SHA) throw new Error('CANDIDATE_HEAD_MISMATCH');
+          writeFileSync(process.env.RUNNER_TEMP + '/control-center-destination-identity.json', JSON.stringify({
+            repository: process.env.GITHUB_REPOSITORY,
+            runId: process.env.GITHUB_RUN_ID,
+            runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+            eventName: process.env.GITHUB_EVENT_NAME,
+            eventSha: process.env.GITHUB_SHA,
+            workflowRef: process.env.GITHUB_WORKFLOW_REF,
+            workflowSha: process.env.GITHUB_WORKFLOW_SHA,
+            expectedHead: process.env.EXPECTED_CANDIDATE_SHA,
+            testedHead: head,
+            testedTree: tree,
+          }, null, 2) + '\n');
+          NODE
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
@@ -120,6 +146,8 @@ jobs:
           done
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const assert = require('node:assert/strict');
+          const { writeFileSync } = require('node:fs');
           const origin = 'http://127.0.0.1:4196';
           const password = 'destination browser fixture';
           async function login(context, email) {
@@ -129,6 +157,31 @@ jobs:
             });
             if (response.status() !== 200) throw new Error('LOGIN_FAILED:' + await response.text());
             return response.json();
+          }
+          async function submitDestination(page, button, method, path, expectedStatus) {
+            const observed = [];
+            const stepUp = page.waitForResponse(response => response.url() === origin + '/api/admin/v1/step-up' && response.request().method() === 'POST', { timeout: 15000 }).then(response => {
+              assert.equal(response.status(), 200, 'DESTINATION_STEP_UP_FAILED');
+              observed.push('step-up');
+            });
+            const mutation = page.waitForResponse(response => response.url() === origin + path && response.request().method() === method, { timeout: 15000 }).then(response => {
+              assert.deepEqual(observed, ['step-up'], 'DESTINATION_MUTATION_PRECEDED_STEP_UP');
+              assert.equal(response.status(), expectedStatus, 'DESTINATION_MUTATION_FAILED');
+              return response;
+            });
+            const [, response] = await Promise.all([
+              stepUp,
+              mutation,
+              page.getByRole('button', { name: button, exact: true }).click(),
+            ]);
+            return response.request().postDataJSON().destination;
+          }
+          async function readDestination(context, id) {
+            const response = await context.request.get(origin + '/api/admin/v1/destinations/' + id);
+            assert.equal(response.status(), 200, 'DESTINATION_AUTHENTICATED_GET_FAILED:' + id);
+            const destination = (await response.json()).data;
+            assert.equal(destination?.id, id, 'DESTINATION_ID_MISMATCH');
+            return destination;
           }
           (async () => {
             const browser = await chromium.launch({ headless: true });
@@ -170,27 +223,33 @@ jobs:
               await page.locator('input[name="tagline"]').fill('Destino governado de teste');
               await page.locator('input[name="lat"]').fill('-13.38');
               await page.locator('input[name="lng"]').fill('-38.91');
-              await page.locator('textarea[name="modules"]').fill('map, assistant');
+              const expectedModules = ['map', 'assistant', 'navigation'];
+              await page.locator('textarea[name="modules"]').fill('map, assistant\nnavigation');
               await page.locator('textarea[name="featureFlags"]').fill('{"map":true,"assistant":true}');
               await page.locator('textarea[name="reason"]').fill('Criacao E2E governada do destino');
               await page.locator('input[name="password"]').fill(password);
-              await page.getByRole('button', { name: 'Criar destino governado' }).click();
+              const createdPayload = await submitDestination(page, 'Criar destino governado', 'POST', '/api/admin/v1/destinations', 201);
+              assert.deepEqual(createdPayload.modules, expectedModules, 'DESTINATION_MODULE_NAMES_CORRUPTED');
               await page.getByText('Destino E2E', { exact: true }).waitFor({ timeout: 15000 });
+              assert.deepEqual((await readDestination(owner, 'e2e-destination')).modules, expectedModules, 'DESTINATION_CREATED_MODULES_NOT_DURABLE');
 
               await page.locator('input[name="tagline"]').fill('Destino E2E atualizado');
               await page.locator('textarea[name="reason"]').fill('Edicao E2E governada do destino');
               await page.locator('input[name="password"]').fill(password);
-              await page.getByRole('button', { name: 'Salvar configuração governada' }).click();
-              await page.waitForResponse(async response => response.url().includes('/api/admin/v1/destinations/e2e-destination') && response.request().method() === 'PUT' && response.status() === 200, { timeout: 15000 });
+              const editedPayload = await submitDestination(page, 'Salvar configuração governada', 'PUT', '/api/admin/v1/destinations/e2e-destination', 200);
+              assert.deepEqual(editedPayload.modules, expectedModules, 'DESTINATION_EDIT_MODULE_NAMES_CORRUPTED');
               await page.waitForFunction(() => document.querySelector('input[name="tagline"]')?.value === 'Destino E2E atualizado', null, { timeout: 15000 });
-              const persisted = await owner.request.get(origin + '/api/admin/v1/destinations/e2e-destination');
-              if (persisted.status() !== 200 || (await persisted.json()).data?.branding?.tagline !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_DURABLE');
+              const persisted = await readDestination(owner, 'e2e-destination');
+              if (persisted.branding?.tagline !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_DURABLE');
+              assert.deepEqual(persisted.modules, expectedModules, 'DESTINATION_EDIT_MODULES_NOT_DURABLE');
               await page.reload();
               await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
               await page.goto(origin + '/apps/control-center/public/index.html#destinations:e2e-destination');
               await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
               await page.locator('input[name="tagline"]').waitFor({ timeout: 15000 });
               if (await page.locator('input[name="tagline"]').inputValue() !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_RENDERED_AFTER_RELOAD');
+              assert.equal(await page.locator('textarea[name="modules"]').inputValue(), expectedModules.join(', '), 'DESTINATION_MODULES_NOT_RENDERED_AFTER_RELOAD');
+              assert.deepEqual((await readDestination(owner, 'e2e-destination')).modules, expectedModules, 'DESTINATION_MODULES_NOT_DURABLE_AFTER_RELOAD');
 
               for (const viewport of [{width:768,height:1024},{width:390,height:844}]) {
                 await page.setViewportSize(viewport);
@@ -198,10 +257,67 @@ jobs:
                 if (overflow) throw new Error('DESTINATION_UI_HORIZONTAL_OVERFLOW:' + viewport.width);
               }
 
+              const disabledId = 'e2e-disabled-destination';
+              const disabledFlags = {
+                marketplace: false,
+                map: false,
+                navigation: false,
+                assistant: false,
+                businessPortal: false,
+                adminCrm: false,
+                booking: false,
+                payments: false,
+                affiliates: false,
+              };
+              await page.setViewportSize({ width: 1280, height: 900 });
+              await page.goto(origin + '/apps/control-center/public/index.html#destinations');
+              await page.locator('#destination-editor').waitFor({ timeout: 15000 });
+              await page.locator('input[name="id"]').fill(disabledId);
+              await page.locator('input[name="name"]').fill('Destino E2E desabilitado');
+              await page.locator('input[name="shortName"]').fill('E2E desabilitado');
+              await page.locator('input[name="tagline"]').fill('Destino sem modulos ativos');
+              await page.locator('input[name="lat"]').fill('-14.28');
+              await page.locator('input[name="lng"]').fill('-38.99');
+              await page.locator('textarea[name="modules"]').fill('');
+              await page.locator('textarea[name="featureFlags"]').fill(JSON.stringify(disabledFlags));
+              await page.locator('textarea[name="reason"]').fill('Criacao E2E governada sem modulos ativos');
+              await page.locator('input[name="password"]').fill(password);
+              const disabledPayload = await submitDestination(page, 'Criar destino governado', 'POST', '/api/admin/v1/destinations', 201);
+              assert.equal(disabledPayload.id, disabledId, 'DISABLED_DESTINATION_PAYLOAD_ID_MISMATCH');
+              assert.deepEqual(disabledPayload.modules, [], 'DISABLED_DESTINATION_PAYLOAD_MODULES_NOT_EMPTY');
+              assert.deepEqual(disabledPayload.featureFlags, disabledFlags, 'DISABLED_DESTINATION_PAYLOAD_FLAGS_MISMATCH');
+              await page.getByRole('heading', { name: 'Destino E2E desabilitado', exact: true }).waitFor({ timeout: 15000 });
+              const disabledPersisted = await readDestination(owner, disabledId);
+              assert.deepEqual(disabledPersisted.modules, [], 'DISABLED_DESTINATION_MODULES_NOT_DURABLE');
+              assert.deepEqual(disabledPersisted.featureFlags, disabledFlags, 'DISABLED_DESTINATION_FLAGS_NOT_DURABLE');
+              await page.reload();
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.goto(origin + '/apps/control-center/public/index.html#destinations:' + disabledId);
+              await page.locator('input[name="id"][readonly]').waitFor({ timeout: 15000 });
+              assert.equal(await page.locator('input[name="id"]').inputValue(), disabledId, 'DISABLED_DESTINATION_EDITOR_ID_MISMATCH');
+              assert.equal(await page.locator('textarea[name="modules"]').inputValue(), '', 'DISABLED_DESTINATION_MODULES_NOT_EMPTY_AFTER_RELOAD');
+              assert.deepEqual(JSON.parse(await page.locator('textarea[name="featureFlags"]').inputValue()), disabledFlags, 'DISABLED_DESTINATION_FLAGS_NOT_RENDERED_AFTER_RELOAD');
+              const disabledReloaded = await readDestination(owner, disabledId);
+              assert.deepEqual(disabledReloaded.modules, [], 'DISABLED_DESTINATION_MODULES_NOT_DURABLE_AFTER_RELOAD');
+              assert.deepEqual(disabledReloaded.featureFlags, disabledFlags, 'DISABLED_DESTINATION_FLAGS_NOT_DURABLE_AFTER_RELOAD');
+
               const business = await browser.newContext();
               await login(business, 'destination-business@example.com');
               const forbidden = await business.request.get(origin + '/api/admin/v1/destinations');
               if (forbidden.status() !== 403) throw new Error('BUSINESS_OWNER_DESTINATION_ACCESS_NOT_DENIED');
+              writeFileSync(process.env.RUNNER_TEMP + '/control-center-destination-browser-assertions.json', JSON.stringify({
+                normalCreateEditReload: true,
+                exactNonemptyModules: expectedModules,
+                emptyModulesCreateReload: true,
+                disabledDestinationId: disabledId,
+                persistedEmptyModules: disabledReloaded.modules,
+                persistedDisabledFlags: disabledReloaded.featureFlags,
+                stepUpRequired: true,
+                successfulUiStepUpBeforeMutations: true,
+                businessOwnerDenied: true,
+                publicProjectionPrivacy: true,
+                viewportChecks: true,
+              }, null, 2) + '\n');
               await business.close();
               await owner.close();
             } finally { await browser.close(); }
@@ -267,3 +383,13 @@ jobs:
             await pool.end();
           }
           NODE
+      - name: Retain Destination candidate identity and browser assertions
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: control-center-destination-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/control-center-destination-identity.json
+            ${{ runner.temp }}/control-center-destination-browser-assertions.json
+          retention-days: 3
+          if-no-files-found: error
