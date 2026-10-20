@@ -690,9 +690,9 @@ describe("manual conformance recovery isolation", () => {
     const execute = compileFunction(
       `return (async () => { ${orchestration!.getText(sourceAst)} })();`,
       Object.keys(parameters),
-    );
+    ) as (...values: unknown[]) => Promise<void>;
     return {
-      run: () => execute(...Object.values(parameters)) as Promise<void>,
+      run: () => execute(...Object.values(parameters)),
       browser,
       context,
       page,
