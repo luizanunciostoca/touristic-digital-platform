@@ -801,6 +801,32 @@
       "needsDatabase": true,
       "needsDependencyAudit": false,
       "needsFullSecurity": true
+    },
+    "destination-public-ui": {
+      "paths": [
+        "apps/morro-digital-platform/public/assets/brand/itacare-digital-micro-v2.svg",
+        "apps/morro-digital-platform/public/assets/brand/itacare-digital-symbol-v2.svg",
+        "apps/morro-digital-platform/public/destination.css",
+        "apps/morro-digital-platform/public/destination.html",
+        "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts",
+        "apps/morro-digital-platform/src/bootstrap/geospatial.ts",
+        "apps/morro-digital-platform/src/bootstrap/runtime.test.ts",
+        "apps/morro-digital-platform/src/bootstrap/runtime.ts",
+        "apps/morro-digital-platform/src/browser.ts",
+        "apps/morro-digital-platform/src/destinations/destination-browser-entry.ts",
+        "apps/morro-digital-platform/src/destinations/destination-page.test.ts",
+        "apps/morro-digital-platform/src/destinations/destination-page.ts",
+        "apps/morro-digital-platform/src/runtime/public-destination.test.ts",
+        "apps/morro-digital-platform/src/runtime/public-destination.ts"
+      ],
+      "risk": "CRITICAL",
+      "dependsOn": ["auth", "business"],
+      "suites": ["itacare-product-candidate-proof.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": true,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true
     }
   }
 }
