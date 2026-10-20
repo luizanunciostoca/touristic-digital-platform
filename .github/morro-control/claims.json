@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/itacare-integration-classification-20261020",
-      "baseSha": "3476123f6d08af2f8c929b213b4df0269e28ad92",
+      "baseSha": "e2c7d4f3f7e39d9bd78efb62aeed2c747c1fbc0f",
       "paths": [
         ".morro/changesets/MD-ITACARE-INTEGRATION-CLASSIFICATION-20261020.json",
         ".morro/ownership.json",
