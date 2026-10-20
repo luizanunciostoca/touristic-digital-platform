@@ -55,7 +55,17 @@
         "apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts",
         "apps/morro-digital-platform/src/assistant/assistant-voice-settings.test.ts",
         "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
-        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts"
+        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts",
+        "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts",
+        "apps/morro-digital-platform/src/bootstrap/geospatial.ts",
+        "apps/morro-digital-platform/src/bootstrap/runtime.test.ts",
+        "apps/morro-digital-platform/src/bootstrap/runtime.ts",
+        "apps/morro-digital-platform/src/browser.ts",
+        "apps/morro-digital-platform/src/destinations/destination-browser-entry.ts",
+        "apps/morro-digital-platform/src/destinations/destination-page.test.ts",
+        "apps/morro-digital-platform/src/destinations/destination-page.ts",
+        "apps/morro-digital-platform/src/runtime/public-destination.test.ts",
+        "apps/morro-digital-platform/src/runtime/public-destination.ts"
       ],
       "contracts": []
     },
@@ -141,7 +151,8 @@
         "apps/morro-digital-platform/tooling/destination-public-templates.mjs",
         "apps/morro-digital-platform/tooling/destination-public-templates.test.mjs",
         "apps/morro-digital-platform/tooling/destination-request-resolver.mjs",
-        "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs"
+        "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs",
+        "apps/control-center/public/control-center.js"
       ],
       "contracts": ["platform-authz"]
     },
