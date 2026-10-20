@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-ITACARE-FUNCTIONAL-INTEGRATION-20261020",
   "objective": "integrate-recovered-itacare-ui-with-trusted-owner-suspension-and-empty-modules-activation",
-  "baseSha": "509dee25f6085d38dca0a5ee473f9e9b5164b245",
+  "baseSha": "a06f8363b3c532c82f938322a9d1dd171b237333",
   "branch": "feat/itacare-governed-integration-20261020",
   "state": "IMPLEMENTING",
   "risk": "critical",

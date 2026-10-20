@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "feat/itacare-governed-integration-20261020",
-      "baseSha": "509dee25f6085d38dca0a5ee473f9e9b5164b245",
+      "baseSha": "a06f8363b3c532c82f938322a9d1dd171b237333",
       "paths": [
         ".morro/changesets/MD-ITACARE-FUNCTIONAL-INTEGRATION-20261020.json",
         "apps/morro-digital-platform/public/assets/brand/itacare-digital-micro-v2.svg",
