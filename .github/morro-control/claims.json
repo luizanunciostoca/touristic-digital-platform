@@ -1,23 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-ASSISTANT-RECOVERY-STAGING-20261019": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/assistant-recovery-staging-20261019",
-      "baseSha": "0a39f7454f6cab6258afe7c1c03c8534cbf0e565",
-      "paths": [
-        ".morro/changesets/MD-ASSISTANT-RECOVERY-STAGING-20261019.json",
-        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
-        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
-        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
-        "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs"
-      ],
-      "domains": ["map"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-20T02:00:00.000Z"
-    }
-  }
+  "claims": {}
 }
