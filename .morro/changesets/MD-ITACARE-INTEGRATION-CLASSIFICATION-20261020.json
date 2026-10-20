@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ITACARE-INTEGRATION-CLASSIFICATION-20261020",
   "objective": "classify-exact-itacare-ui-integration-paths-without-runtime-or-risk-reduction",
-  "baseSha": "e2c7d4f3f7e39d9bd78efb62aeed2c747c1fbc0f",
-  "branch": "chore/itacare-integration-classification-20261020",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "06f00b2fda9e913e98ae7a947b8b849a4e356f29",
+  "branch": "chore/retire-itacare-classification-20261020",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
