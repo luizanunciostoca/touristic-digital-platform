@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ASSISTANT-RECOVERY-STAGING-20261019",
   "objective": "recover-assistant-failure-retry-and-prove-isolated-browser-lifecycle",
-  "baseSha": "0a39f7454f6cab6258afe7c1c03c8534cbf0e565",
-  "branch": "fix/assistant-recovery-staging-20261019",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "a189ac04362afdc93ff3e91abe19a28451fc69a1",
+  "branch": "chore/retire-assistant-recovery-staging-20261020",
+  "state": "MERGED",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
