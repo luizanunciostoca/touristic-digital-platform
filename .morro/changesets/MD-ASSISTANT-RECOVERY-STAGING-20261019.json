@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-ASSISTANT-RECOVERY-STAGING-20261019",
   "objective": "recover-assistant-failure-retry-and-prove-isolated-browser-lifecycle",
-  "baseSha": "fd3c03e31d24e41afb23be6f69d6a0b27c4a93b6",
+  "baseSha": "0a39f7454f6cab6258afe7c1c03c8534cbf0e565",
   "branch": "fix/assistant-recovery-staging-20261019",
   "state": "IMPLEMENTING",
   "risk": "high",
