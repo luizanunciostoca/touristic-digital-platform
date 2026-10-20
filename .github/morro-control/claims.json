@@ -1,39 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-ITACARE-FUNCTIONAL-INTEGRATION-20261020": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "feat/itacare-governed-integration-20261020",
-      "baseSha": "509dee25f6085d38dca0a5ee473f9e9b5164b245",
-      "paths": [
-        ".morro/changesets/MD-ITACARE-FUNCTIONAL-INTEGRATION-20261020.json",
-        "apps/morro-digital-platform/public/assets/brand/itacare-digital-micro-v2.svg",
-        "apps/morro-digital-platform/public/assets/brand/itacare-digital-symbol-v2.svg",
-        "apps/morro-digital-platform/public/destination.css",
-        "apps/morro-digital-platform/public/destination.html",
-        "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts",
-        "apps/morro-digital-platform/src/bootstrap/geospatial.ts",
-        "apps/morro-digital-platform/src/bootstrap/runtime.test.ts",
-        "apps/morro-digital-platform/src/bootstrap/runtime.ts",
-        "apps/morro-digital-platform/src/browser.ts",
-        "apps/morro-digital-platform/src/destinations/destination-browser-entry.ts",
-        "apps/morro-digital-platform/src/destinations/destination-page.test.ts",
-        "apps/morro-digital-platform/src/destinations/destination-page.ts",
-        "apps/morro-digital-platform/src/runtime/public-destination.test.ts",
-        "apps/morro-digital-platform/src/runtime/public-destination.ts",
-        "apps/morro-digital-platform/tooling/dev-server.mjs",
-        "apps/morro-digital-platform/src/browser-entry.ts",
-        "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs",
-        ".github/workflows/itacare-product-candidate-proof.yml",
-        "apps/control-center/public/control-center.js",
-        ".github/workflows/control-center-destination-contract.yml"
-      ],
-      "domains": ["map", "auth", "business", "ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-20T14:00:00.000Z"
-    }
-  }
+  "claims": {}
 }
