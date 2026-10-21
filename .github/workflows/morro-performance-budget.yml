@@ -71,6 +71,7 @@ jobs:
           exit 1
       - name: Measure browser startup budgets
         run: |
+          set -euo pipefail
           node <<'NODE' | tee /tmp/morro-performance/runtime-budget.json
           const { readFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
@@ -138,6 +139,7 @@ jobs:
           NODE
       - name: Enforce Morro Digital asset budgets
         run: |
+          set -euo pipefail
           mkdir -p /tmp/morro-performance
           node tooling/performance/check-morro-digital-budget.mjs |
             tee /tmp/morro-performance/report.json
