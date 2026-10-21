@@ -19,6 +19,7 @@ function launcherEnvironment(env) {
         ![
           "GH_TOKEN",
           "GITHUB_TOKEN",
+          "GH_REPO",
           "NODE_OPTIONS",
           "NODE_PATH",
           "GH_DEBUG",
@@ -30,16 +31,17 @@ function launcherEnvironment(env) {
 // Static code only: payload and credential cross the runtime boundary through stdin.
 const RUNTIME_WRAPPER = String.raw`
 import { readFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 try {
   const input = readFileSync(0);
   if (input.length > 65536) throw new Error();
   const p = JSON.parse(input.toString("utf8"));
+  process.chdir(p.root);
   if (resolve(process.cwd()) !== p.root) throw new Error();
   const git = (args) => {
     const r = spawnSync("git", args, {
-      cwd: p.root, encoding: "utf8", timeout: 30000, maxBuffer: 4194304,
+      cwd: p.root, encoding: "utf8", timeout: 30000, killSignal: "SIGKILL", maxBuffer: 4194304,
       stdio: ["ignore", "pipe", "pipe"],
     });
     if (r.error || r.signal || r.status !== 0) throw new Error();
@@ -47,18 +49,56 @@ try {
   };
   if (git(["rev-parse", "--show-toplevel"]) !== p.root ||
       git(["rev-parse", "HEAD"]) !== p.head ||
+      git(["remote", "get-url", "origin"]) !== p.origin ||
       git(["status", "--porcelain=v1", "--untracked-files=all"]) !== "") throw new Error();
+  // Reserve cleanup time even if runtime startup or the four Git probes are slow.
+  const commandBudget = Math.min(p.timeoutMs, p.deadlineAt - Date.now() - 5000);
+  if (!Number.isFinite(commandBudget) || commandBudget <= 0) throw new Error();
   const env = { ...process.env, GH_TOKEN: p.token, GITHUB_TOKEN: p.token,
-    GITHUB_REPOSITORY: p.repository, GH_HOST: "github.com",
+    GITHUB_REPOSITORY: p.repository, GH_REPO: p.repository, GH_HOST: "github.com",
     GITHUB_SERVER_URL: "https://github.com", GITHUB_API_URL: "https://api.github.com" };
-  const r = spawnSync(p.command, p.args, {
-    cwd: p.root, env, encoding: "utf8", timeout: p.timeoutMs, maxBuffer: 4194304,
+  const child = spawn(p.command, p.args, {
+    cwd: p.root, env, detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  if (r.error || r.signal || !Number.isInteger(r.status)) throw new Error();
-  process.stdout.write(r.stdout || "");
-  process.stderr.write(r.stderr || "");
-  process.exitCode = r.status;
+  const stdout = [], stderr = [];
+  let failed = false, bytes = 0;
+  const killOwnedGroup = () => {
+    if (!Number.isInteger(child.pid) || child.pid <= 0) return;
+    try { process.kill(-child.pid, "SIGKILL"); }
+    catch { try { child.kill("SIGKILL"); } catch {} }
+  };
+  const result = await new Promise((resolveResult) => {
+    let settled = false, fallback;
+    const finish = (code, signal) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);clearTimeout(fallback);
+      process.removeListener("SIGTERM", abort);
+      process.removeListener("SIGINT", abort);
+      killOwnedGroup();
+      resolveResult({code, signal});
+    };
+    const abort = () => {
+      if (failed || settled) return;
+      failed = true;killOwnedGroup();
+      child.stdout.destroy();child.stderr.destroy();
+      fallback = setTimeout(() => finish(null, "SIGKILL"), 1000);
+    };
+    const collect = (target) => (chunk) => {
+      bytes += chunk.length;
+      if (bytes > 4194304) abort();
+      else target.push(chunk);
+    };
+    const timer = setTimeout(abort, Math.max(0, Math.min(commandBudget, p.deadlineAt - Date.now() - 5000)));
+    child.stdout.on("data", collect(stdout));child.stderr.on("data", collect(stderr));
+    child.once("error", abort);child.once("close", finish);
+    process.once("SIGTERM", abort);process.once("SIGINT", abort);
+  });
+  if (failed || result.signal || !Number.isInteger(result.code)) throw new Error();
+  process.stdout.write(Buffer.concat(stdout));
+  process.stderr.write(Buffer.concat(stderr));
+  process.exitCode = result.code;
 } catch {
   process.stderr.write("AUTH_EXEC_RUNTIME_FAILED\n");
   process.exitCode = 125;
@@ -129,6 +169,11 @@ export function runGithubAuthExec(
       !env[key] || env[key] === expected,
       "AUTH_EXEC_ENV_IDENTITY_MISMATCH",
     );
+  requireCondition(
+    !env.GH_REPO ||
+      [repository, `github.com/${repository}`].includes(env.GH_REPO),
+    "AUTH_EXEC_ENV_IDENTITY_MISMATCH",
+  );
 
   const cleanEnv = launcherEnvironment(env);
   function invoke(program, argv, options = {}) {
@@ -138,6 +183,7 @@ export function runGithubAuthExec(
         env: cleanEnv,
         encoding: "utf8",
         timeout: 30000,
+        killSignal: "SIGKILL",
         maxBuffer: BUFFER_LIMIT,
         stdio: ["ignore", "pipe", "pipe"],
         ...options,
@@ -169,20 +215,21 @@ export function runGithubAuthExec(
       git(["status", "--porcelain=v1", "--untracked-files=all"]) === "",
       "AUTH_EXEC_WORKTREE_DIRTY",
     );
+    const origin = git(["remote", "get-url", "origin"]);
+    requireCondition(
+      [
+        `https://github.com/${repository}`,
+        `https://github.com/${repository}.git`,
+        `git@github.com:${repository}`,
+        `git@github.com:${repository}.git`,
+        `ssh://git@github.com/${repository}`,
+        `ssh://git@github.com/${repository}.git`,
+      ].includes(origin),
+      "AUTH_EXEC_ORIGIN_MISMATCH",
+    );
+    return origin;
   }
   verifyLocalIdentity();
-  const origin = git(["remote", "get-url", "origin"]);
-  requireCondition(
-    [
-      `https://github.com/${repository}`,
-      `https://github.com/${repository}.git`,
-      `git@github.com:${repository}`,
-      `git@github.com:${repository}.git`,
-      `ssh://git@github.com/${repository}`,
-      `ssh://git@github.com/${repository}.git`,
-    ].includes(origin),
-    "AUTH_EXEC_ORIGIN_MISMATCH",
-  );
   requireCondition(
     invoke("git", ["merge-base", "--is-ancestor", expectedMain, expectedHead])
       .status === 0,
@@ -228,6 +275,7 @@ export function runGithubAuthExec(
     GH_TOKEN: token,
     GITHUB_TOKEN: token,
     GH_HOST: "github.com",
+    GH_REPO: repository,
     GITHUB_REPOSITORY: repository,
   };
   const response = invoke(
@@ -244,15 +292,20 @@ export function runGithubAuthExec(
   }
   requireCondition(main === expectedMain, "AUTH_EXEC_MAIN_MISMATCH");
   // Network preflight can take time: recheck immediately before dispatch as well.
-  verifyLocalIdentity();
+  const origin = verifyLocalIdentity();
+  // 4 × 30s runtime Git checks, startup margin and bounded group cleanup.
+  const launcherTimeoutMs = timeoutMs + 180000;
+  const deadlineAt = Date.now() + launcherTimeoutMs;
   const input = JSON.stringify({
     root,
     repository,
+    origin,
     head: expectedHead,
     token,
     command,
     args,
     timeoutMs,
+    deadlineAt,
   });
   requireCondition(
     Buffer.byteLength(input) <= INPUT_LIMIT,
@@ -276,7 +329,7 @@ export function runGithubAuthExec(
     {
       input,
       stdio: ["pipe", "pipe", "pipe"],
-      timeout: timeoutMs + 90000,
+      timeout: launcherTimeoutMs,
     },
   );
   const redact = (value) =>

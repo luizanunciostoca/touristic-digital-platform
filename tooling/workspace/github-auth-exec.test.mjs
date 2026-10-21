@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync, chmodSync } from "node:fs";
+import {
+  mkdtempSync,
+  writeFileSync,
+  rmSync,
+  chmodSync,
+  readFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -16,6 +22,7 @@ function fixture(t) {
     GH_TOKEN: "",
     GITHUB_TOKEN: "",
     GH_HOST: "github.com",
+    GH_REPO: repository,
     GITHUB_REPOSITORY: repository,
     GITHUB_SERVER_URL: "https://github.com",
     GITHUB_API_URL: "https://api.github.com",
@@ -80,13 +87,14 @@ function fixture(t) {
 
 test("stored credential reaches native command privately; child stdin is empty", (t) => {
   const f = fixture(t);
+  f.env.GH_REPO = `github.com/${repository}`;
   f.env.NODE_OPTIONS = "--require=/must-not-load";
   f.env.NODE_PATH = "/must-not-load";
   f.env.GIT_DIR = "/must-not-use";
   const result = f.run({
     args: [
       "-e",
-      `const fs=require('node:fs');console.log(JSON.stringify({credential:!!process.env.GH_TOKEN,same:process.env.GH_TOKEN===process.env.GITHUB_TOKEN,repo:process.env.GITHUB_REPOSITORY,stdin:fs.readFileSync(0,'utf8'),preload:process.env.NODE_OPTIONS??null}));`,
+      `const fs=require('node:fs');console.log(JSON.stringify({credential:!!process.env.GH_TOKEN,same:process.env.GH_TOKEN===process.env.GITHUB_TOKEN,repo:process.env.GITHUB_REPOSITORY,ghRepo:process.env.GH_REPO,stdin:fs.readFileSync(0,'utf8'),preload:process.env.NODE_OPTIONS??null}));`,
     ],
   });
   assert.equal(result.exitCode, 0);
@@ -95,6 +103,7 @@ test("stored credential reaches native command privately; child stdin is empty",
     credential: true,
     same: true,
     repo: repository,
+    ghRepo: repository,
     stdin: "",
     preload: null,
   });
@@ -151,7 +160,10 @@ test("Debian launch uses Debian node and stdin, without credential or preload ar
     assert.equal(opts.env.GITHUB_TOKEN, undefined);
     assert.equal(JSON.parse(opts.input).token, fixtureToken);
     // Execute the same static wrapper locally; actual PRoot is a separate runtime proof.
-    return spawnSync(process.execPath, args.slice(4), opts);
+    return spawnSync(process.execPath, args.slice(4), {
+      ...opts,
+      cwd: tmpdir(),
+    });
   };
   const r = f.run({ runtime: "debian-proot" }, { spawn });
   assert.equal(r.exitCode, 0);
@@ -180,6 +192,7 @@ test("wrong host, repository, origin, SHA and dirty worktree fail closed", (t) =
   for (const scenario of [
     "host",
     "repository",
+    "gh-repo",
     "api",
     "server",
     "origin",
@@ -191,6 +204,7 @@ test("wrong host, repository, origin, SHA and dirty worktree fail closed", (t) =
     let change = {};
     if (scenario === "host") f.env.GH_HOST = "example.invalid";
     if (scenario === "repository") f.env.GITHUB_REPOSITORY = "other/repo";
+    if (scenario === "gh-repo") f.env.GH_REPO = "other/repo";
     if (scenario === "api") f.env.GITHUB_API_URL = "https://example.invalid";
     if (scenario === "server")
       f.env.GITHUB_SERVER_URL = "https://example.invalid";
@@ -251,18 +265,28 @@ test("API failure, malformed response and thrown diagnostics never expose creden
 });
 
 test("identity is checked again after network preflight", (t) => {
-  for (const scenario of ["dirty", "head"]) {
+  for (const scenario of ["dirty", "head", "origin"]) {
     const f = fixture(t);
     f.env.GITHUB_TOKEN = fixtureToken;
     f.setGh(() => {
-      writeFileSync(join(f.root, "tracked"), "changed");
+      if (scenario === "origin")
+        f.git(
+          "remote",
+          "set-url",
+          "origin",
+          "https://github.com/other/repo.git",
+        );
+      else writeFileSync(join(f.root, "tracked"), "changed");
       if (scenario === "head") {
         f.git("add", "tracked");
         f.git("commit", "--quiet", "-m", "race");
       }
       return { status: 0, stdout: JSON.stringify({ sha: f.head }), stderr: "" };
     });
-    assert.throws(() => f.run(), /AUTH_EXEC_(WORKTREE_DIRTY|HEAD_MISMATCH)/);
+    assert.throws(
+      () => f.run(),
+      /AUTH_EXEC_(WORKTREE_DIRTY|HEAD_MISMATCH|ORIGIN_MISMATCH)/,
+    );
     assert.equal(
       f.calls.some((c) => c.program === process.execPath),
       false,
@@ -271,16 +295,66 @@ test("identity is checked again after network preflight", (t) => {
 });
 
 test("runtime identity check blocks a change after parent preflight", (t) => {
+  for (const change of ["dirty", "origin"]) {
+    const f = fixture(t);
+    const spawn = (program, args, opts) => {
+      if (program === process.execPath) {
+        if (change === "dirty") writeFileSync(join(f.root, "race"), "changed");
+        else
+          f.git(
+            "remote",
+            "set-url",
+            "origin",
+            "https://github.com/other/repo.git",
+          );
+      }
+      return f.spawn(program, args, opts);
+    };
+    const r = f.run({}, { spawn });
+    assert.equal(r.exitCode, 125);
+    assert.equal(r.stdout, "");
+    assert.match(r.stderr, /AUTH_EXEC_RUNTIME_FAILED/);
+  }
+});
+
+test("timeout forcibly terminates the owned command group even when SIGTERM is ignored", (t) => {
   const f = fixture(t);
-  const spawn = (program, args, opts) => {
-    if (program === process.execPath)
-      writeFileSync(join(f.root, "race"), "changed");
-    return f.spawn(program, args, opts);
-  };
-  const r = f.run({}, { spawn });
-  assert.equal(r.exitCode, 125);
-  assert.equal(r.stdout, "");
-  assert.match(r.stderr, /AUTH_EXEC_RUNTIME_FAILED/);
+  const evidence = mkdtempSync(join(tmpdir(), "auth-exec-pids-"));
+  const file = join(evidence, "pids.json");
+  t.after(() => {
+    try {
+      for (const pid of JSON.parse(readFileSync(file, "utf8"))) {
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {}
+      }
+    } catch {}
+    rmSync(evidence, { recursive: true, force: true });
+  });
+  const code = `const {spawn}=require('node:child_process');const fs=require('node:fs');const worker=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{stdio:'ignore'});fs.writeFileSync(process.argv[1],JSON.stringify([process.pid,worker.pid]));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);`;
+  const started = Date.now();
+  const result = f.run({ timeoutMs: 3000, args: ["-e", code, file] });
+  assert.equal(result.exitCode, 125);
+  assert.equal(result.stdout, "");
+  assert.ok(
+    Date.now() - started < 15000,
+    "authenticated command timeout must be bounded",
+  );
+  const pids = JSON.parse(readFileSync(file, "utf8"));
+  assert.equal(pids.length, 2);
+  for (const pid of pids) {
+    try {
+      const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+      assert.ok(
+        ["Z", "X"].includes(
+          stat.slice(stat.lastIndexOf(")") + 2).split(" ")[0],
+        ),
+        "owned process must not survive",
+      );
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
 });
 
 test("command timeout and signal cannot become success or leak partial output", (t) => {
@@ -323,6 +397,25 @@ test("credentials in command arguments and oversized private payload are rejecte
     f.calls.some((c) => c.program === process.execPath),
     false,
   );
+});
+
+test("runtime refuses an exhausted shared deadline before authenticated command dispatch", (t) => {
+  const f = fixture(t);
+  const spawn = (program, args, opts) => {
+    if (program === process.execPath) {
+      const payload = JSON.parse(opts.input);
+      assert.ok(opts.timeout >= payload.timeoutMs + 4 * 30000 + 5000);
+      payload.deadlineAt = Date.now() - 1;
+      return f.spawn(program, args, {
+        ...opts,
+        input: JSON.stringify(payload),
+      });
+    }
+    return f.spawn(program, args, opts);
+  };
+  const result = f.run({}, { spawn });
+  assert.equal(result.exitCode, 125);
+  assert.equal(result.stdout, "");
 });
 
 test("CLI reports safe failure for invalid auth-exec", () => {
