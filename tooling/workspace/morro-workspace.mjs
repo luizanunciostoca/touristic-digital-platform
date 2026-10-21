@@ -4,6 +4,7 @@ import { lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, parse, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runGithubAuthExec } from "./github-auth-exec.mjs";
 
 export const CANONICAL_REMOTE =
   "https://github.com/luizanunciostoca/touristic-digital-platform.git";
@@ -549,13 +550,34 @@ export function inventory(input = {}) {
 
 function main(argv) {
   const [command, ...args] = argv;
+  if (command === "auth-exec" && args.length >= 7 && args[5] === "--") {
+    const [
+      runtime,
+      root,
+      repository,
+      expectedHead,
+      expectedMain,
+      ,
+      executable,
+      ...commandArgs
+    ] = args;
+    return runGithubAuthExec({
+      runtime,
+      root,
+      repository,
+      expectedHead,
+      expectedMain,
+      command: executable,
+      args: commandArgs,
+    });
+  }
   if (command === "bootstrap" && args.length === 1) return bootstrap(args[0]);
   if (command === "create" && args.length === 3) return createTask(...args);
   if (command === "inventory" && args.length === 0) return inventory();
   if (command === "ready" && args.length === 2)
     return prepareTaskWorkspace(args[0], args[1]);
   throw new Error(
-    "Usage: morro-workspace.mjs bootstrap <main-sha> | create <task-id> <branch> <main-sha> | inventory | ready <worktree> <main-sha>",
+    "Usage: morro-workspace.mjs bootstrap <main-sha> | create <task-id> <branch> <main-sha> | inventory | ready <worktree> <main-sha> | auth-exec <native|debian-proot> <absolute-worktree> <owner/repo> <head-sha> <main-sha> -- <command> [args]",
   );
 }
 
@@ -564,9 +586,9 @@ if (
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   try {
-    process.stdout.write(
-      `${JSON.stringify(main(process.argv.slice(2)), null, 2)}\n`,
-    );
+    const result = main(process.argv.slice(2));
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (result?.mode === "AUTH_EXEC") process.exitCode = result.exitCode;
   } catch (error) {
     process.stderr.write(`${diagnosticCode(error)}\n`);
     process.exitCode = 1;

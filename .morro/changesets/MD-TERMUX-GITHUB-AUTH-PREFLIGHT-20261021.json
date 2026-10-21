@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TERMUX-GITHUB-AUTH-PREFLIGHT-20261021",
   "objective": "fail-closed-private-github-auth-preflight-for-termux-debian-execution",
-  "baseSha": "a26df87455ed6ea2d543cbd909352b2c07de8979",
+  "baseSha": "c56dd7cdd9df104f1c7f5e3b254d8c262477c98f",
   "branch": "fix/termux-github-auth-preflight-20261021",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
