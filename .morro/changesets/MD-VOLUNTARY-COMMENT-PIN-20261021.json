@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-VOLUNTARY-COMMENT-PIN-20261021",
   "objective": "preserve-owner-consent-proof-across-github-null-pin-representations",
-  "baseSha": "02a174eedd6f5bfe7580f79faeb865d8cc2a3dfa",
-  "branch": "fix/voluntary-owner-comment-pin-20261021",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "5de8c5099cb4aa80f4fae3c85c2a2e3d437d6d83",
+  "branch": "chore/retire-voluntary-comment-pin-20261021",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
