@@ -68,6 +68,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-23T03:18:46.002Z"
+    },
+    "MD-TERMUX-GITHUB-AUTH-PREFLIGHT-20261021": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/termux-github-auth-preflight-20261021",
+      "baseSha": "a26df87455ed6ea2d543cbd909352b2c07de8979",
+      "paths": [
+        ".morro/changesets/MD-TERMUX-GITHUB-AUTH-PREFLIGHT-20261021.json",
+        "tooling/workspace/github-auth-exec.mjs",
+        "tooling/workspace/github-auth-exec.test.mjs",
+        "tooling/workspace/morro-workspace.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-23T22:32:11.133Z"
     }
   }
 }
