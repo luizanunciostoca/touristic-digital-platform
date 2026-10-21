@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "writer": {
+    "writerId": "CHAT00-TRUSTED-GATE",
+    "executorIdentity": "CHAT00-TRUSTED-GATE",
+    "controllerIdentity": "CT1072-INTEGRATOR-dd73da6d125e-20261021",
+    "sessionId": "78227da8d60419e45db848fb",
+    "jobId": "2129",
+    "commandIds": [
+      "2107",
+      "2108",
+      "2109",
+      "2129"
+    ],
+    "branch": "fix/trusted-claim-bootstrap-routing-20261021",
+    "headSha": "86bbdc2bb34575a5d9ff0c0060b2587c819cc6f9",
+    "treeSha": "4e878762eb7080af90c824ad68333e268071f99f"
+  },
+  "receipt": {
+    "writerId": "CHAT00-TRUSTED-GATE",
+    "requestedAt": "2026-10-21T20:29:08.555Z",
+    "acknowledgedAt": "2026-10-21T20:29:28.907Z",
+    "drainedAt": "2026-10-21T20:29:28.907Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  }
+}
