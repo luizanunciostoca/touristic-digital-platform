@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-VOLUNTARY-COMMENT-PIN-20261021",
+  "objective": "preserve-owner-consent-proof-across-github-null-pin-representations",
+  "baseSha": "86bbdc2bb34575a5d9ff0c0060b2587c819cc6f9",
+  "branch": "fix/voluntary-owner-comment-pin-20261021",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-VOLUNTARY-COMMENT-PIN-20261021.json",
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "voluntary-owner-comment-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-retirement-proof.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
