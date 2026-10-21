@@ -49,6 +49,25 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-22T21:44:16.582Z"
+    },
+    "MD-TRUSTED-CLAIM-ROUTING-20261021": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/trusted-claim-bootstrap-routing-20261021",
+      "baseSha": "e5f4c75012416903b98d3fceef21aaa20ed72b07",
+      "paths": [
+        ".morro/changesets/MD-TRUSTED-CLAIM-ROUTING-20261021.json",
+        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        ".github/workflows/morro-agent-profiles.yml",
+        ".github/workflows/morro-merge-gate.yml",
+        "tooling/control-state/merge-gate-trust-root-wait.test.mjs",
+        "tooling/control-state/trust-root-reconciliation.test.mjs",
+        "tooling/ci/trusted-bootstrap-selector-contract.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-23T03:18:46.002Z"
     }
   }
 }
