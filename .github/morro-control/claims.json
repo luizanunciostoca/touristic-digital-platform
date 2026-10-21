@@ -73,7 +73,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/voluntary-owner-comment-pin-20261021",
-      "baseSha": "86bbdc2bb34575a5d9ff0c0060b2587c819cc6f9",
+      "baseSha": "02a174eedd6f5bfe7580f79faeb865d8cc2a3dfa",
       "paths": [
         ".morro/changesets/MD-VOLUNTARY-COMMENT-PIN-20261021.json",
         "tooling/fabric/claim-retirement-proof.mjs",
