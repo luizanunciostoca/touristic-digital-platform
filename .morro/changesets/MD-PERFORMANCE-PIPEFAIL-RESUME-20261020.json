@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-PERFORMANCE-PIPEFAIL-RESUME-20261020",
   "objective": "resume-existing-fail-closed-css-performance-budget-pipeline-with-provenance",
-  "baseSha": "29cbd1ee2a716c03343ee46688354fe6f43a87b0",
+  "baseSha": "a26df87455ed6ea2d543cbd909352b2c07de8979",
   "branch": "fix/performance-pipefail-resume-20261020",
   "state": "IMPLEMENTING",
   "risk": "critical",
