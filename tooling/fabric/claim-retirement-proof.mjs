@@ -27,6 +27,12 @@ const metadataPaths = (id) => [
   `.morro/changesets/${id}.json`,
 ];
 
+function comparableOwnerComment(comment) {
+  // GitHub's individual-comment endpoint may include pin:null while its
+  // list endpoint omits pin. Preserve every other field and non-null pin.
+  return Object.hasOwn(comment, "pin") ? comment : { ...comment, pin: null };
+}
+
 function closed(value, keys) {
   assert.ok(
     value && typeof value === "object" && !Array.isArray(value),
@@ -1236,10 +1242,14 @@ async function readOwnerDecision(request, claim, options) {
     `${repoPath}/issues/comments/${selected.id}`,
     options,
   );
-  assert.deepEqual(current, selected, "VOLUNTARY_OWNER_COMMENT_CHANGED");
   assert.deepEqual(
-    await listDecision(),
-    selected,
+    comparableOwnerComment(current),
+    comparableOwnerComment(selected),
+    "VOLUNTARY_OWNER_COMMENT_CHANGED",
+  );
+  assert.deepEqual(
+    comparableOwnerComment(await listDecision()),
+    comparableOwnerComment(selected),
     "VOLUNTARY_OWNER_COMMENT_CHANGED",
   );
   return {

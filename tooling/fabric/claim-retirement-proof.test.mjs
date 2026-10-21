@@ -1557,7 +1557,7 @@ function voluntaryFixture(state = "LOCAL_PROVEN", overrides = {}) {
       updated_at: "2026-10-16T19:59:00Z",
     };
     comments = [comment];
-    routes.set("/issues/comments/7", comment);
+    routes.set("/issues/comments/7", structuredClone(comment));
   };
   refresh();
   routes.set(
@@ -2170,4 +2170,101 @@ test("a receipt must be durably backed by its own writer snapshot", async () => 
   });
   f.refresh();
   await assert.rejects(f.collect(), /VOLUNTARY_RECEIPT_NOT_DURABLY_BACKED/u);
+});
+
+test("VOLUNTARY accepts only absent/null pin representation differences", async () => {
+  for (const side of ["individual", "list", "both"]) {
+    const f = voluntaryFixture();
+    if (side !== "list") f.routes.get("/issues/comments/7").pin = null;
+    if (side !== "individual") f.comments[0].pin = null;
+    const before = structuredClone({
+      list: f.comments[0],
+      individual: f.routes.get("/issues/comments/7"),
+    });
+    const evidence = await f.collect();
+    assert.equal(evidence.reason, "VOLUNTARY");
+    assert.deepEqual(f.comments[0], before.list);
+    assert.deepEqual(f.routes.get("/issues/comments/7"), before.individual);
+  }
+});
+
+test("VOLUNTARY still rejects every other individual consent-field drift", async () => {
+  const mutations = [
+    (c) => (c.id = 8),
+    (c) => (c.body += " edited"),
+    (c) => (c.user.id = 2),
+    (c) => (c.user.login = "other"),
+    (c) => (c.user.type = "Bot"),
+    (c) => (c.author_association = "MEMBER"),
+    (c) => (c.performed_via_github_app = { id: 1 }),
+    (c) => (c.created_at = "2026-10-16T19:59:01Z"),
+    (c) => (c.updated_at = "2026-10-16T19:59:01Z"),
+    (c) => (c.minimized = null),
+    (c) => (c.unknown_metadata = null),
+    (c) => delete c.performed_via_github_app,
+  ];
+  for (const mutate of mutations) {
+    const f = voluntaryFixture();
+    const current = f.routes.get("/issues/comments/7");
+    current.pin = null;
+    mutate(current);
+    await assert.rejects(f.collect(), /VOLUNTARY_OWNER_COMMENT_CHANGED/u);
+  }
+});
+
+test("VOLUNTARY rejects non-null pin differences in either endpoint", async () => {
+  for (const value of [false, 0, "", {}, { id: 1 }]) {
+    for (const side of ["individual", "list"]) {
+      const f = voluntaryFixture();
+      const current = f.routes.get("/issues/comments/7");
+      if (side === "individual") current.pin = value;
+      else {
+        f.comments[0].pin = value;
+        current.pin = null;
+      }
+      await assert.rejects(f.collect(), /VOLUNTARY_OWNER_COMMENT_CHANGED/u);
+    }
+  }
+});
+
+test("VOLUNTARY keeps second-list revocation, duplication and drift checks with pin asymmetry", async () => {
+  const mutations = [
+    (comments) => comments.splice(0),
+    (comments) => comments.push(structuredClone(comments[0])),
+    (comments) =>
+      comments.push({
+        ...comments[0],
+        id: 8,
+        body: comments[0].body.replace("APPROVED", "REVOKED"),
+      }),
+    (comments) => (comments[0].user.id = 2),
+    (comments) => (comments[0].updated_at = "2026-10-16T19:59:01Z"),
+    (comments) => (comments[0].unknown_metadata = null),
+    (comments) => (comments[0].pin = { id: 1 }),
+  ];
+  for (const mutate of mutations) {
+    const f = voluntaryFixture();
+    f.routes.get("/issues/comments/7").pin = null;
+    let reads = 0;
+    f.routes.set("/issues/123/comments?per_page=100&page=1", () => {
+      const comments = structuredClone(f.comments);
+      if (++reads > 1) mutate(comments);
+      return comments;
+    });
+    await assert.rejects(f.collect(), /VOLUNTARY_/u);
+    assert.equal(reads, 2);
+  }
+});
+
+test("VOLUNTARY accepts null pin representation drift on the final listing", async () => {
+  const f = voluntaryFixture();
+  f.routes.get("/issues/comments/7").pin = null;
+  let reads = 0;
+  f.routes.set("/issues/123/comments?per_page=100&page=1", () => {
+    const comments = structuredClone(f.comments);
+    if (++reads > 1) comments[0].pin = null;
+    return comments;
+  });
+  assert.equal((await f.collect()).reason, "VOLUNTARY");
+  assert.equal(reads, 2);
 });
