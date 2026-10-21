@@ -68,6 +68,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-23T03:18:46.002Z"
+    },
+    "MD-VOLUNTARY-COMMENT-PIN-20261021": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/voluntary-owner-comment-pin-20261021",
+      "baseSha": "86bbdc2bb34575a5d9ff0c0060b2587c819cc6f9",
+      "paths": [
+        ".morro/changesets/MD-VOLUNTARY-COMMENT-PIN-20261021.json",
+        "tooling/fabric/claim-retirement-proof.mjs",
+        "tooling/fabric/claim-retirement-proof.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-23T20:53:42.462Z"
     }
   }
 }
