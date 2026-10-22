@@ -84,23 +84,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T06:49:01.270Z"
-    },
-    "MD-MYSQL-BUILDER-VALIDATOR-COMPAT-20261022": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/mysql-builder-validator-compat-20261022",
-      "baseSha": "cb14feaa17ca1e7009b1258703964c72ccd3b3cd",
-      "paths": [
-        ".morro/changesets/MD-MYSQL-BUILDER-VALIDATOR-COMPAT-20261022.json",
-        "tooling/quality/check-render-production-mysql-blueprint.mjs",
-        "tooling/quality/render-production-mysql-blueprint.test.mjs",
-        "tooling/quality/production-mysql-dr-contract.test.mjs",
-        "tooling/quality/mysql-gosu-approved-builders.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T07:39:26.318Z"
     }
   }
 }
