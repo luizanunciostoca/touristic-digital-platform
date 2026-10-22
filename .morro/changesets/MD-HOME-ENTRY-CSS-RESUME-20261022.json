@@ -84,12 +84,8 @@
     },
     "commands": [
       {
-        "id": "entry-css-acquisition-lifecycle",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
-        ],
+        "id": "entry-css-generator-contract",
+        "argv": ["node", "--test", "tooling/ci/build-entry-css.test.mjs"],
         "timeoutSeconds": 300
       }
     ],
