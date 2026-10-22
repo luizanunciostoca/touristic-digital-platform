@@ -65,7 +65,11 @@
         "apps/morro-digital-platform/src/destinations/destination-page.test.ts",
         "apps/morro-digital-platform/src/destinations/destination-page.ts",
         "apps/morro-digital-platform/src/runtime/public-destination.test.ts",
-        "apps/morro-digital-platform/src/runtime/public-destination.ts"
+        "apps/morro-digital-platform/src/runtime/public-destination.ts",
+        "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
+        "apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts",
+        "apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/css-cascade-contract.ts"
       ],
       "contracts": []
     },
