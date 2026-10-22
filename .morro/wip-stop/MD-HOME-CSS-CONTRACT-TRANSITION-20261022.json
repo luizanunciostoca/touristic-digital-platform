@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "writer": {
+    "writerId": "CT1072-CSS-CONTRACT-IMPLEMENTATION-3c87662f73e4",
+    "executorIdentity": "TERMUX-NATIVE-V3:f6ad52540f83610097732321",
+    "controllerIdentity": "CT1072-INTEGRATOR-3c87662f73e4-20261022",
+    "sessionId": "3c87662f73e4",
+    "jobId": null,
+    "commandIds": [],
+    "branch": "fix/home-css-contract-transition-20261022",
+    "headSha": "097f45de6ccaf47464244659cb2bab6f8beb646f",
+    "treeSha": "4ec0332af2d39908c91a57813ebd311f7f77f86a"
+  },
+  "receipt": {
+    "writerId": "CT1072-CSS-CONTRACT-IMPLEMENTATION-3c87662f73e4",
+    "requestedAt": "2026-10-22T12:57:12.022Z",
+    "acknowledgedAt": "2026-10-22T12:57:12.038Z",
+    "drainedAt": "2026-10-22T12:57:12.038Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  }
+}
