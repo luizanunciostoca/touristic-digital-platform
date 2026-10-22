@@ -68,24 +68,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-23T03:18:46.002Z"
-    },
-    "MD-HOME-CSS-CONTRACT-TRANSITION-20261022": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/home-css-contract-transition-20261022",
-      "baseSha": "3f8961529966be420449ef3562ef5d85cff92cfb",
-      "paths": [
-        ".morro/changesets/MD-HOME-CSS-CONTRACT-TRANSITION-20261022.json",
-        "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
-        "apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts",
-        "apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts",
-        "apps/morro-digital-platform/src/ux/css-cascade-contract.ts",
-        "tooling/ci/css-cascade-transition.test.mjs"
-      ],
-      "domains": ["map", "ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T10:48:01.660Z"
     }
   }
 }
