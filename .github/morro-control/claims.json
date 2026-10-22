@@ -73,7 +73,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-security-correction-20261022",
-      "baseSha": "ad23cf27a3d79dae82bd5c028dfb7d504bf761ef",
+      "baseSha": "4854a3c4a40fdb72f79215a42157cec5b5afbdf9",
       "paths": [
         ".morro/changesets/MD-STAGING-SECURITY-CORRECTION-20261022.json",
         "package.json",
