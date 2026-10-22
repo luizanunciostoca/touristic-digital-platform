@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-CONTRACT-IMPACT-MAPPING-20261022",
   "objective": "map-css-cascade-contract-paths-to-existing-high-risk-runtime-proof",
-  "baseSha": "6496ee97d5e15b25c53be5d035ed7e32559f4f7a",
-  "branch": "fix/css-contract-impact-mapping-20261022",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "abab1cf2e34207e6cef91ac7af9ead4ac2875286",
+  "branch": "chore/retire-css-contract-impact-20261022",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
