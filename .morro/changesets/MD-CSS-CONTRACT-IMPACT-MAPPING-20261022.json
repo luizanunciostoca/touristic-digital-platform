@@ -10,6 +10,7 @@
   "owns": {
     "paths": [
       ".morro/changesets/MD-CSS-CONTRACT-IMPACT-MAPPING-20261022.json",
+      ".morro/ownership.json",
       "tooling/ci/test-impact-manifest.json",
       "tooling/ci/css-contract-impact.test.mjs"
     ],

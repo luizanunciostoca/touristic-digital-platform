@@ -137,6 +137,7 @@
       "baseSha": "1511a6963112567b65157e6e1d2f369d91b2610b",
       "paths": [
         ".morro/changesets/MD-CSS-CONTRACT-IMPACT-MAPPING-20261022.json",
+        ".morro/ownership.json",
         "tooling/ci/test-impact-manifest.json",
         "tooling/ci/css-contract-impact.test.mjs"
       ],
