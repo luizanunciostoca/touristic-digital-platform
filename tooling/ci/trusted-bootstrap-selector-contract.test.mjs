@@ -16,7 +16,16 @@ for (const [file, marker] of [
       trigger,
       /^on:\n  pull_request:\n    types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/m,
     );
-    assert.doesNotMatch(trigger, /^    paths(?:-ignore)?:/m);
+    assert.doesNotMatch(trigger, /^    paths-ignore:/m);
+    if (file.endsWith("morro-agent-profiles.yml")) {
+      assert.match(
+        trigger,
+        /^    paths:\n      - "\.morro\/changesets\/\*\*"\n      - "\*\*"$/m,
+      );
+      assert.doesNotMatch(trigger, /^      - ["']?!/m);
+    } else {
+      assert.doesNotMatch(trigger, /^    paths:/m);
+    }
     assert.match(source, new RegExp(marker));
     assert.match(source, /pull_request\.head\.sha/);
   });
