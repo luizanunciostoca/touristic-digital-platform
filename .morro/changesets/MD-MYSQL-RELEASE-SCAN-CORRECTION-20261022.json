@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-MYSQL-RELEASE-SCAN-CORRECTION-20261022",
   "objective": "patch-remaining-mysql-gosu-builders-to-unblock-full-staging-release-security-scan",
-  "baseSha": "405aef08d204120c5f9497e22291c4fa10b766a2",
+  "baseSha": "da54b71966a1e60c67d6acc5e1fe4be053de0175",
   "branch": "fix/mysql-release-scan-correction-20261022",
   "state": "IMPLEMENTING",
   "risk": "critical",
