@@ -11,9 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-const productionPinnedGo =
-  "golang:1.26.9-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c";
-const stagingPinnedGo =
+const pinnedGo =
   "golang:1.26.10-bookworm@sha256:632dff7351799a5a9954a48dc06670ade72ee44e8c351cdc0e5a57af2fea21af";
 const pinnedGosu = "6456aaa0f3c854d199d0f037f068eb97515b7513";
 const dockerfiles = [
@@ -25,10 +23,6 @@ const dockerfiles = [
 for (const path of dockerfiles) {
   test(`${path}: gosu uses patched immutable Go and a verified full source commit`, () => {
     const source = readFileSync(path, "utf8");
-    const pinnedGo =
-      path === "tooling/render/mysql-staging/Dockerfile"
-        ? stagingPinnedGo
-        : productionPinnedGo;
     assert.ok(source.startsWith(`FROM ${pinnedGo} AS gosu-builder\n`));
     assert.match(
       source,
