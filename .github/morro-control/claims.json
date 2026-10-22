@@ -73,7 +73,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/home-css-cascade-composition-20261022",
-      "baseSha": "4eecd5104e930a78c2779790d1bcef9bfe468be3",
+      "baseSha": "07f5a488bc69d121ee57c2f0459418b519b3fdf6",
       "paths": [
         ".morro/changesets/MD-HOME-CSS-CASCADE-COMPOSITION-20261022.json",
         "apps/morro-digital-platform/package.json",
