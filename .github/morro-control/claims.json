@@ -68,23 +68,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-23T03:18:46.002Z"
-    },
-    "MD-STAGING-SECURITY-CORRECTION-20261022": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-security-correction-20261022",
-      "baseSha": "4854a3c4a40fdb72f79215a42157cec5b5afbdf9",
-      "paths": [
-        ".morro/changesets/MD-STAGING-SECURITY-CORRECTION-20261022.json",
-        "package.json",
-        "pnpm-lock.yaml",
-        "tooling/render/mysql-staging/Dockerfile",
-        "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T01:48:13.714Z"
     }
   }
 }
