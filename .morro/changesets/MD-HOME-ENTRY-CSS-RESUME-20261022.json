@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-HOME-ENTRY-CSS-RESUME-20261022",
   "objective": "reduce-real-home-css-transfer-with-cascade-preserving-entry-and-intent-loaded-features",
-  "baseSha": "3ec36af4d473cfbd82c42821db1f554ca205d7b6",
+  "baseSha": "3f8961529966be420449ef3562ef5d85cff92cfb",
   "branch": "fix/home-entry-css-resume-20261022",
   "state": "IMPLEMENTING",
   "risk": "high",
