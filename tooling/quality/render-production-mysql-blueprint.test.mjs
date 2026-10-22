@@ -7,11 +7,13 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import "./production-mysql-dr-contract.test.mjs";
+import { assertApprovedMysqlGosuBuilder } from "./mysql-gosu-approved-builders.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const checker = "tooling/quality/check-render-production-mysql-blueprint.mjs";
 const fixtures = [
   checker,
+  "tooling/quality/mysql-gosu-approved-builders.mjs",
   "render.yaml",
   "tooling/render/mysql-production/Dockerfile",
   "tooling/render/mysql-production/morro-memory.cnf",
@@ -335,3 +337,87 @@ test("production readback must prove the exact Render git commit", (t) => {
     /RENDER_GIT_COMMIT/u,
   );
 });
+
+const approvedGosuBuilders = [
+  "golang:1.26.9-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c",
+  "golang:1.26.10-bookworm@sha256:632dff7351799a5a9954a48dc06670ade72ee44e8c351cdc0e5a57af2fea21af",
+];
+
+function replaceBuilder(source, line) {
+  return line + source.slice(source.indexOf("\n"));
+}
+
+for (const image of approvedGosuBuilders) {
+  test(`production validator accepts the exact transitional builder ${image}`, (t) => {
+    const line = `FROM ${image} AS gosu-builder`;
+    assert.doesNotThrow(() => assertApprovedMysqlGosuBuilder(line + "\n"));
+    const result = runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/Dockerfile",
+      );
+      fs.writeFileSync(
+        file,
+        replaceBuilder(fs.readFileSync(file, "utf8"), line),
+      );
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 0, result.stderr);
+  });
+}
+
+const [legacyBuilder, patchedBuilder] = approvedGosuBuilders;
+const invalidGosuBuilders = [
+  ["unpinned image", "FROM golang:1.26.10-bookworm AS gosu-builder"],
+  [
+    "unknown tag",
+    `FROM ${patchedBuilder.replace("1.26.10", "1.26.11")} AS gosu-builder`,
+  ],
+  [
+    "unknown digest",
+    `FROM golang:1.26.10-bookworm@sha256:${"0".repeat(64)} AS gosu-builder`,
+  ],
+  [
+    "swapped tag and digest",
+    `FROM ${legacyBuilder.replace("1.26.9", "1.26.10")} AS gosu-builder`,
+  ],
+  [
+    "commented pin",
+    `# FROM ${patchedBuilder} AS gosu-builder\nFROM golang:latest AS gosu-builder`,
+  ],
+  ["wrong stage alias", `FROM ${patchedBuilder} AS unrelated-builder`],
+  [
+    "duplicate stage",
+    `FROM ${patchedBuilder} AS gosu-builder\nFROM golang:latest AS gosu-builder`,
+  ],
+  [
+    "duplicate continued stage",
+    `FROM ${patchedBuilder} AS gosu-builder\nFROM golang:latest \\\n AS gosu-builder`,
+  ],
+  [
+    "duplicate mixed-case stage",
+    `FROM ${patchedBuilder} AS gosu-builder\nfrom golang:latest as GOSU-BUILDER`,
+  ],
+];
+
+for (const [label, line] of invalidGosuBuilders) {
+  test(`production and DR builder validator rejects ${label}`, (t) => {
+    assert.throws(
+      () => assertApprovedMysqlGosuBuilder(line + "\n"),
+      /pinned Go builder image/u,
+    );
+    rejects(
+      runCheck(t, (directory) => {
+        const file = path.join(
+          directory,
+          "tooling/render/mysql-production/Dockerfile",
+        );
+        fs.writeFileSync(
+          file,
+          replaceBuilder(fs.readFileSync(file, "utf8"), line),
+        );
+      }),
+      /pinned Go builder image/u,
+    );
+  });
+}

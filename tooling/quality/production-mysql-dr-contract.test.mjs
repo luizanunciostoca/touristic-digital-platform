@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { assertApprovedMysqlGosuBuilder } from "./mysql-gosu-approved-builders.mjs";
 
 const authorityPath =
   "apps/morro-digital-platform/tooling/production-database-predeploy.mjs";
@@ -260,10 +261,7 @@ test("DR failure telemetry distinguishes handled and unhandled failures", () => 
 
 test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
   const source = readFileSync(dockerfilePath, "utf8");
-  assert.match(
-    source,
-    /^FROM golang:1\.26\.9-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c AS gosu-builder$/mu,
-  );
+  assertApprovedMysqlGosuBuilder(source);
   assert.match(
     source,
     /^ARG GOSU_COMMIT=6456aaa0f3c854d199d0f037f068eb97515b7513$/mu,
