@@ -129,6 +129,22 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T10:48:01.660Z"
+    },
+    "MD-CSS-CONTRACT-IMPACT-MAPPING-20261022": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/css-contract-impact-mapping-20261022",
+      "baseSha": "1511a6963112567b65157e6e1d2f369d91b2610b",
+      "paths": [
+        ".morro/changesets/MD-CSS-CONTRACT-IMPACT-MAPPING-20261022.json",
+        ".morro/ownership.json",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/css-contract-impact.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T11:19:45.528Z"
     }
   }
 }

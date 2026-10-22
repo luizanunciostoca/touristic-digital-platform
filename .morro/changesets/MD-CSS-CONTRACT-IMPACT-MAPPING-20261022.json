@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CSS-CONTRACT-IMPACT-MAPPING-20261022",
+  "objective": "map-css-cascade-contract-paths-to-existing-high-risk-runtime-proof",
+  "baseSha": "1511a6963112567b65157e6e1d2f369d91b2610b",
+  "branch": "fix/css-contract-impact-mapping-20261022",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CSS-CONTRACT-IMPACT-MAPPING-20261022.json",
+      ".morro/ownership.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/css-contract-impact.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-MYSQL-RELEASE-SCAN-CORRECTION-20261022"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "css-impact-acquisition-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
