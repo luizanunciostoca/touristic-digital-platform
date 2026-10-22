@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-HOME-CSS-CONTRACT-TRANSITION-20261022",
   "objective": "validate-source-cascade-for-direct-and-generated-stylesheets",
-  "baseSha": "3f8961529966be420449ef3562ef5d85cff92cfb",
+  "baseSha": "1511a6963112567b65157e6e1d2f369d91b2610b",
   "branch": "fix/home-css-contract-transition-20261022",
   "state": "IMPLEMENTING",
   "risk": "high",

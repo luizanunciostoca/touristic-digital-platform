@@ -116,7 +116,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/home-css-contract-transition-20261022",
-      "baseSha": "3f8961529966be420449ef3562ef5d85cff92cfb",
+      "baseSha": "1511a6963112567b65157e6e1d2f369d91b2610b",
       "paths": [
         ".morro/changesets/MD-HOME-CSS-CONTRACT-TRANSITION-20261022.json",
         "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
