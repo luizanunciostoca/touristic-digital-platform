@@ -13,7 +13,7 @@
     "test": "turbo run test && vitest run tests/assistant-v1-baseline.test.ts",
     "typecheck": "turbo run typecheck",
     "architecture:check": "node tooling/architecture/check-dependencies.mjs && pnpm platform:contracts:check",
-    "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry v\u00e1lido:', ids.length, 'features')\"",
+    "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry válido:', ids.length, 'features')\"",
     "platform:contracts:check": "node tooling/quality/check-platform-contracts.mjs",
     "environment:check": "node tooling/quality/check-environment-reconciliation.mjs && node tooling/quality/check-render-production-mysql-blueprint.mjs && node --test tooling/quality/render-production-mysql-blueprint.test.mjs tooling/quality/production-twin-certification-contract.test.mjs tooling/quality/runtime-schema-mode-propagation.test.mjs tooling/render/with-production-mysql-env.test.mjs tooling/render/production-canonical-db-cutover.test.mjs apps/morro-digital-platform/tooling/database-schema-mode.test.mjs apps/morro-digital-platform/tooling/production-database-predeploy.test.mjs apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
     "release:readiness:check": "node tooling/quality/check-release-readiness.mjs && node --test apps/morro-digital-platform/tooling/payments-production-cutover-guard.contract.mjs",
@@ -80,7 +80,8 @@
       "js-yaml": "4.3.2",
       "nanoid": "3.3.19",
       "source-map-js": "1.2.2",
-      "vite": "7.3.7"
+      "vite": "7.3.7",
+      "vitest": "4.1.12"
     }
   },
   "devDependencies": {
@@ -91,7 +92,7 @@
     "turbo": "^2.5.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0",
-    "vitest": "4.1.11",
+    "vitest": "4.1.12",
     "vite": "7.3.7"
   },
   "dependencies": {
