@@ -1,3 +1,4 @@
+import { createFeatureStyleGate } from "./feature-styles.js";
 export type ExploreFlowBottomSheetState = "peek" | "half" | "full";
 export type ExploreFlowBottomSheetKind = "explore" | "tour";
 export type ExploreFlowBottomSheetStatus =
@@ -144,6 +145,7 @@ export function installExploreFlowBottomSheet({
   document,
 }: ExploreFlowBottomSheetOptions): ExploreFlowBottomSheetController {
   let destroyed = false;
+  const featureStyles = createFeatureStyleGate(document);
   let state: ExploreFlowBottomSheetState = "half";
   const sheet = document.createElement("aside");
   sheet.id = "explore-flow-bottom-sheet";
@@ -364,9 +366,12 @@ export function installExploreFlowBottomSheet({
   return Object.freeze({
     show(presentation: ExploreFlowBottomSheetPresentation): void {
       if (destroyed) return;
-      render(presentation);
+      featureStyles.run(() => {
+        if (!destroyed) render(presentation);
+      });
     },
     hide(): void {
+      featureStyles.cancel();
       if (destroyed) return;
       dismissHandler = undefined;
       activeKind = undefined;
@@ -381,6 +386,7 @@ export function installExploreFlowBottomSheet({
     },
     setStatus,
     destroy(): void {
+      featureStyles.cancel();
       if (destroyed) return;
       clearCompatibilityMessageSource();
       destroyed = true;

@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
+import { resolveCssCascade } from "./css-cascade-contract.js";
 
 import {
   installPremiumUxModePresenter,
@@ -273,11 +274,21 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
   it("loads V2 foundations before the active Tourist shell authority", async () => {
     for (const surface of ["index.html", "experience.html", "tickets.html"]) {
       const html = await readPublic(surface);
-      const hrefs = [
-        ...html.matchAll(
-          /<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["']([^"']+)["'][^>]*>/giu,
-        ),
-      ].map((match) => match[1]);
+      const hrefs =
+        surface === "index.html"
+          ? resolveCssCascade(
+              html,
+              html.includes("data-entry-css")
+                ? JSON.parse(
+                    await readRepository("tooling/ci/entry-css-manifest.json"),
+                  )
+                : undefined,
+            )
+          : [
+              ...html.matchAll(
+                /<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["']([^"']+)["'][^>]*>/giu,
+              ),
+            ].map((match) => match[1]);
 
       const premium = "/apps/morro-digital-platform/public/premium-ux-v2.css";
       const foundations =

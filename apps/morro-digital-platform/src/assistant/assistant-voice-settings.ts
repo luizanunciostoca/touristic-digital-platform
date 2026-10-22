@@ -1,3 +1,4 @@
+import { createFeatureStyleGate } from "../map/feature-styles.js";
 import {
   assistantVoiceLocale,
   normalizeAssistantVoiceLanguage,
@@ -102,6 +103,7 @@ export function installAssistantVoiceSettings(
   }
 
   let destroyed = false;
+  const featureStyles = createFeatureStyleGate(options.document);
 
   const readVoices = (): readonly AssistantVoiceDescriptor[] =>
     options.voices?.() ?? [];
@@ -161,7 +163,8 @@ export function installAssistantVoiceSettings(
     refresh();
   };
 
-  const open = (): void => {
+  const openReady = (): void => {
+    if (destroyed) return;
     refresh();
     panel.classList.remove("hidden");
     panel.setAttribute("aria-hidden", "false");
@@ -169,7 +172,10 @@ export function installAssistantVoiceSettings(
     closeButton.focus();
   };
 
+  const open = (): void => featureStyles.run(openReady);
+
   const close = (): void => {
+    featureStyles.cancel();
     panel.classList.add("hidden");
     panel.setAttribute("aria-hidden", "true");
     configButton.setAttribute("aria-expanded", "false");
@@ -212,6 +218,7 @@ export function installAssistantVoiceSettings(
     refresh,
     destroy(): void {
       if (destroyed) return;
+      featureStyles.cancel();
       destroyed = true;
       configButton.removeEventListener("click", onConfigClick);
       closeButton.removeEventListener("click", onCloseClick);

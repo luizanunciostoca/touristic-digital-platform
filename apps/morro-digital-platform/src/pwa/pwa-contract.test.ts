@@ -88,7 +88,7 @@ describe("PWA offline authority boundary", () => {
   it("uses a versioned cache and network-first runtime assets", async () => {
     const worker = await readPublicFile("service-worker.js");
 
-    expect(worker).toContain("static-v5");
+    expect(worker).toContain("static-v6");
     expect(worker).toContain("function isRuntimeAsset(pathname)");
     expect(worker).toContain("networkFirstStatic(request)");
     expect(worker).toContain("isRuntimeAsset(url.pathname)");
@@ -104,7 +104,7 @@ describe("PWA offline authority boundary", () => {
       '"/assets/brand/morro-digital-maskable-v2-512.png"',
     );
     expect(worker).toContain(
-      '"/apps/morro-digital-platform/public/brand-v2.css"',
+      '"/apps/morro-digital-platform/public/dist/entry-css/home.css"',
     );
     expect(worker).not.toContain('"/pwa-icon-192.png"');
     expect(worker).not.toContain('"/pwa-icon-512.png"');

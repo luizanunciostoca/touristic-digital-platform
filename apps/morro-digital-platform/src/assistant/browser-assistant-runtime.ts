@@ -1,3 +1,4 @@
+import { ensureFeatureStyles } from "../map/feature-styles.js";
 import {
   createAssistantContextManager,
   createAssistantDialogController,
@@ -1445,6 +1446,10 @@ export function installBrowserAssistantRuntime(
   ): Promise<AssistantDialogResponse> => {
     const generation = assistantUiGeneration;
     try {
+      const pendingStyles = ensureFeatureStyles(options.document);
+      if (pendingStyles) await pendingStyles;
+      if (destroyed || generation !== assistantUiGeneration)
+        return supersededResponse();
       return await executeInputTurn(...args);
     } catch (error) {
       if (!destroyed && generation === assistantUiGeneration) {

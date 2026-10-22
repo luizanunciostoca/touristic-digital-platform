@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "sourceBase": "3f8961529966be420449ef3562ef5d85cff92cfb",
+  "coverage": "Firefox 140.16.0: 24 paired entry/skip/focus cases; pt-BR,en-US,es-ES,he-IL; 320,390,768,1440 px",
+  "maxEntryBytes": 100000,
+  "sources": [
+    {
+      "file": "apps/morro-digital-platform/public/styles.css",
+      "sha256": "ec28a19d360e27e1a0d154431e1d93ebb24b8ea44d56f7fb3e40db8d7d610cbc",
+      "ruleCount": 32,
+      "keep": "0-8,10-12,16-25,27-30",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/legacy/legacy.bundle.css",
+      "sha256": "39365982f0fea64acae17248f3f748dfcad6b682f599783c9008d31a923cd19b",
+      "ruleCount": 1792,
+      "keep": "0-3,5-7,9-12,34-35,43-44,48,51,57-59,72-73,75-77,89-97,105-108,113-114,136-137,139-140,145,171,174,205,215,241,282-285,287-293,296-297,301-302,324,326,342,346,349-350,354-357,362,368,370,372-377,384-388,393,398-401,403-405,412-413,416-418,423-427,430-432,467,469-470,472-473,623-632,674-675,677-682,684-687,690-706,710-712,739-740,1064,1078,1084,1101-1103,1401-1409,1418,1471-1473,1486,1488,1531,1763,1765,1770,1774-1776,1779,1784,1786,1788-1789",
+      "hide": "131,365-366,493,495,497,535"
+    },
+    {
+      "file": "apps/morro-digital-platform/public/design-system-v2.css",
+      "sha256": "9974a0a95fdd612236253b8c35d76d8c7064fd7384f9c7b92cbb118886355db0",
+      "ruleCount": 70,
+      "keep": "0-1,3,5-6,8,10-21,25,27-29,39,41,53,57,60-69",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/commerce.css",
+      "sha256": "c88a93f4f7e670ce2845e0456c4653bb37bb8b2842c4565ca6abd616aa0bc16a",
+      "ruleCount": 47,
+      "keep": "",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/assistant-photo-carousel.css",
+      "sha256": "571c03976450995e5e5efff5dd24fff168f50e29c81213b2716440acf35297f4",
+      "ruleCount": 10,
+      "keep": "",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/explore-locations.css",
+      "sha256": "d729fa32b44a09a6f0d9dcd2223821b18c94ce379f019b5d05e61d3b0795d650",
+      "ruleCount": 192,
+      "keep": "",
+      "hide": "190"
+    },
+    {
+      "file": "apps/morro-digital-platform/public/navigation-map.css",
+      "sha256": "b9ae61ad2d7432aee251fbcfa4b3499c176c5ed2baa006cebea45a1ef0a0e499",
+      "ruleCount": 10,
+      "keep": "",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/v1-tour-assistant-visibility.css",
+      "sha256": "8af04e45f55cb78b5a06219cb3ebe17611fd4345535927f3d1412500914b9f13",
+      "ruleCount": 1,
+      "keep": "",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/v1-weather-runtime-parity.css",
+      "sha256": "ea87b36d489b1853e3ffac82e1ae82f4dc53cf57cde50927b50b153b137877ed",
+      "ruleCount": 1,
+      "keep": "0",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/privacy-preferences.css",
+      "sha256": "d8c32b9da8f1cb5e54f8cc8b59518082d151b398ce132a555edf5aa66fc9c018",
+      "ruleCount": 15,
+      "keep": "",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/assistant-v2.css",
+      "sha256": "f310b2a72ab8b232acf1eaa154c4359a5713e75e4738bc4bed471c9b2fbb3294",
+      "ruleCount": 22,
+      "keep": "0,2,9-16,18-19,21",
+      "hide": "17"
+    },
+    {
+      "file": "apps/morro-digital-platform/public/premium-ux-v2.css",
+      "sha256": "3b2facb3611699b236180112c050cbeb5d65a327dd2bc80569dfe62bd9c7d37a",
+      "ruleCount": 151,
+      "keep": "0,19,24,68,145-146,150",
+      "hide": "69"
+    },
+    {
+      "file": "apps/morro-digital-platform/public/onboarding-v2.css",
+      "sha256": "0d48768ab91e07325573792e3ec7c4fecae4d8a9df095ba73ee99ad79db16206",
+      "ruleCount": 55,
+      "keep": "0-4,6-21,47,50,52-53",
+      "hide": "5"
+    },
+    {
+      "file": "apps/morro-digital-platform/public/brand-v2.css",
+      "sha256": "c12e8a16865a6d35abd6230cf0ee3cf28b492ac8bbf0e9a09cddeffe7d3a50c0",
+      "ruleCount": 19,
+      "keep": "0-6,18",
+      "hide": ""
+    },
+    {
+      "file": "apps/morro-digital-platform/public/tourist-shell-v2.css",
+      "sha256": "2d6ae81031da7615da1a0be13592a5838aa9923431ca4c05605766255a8f6b92",
+      "ruleCount": 370,
+      "keep": "0-13,16-20,27-29,31-36,38,44-47,49-70,72-82,84-92,94,96-99,101-102,107-109,139-145,147-158,165-168,171-174,181,185,187,190,193,197-199,201-202,205-211,214,216-233,235,244-245,247,249-254,257-258,263-288,297,300-302,313,315-316,318-320,324-327,329-330,332-336,338-341,343-345,347-350,356-360",
+      "hide": "21,95,112,127,138,175,177,200,203-204,248,304,342,362"
+    }
+  ]
+}
