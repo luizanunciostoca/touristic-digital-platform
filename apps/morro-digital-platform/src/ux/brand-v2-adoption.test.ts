@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
+import { resolveCssCascade } from "./css-cascade-contract.js";
 
 async function read(relativePath: string): Promise<string> {
   return readFile(new URL(relativePath, import.meta.url), "utf8");
@@ -63,7 +64,17 @@ describe("Brand V2 product adoption", () => {
     expect(html).toContain("<title>Morro Digital — Morro de São Paulo</title>");
     expect(html).toContain('content="#0867b2"');
     expect(html).toContain("/assets/brand/morro-digital-micro-v2.svg");
-    expect(html).toContain("/apps/morro-digital-platform/public/brand-v2.css");
+    const cascade = resolveCssCascade(
+      html,
+      html.includes("data-entry-css")
+        ? JSON.parse(
+            await read("../../../../tooling/ci/entry-css-manifest.json"),
+          )
+        : undefined,
+    );
+    expect(cascade).toContain(
+      "/apps/morro-digital-platform/public/brand-v2.css",
+    );
     expect(html).not.toContain("/pwa-icon-192.png");
 
     expect(manifest.name).toBe("Morro Digital — Morro de São Paulo");
