@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-RC-QUALITY-IMPACT-20261022",
   "objective": "repair-release-candidate-quality-impact-base-without-weakening-unknown-path-fail-closed",
-  "baseSha": "2abd78d204c847666059d0396d0543933730cf54",
+  "baseSha": "2d5cf1db68d19a39920a1b88f5b5c74ce8bb9f73",
   "branch": "chore/acquire-release-rc-quality-impact-20261022",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
