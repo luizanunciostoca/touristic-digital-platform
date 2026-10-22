@@ -23,6 +23,7 @@
       "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
       "apps/morro-digital-platform/src/onboarding/public-onboarding.ts",
       "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+      "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts",
       "apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts",
       "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
       "apps/morro-digital-platform/src/ux/legacy-css-bundle-v2-contract.test.ts",
