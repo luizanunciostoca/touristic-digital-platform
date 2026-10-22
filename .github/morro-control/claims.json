@@ -68,6 +68,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-23T03:18:46.002Z"
+    },
+    "MD-STAGING-SECURITY-PATCH-20261022": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-security-patch-20261022",
+      "baseSha": "19b7a716def87c5ecbd698cb85a57ab1be63f9de",
+      "paths": [
+        ".morro/changesets/MD-STAGING-SECURITY-PATCH-20261022.json",
+        "package.json",
+        "pnpm-lock.yaml",
+        "tooling/render/mysql-staging/Dockerfile"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T00:44:04.521Z"
     }
   }
 }
