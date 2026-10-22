@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { assertApprovedMysqlGosuBuilder } from "./mysql-gosu-approved-builders.mjs";
 
 const blueprint = fs.readFileSync(
   new URL("../../render.yaml", import.meta.url),
@@ -187,11 +188,7 @@ for (const [domain, database] of domains) {
   requireText(init, "$" + domain + "_DATABASE_PASSWORD");
 }
 
-requireActiveLine(
-  dockerfile,
-  "FROM golang:1.26.9-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c AS gosu-builder",
-  "pinned Go builder image",
-);
+assertApprovedMysqlGosuBuilder(dockerfile);
 requireActiveLine(
   dockerfile,
   "ARG GOSU_COMMIT=6456aaa0f3c854d199d0f037f068eb97515b7513",
