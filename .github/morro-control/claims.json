@@ -134,7 +134,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/css-contract-impact-mapping-20261022",
-      "baseSha": "1511a6963112567b65157e6e1d2f369d91b2610b",
+      "baseSha": "6496ee97d5e15b25c53be5d035ed7e32559f4f7a",
       "paths": [
         ".morro/changesets/MD-CSS-CONTRACT-IMPACT-MAPPING-20261022.json",
         ".morro/ownership.json",
