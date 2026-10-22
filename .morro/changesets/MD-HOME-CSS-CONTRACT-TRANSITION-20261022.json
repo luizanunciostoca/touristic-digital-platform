@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-HOME-CSS-CONTRACT-TRANSITION-20261022",
+  "objective": "validate-source-cascade-for-direct-and-generated-stylesheets",
+  "baseSha": "3f8961529966be420449ef3562ef5d85cff92cfb",
+  "branch": "fix/home-css-contract-transition-20261022",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-HOME-CSS-CONTRACT-TRANSITION-20261022.json",
+      "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
+      "apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts",
+      "apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/css-cascade-contract.ts",
+      "tooling/ci/css-cascade-transition.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-MYSQL-RELEASE-SCAN-CORRECTION-20261022"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "css-contract-acquisition-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
