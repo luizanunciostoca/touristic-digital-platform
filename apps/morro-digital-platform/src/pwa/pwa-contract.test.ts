@@ -88,7 +88,7 @@ describe("PWA offline authority boundary", () => {
   it("uses a versioned cache and network-first runtime assets", async () => {
     const worker = await readPublicFile("service-worker.js");
 
-    expect(worker).toContain("static-v5");
+    expect(worker).toContain("static-v6");
     expect(worker).toContain("function isRuntimeAsset(pathname)");
     expect(worker).toContain("networkFirstStatic(request)");
     expect(worker).toContain("isRuntimeAsset(url.pathname)");
@@ -104,7 +104,7 @@ describe("PWA offline authority boundary", () => {
       '"/assets/brand/morro-digital-maskable-v2-512.png"',
     );
     expect(worker).toContain(
-      '"/apps/morro-digital-platform/public/brand-v2.css"',
+      '"/apps/morro-digital-platform/public/entry-css/home.css"',
     );
     expect(worker).not.toContain('"/pwa-icon-192.png"');
     expect(worker).not.toContain('"/pwa-icon-512.png"');
@@ -279,5 +279,123 @@ describe("localized offline fallback", () => {
     page.setPreference("he");
     page.listeners.get("storage")?.({ key: "morro-digital-language" });
     expect(page.document.documentElement.dir).toBe("rtl");
+  });
+});
+
+describe("entry CSS cache behavior", () => {
+  async function workerHarness() {
+    const { runInNewContext } = await import("node:vm");
+    const listeners = new Map<
+      string,
+      (event: Record<string, unknown>) => void
+    >();
+    type Cached = { ok: boolean; type: string; clone: () => Cached };
+    const stores = new Map<string, Map<string, Cached>>();
+    const requested: string[] = [];
+    let offline = false;
+    class WorkerRequest {
+      readonly method = "GET";
+      readonly url: string;
+      constructor(value: string) {
+        this.url = new URL(value, "https://morro.example").href;
+      }
+    }
+    const key = (value: string | WorkerRequest) =>
+      typeof value === "string"
+        ? new URL(value, "https://morro.example").href
+        : value.url;
+    runInNewContext(await readPublicFile("service-worker.js"), {
+      URL,
+      Request: WorkerRequest,
+      Response,
+      fetch: async (request: string | WorkerRequest) => {
+        requested.push(new URL(key(request)).pathname);
+        if (offline) throw new Error("offline");
+        const response: Cached = {
+          ok: true,
+          type: "basic",
+          clone: () => response,
+        };
+        return response;
+      },
+      caches: {
+        async open(name: string) {
+          if (!stores.has(name)) stores.set(name, new Map());
+          const store = stores.get(name)!;
+          return {
+            put: async (request: string | WorkerRequest, response: Cached) => {
+              store.set(key(request), response);
+            },
+            match: async (request: string | WorkerRequest) =>
+              store.get(key(request)),
+          };
+        },
+        keys: async () => [...stores.keys()],
+        delete: async (name: string) => stores.delete(name),
+      },
+      self: {
+        location: { origin: "https://morro.example" },
+        clients: { claim: async () => {} },
+        addEventListener: (
+          name: string,
+          listener: (event: Record<string, unknown>) => void,
+        ) => listeners.set(name, listener),
+      },
+    });
+    async function event(name: string, data: Record<string, unknown> = {}) {
+      let result: Promise<unknown> | undefined;
+      listeners.get(name)!({
+        ...data,
+        waitUntil: (promise: Promise<unknown>) => {
+          result = promise;
+        },
+        respondWith: (promise: Promise<unknown>) => {
+          result = promise;
+        },
+      });
+      return result;
+    }
+    return {
+      stores,
+      requested,
+      event,
+      setOffline: () => {
+        offline = true;
+      },
+      request: (url: string) => new WorkerRequest(url),
+    };
+  }
+  it("precaches only entry CSS and caches feature CSS after first use for offline reuse", async () => {
+    const h = await workerHarness();
+    await h.event("install");
+    expect(h.requested.filter((url) => url.endsWith(".css"))).toEqual([
+      "/apps/morro-digital-platform/public/entry-css/home.css",
+    ]);
+    const request = h.request(
+      "/apps/morro-digital-platform/public/entry-css/features.css",
+    );
+    const online = await h.event("fetch", { request });
+    expect(online).toMatchObject({ ok: true });
+    h.setOffline();
+    expect(await h.event("fetch", { request })).toBe(online);
+    const missing = h.request(
+      "/apps/morro-digital-platform/public/not-cached.css",
+    );
+    expect(await h.event("fetch", { request: missing })).toMatchObject({
+      ok: false,
+    });
+  });
+  it("retires the old eager CSS cache while preserving another destination cache", async () => {
+    const h = await workerHarness();
+    h.stores.set("morro-digital-static-v5", new Map());
+    h.stores.set("itacare-static-v1", new Map());
+    await h.event("install");
+    await h.event("activate");
+    expect(h.stores.has("morro-digital-static-v5")).toBe(false);
+    expect(h.stores.has("morro-digital-static-v6")).toBe(true);
+    expect(h.stores.has("itacare-static-v1")).toBe(true);
+    expect(
+      await h.event("fetch", { request: h.request("/api/private") }),
+    ).toBeUndefined();
   });
 });

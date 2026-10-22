@@ -60,13 +60,20 @@ describe("Stylelint governance V2 contract", () => {
     const index = await readRepository(
       "apps/morro-digital-platform/public/index.html",
     );
+    const manifest = JSON.parse(
+      await readRepository("tooling/ci/entry-css-manifest.json"),
+    ) as { sources: { file: string }[] };
+    const sources = manifest.sources.map((source) => source.file);
+    expect(index.indexOf("leaflet@1.9.4/dist/leaflet.css")).toBeLessThan(
+      index.indexOf("data-entry-css"),
+    );
+    expect(index).toContain("/public/entry-css/home.css");
     const position = (needle: string) => {
-      const value = index.indexOf(needle);
+      const value = sources.findIndex((source) => source.endsWith(needle));
       expect(value).toBeGreaterThan(-1);
       return value;
     };
 
-    const vendor = position("leaflet@1.9.4/dist/leaflet.css");
     const transitional = position("/public/styles.css");
     const frozenLegacy = position("/public/legacy/legacy.bundle.css");
     const foundation = position("/public/design-system-v2.css");
@@ -76,7 +83,7 @@ describe("Stylelint governance V2 contract", () => {
     const premium = position("/public/premium-ux-v2.css");
     const shell = position("/public/tourist-shell-v2.css");
 
-    expect(vendor).toBeLessThan(transitional);
+    expect(sources).toHaveLength(15);
     expect(transitional).toBeLessThan(frozenLegacy);
     expect(frozenLegacy).toBeLessThan(foundation);
     expect(foundation).toBeLessThan(commerce);

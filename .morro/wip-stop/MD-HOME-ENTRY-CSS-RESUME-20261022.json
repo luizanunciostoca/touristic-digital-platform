@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "writer": {
+    "writerId": "CT1072-CSS-IMPLEMENTATION-3c87662f73e4",
+    "executorIdentity": "TERMUX-NATIVE-V3:f6ad52540f83610097732321",
+    "controllerIdentity": "CT1072-INTEGRATOR-3c87662f73e4-20261022",
+    "sessionId": "3c87662f73e4",
+    "jobId": null,
+    "commandIds": [],
+    "branch": "fix/home-entry-css-resume-20261022",
+    "headSha": "f3bdbd3c087c3d94a0f54b784457f6b0b14de7b3",
+    "treeSha": "02ae867ae7d0d8d0cfe9349b06f27d1dae599659"
+  },
+  "receipt": {
+    "writerId": "CT1072-CSS-IMPLEMENTATION-3c87662f73e4",
+    "requestedAt": "2026-10-22T12:17:20.669Z",
+    "acknowledgedAt": "2026-10-22T12:17:20.968Z",
+    "drainedAt": "2026-10-22T12:17:20.968Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  }
+}

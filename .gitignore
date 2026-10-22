@@ -147,3 +147,4 @@ vite.config.ts.timestamp-*
 
 # Deterministic generated runtime assets
 /apps/morro-digital-platform/public/legacy/legacy.bundle.css
+/apps/morro-digital-platform/public/entry-css/

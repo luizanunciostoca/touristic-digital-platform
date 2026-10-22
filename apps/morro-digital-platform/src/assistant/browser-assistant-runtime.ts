@@ -1,3 +1,4 @@
+import { ensureFeatureStyles } from "../map/feature-styles.js";
 import {
   createAssistantContextManager,
   createAssistantDialogController,
@@ -1479,6 +1480,10 @@ export function installBrowserAssistantRuntime(
     const uiGeneration = ++assistantUiGeneration;
     dispatchAssistantUiState(options.document, "loading");
     try {
+      const pendingStyles = ensureFeatureStyles(options.document);
+      if (pendingStyles) await pendingStyles;
+      if (destroyed || uiGeneration !== assistantUiGeneration)
+        return supersededResponse();
       const response = await processInputTurn(
         rawInput,
         optionOverride,

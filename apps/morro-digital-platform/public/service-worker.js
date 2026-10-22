@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "morro-digital";
-const STATIC_CACHE = `${CACHE_PREFIX}-static-v5`;
+const STATIC_CACHE = `${CACHE_PREFIX}-static-v6`;
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = Object.freeze([
@@ -13,19 +13,7 @@ const PRECACHE_URLS = Object.freeze([
   "/assets/brand/morro-digital-maskable-v2-512.png",
   "/assets/brand/morro-digital-micro-v2.svg",
   "/apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
-  "/apps/morro-digital-platform/public/brand-v2.css",
-  "/apps/morro-digital-platform/public/styles.css",
-  "/apps/morro-digital-platform/public/commerce.css",
-  "/apps/morro-digital-platform/public/assistant-photo-carousel.css",
-  "/apps/morro-digital-platform/public/assistant-v2.css",
-  "/apps/morro-digital-platform/public/legacy/legacy.bundle.css",
-  "/apps/morro-digital-platform/public/explore-locations.css",
-  "/apps/morro-digital-platform/public/navigation-map.css",
-  "/apps/morro-digital-platform/public/v1-tour-assistant-visibility.css",
-  "/apps/morro-digital-platform/public/v1-weather-runtime-parity.css",
-  "/apps/morro-digital-platform/public/premium-ux-v2.css",
-  "/apps/morro-digital-platform/public/design-system-v2.css",
-  "/apps/morro-digital-platform/public/privacy-preferences.css",
+  "/apps/morro-digital-platform/public/entry-css/home.css",
 ]);
 
 const NETWORK_ONLY_PATHS = Object.freeze([
