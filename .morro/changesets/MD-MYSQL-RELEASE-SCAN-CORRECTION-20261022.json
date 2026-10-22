@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-MYSQL-RELEASE-SCAN-CORRECTION-20261022",
+  "objective": "patch-remaining-mysql-gosu-builders-to-unblock-full-staging-release-security-scan",
+  "baseSha": "405aef08d204120c5f9497e22291c4fa10b766a2",
+  "branch": "fix/mysql-release-scan-correction-20261022",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-MYSQL-RELEASE-SCAN-CORRECTION-20261022.json",
+      "tooling/render/mysql-production/Dockerfile",
+      "tooling/render/mysql-production-dr/Dockerfile",
+      "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-STAGING-SECURITY-CORRECTION-20261022"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "mysql-release-scan-scope-contracts",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs",
+          "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
