@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-HOME-CSS-CASCADE-COMPOSITION-20261022",
+  "objective": "integrate-budgeted-home-css-with-source-cascade-contracts",
+  "baseSha": "4eecd5104e930a78c2779790d1bcef9bfe468be3",
+  "branch": "fix/home-css-cascade-composition-20261022",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-HOME-CSS-CASCADE-COMPOSITION-20261022.json",
+      "apps/morro-digital-platform/package.json",
+      "apps/morro-digital-platform/public/index.html",
+      "apps/morro-digital-platform/public/service-worker.js",
+      "apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+      "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+      "apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.ts",
+      "apps/morro-digital-platform/src/map/feature-styles.test.ts",
+      "apps/morro-digital-platform/src/map/feature-styles.ts",
+      "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
+      "apps/morro-digital-platform/src/onboarding/public-onboarding.ts",
+      "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/legacy-css-bundle-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/stylelint-governance-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/weather/weather-forecast-modal.ts",
+      "pnpm-lock.yaml",
+      "tooling/ci/build-entry-css.mjs",
+      "tooling/ci/build-entry-css.test.mjs",
+      "tooling/ci/entry-css-manifest.json",
+      "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
+      "apps/morro-digital-platform/src/ux/css-cascade-contract.ts",
+      "apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts",
+      "apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts",
+      "tooling/ci/css-cascade-transition.test.mjs",
+      "apps/morro-digital-platform/public/dist/entry-css/"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-MYSQL-RELEASE-SCAN-CORRECTION-20261022",
+    "MD-CSS-CONTRACT-IMPACT-MAPPING-20261022"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "css-composition-lifecycle-and-proof-selection",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs",
+          "tooling/ci/css-contract-impact.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
