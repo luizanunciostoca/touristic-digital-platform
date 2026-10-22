@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "writer": {
+    "writerId": "ct1072-security-implementation-2193",
+    "executorIdentity": "CT1072-STAGING-SECURITY-IMPLEMENTATION-9ae40a96ff98",
+    "controllerIdentity": "CT1072-INTEGRATOR-9ae40a96ff98",
+    "sessionId": "9ae40a96ff98",
+    "jobId": "2193",
+    "commandIds": [
+      "ct1072-staging-security-postmerge-worker-start-20261022"
+    ],
+    "branch": "fix/staging-security-patch-20261022",
+    "headSha": "79d9fab5299974e9261dcd77a2a9beaea6b7c38a",
+    "treeSha": "972d4ba3a7a59f221c4424e4b8710b7cb2c41259"
+  },
+  "receipt": {
+    "writerId": "ct1072-security-implementation-2193",
+    "requestedAt": "2026-10-22T01:15:27.851Z",
+    "acknowledgedAt": "2026-10-22T01:15:27.871Z",
+    "drainedAt": "2026-10-22T01:15:28.192Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  }
+}
