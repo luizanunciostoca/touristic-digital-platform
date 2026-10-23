@@ -442,6 +442,18 @@ function grantHistory(f, consumed = true) {
     });
   return history;
 }
+function liveGrantHistory(f, consumed = true) {
+  const clock = Date.now();
+  f.claimRegistry.claims[f.successor.id].expiresAt = new Date(
+    clock + 3600000,
+  ).toISOString();
+  const h = grantHistory(f, consumed);
+  for (const entry of h) {
+    entry.grant.issuedAt = new Date(clock - 60000).toISOString();
+    entry.grant.expiresAt = new Date(clock + 3600000).toISOString();
+  }
+  return h;
+}
 function blob(value) {
   const bytes = Buffer.from(JSON.stringify(value));
   return {
@@ -533,7 +545,7 @@ process.stdout.write(JSON.stringify(config.responses[path]));
 }
 test("canonical owner can delegate only the historical GOVERNANCE correction through authenticated history", async () => {
   const f = await fixture([], true),
-    history = grantHistory(f);
+    history = liveGrantHistory(f);
   const before = structuredClone({
     task: f.task,
     leases: f.leaseRegistry,
@@ -542,7 +554,6 @@ test("canonical owner can delegate only the historical GOVERNANCE correction thr
   withProvider(providerFixture(f, history), () => {
     const authority = collectCorrectionAuthority({
       expectedMain: f.successor.baseSha,
-      now: f.now,
     });
     const result = buildTaskCorrection({ ...f, authority });
     assert.equal(result.task.owner, CORRECTION.executor);
@@ -673,11 +684,10 @@ test("grant expiry and early activation fail closed", async () => {
 });
 test("ISSUED cannot authorize correction proposal", async () => {
   const f = await fixture([], true),
-    h = grantHistory(f, false);
+    h = liveGrantHistory(f, false);
   withProvider(providerFixture(f, h), () => {
     const authority = collectCorrectionAuthority({
       expectedMain: f.successor.baseSha,
-      now: f.now,
     });
     assert.throws(
       () => buildTaskCorrection({ ...f, authority }),
@@ -685,17 +695,15 @@ test("ISSUED cannot authorize correction proposal", async () => {
     );
   });
 });
-test("branded token still rejects stale observation and forged reanchor certificate", async () => {
+test("branded token accepts current observation and rejects forged reanchor certificate", async () => {
   const f = await fixture([], true);
-  withProvider(providerFixture(f, grantHistory(f)), () => {
+  withProvider(providerFixture(f, liveGrantHistory(f)), () => {
     const authority = collectCorrectionAuthority({
       expectedMain: f.successor.baseSha,
-      now: f.now,
     });
-    assert.throws(
-      () =>
-        buildTaskCorrection({ ...f, authority, now: "2026-10-01T09:11:00Z" }),
-      /AUTHORITY_STALE/,
+    assert.equal(
+      buildTaskCorrection({ ...f, authority }).task.state,
+      "STARTED",
     );
     assert.throws(
       () => buildTaskCorrection({ ...f, authority, reanchorProof: {} }),
@@ -754,16 +762,50 @@ for (const [name, mutate, code] of [
 ])
   test("authenticated collector rejects " + name, async () => {
     const f = await fixture([], true),
-      config = providerFixture(f, grantHistory(f));
+      config = providerFixture(f, liveGrantHistory(f));
     mutate(config);
     withProvider(config, () =>
       assert.throws(
         () =>
           collectCorrectionAuthority({
             expectedMain: f.successor.baseSha,
-            now: f.now,
           }),
         code,
       ),
     );
   });
+
+test("authenticated authority cannot mint an expired grant using caller clock rollback", async () => {
+  const f = await fixture([], true);
+  withProvider(providerFixture(f, grantHistory(f)), () => {
+    assert.throws(
+      () =>
+        collectCorrectionAuthority({
+          expectedMain: f.successor.baseSha,
+          now: f.now,
+        }),
+      /CLOCK_OVERRIDE_FORBIDDEN/,
+    );
+    assert.throws(
+      () => collectCorrectionAuthority({ expectedMain: f.successor.baseSha }),
+      /GRANT_EXPIRED/,
+    );
+  });
+});
+test("genuine branded token ages by real clock even if correction caller rolls time back", async () => {
+  const f = await fixture([], true);
+  withProvider(providerFixture(f, liveGrantHistory(f)), () => {
+    const authority = collectCorrectionAuthority({
+      expectedMain: f.successor.baseSha,
+    });
+    assert.equal(
+      buildTaskCorrection({ ...f, authority }).task.state,
+      "STARTED",
+    );
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 31010);
+    assert.throws(
+      () => buildTaskCorrection({ ...f, authority, now: f.now }),
+      /AUTHORITY_STALE/,
+    );
+  });
+});

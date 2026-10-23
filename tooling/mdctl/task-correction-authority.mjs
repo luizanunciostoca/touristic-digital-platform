@@ -257,10 +257,13 @@ function jsonBlob(path, ref) {
   assert.equal(sha, value.sha, "CORRECTION_BLOB_HASH");
   return JSON.parse(bytes.toString("utf8"));
 }
-export function collectCorrectionAuthority({
-  expectedMain,
-  now = new Date().toISOString(),
-}) {
+export function collectCorrectionAuthority(options) {
+  assert.ok(
+    !Object.hasOwn(options, "now"),
+    "CORRECTION_CLOCK_OVERRIDE_FORBIDDEN",
+  );
+  const { expectedMain } = options;
+  const now = new Date().toISOString();
   assert.match(expectedMain ?? "", SHA, "CORRECTION_MAIN_REQUIRED");
   const root = "repos/" + CORRECTION.repository;
   assert.equal(
@@ -322,6 +325,12 @@ export function collectCorrectionAuthority({
     expectedMain,
     "CORRECTION_MAIN_MOVED",
   );
+  const observedAt = new Date().toISOString();
+  validateCorrectionHistory(history, observedAt);
+  assert.ok(
+    Date.parse(claim.expiresAt) > Date.parse(observedAt),
+    "CORRECTION_CLAIM_EXPIRED",
+  );
   const token = freeze({
     ...checked,
     mainSha: expectedMain,
@@ -334,7 +343,7 @@ export function collectCorrectionAuthority({
 }
 export function assertCorrectionAuthority(
   token,
-  { task, changeSet, successor, claim, now },
+  { task, changeSet, successor, claim },
 ) {
   assert.ok(verified.has(token), "TASK_CORRECTION_AUTHORITY_UNVERIFIED");
   assert.equal(
@@ -342,11 +351,13 @@ export function assertCorrectionAuthority(
     "CONSUMED",
     "TASK_CORRECTION_AUTHORITY_NOT_CONSUMED",
   );
-  const clock = Date.parse(now);
+  const clock = Date.now();
   assert.ok(
     clock >= Date.parse(token.observedAt) &&
       clock - Date.parse(token.observedAt) <= 30000 &&
-      clock < Date.parse(token.grant.expiresAt),
+      clock < Date.parse(token.grant.expiresAt) &&
+      clock >= Date.parse(token.grant.issuedAt) &&
+      clock < Date.parse(token.claim.expiresAt),
     "TASK_CORRECTION_AUTHORITY_STALE",
   );
   assert.equal(
