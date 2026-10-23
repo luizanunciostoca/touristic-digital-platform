@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "writer": {
+    "writerId": "CODEX-STAGING-NODE-9482F85B-20261023",
+    "executorIdentity": "CODEX-STAGING-NODE-9482F85B-20261023",
+    "controllerIdentity": "CT1072-DOT-INTEGRATOR-20261023",
+    "sessionId": "9482f85b-32d4-4600-bd11-daaea19d9033",
+    "jobId": null,
+    "commandIds": [],
+    "branch": "fix/staging-node-exception-20261023",
+    "headSha": "bbf3982d55ba6599e1e96027b2f78e1231408e5b",
+    "treeSha": "82ece61b7602fac300e8272df67c03faeec2d88b"
+  },
+  "receipt": {
+    "writerId": "CODEX-STAGING-NODE-9482F85B-20261023",
+    "requestedAt": "2026-10-23T06:00:53.923Z",
+    "acknowledgedAt": "2026-10-23T06:00:53.934Z",
+    "drainedAt": "2026-10-23T06:00:53.934Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  }
+}
