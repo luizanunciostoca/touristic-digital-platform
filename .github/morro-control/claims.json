@@ -89,36 +89,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
-    },
-    "MD-STAGING-NODE-EXCEPTION-20261023": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-node-exception-20261023",
-      "baseSha": "eb44c4a064d368306217d19d2bf45ff4b1232e42",
-      "paths": [
-        ".morro/changesets/MD-STAGING-NODE-EXCEPTION-20261023.json",
-        ".github/workflows/final-release-acceptance.yml",
-        ".github/workflows/staging-render-promotion.yml",
-        ".github/workflows/staging-oci-promotion.yml",
-        ".github/workflows/release-promotion-gate.yml",
-        ".github/workflows/oci-release-promotion-gate.yml",
-        ".github/workflows/production-render-promotion.yml",
-        ".github/workflows/production-oci-promotion.yml",
-        ".github/workflows/pages-after-final-acceptance.yml",
-        "tooling/quality/release-target-governance.test.mjs",
-        "tooling/ci/staging-node-exception.mjs",
-        "tooling/ci/staging-node-exception.test.mjs",
-        "tooling/ci/staging-node-exception.json",
-        "tooling/ci/test-impact-manifest.json",
-        "docs/operations/STAGING-NODE-EXCEPTION.md",
-        "AGENTS.md",
-        ".github/instructions/render-release.instructions.md",
-        ".github/skills/morro-release-certification/SKILL.md"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T01:59:59.000Z"
     }
   }
 }
