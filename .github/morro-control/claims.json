@@ -35,21 +35,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-23T18:10:12.224Z"
     },
-    "MD-PERFORMANCE-PIPEFAIL-RESUME-20261020": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/performance-pipefail-resume-20261020",
-      "baseSha": "29cbd1ee2a716c03343ee46688354fe6f43a87b0",
-      "paths": [
-        ".morro/changesets/MD-PERFORMANCE-PIPEFAIL-RESUME-20261020.json",
-        ".github/workflows/morro-performance-budget.yml",
-        "tooling/ci/performance-budget-workflow-failclosed.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-22T21:44:16.582Z"
-    },
     "MD-TRUSTED-CLAIM-ROUTING-20261021": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
