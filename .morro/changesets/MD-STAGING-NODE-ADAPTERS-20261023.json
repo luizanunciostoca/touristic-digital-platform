@@ -4,7 +4,7 @@
   "objective": "validate-disabled-staging-node-runtime-adapters-and-cli-composition",
   "baseSha": "de84f955981ba5aa361bad6d7fbfe8dc8a8b7c7d",
   "branch": "fix/staging-node-adapters-20261023",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
