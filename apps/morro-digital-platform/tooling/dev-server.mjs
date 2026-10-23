@@ -55,6 +55,7 @@ const morroDistRoot = resolve(
 const morroRuntimeRoot = resolve(morroDistRoot, "runtime");
 const morroAnalyticsRoot = resolve(morroDistRoot, "analytics");
 const defaultDocument = resolve(morroPublicRoot, "index.html");
+const destinationDocument = resolve(morroPublicRoot, "destination.html");
 const envFile = resolve(repositoryRoot, ".env");
 const host = process.env.HOST?.trim() || "127.0.0.1";
 const port = Number(process.env.PORT || "4173");
@@ -537,6 +538,31 @@ function serveRuntimeConfig(response) {
   );
 }
 
+/** A destination may receive a publishable Mapbox key, never Morro payments data. */
+function serveScopedDestinationRuntimeConfig(response, method = "GET") {
+  const token = String(
+    getEnvironmentValue("VITE_MAPBOX_ACCESS_TOKEN") ?? "",
+  ).trim();
+  const style = String(getEnvironmentValue("VITE_MAPBOX_STYLE") ?? "").trim();
+  const publicConfig = Object.freeze({
+    VITE_MAPBOX_ACCESS_TOKEN: /^pk\.[A-Za-z0-9._-]+$/u.test(token) ? token : "",
+    VITE_MAPBOX_STYLE:
+      /^mapbox:\/\/styles\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/u.test(style)
+        ? style
+        : "mapbox://styles/mapbox/streets-v12",
+    VITE_MAPBOX_CONTAINER_ID: "destination-map",
+  });
+  const serialized = JSON.stringify(publicConfig).replaceAll("<", "\\u003c");
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "text/javascript; charset=utf-8");
+  response.setHeader("Cache-Control", "private, no-store");
+  if (method === "HEAD") response.end();
+  else
+    response.end(
+      `globalThis.__MORRO_RUNTIME_ENV__ = Object.freeze(${serialized});\n`,
+    );
+}
+
 async function servePublicDestination(request, response, requestUrl) {
   const scope = resolvePublicDestinationRequest({
     host: request.headers.host,
@@ -770,23 +796,112 @@ const server = createServer(async (request, response) => {
       serviceDraining(response);
       return;
     }
-    // SERVER_BOUND_UI_ABSENT: no destination HTML or Morro fallback on new hosts.
-    if (requestUrl.pathname === "/" || requestUrl.pathname.startsWith("/d/")) {
+    // LAB ONLY: Serve a destination UI only after trusted Host/slug and active
+    // same-destination MySQL owner are both verified. Never fall back to Morro.
+    if (
+      requestUrl.pathname === "/" ||
+      /^\/d\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/u.test(requestUrl.pathname)
+    ) {
       const page = resolvePublicDestinationPage({
         host: request.headers.host,
         pathname: requestUrl.pathname,
         allowedHosts: destinationPublicHosts,
       });
-      if (
-        page.status === 200 &&
-        page.pageKind !== "legacy-morro" &&
-        !requestUrl.pathname.includes("/api/")
-      ) {
-        response.statusCode = 404;
-        response.setHeader("Cache-Control", "no-store");
-        response.end(JSON.stringify({ error: "DESTINATION_UI_NOT_RELEASED" }));
+      if (page.status === 200 && page.pageKind === "governed-destination") {
+        if (request.method !== "GET" && request.method !== "HEAD") {
+          response.statusCode = 405;
+          response.setHeader("Allow", "GET, HEAD");
+          response.setHeader("Cache-Control", "no-store");
+          response.end();
+          return;
+        }
+        const template = destinationPublicTemplates[page.destinationId];
+        const owner = template
+          ? await resolvePublicDestination(destinationRuntime, template, {
+              requireOwner: true,
+            })
+          : null;
+        if (!owner) {
+          response.statusCode = 503;
+          response.setHeader("Content-Type", "application/json; charset=utf-8");
+          response.setHeader("Cache-Control", "no-store");
+          response.end(
+            JSON.stringify({ error: "DESTINATION_OWNER_UNAVAILABLE" }),
+          );
+          return;
+        }
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "text/html; charset=utf-8");
+        response.setHeader("Cache-Control", "private, no-store");
+        if (request.method === "HEAD") response.end();
+        else {
+          const html = await readFile(destinationDocument, "utf8");
+          const scopedConfigPath = `/d/${page.destinationId}/runtime-config.js`;
+          if (!html.includes("__DESTINATION_SCOPED_RUNTIME_CONFIG__"))
+            throw new Error("DESTINATION_RUNTIME_CONFIG_PLACEHOLDER_MISSING");
+          response.end(
+            html.replace(
+              "__DESTINATION_SCOPED_RUNTIME_CONFIG__",
+              scopedConfigPath,
+            ),
+          );
+        }
         return;
       }
+      if (page.status !== 200 && requestUrl.pathname.startsWith("/d/")) {
+        response.statusCode = 404;
+        response.setHeader("Cache-Control", "no-store");
+        response.end(JSON.stringify({ error: page.error }));
+        return;
+      }
+    }
+    const scopedConfigMatch =
+      /^\/d\/([a-z0-9]+(?:-[a-z0-9]+)*)\/runtime-config\.js$/u.exec(
+        requestUrl.pathname,
+      );
+    if (requestUrl.pathname === "/runtime-config.js" || scopedConfigMatch) {
+      const pagePath = scopedConfigMatch ? `/d/${scopedConfigMatch[1]}/` : "/";
+      const page = resolvePublicDestinationPage({
+        host: request.headers.host,
+        pathname: pagePath,
+        allowedHosts: destinationPublicHosts,
+      });
+      if (page.status !== 200) {
+        response.statusCode = 404;
+        response.setHeader("Cache-Control", "no-store");
+        response.end(
+          JSON.stringify({ error: "DESTINATION_RUNTIME_CONFIG_NOT_ALLOWED" }),
+        );
+        return;
+      }
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        response.statusCode = 405;
+        response.setHeader("Allow", "GET, HEAD");
+        response.setHeader("Cache-Control", "no-store");
+        response.end();
+        return;
+      }
+      if (page.pageKind === "legacy-morro") {
+        serveRuntimeConfig(response);
+        return;
+      }
+      const template = destinationPublicTemplates[page.destinationId];
+      const owner = template
+        ? await resolvePublicDestination(destinationRuntime, template, {
+            requireOwner: true,
+          })
+        : null;
+      if (!owner) {
+        response.statusCode = 503;
+        response.setHeader("Content-Type", "application/json; charset=utf-8");
+        response.setHeader("Cache-Control", "no-store");
+        response.end(
+          JSON.stringify({ error: "DESTINATION_OWNER_UNAVAILABLE" }),
+        );
+        return;
+      }
+      serveScopedDestinationRuntimeConfig(response, request.method);
+      return;
     }
     if (
       requestUrl.pathname === "/api/runtime/destination" ||
@@ -827,21 +942,7 @@ const server = createServer(async (request, response) => {
       );
       return;
     }
-    if (requestUrl.pathname === "/runtime-config.js") {
-      const page = resolvePublicDestinationPage({
-        host: request.headers.host,
-        pathname: "/",
-        allowedHosts: destinationPublicHosts,
-      });
-      if (page.status !== 200 || page.pageKind !== "legacy-morro") {
-        response.statusCode = 404;
-        response.setHeader("Cache-Control", "no-store");
-        response.end(JSON.stringify({ error: "DESTINATION_UI_NOT_RELEASED" }));
-        return;
-      }
-      serveRuntimeConfig(response);
-      return;
-    }
+
     if (requestUrl.pathname === "/api/weather") {
       await serveWeather(response, correlationId);
       return;
@@ -867,6 +968,63 @@ const server = createServer(async (request, response) => {
       if (handled) return;
     }
     if (requestUrl.pathname.startsWith("/api/places/v1/")) {
+      const destinationId = trustedPlace?.scope?.destinationId;
+      // Match the public handler's effective (last-value) query semantics before
+      // consulting the owner, including when a shared host admits both IDs.
+      if (
+        request.method === "GET" &&
+        destinationId &&
+        destinationId !== publicDestinationFallback.id &&
+        requestUrl.pathname === "/api/places/v1/map" &&
+        Object.fromEntries(requestUrl.searchParams.entries()).destinationId !==
+          destinationId
+      ) {
+        response.statusCode = 404;
+        response.setHeader("Content-Type", "application/json; charset=utf-8");
+        response.setHeader("Cache-Control", "no-store");
+        response.end(JSON.stringify({ error: "PLACE_NOT_FOUND" }));
+        return;
+      }
+      // Only public reads are served by this handler. Preserve legacy Morro and
+      // method/route denials; a governed owner must be active before any ETag.
+      const encodedPlaceId = requestUrl.pathname.slice(
+        "/api/places/v1/".length,
+      );
+      let publicPlaceRead = false;
+      if (
+        request.method === "GET" &&
+        encodedPlaceId &&
+        !encodedPlaceId.includes("/")
+      ) {
+        try {
+          publicPlaceRead = /^[a-z0-9][a-z0-9_-]*$/u.test(
+            decodeURIComponent(encodedPlaceId).trim(),
+          );
+        } catch {
+          // Leave malformed IDs to the existing public handler's denial.
+        }
+      }
+      if (
+        publicPlaceRead &&
+        destinationId &&
+        destinationId !== publicDestinationFallback.id
+      ) {
+        const template = destinationPublicTemplates[destinationId];
+        const owner = template
+          ? await resolvePublicDestination(destinationRuntime, template, {
+              requireOwner: true,
+            })
+          : null;
+        if (!owner) {
+          response.statusCode = 503;
+          response.setHeader("Content-Type", "application/json; charset=utf-8");
+          response.setHeader("Cache-Control", "no-store");
+          response.end(
+            JSON.stringify({ error: "DESTINATION_OWNER_UNAVAILABLE" }),
+          );
+          return;
+        }
+      }
       const handled = await placePlatformRuntime.handlePublic(
         request,
         response,

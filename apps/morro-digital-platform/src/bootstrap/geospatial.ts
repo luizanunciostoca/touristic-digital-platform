@@ -1,4 +1,4 @@
-import type { EventBus } from "@touristic/core";
+import type { DestinationConfig, EventBus } from "@touristic/core";
 import {
   createGeospatialEngine,
   createMapboxAdapter,
@@ -11,6 +11,8 @@ import { morroDeSaoPauloDestination } from "../config/destination.js";
 import type { MorroMapboxRuntimeConfig } from "../config/mapbox-runtime.js";
 
 export interface MorroMapboxBootstrapOptions extends MorroMapboxRuntimeConfig {
+  readonly destination?: DestinationConfig;
+  readonly attributionControl?: boolean;
   readonly sdk: MapboxGlModuleLike;
   readonly createMarkerElement?: (input: {
     readonly id: string;
@@ -64,7 +66,7 @@ async function publishInitializationFailure(
         ...payload,
         reason: describeInitializationError(error),
       }),
-      { destinationId: morroDeSaoPauloDestination.id },
+      { destinationId: payload.destinationId },
     );
   } catch {
     return;
@@ -75,10 +77,16 @@ export async function initializeMorroGeospatial(
   options: MorroMapboxBootstrapOptions,
   events: EventBus,
 ): Promise<MorroGeospatialBootstrapResult> {
+  const destination = options.destination ?? morroDeSaoPauloDestination;
   const driver = createMapboxGlDriver({
     sdk: options.sdk,
     accessToken: options.accessToken,
-    mapOptions: V1_MAPBOX_VISUAL_OPTIONS,
+    mapOptions: {
+      ...V1_MAPBOX_VISUAL_OPTIONS,
+      attributionControl:
+        options.attributionControl ??
+        V1_MAPBOX_VISUAL_OPTIONS.attributionControl,
+    },
     ...(options.createMarkerElement
       ? { createMarkerElement: options.createMarkerElement }
       : {}),
@@ -90,18 +98,18 @@ export async function initializeMorroGeospatial(
   });
   const engine = createGeospatialEngine(adapter);
   const payload = Object.freeze({
-    destinationId: morroDeSaoPauloDestination.id,
+    destinationId: destination.id,
     providerId: engine.providerId,
     containerId: options.containerId,
   });
   const eventMetadata = Object.freeze({
-    destinationId: morroDeSaoPauloDestination.id,
+    destinationId: destination.id,
   });
 
   try {
     await engine.initialize({
       containerId: options.containerId,
-      center: morroDeSaoPauloDestination.center,
+      center: destination.center,
       zoom: options.zoom,
     });
 
@@ -125,5 +133,71 @@ export function createMorroGeospatialInitializer(
   return async (events) => {
     const result = await initializeMorroGeospatial(options, events);
     return result.engine;
+  };
+}
+
+export type DestinationMapState = "loading" | "ready" | "unavailable";
+
+/** Destination-page UI readiness only; shared Morro lifecycle events are unchanged. */
+export function createDestinationMapReadiness(
+  onState: (state: DestinationMapState) => void,
+  timeoutMs = 15_000,
+): {
+  readonly active: boolean;
+  readonly onMapCreated: (map: MapboxGlMapLike) => void;
+  readonly fail: () => void;
+  readonly dispose: () => void;
+} {
+  let state: DestinationMapState = "loading";
+  let disposed = false;
+  let nativeMap: MapboxGlMapLike | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const clearTimer = (): void => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  };
+  const detach = (): void => {
+    clearTimer();
+    nativeMap?.off?.("load", onLoad);
+    nativeMap?.off?.("error", fail);
+    nativeMap = null;
+  };
+  const fail = (): void => {
+    if (disposed || state === "unavailable") return;
+    state = "unavailable";
+    detach();
+    onState(state);
+  };
+  const onLoad = (): void => {
+    if (disposed || state !== "loading") return;
+    state = "ready";
+    clearTimer();
+    nativeMap?.off?.("load", onLoad);
+    // Keep observing errors after load so a failed map cannot remain ready.
+    onState(state);
+  };
+  timer = setTimeout(fail, timeoutMs);
+
+  return {
+    get active(): boolean {
+      return !disposed && state !== "unavailable";
+    },
+    onMapCreated(map): void {
+      if (disposed || state !== "loading" || nativeMap) return;
+      if (!map.on || !map.off) {
+        fail();
+        return;
+      }
+      nativeMap = map;
+      map.on("error", fail);
+      map.on("load", onLoad);
+    },
+    fail,
+    dispose(): void {
+      if (disposed) return;
+      disposed = true;
+      detach();
+    },
   };
 }

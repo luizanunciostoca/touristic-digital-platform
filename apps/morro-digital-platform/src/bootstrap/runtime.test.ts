@@ -1,4 +1,8 @@
-import { EventBus } from "@touristic/core";
+import {
+  EventBus,
+  type DestinationConfig,
+  type DestinationId,
+} from "@touristic/core";
 import type { GeospatialEngine, MapMarker } from "@touristic/geospatial";
 import { describe, expect, it, vi } from "vitest";
 import { bootstrapMorroDigital } from "./runtime.js";
@@ -169,5 +173,58 @@ describe("bootstrapMorroDigital", () => {
     await expect(
       bootstrapMorroDigital({ initialMarkers: [marker] }),
     ).rejects.toThrow("Initial map markers require a geospatial initializer.");
+  });
+});
+
+describe("dynamic destination bootstrap isolation", () => {
+  it("emits Itacare runtime identity instead of Morro", async () => {
+    const destination = {
+      id: "itacare" as DestinationId,
+      name: "Itacaré",
+      countryCode: "BR",
+      timezone: "America/Bahia",
+      currency: "BRL",
+      center: { latitude: -14.278, longitude: -39.0 },
+      radiusMeters: 35000,
+      modules: { marketplace: true, map: true },
+    } satisfies DestinationConfig;
+    const events = new EventBus();
+    const observed: string[] = [];
+    events.subscribe("DestinationLoaded", (event) => {
+      observed.push(event.destinationId);
+    });
+    const result = await bootstrapMorroDigital({
+      destination,
+      events,
+      locale: "pt-BR",
+    });
+    expect(result.runtime.destination.id).toBe("itacare");
+    expect(result.readiness.destinationId).toBe("itacare");
+    expect(observed).toEqual(["itacare"]);
+  });
+
+  it("keeps marker events within the requested destination", async () => {
+    const destination = {
+      id: "itacare" as DestinationId,
+      name: "Itacaré",
+      countryCode: "BR",
+      timezone: "America/Bahia",
+      currency: "BRL",
+      center: { latitude: -14.278, longitude: -39.0 },
+      radiusMeters: 35000,
+      modules: { marketplace: true, map: true },
+    } satisfies DestinationConfig;
+    const events = new EventBus();
+    const ids: string[] = [];
+    events.subscribe("MapMarkersLoaded", (event) => {
+      ids.push(event.destinationId);
+    });
+    await bootstrapMorroDigital({
+      events,
+      destination,
+      initializeGeospatial: vi.fn(async () => createEngine().engine),
+      initialMarkers: [marker],
+    });
+    expect(ids).toEqual(["itacare"]);
   });
 });

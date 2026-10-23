@@ -1,0 +1,257 @@
+:root {
+  color-scheme: light;
+  font-family: Montserrat, Inter, system-ui, sans-serif;
+  --dest-ink: #0b1f3b;
+  --dest-ocean: #005f8d;
+  --dest-teal: #006c66;
+  --dest-green: #2e7d32;
+  --dest-surface: #f2f8f8;
+  --dest-border: #c5d6d9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--dest-ink);
+  background: var(--dest-surface);
+}
+
+.destination-skip {
+  position: absolute;
+  transform: translateY(-200%);
+  z-index: 20;
+}
+
+.destination-skip:focus-visible {
+  transform: none;
+  padding: 1rem;
+  background: #fff;
+}
+
+.destination-header,
+.destination-main,
+.destination-footer {
+  width: min(100%, 1400px);
+  margin-inline: auto;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+}
+
+.destination-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid var(--dest-border);
+}
+
+.destination-lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.destination-lockup img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.destination-lockup strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.destination-endorsement {
+  display: block;
+  font-size: 0.72rem;
+  color: #3f5665;
+}
+
+.destination-locale {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.destination-locale select,
+.destination-places-region input,
+.destination-places-region button {
+  min-height: 44px;
+  border-radius: 0.6rem;
+  border: 1px solid var(--dest-border);
+  padding: 0.5rem 0.8rem;
+  font: inherit;
+}
+
+.destination-main {
+  min-height: 68vh;
+}
+
+.destination-intro {
+  margin-block: 1rem 1.4rem;
+}
+
+.destination-eyebrow {
+  color: var(--dest-ocean);
+  font-size: 0.75rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.destination-intro h1 {
+  margin: 0.35rem 0;
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+}
+
+.destination-intro p {
+  max-width: 65ch;
+}
+
+.destination-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(310px, 1fr);
+  gap: 1.1rem;
+  align-items: start;
+}
+
+.destination-map-region,
+.destination-places-region {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid var(--dest-border);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.destination-map-region h2,
+.destination-places-region h2 {
+  font-size: 1.2rem;
+  margin: 0 0 0.7rem;
+}
+
+#destination-map {
+  height: min(58vh, 510px);
+  min-height: 310px;
+  border-radius: 0.6rem;
+  background: linear-gradient(140deg, #c5e5e6, #ecf5f2);
+}
+
+#destination-map-status,
+#destination-places-status,
+#destination-status {
+  color: #36505f;
+  font-size: 0.9rem;
+}
+
+.destination-places-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+#destination-place-search {
+  width: 100%;
+  margin-block: 0.35rem 0.7rem;
+}
+
+.destination-places {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 490px;
+  overflow: auto;
+}
+
+.destination-places li + li {
+  border-top: 1px solid var(--dest-border);
+}
+
+.destination-places button {
+  display: block;
+  width: 100%;
+  border: 0;
+  text-align: start;
+  border-radius: 0;
+  color: var(--dest-ink);
+  background: transparent;
+  cursor: pointer;
+}
+
+.destination-places button:hover,
+.destination-places button:focus-visible {
+  background: #e9f8f4;
+}
+
+.destination-places button strong,
+.destination-places button small {
+  display: block;
+}
+
+.destination-places button small {
+  color: #425b67;
+}
+
+#destination-places-more {
+  width: 100%;
+  color: #fff;
+  background: var(--dest-ocean);
+  cursor: pointer;
+}
+
+#destination-place-detail {
+  padding-block: 1rem;
+  border-top: 1px solid var(--dest-border);
+}
+
+#destination-place-detail a {
+  color: var(--dest-ocean);
+  text-decoration: underline;
+}
+
+.destination-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #425b67;
+}
+
+:focus-visible {
+  outline: 3px solid #ce571e;
+  outline-offset: 3px;
+}
+
+html[dir="rtl"] .destination-places button {
+  text-align: right;
+}
+
+@media (max-width: 800px) {
+  .destination-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #destination-map {
+    height: 340px;
+  }
+
+  .destination-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}

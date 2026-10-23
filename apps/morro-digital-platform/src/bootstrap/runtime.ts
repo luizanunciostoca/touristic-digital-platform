@@ -3,6 +3,7 @@ import {
   createPlatformRuntime,
   EventBus,
   ModuleRegistry,
+  type DestinationConfig,
   type PlatformHealthCheckInput,
   type PlatformHealthSnapshot,
   type PlatformModule,
@@ -29,6 +30,8 @@ export type GeospatialInitializer = (
 ) => Promise<GeospatialEngine>;
 
 export interface BootstrapMorroDigitalOptions {
+  readonly destination?: DestinationConfig;
+  readonly locale?: string;
   readonly events?: EventBus;
   readonly initializeGeospatial?: GeospatialInitializer;
   readonly initialMarkers?: readonly MapMarker[];
@@ -60,6 +63,7 @@ async function cleanupGeospatialEngine(
 
 async function publishMarkerFailure(
   events: EventBus,
+  destinationId: string,
   markers: readonly MapMarker[],
   error: unknown,
 ): Promise<void> {
@@ -67,11 +71,11 @@ async function publishMarkerFailure(
     await events.publish(
       "MapMarkersLoadFailed",
       Object.freeze({
-        destinationId: morroDeSaoPauloDestination.id,
+        destinationId,
         markerIds: Object.freeze(markers.map((marker) => marker.id)),
         reason: describeMarkerError(error),
       }),
-      { destinationId: morroDeSaoPauloDestination.id },
+      { destinationId },
     );
   } catch {
     return;
@@ -81,6 +85,7 @@ async function publishMarkerFailure(
 async function loadInitialMarkers(
   engine: GeospatialEngine,
   events: EventBus,
+  destinationId: string,
   markers: readonly MapMarker[],
 ): Promise<number> {
   if (markers.length === 0) return 0;
@@ -90,16 +95,16 @@ async function loadInitialMarkers(
     await events.publish(
       "MapMarkersLoaded",
       Object.freeze({
-        destinationId: morroDeSaoPauloDestination.id,
+        destinationId,
         count: markers.length,
         markerIds: Object.freeze(markers.map((marker) => marker.id)),
       }),
-      { destinationId: morroDeSaoPauloDestination.id },
+      { destinationId },
     );
     return markers.length;
   } catch (error) {
     await cleanupGeospatialEngine(engine);
-    await publishMarkerFailure(events, markers, error);
+    await publishMarkerFailure(events, destinationId, markers, error);
     throw error;
   }
 }
@@ -136,18 +141,18 @@ function createBootstrapReadiness(
 export async function bootstrapMorroDigital(
   options: BootstrapMorroDigitalOptions = {},
 ): Promise<BootstrapResult> {
+  const destination = options.destination ?? morroDeSaoPauloDestination;
   const registry = new ModuleRegistry();
   registry.register(geospatialModule);
   registry.register(marketplaceModule);
 
   const events =
-    options.events ??
-    new EventBus({ destinationId: morroDeSaoPauloDestination.id });
+    options.events ?? new EventBus({ destinationId: destination.id });
   const runtime = createPlatformRuntime({
     destination: {
-      id: morroDeSaoPauloDestination.id,
-      name: morroDeSaoPauloDestination.name,
-      locale: "pt-BR",
+      id: destination.id,
+      name: destination.name,
+      locale: options.locale ?? "pt-BR",
       enabledModules: ["geospatial", "marketplace"],
     },
     registry,
@@ -173,7 +178,12 @@ export async function bootstrapMorroDigital(
   }
 
   const loadedMarkerCount = geospatialEngine
-    ? await loadInitialMarkers(geospatialEngine, runtime.events, initialMarkers)
+    ? await loadInitialMarkers(
+        geospatialEngine,
+        runtime.events,
+        destination.id,
+        initialMarkers,
+      )
     : 0;
   const readiness = createBootstrapReadiness(
     runtime,

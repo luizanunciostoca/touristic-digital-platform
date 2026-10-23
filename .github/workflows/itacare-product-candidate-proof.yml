@@ -95,28 +95,18 @@ jobs:
           git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/itacare-product-evidence/identity.txt"
           node --test apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs apps/morro-digital-platform/tooling/destination-page-resolver.test.mjs apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs apps/morro-digital-platform/tooling/destination-public-templates.test.mjs
           node --test ../proof-lab/scripts/itacare-v2-disposable-database.test.mjs
-      - name: Activation census
+      - name: Atomic owner-bound UI activation contract
         id: phase
         working-directory: product
         shell: bash
         run: |
           set -euo pipefail
-          if test -f apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs; then
-            test ! -L apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs
-            git ls-files --error-unmatch apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs >/dev/null
-            echo 'scoped_place=true' >> "$GITHUB_OUTPUT"
-          else
-            if git cat-file -e "$CANDIDATE_BASE:apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs" 2>/dev/null; then
-              echo 'SCOPED_PLACE_PROOF_REMOVAL_DENIED' >&2
-              exit 1
-            fi
-            if ! git diff --quiet "$CANDIDATE_BASE" HEAD -- packages/business/src/public-place-projection.ts packages/business/src/public-place-projection.test.ts apps/morro-digital-platform/tooling/place-platform-runtime.mjs apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs; then
-              echo 'SCOPED_PLACE_CORE_WITHOUT_SQL_PROOF_DENIED' >&2
-              exit 1
-            fi
-            echo 'scoped_place=false' >> "$GITHUB_OUTPUT"
-          fi
+          # This version is integrated atomically with the complete destination UI.
+          # Removal/partial activation is denied; actual server/SQL/browser proof follows.
           activation_paths=(
+            "apps/morro-digital-platform/public/assets/brand/itacare-digital-micro-v2.svg"
+            "apps/morro-digital-platform/public/assets/brand/itacare-digital-symbol-v2.svg"
+            "apps/morro-digital-platform/public/destination.css"
             "apps/morro-digital-platform/public/destination.html"
             "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts"
             "apps/morro-digital-platform/src/bootstrap/geospatial.ts"
@@ -130,52 +120,28 @@ jobs:
             "apps/morro-digital-platform/src/runtime/public-destination.test.ts"
             "apps/morro-digital-platform/src/runtime/public-destination.ts"
           )
-          server_bound=false
-          baseline_entry="$RUNNER_TEMP/itacare-product-evidence/base-dev-server.mjs"
-          git show "$CANDIDATE_BASE:apps/morro-digital-platform/tooling/dev-server.mjs" > "$baseline_entry"
+          for path in "${activation_paths[@]}"; do
+            test -f "$path" && test ! -L "$path"
+            git ls-files --error-unmatch "$path" >/dev/null
+          done
           entry=apps/morro-digital-platform/tooling/dev-server.mjs
           adapter=apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs
-          if grep -Fq 'SERVER_BOUND_UI_ABSENT' "$entry"; then
-            grep -Fq 'resolveTrustedPlaceDestinationScope({' "$entry"
-            grep -Fq 'trustedPlace.scope' "$entry"
-            grep -Fq 'DESTINATION_UI_NOT_RELEASED' "$entry"
-            grep -Fq 'REAL_DEV_SERVER_API_PROVEN' "$adapter"
-            grep -Fq 'DISPOSABLE_PROOF_DOTENV_DENIED' "$entry"
-            server_bound=true
-          else
-            if grep -Fq 'SERVER_BOUND_UI_ABSENT' "$baseline_entry"; then echo 'SERVER_BOUNDARY_REMOVAL_DENIED' >&2; exit 1; fi
-            git diff --quiet "$CANDIDATE_BASE" HEAD -- "$entry" || { echo 'UNPROVEN_SERVER_ENTRY_CHANGE_DENIED' >&2; exit 1; }
-          fi
-          echo "server_bound=$server_bound" >> "$GITHUB_OUTPUT"
-          changed=0
-          for path in "${activation_paths[@]}"; do
-            if ! git diff --quiet "$CANDIDATE_BASE" HEAD -- "$path"; then changed=$((changed + 1)); fi
-          done
-          if test "$changed" -eq 0; then
-            for path in apps/morro-digital-platform/public/destination.html apps/morro-digital-platform/src/destinations/destination-browser-entry.ts apps/morro-digital-platform/src/destinations/destination-page.ts; do
-              if git cat-file -e "$CANDIDATE_BASE:$path" 2>/dev/null; then
-                echo 'BASE_ALREADY_OR_PARTIALLY_ACTIVATED_DENIED' >&2
-                exit 1
-              fi
-            done
-            if git show "$CANDIDATE_BASE:apps/morro-digital-platform/src/browser-entry.ts" | grep -F 'toCoreDestinationConfig' >/dev/null; then exit 1; fi
-            for path in apps/morro-digital-platform/public/destination.html apps/morro-digital-platform/src/destinations/destination-browser-entry.ts apps/morro-digital-platform/src/destinations/destination-page.ts; do test ! -e "$path"; done
-            if grep -Fq 'toCoreDestinationConfig' apps/morro-digital-platform/src/browser-entry.ts; then exit 1; fi
-            echo 'activated=false' >> "$GITHUB_OUTPUT"
-            echo 'B_RUNTIME_NOT_APPLICABLE: all 12 UI paths and entry bindings equal exact ancestor base; server state classified separately.'
-            echo "NOT_APPLICABLE_PROVEN_NO_B_ACTIVATION base=$CANDIDATE_BASE candidate=$CANDIDATE_HEAD changed=0/12 server_bound=$server_bound" > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
-          elif test "$changed" -eq 12; then
-            test "$server_bound" = true
-            test -f apps/morro-digital-platform/public/destination.html
-            test -f apps/morro-digital-platform/src/destinations/destination-browser-entry.ts
-            grep -Fq 'destination-browser-entry.js' apps/morro-digital-platform/public/destination.html
-            grep -Fq 'destination-page-resolver.mjs' apps/morro-digital-platform/tooling/dev-server.mjs
-            grep -Fq 'toCoreDestinationConfig' apps/morro-digital-platform/src/browser-entry.ts
-            echo 'activated=true' >> "$GITHUB_OUTPUT"
-          else
-            echo "PARTIAL_DESTINATION_ACTIVATION_DENIED changed=$changed/12" >&2
-            exit 1
-          fi
+          test -f "$adapter" && test ! -L "$adapter"
+          git ls-files --error-unmatch "$adapter" >/dev/null
+          grep -Fq 'destination-browser-entry.js' apps/morro-digital-platform/public/destination.html
+          grep -Fq '__DESTINATION_SCOPED_RUNTIME_CONFIG__' apps/morro-digital-platform/public/destination.html
+          grep -Fq 'destination-page-resolver.mjs' "$entry"
+          grep -Fq 'resolveTrustedPlaceDestinationScope({' "$entry"
+          grep -Fq 'trustedPlace.scope' "$entry"
+          grep -Fq 'requireOwner: true' "$entry"
+          grep -Fq 'DISPOSABLE_PROOF_DOTENV_DENIED' "$entry"
+          grep -Fq 'REAL_DEV_SERVER_API_PROVEN' "$adapter"
+          grep -Fq 'runSyntheticBrowserProof' "$adapter"
+          ! grep -Fq 'DESTINATION_UI_NOT_RELEASED' "$entry"
+          echo 'scoped_place=true' >> "$GITHUB_OUTPUT"
+          echo 'server_bound=true' >> "$GITHUB_OUTPUT"
+          echo 'activated=true' >> "$GITHUB_OUTPUT"
+          printf 'OWNER_BOUND_UI_PRESENT: exact candidate %s; acceptance still requires real SQL/server and separate browser proof.\n' "$CANDIDATE_HEAD" > "$RUNNER_TEMP/itacare-product-evidence/phase.txt"
       - name: Build exact current dependencies for scoped Place or destination activation
         if: steps.phase.outputs.scoped_place == 'true' || steps.phase.outputs.server_bound == 'true' || steps.phase.outputs.activated == 'true'
         working-directory: product
@@ -200,7 +166,7 @@ jobs:
           pnpm --filter @touristic/business exec vitest run src/public-place-projection.test.ts src/place-publication-governance.test.ts
           pnpm --filter @touristic/morro-digital-platform exec vitest run --config tooling/place-platform-runtime.vitest.config.mjs tooling/place-platform-runtime.vitest.mjs
           node --test apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs | tee "$RUNNER_TEMP/itacare-product-evidence/scoped-place-sql-http.log"
-      - name: Real server-bound Place API with UI explicitly unavailable
+      - name: Real owner-bound UI and Place API with suspension isolation
         if: steps.phase.outputs.server_bound == 'true'
         working-directory: product
         env:
@@ -217,38 +183,48 @@ jobs:
         run: |
           set -euo pipefail
           test '${{ steps.phase.outputs.scoped_place }}' = 'true'
-          # Fail closed until actual dev-server mode exists; wrapper/fixtures cannot satisfy B.
-          node apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs --mode=dev-server
-          pnpm exec vitest run apps/morro-digital-platform/src/runtime/public-destination.test.ts apps/morro-digital-platform/src/bootstrap/runtime.test.ts apps/morro-digital-platform/src/bootstrap/geospatial.test.ts apps/morro-digital-platform/src/destinations/destination-page.test.ts
-      - name: Disposable owner SQL, HTTP, and fixture-labeled browser
+          pnpm --filter @touristic/morro-digital-platform exec vitest run src/runtime/public-destination.test.ts src/bootstrap/runtime.test.ts src/bootstrap/geospatial.test.ts src/destinations/destination-page.test.ts
+      - name: Exact built UI synthetic-browser regression and retained screenshots
         if: steps.phase.outputs.activated == 'true'
+        working-directory: product
         env:
-          ITACARE_DISPOSABLE_MYSQL_URL: mysql://root:local-ci-only@127.0.0.1:3306/itacare_disposable
-          ITACARE_REQUIRE_BROWSER_PROOF: "true"
           ITACARE_PLAYWRIGHT_MODULE: ${{ runner.temp }}/itacare-pw/node_modules/playwright/index.mjs
+          ITACARE_BROWSER_PRODUCT_ROOT: ${{ github.workspace }}/product
           ITACARE_BROWSER_EVIDENCE_DIR: ${{ runner.temp }}/itacare-product-evidence/browser
         shell: bash
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/itacare-pw" --no-save --no-audit --no-fund playwright@1.54.2
           node "$RUNNER_TEMP/itacare-pw/node_modules/playwright/cli.js" install --with-deps chromium
-          node proof-lab/scripts/itacare-v2-mysql-http-proof.mjs "$GITHUB_WORKSPACE/product" > "$RUNNER_TEMP/itacare-product-evidence/owner-http.log"
+          node apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs --mode=browser | tee "$RUNNER_TEMP/itacare-product-evidence/browser.log"
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import fs from 'node:fs';
-          const text = fs.readFileSync(process.env.RUNNER_TEMP + '/itacare-product-evidence/owner-http.log', 'utf8');
-          const reports = [...text.matchAll(/(?:^|\n)\{[\s\S]*?\n\}/g)].map(x => JSON.parse(x[0]));
-          const owner = reports.find(x => x.status === 'DISPOSABLE_MYSQL_OWNER_HTTP_PROVEN');
-          const browser = reports.find(x => x.status === 'ITACARE_BROWSER_OWNER_PLUS_PLACE_FIXTURE_PROVEN');
-          assert.ok(owner && browser);
-          assert.equal(owner.cases, 18);
-          for (const key of ['ownerReadback', 'suspendedFailClosed', 'morroStillLoads']) assert.equal(owner[key], true);
-          assert.equal(owner.finalItacareStatus, 'suspended');
-          assert.equal(owner.liveProviderEffects, false);
-          assert.equal(browser.crossDestinationDetailDenied, true);
-          assert.equal(browser.places, 'EXPLICIT_SYNTHETIC_FIXTURE');
+          import path from 'node:path';
+          import {createHash} from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          const root=process.env.ITACARE_BROWSER_EVIDENCE_DIR;
+          const report=JSON.parse(fs.readFileSync(path.join(root,'browser-report.json'),'utf8'));
+          const manifest=JSON.parse(fs.readFileSync(path.join(root,'screenshot-manifest.json'),'utf8'));
+          const tree=execFileSync('git',['rev-parse','HEAD^{tree}'],{encoding:'utf8'}).trim();
+          assert.equal(report.status,'ITACARE_SYNTHETIC_BROWSER_PROVEN');
+          assert.equal(report.headSha,process.env.CANDIDATE_HEAD);assert.equal(report.treeSha,tree);assert.equal(report.clean,true);
+          assert.equal(manifest.headSha,report.headSha);assert.equal(manifest.treeSha,tree);
+          assert.deepEqual(report.failures,[]);assert.deepEqual(report.externalRequests,[]);assert.deepEqual(report.pageErrors,[]);
+          assert.equal(report.sqlAcceptance,'NOT_RUN');assert.equal(report.providerAcceptance,'NOT_RUN');
+          assert.ok(report.cases.length>0 && report.cases.every(x=>x.result==='PASS'));
+          const expected=['mobile-pt-BR.png','mobile-en.png','mobile-es.png','mobile-he.png','desktop-en.png'];
+          assert.deepEqual(manifest.screenshots.map(x=>x.path).sort(),expected.sort());
+          for(const file of manifest.screenshots){
+            assert.equal(path.basename(file.path),file.path);
+            const bytes=fs.readFileSync(path.join(root,file.path));
+            assert.ok(bytes.length>100);assert.equal(bytes.length,file.bytes);
+            assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+            assert.equal(createHash('sha256').update(bytes).digest('hex'),file.sha256);
+          }
+          console.log('RETAINED_SCREENSHOT_MANIFEST_VERIFIED');
           JS
-          echo 'PROVEN: exact product owner SQL/HTTP + fixture browser + published projection unit assertions; NOT_PROVEN: published-only Place SQL/HTTP end-to-end/native Mapbox/real catalog.' > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
+          echo 'PROVEN: exact candidate real disposable SQL/HTTP owner and scoped Place boundary; separate actual Chromium over synthetic API/map fixtures. NOT_PROVEN: native Mapbox/provider, licensed catalog or production.' > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
       - name: Final immutable readback
         working-directory: product
         shell: bash
