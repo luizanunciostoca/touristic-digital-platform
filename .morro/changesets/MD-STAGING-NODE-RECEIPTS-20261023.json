@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-NODE-RECEIPTS-20261023",
   "objective": "validate-authenticated-staging-node-receipts-and-post-lock-barriers",
-  "baseSha": "266e87ff2eff5749a912f45b717758faa919f4e5",
+  "baseSha": "4b32feb1575858e7592fc6958dff70545bd08864",
   "branch": "fix/staging-node-receipts-20261023",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
