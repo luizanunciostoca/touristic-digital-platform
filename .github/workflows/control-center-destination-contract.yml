@@ -161,7 +161,7 @@ jobs:
           async function submitDestination(page, button, method, path, expectedStatus) {
             const observed = [];
             const stepUp = page.waitForResponse(response => response.url() === origin + '/api/admin/v1/step-up' && response.request().method() === 'POST', { timeout: 15000 }).then(response => {
-              assert.equal(response.status(), 200, 'DESTINATION_STEP_UP_FAILED');
+              assert.equal(response.status(), 201, 'DESTINATION_STEP_UP_FAILED');
               observed.push('step-up');
             });
             const mutation = page.waitForResponse(response => response.url() === origin + path && response.request().method() === method, { timeout: 15000 }).then(response => {
