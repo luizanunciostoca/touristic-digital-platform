@@ -210,7 +210,8 @@
         "services/crm/eslint.config.mjs",
         "tooling/performance/check-morro-digital-budget.mjs",
         "tooling/performance/check-morro-digital-budget.test.mjs",
-        "apps/morro-digital-platform/package.json"
+        "apps/morro-digital-platform/package.json",
+        "docs/operations/STAGING-NODE-EXCEPTION.md"
       ],
       "contracts": []
     }

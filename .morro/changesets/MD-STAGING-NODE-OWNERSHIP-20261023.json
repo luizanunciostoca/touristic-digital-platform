@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-NODE-OWNERSHIP-20261023",
   "objective": "cover-exact-staging-node-exception-runbook-path-with-existing-ci-release-owner",
-  "baseSha": "6aa3b8e8147b1ba500ddf995a0ba0ff2bfd36901",
+  "baseSha": "4378641876ef341c75fee983860b5ba8036d8e76",
   "branch": "chore/staging-node-ownership-20261023",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
