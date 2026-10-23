@@ -94,7 +94,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-node-wiring-20261023",
-      "baseSha": "53f6e3caca32657c7bb8443ba1f1cbfaaf71b310",
+      "baseSha": "5b5b55458c014db7a9b1e8705a45c69f80d20968",
       "paths": [
         ".morro/changesets/MD-STAGING-NODE-WIRING-20261023.json",
         ".github/workflows/final-release-acceptance.yml",

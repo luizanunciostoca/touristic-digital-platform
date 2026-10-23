@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-NODE-WIRING-20261023",
   "objective": "validate-disabled-staging-node-workflow-wiring-and-consumer-isolation",
-  "baseSha": "53f6e3caca32657c7bb8443ba1f1cbfaaf71b310",
+  "baseSha": "5b5b55458c014db7a9b1e8705a45c69f80d20968",
   "branch": "fix/staging-node-wiring-20261023",
   "state": "IMPLEMENTING",
   "risk": "critical",
