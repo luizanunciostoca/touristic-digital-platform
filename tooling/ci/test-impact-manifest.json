@@ -140,7 +140,12 @@
       "needsFullSecurity": false
     },
     "cicd": {
-      "paths": [".github/workflows/", "tooling/quality/", ".github/actions/"],
+      "paths": [
+        ".github/workflows/",
+        "tooling/quality/",
+        ".github/actions/",
+        "tooling/ci/staging-node-"
+      ],
       "risk": "CRITICAL",
       "dependsOn": ["release-governance", "security"],
       "suites": ["security-scanning.yml"],
