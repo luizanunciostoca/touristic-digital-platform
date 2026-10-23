@@ -4,7 +4,7 @@
   "objective": "validate-disabled-staging-node-dispatch-reservation-and-acceptance-contracts",
   "baseSha": "80375bcde1d672552acebf9ffe7dc0333754881f",
   "branch": "fix/staging-node-acceptance-20261023",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
