@@ -115,6 +115,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T01:59:59.000Z"
+    },
+    "MD-STAGING-NODE-GOVERNANCE-20261023": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-node-governance-20261023",
+      "baseSha": "5b5b55458c014db7a9b1e8705a45c69f80d20968",
+      "paths": [
+        ".morro/changesets/MD-STAGING-NODE-GOVERNANCE-20261023.json",
+        "tooling/quality/check-ci-governance.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T01:59:59.000Z"
     }
   }
 }
