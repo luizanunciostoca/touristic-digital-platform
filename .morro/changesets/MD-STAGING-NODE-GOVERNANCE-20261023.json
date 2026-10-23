@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-NODE-GOVERNANCE-20261023",
   "objective": "validate-staging-release-governance-legacy-and-composed-contract",
-  "baseSha": "5b5b55458c014db7a9b1e8705a45c69f80d20968",
+  "baseSha": "dc489fc29ee909632b99b8473e3ef5a848bf5d50",
   "branch": "fix/staging-node-governance-20261023",
   "state": "IMPLEMENTING",
   "risk": "critical",
