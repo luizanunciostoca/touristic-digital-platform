@@ -94,7 +94,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-node-adapters-20261023",
-      "baseSha": "4168dfeb01663ec27749a9098d08832606a4654e",
+      "baseSha": "de84f955981ba5aa361bad6d7fbfe8dc8a8b7c7d",
       "paths": [
         ".morro/changesets/MD-STAGING-NODE-ADAPTERS-20261023.json",
         "tooling/ci/staging-node-runtime.mjs",
