@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "writer": {
+    "writerId": "CODEX-STAGING-NODE-9482F85B-20261023",
+    "executorIdentity": "CODEX-STAGING-NODE-9482F85B-20261023",
+    "controllerIdentity": "CT1072-DOT-INTEGRATOR-20261023",
+    "sessionId": "9482f85b-32d4-4600-bd11-daaea19d9033",
+    "jobId": null,
+    "commandIds": [],
+    "branch": "fix/staging-node-governance-20261023",
+    "headSha": "0e3cea7d964eb3ed3bf6e19ea3f730c2d62b3968",
+    "treeSha": "cad69f2665923a20f65dcd1ea1754b21e814a375"
+  },
+  "receipt": {
+    "writerId": "CODEX-STAGING-NODE-9482F85B-20261023",
+    "requestedAt": "2026-10-23T14:50:10.428Z",
+    "acknowledgedAt": "2026-10-23T14:50:10.465Z",
+    "drainedAt": "2026-10-23T14:50:10.465Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  }
+}
