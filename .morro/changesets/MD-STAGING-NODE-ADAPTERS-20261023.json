@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-NODE-ADAPTERS-20261023",
   "objective": "validate-disabled-staging-node-runtime-adapters-and-cli-composition",
-  "baseSha": "de84f955981ba5aa361bad6d7fbfe8dc8a8b7c7d",
-  "branch": "fix/staging-node-adapters-20261023",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "3fb35f1622ae14e1adbe488a88a5bbcca890b37b",
+  "branch": "chore/retire-staging-node-adapters-20261023",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
