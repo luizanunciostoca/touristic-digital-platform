@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "authorizationId": "CT1072-STAGING-NODE-20261023-ONE-PUBLICATION",
+  "expiresAt": "2026-10-24T01:59:59Z",
+  "serviceId": "srv-da4hb6c9v7es7386ttt0",
+  "mode": "staging-node-rebuild",
+  "maximumDeployments": 1,
+  "receiptActor": {
+    "id": 318748875,
+    "login": "luizanunciostoca",
+    "appId": 1144995
+  },
+  "decisionAuthority": "ORCHESTRATOR_CONNECTOR_READBACK",
+  "productionEligible": false,
+  "pagesEligible": false
+}

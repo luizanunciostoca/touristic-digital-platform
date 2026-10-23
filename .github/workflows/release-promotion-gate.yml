@@ -55,6 +55,7 @@ jobs:
             --json databaseId \
             --jq '.[0].databaseId // empty')"
           test -n "$run_id"
+          node tooling/ci/staging-node-exception.mjs verify-oci-run "$run_id" "$EXPECTED_SHA" production
           echo "PASS: final-release-acceptance.yml run $run_id @ $EXPECTED_SHA"
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4

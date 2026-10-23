@@ -2,6 +2,16 @@ name: Final Release Acceptance
 
 on:
   workflow_dispatch:
+    inputs:
+      promotion_mode:
+        description: OCI default or the authorized single staging Node rebuild
+        type: choice
+        options: [oci-immutable, staging-node-rebuild]
+        default: oci-immutable
+      node_dispatch_run_id:
+        description: Original Node dispatch run; performs fresh verification only, never another hook POST
+        type: string
+        required: false
   issue_comment:
     types: [created]
   pull_request:
@@ -51,6 +61,7 @@ jobs:
       contents: write
       actions: write
       statuses: write
+      issues: read
     if: >-
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'issue_comment' &&
@@ -85,11 +96,12 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          ACCEPTANCE_CONTEXT: ${{ inputs.promotion_mode == 'staging-node-rebuild' && 'Staging Node Rebuild Acceptance' || 'Final Release Acceptance' }}
         run: |
           set -euo pipefail
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state=pending \
-            -f context='Final Release Acceptance' \
+            -f context="$ACCEPTANCE_CONTEXT" \
             -f description='Exact-head browser and staging acceptance is running' \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
 
@@ -282,7 +294,53 @@ jobs:
             sleep 10
           done
 
+      - name: Dispatch or freshly verify the single authorized Node staging publication
+        if: inputs.promotion_mode == 'staging-node-rebuild'
+        id: staging-node-promotion
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ORIGINAL_DISPATCH_RUN_ID: ${{ inputs.node_dispatch_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          operation=dispatch
+          extra=()
+          if [ -n "$ORIGINAL_DISPATCH_RUN_ID" ]; then
+            [[ "$ORIGINAL_DISPATCH_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ORIGINAL_DISPATCH_RUN_ID")"
+            jq -e --arg sha "$GITHUB_SHA" '.head_sha==$sha and .event=="workflow_dispatch" and .path==".github/workflows/staging-render-promotion.yml" and .run_attempt==1' <<<"$metadata" >/dev/null
+            name="staging-node-dispatch-$ORIGINAL_DISPATCH_RUN_ID-1"
+            artifacts="$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$ORIGINAL_DISPATCH_RUN_ID/artifacts?per_page=100")"
+            jq -e --arg name "$name" '[.[].artifacts[]|select(.name==$name and .expired==false)]|length==1' <<<"$artifacts" >/dev/null
+            original_dir="$(mktemp -d)"
+            gh run download "$ORIGINAL_DISPATCH_RUN_ID" --name "$name" --dir "$original_dir"
+            jq -e --arg sha "$GITHUB_SHA" '.sourceSha==$sha and .state=="DISPATCH_ACCEPTED_NOT_LIVE"' "$original_dir/staging-node-dispatch.json" >/dev/null
+            request_id="$(jq -er '.requestId' "$original_dir/staging-node-dispatch.json")"
+            operation=verify-only
+            extra=(-f "dispatch_run_id=$ORIGINAL_DISPATCH_RUN_ID" -f dispatch_run_attempt=1)
+          fi
+          gh workflow run staging-render-promotion.yml --ref "$CANDIDATE_REF" \
+            -f expected_sha="$GITHUB_SHA" -f request_id="$request_id" \
+            -f caller_run_id="$GITHUB_RUN_ID" -f caller_run_attempt="$GITHUB_RUN_ATTEMPT" \
+            -f operation="$operation" -f confirm_staging=DEPLOY "${extra[@]}"
+          expected_title="staging-render-promotion:$operation:$GITHUB_RUN_ID:$GITHUB_RUN_ATTEMPT:$GITHUB_SHA"
+          run_id=""
+          for _ in $(seq 1 60); do
+            runs="$(gh run list --workflow staging-render-promotion.yml --event workflow_dispatch --branch "$CANDIDATE_REF" --limit 100 --json databaseId,headSha,displayTitle)"
+            count="$(jq --arg sha "$GITHUB_SHA" --arg title "$expected_title" '[.[]|select(.headSha==$sha and .displayTitle==$title)]|length' <<<"$runs")"
+            test "$count" -le 1
+            run_id="$(jq -r --arg sha "$GITHUB_SHA" --arg title "$expected_title" '[.[]|select(.headSha==$sha and .displayTitle==$title)][0].databaseId // empty' <<<"$runs")"
+            [ -n "$run_id" ] && break
+            sleep 5
+          done
+          [[ "$run_id" =~ ^[1-9][0-9]*$ ]]
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          gh run watch "$run_id" --exit-status --interval 10
+          node tooling/ci/staging-node-exception.mjs verify-node-run "$run_id" "$GITHUB_SHA" > final-release-staging-target-evidence.json
+
       - name: Resolve or build exact-SHA OCI image
+        if: inputs.promotion_mode != 'staging-node-rebuild'
         id: release-image
         shell: bash
         env:
@@ -364,6 +422,7 @@ jobs:
           echo "Exact OCI provenance PASS: run=$run_id digest=$image_digest"
 
       - name: Dispatch exact-SHA staging promotion
+        if: inputs.promotion_mode != 'staging-node-rebuild'
         id: staging-promotion
         shell: bash
         env:
@@ -413,6 +472,7 @@ jobs:
           echo "image_digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
           echo "OCI staging promotion dispatched: run $run_id request $request_id digest $IMAGE_DIGEST"
       - name: Wait for exact-SHA staging promotion
+        if: inputs.promotion_mode != 'staging-node-rebuild'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -446,6 +506,7 @@ jobs:
           exit 1
 
       - name: Consume and validate structured staging target evidence
+        if: inputs.promotion_mode != 'staging-node-rebuild'
         env:
           GH_TOKEN: ${{ github.token }}
           STAGING_PROMOTION_RUN_ID: ${{ steps.staging-promotion.outputs.run_id }}
@@ -474,6 +535,8 @@ jobs:
           test "$deployment_id" != "unknown"
 
           jq -n \
+            --arg acceptanceRunId "$GITHUB_RUN_ID" \
+            --arg acceptanceRunAttempt "$GITHUB_RUN_ATTEMPT" \
             --arg expectedSha "$EXPECTED_SHA" \
             --arg liveSha "$EXPECTED_SHA" \
             --arg environment "staging" \
@@ -486,6 +549,11 @@ jobs:
             --arg imageRunId "${{ steps.release-image.outputs.run_id }}" \
             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             '{
+              mode:"oci-immutable",
+              productionEligible:true,
+              pagesEligible:true,
+              acceptanceRunId:$acceptanceRunId,
+              acceptanceRunAttempt:$acceptanceRunAttempt,
               expectedSha:$expectedSha,
               liveSha:$liveSha,
               environment:$environment,
@@ -501,6 +569,7 @@ jobs:
 
           echo "Structured OCI staging target evidence PASS for $EXPECTED_SHA @ $IMAGE_DIGEST"
       - name: Prove exact-SHA live staging health and readiness
+        if: inputs.promotion_mode != 'staging-node-rebuild'
         shell: bash
         env:
           EXPECTED_IMAGE_RUN_ID: ${{ steps.release-image.outputs.run_id }}
@@ -570,6 +639,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          ACCEPTANCE_CONTEXT: ${{ inputs.promotion_mode == 'staging-node-rebuild' && 'Staging Node Rebuild Acceptance' || 'Final Release Acceptance' }}
           JOB_STATUS: ${{ job.status }}
         run: |
           set -euo pipefail
@@ -589,6 +659,6 @@ jobs:
           esac
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state="$state" \
-            -f context='Final Release Acceptance' \
+            -f context="$ACCEPTANCE_CONTEXT" \
             -f description="$description" \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
