@@ -94,7 +94,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-node-exception-20261023",
-      "baseSha": "eb44c4a064d368306217d19d2bf45ff4b1232e42",
+      "baseSha": "5ed2dfb07aee5a6fa76b5da55d5384bba5da5db6",
       "paths": [
         ".morro/changesets/MD-STAGING-NODE-EXCEPTION-20261023.json",
         ".github/workflows/final-release-acceptance.yml",
