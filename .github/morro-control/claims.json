@@ -82,23 +82,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T01:59:59.000Z"
-    },
-    "MD-TASK-CORRECTION-AUTHORITY-20261023": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/task-correction-authority-20261023",
-      "baseSha": "b5c741a48905a28ebdb18ea2f7f9702807f3a9c8",
-      "paths": [
-        ".morro/changesets/MD-TASK-CORRECTION-AUTHORITY-20261023.json",
-        "tooling/mdctl/task-lifecycle.mjs",
-        "tooling/mdctl/task-correction-authority.mjs",
-        "tooling/mdctl/task-correction-runtime.mjs",
-        "tooling/control-state/mdctl-task-correction.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T01:59:59.000Z"
     }
   }
 }
