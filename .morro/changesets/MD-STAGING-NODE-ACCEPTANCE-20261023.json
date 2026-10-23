@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-NODE-ACCEPTANCE-20261023",
   "objective": "validate-disabled-staging-node-dispatch-reservation-and-acceptance-contracts",
-  "baseSha": "80375bcde1d672552acebf9ffe7dc0333754881f",
-  "branch": "fix/staging-node-acceptance-20261023",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "4df36d151361b093f7d1bcc22851d7798f4ded65",
+  "branch": "chore/retire-staging-node-acceptance-20261023",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
