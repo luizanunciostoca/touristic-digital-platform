@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-TASK-CORRECTION-AUTHORITY-20261023",
   "objective": "authenticate-canonical-owner-delegation-for-task-correction",
-  "baseSha": "5381fea944fc294509f7c8d6c2d0d04ea760e7ca",
+  "baseSha": "b5c741a48905a28ebdb18ea2f7f9702807f3a9c8",
   "branch": "fix/task-correction-authority-20261023",
   "state": "IMPLEMENTING",
   "risk": "critical",
