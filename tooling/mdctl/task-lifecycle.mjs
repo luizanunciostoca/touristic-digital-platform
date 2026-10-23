@@ -1,3 +1,4 @@
+import { assertCorrectionAuthority } from "./task-correction-authority.mjs";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
@@ -509,6 +510,8 @@ export function buildTaskSubmit({
 // identities, reserve execution, and persist atomically before running work.
 // This does not reopen or overwrite the submitted task or its receipt.
 export function buildTaskCorrection({
+  authority,
+  reanchorProof,
   task,
   changeSet,
   handoff,
@@ -670,11 +673,19 @@ export function buildTaskCorrection({
     isAncestor(changeSet.baseSha, successor.baseSha),
     "TASK_CORRECTION_BASE_REGRESSED",
   );
-  assert.equal(
-    claimRegistry?.claims?.[successor.id]?.owner,
-    task.owner,
-    "TASK_CORRECTION_CLAIM_OWNER_MISMATCH",
-  );
+  if (
+    claimRegistry?.claims?.[successor.id]?.owner !== task.owner ||
+    reanchorProof !== undefined
+  ) {
+    assert.ok(authority, "TASK_CORRECTION_CLAIM_OWNER_MISMATCH");
+    assertCorrectionAuthority(authority, {
+      task,
+      changeSet,
+      successor,
+      claim: claimRegistry?.claims?.[successor.id],
+      now: timestamp,
+    });
+  }
   assert.deepEqual(
     [...(claimRegistry.claims[successor.id].paths ?? [])].sort(),
     [...successor.owns.paths].sort(),
@@ -721,7 +732,8 @@ export function buildTaskCorrection({
     branchHeadSha: identity?.headSha,
     changedFiles,
     now: Date.parse(timestamp),
-    authority: "WORKER",
+    authority: reanchorProof === undefined ? "WORKER" : "ORCHESTRATOR",
+    reanchorProof,
     isAncestor,
   });
   const started = buildTaskStart({

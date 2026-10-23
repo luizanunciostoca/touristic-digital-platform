@@ -87,7 +87,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/task-correction-authority-20261023",
-      "baseSha": "5381fea944fc294509f7c8d6c2d0d04ea760e7ca",
+      "baseSha": "b5c741a48905a28ebdb18ea2f7f9702807f3a9c8",
       "paths": [
         ".morro/changesets/MD-TASK-CORRECTION-AUTHORITY-20261023.json",
         "tooling/mdctl/task-lifecycle.mjs",
