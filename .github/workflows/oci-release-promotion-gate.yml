@@ -123,6 +123,9 @@ jobs:
               --json databaseId \
               --jq '.[0].databaseId // empty')"
             test -n "$run_id"
+            if [ "$workflow" = final-release-acceptance.yml ]; then
+              node tooling/ci/staging-node-exception.mjs verify-oci-run "$run_id" "$EXPECTED_SHA" production
+            fi
             echo "PASS: $workflow run $run_id @ $EXPECTED_SHA"
           done
 

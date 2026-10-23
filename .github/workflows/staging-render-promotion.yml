@@ -1,9 +1,30 @@
 name: Staging Render Promotion
-run-name: "staging-render-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"
+run-name: "staging-render-promotion:${{ inputs.operation }}:${{ inputs.caller_run_id }}:${{ inputs.caller_run_attempt }}:${{ inputs.expected_sha }}"
 
 on:
   workflow_dispatch:
     inputs:
+      operation:
+        description: Dispatch once or only verify an existing dispatch
+        type: choice
+        options: [dispatch, verify-only]
+        default: dispatch
+      caller_run_id:
+        description: Exact Final Release Acceptance caller run
+        required: true
+        type: string
+      caller_run_attempt:
+        description: Exact caller attempt
+        required: true
+        type: string
+      dispatch_run_id:
+        description: Original dispatch run for verification-only continuation
+        required: false
+        type: string
+      dispatch_run_attempt:
+        description: Original dispatch attempt for verification-only continuation
+        required: false
+        type: string
       expected_sha:
         description: Exact frozen candidate SHA approved for staging promotion
         required: true
@@ -31,12 +52,9 @@ env:
   EXPECTED_STAGING_SERVICE_ID: srv-da4hb6c9v7es7386ttt0
   EXPECTED_STAGING_CANONICAL_URL: https://morro-digital-v2-staging.onrender.com
 
-concurrency:
-  group: staging-render-promotion
-  cancel-in-progress: false
-
 jobs:
   preflight:
+    if: inputs.operation == 'dispatch'
     name: staging / preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -77,12 +95,44 @@ jobs:
           pnpm ci:supply-chain:strict
           pnpm build
 
-  deploy:
-    name: staging / deploy
+  intent:
+    if: inputs.operation == 'dispatch'
     needs: preflight
-    if: (github.ref == 'refs/heads/main' || github.ref == format('refs/tags/rc/{0}', inputs.expected_sha)) && inputs.confirm_staging == 'DEPLOY'
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+      - name: Publish exact-run Node intent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          CALLER_RUN_ID: ${{ inputs.caller_run_id }}
+          CALLER_RUN_ATTEMPT: ${{ inputs.caller_run_attempt }}
+        run: node tooling/ci/staging-node-exception.mjs node-intent
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: staging-node-intent-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-node-intent.json
+          if-no-files-found: error
+
+  deploy:
+    name: staging / single authorized Node dispatch
+    needs: intent
+    if: inputs.operation == 'dispatch' && inputs.confirm_staging == 'DEPLOY' && github.ref == format('refs/tags/rc/{0}', inputs.expected_sha)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    concurrency:
+      group: render-staging-srv-da4hb6c9v7es7386ttt0
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+      issues: read
     environment:
       name: main - morro-digital-v2-staging
       url: ${{ env.STAGING_URL }}
@@ -90,146 +140,126 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.expected_sha }}
-          fetch-depth: 1
-
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
+          fetch-depth: 0
+      - name: Prove immutable candidate before external authorization
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"
       - name: Prove canonical Render staging hook target before deploy
-        id: staging-target
         env:
           RENDER_STAGING_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_DEPLOY_HOOK_URL }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "$RENDER_STAGING_DEPLOY_HOOK_URL"
-
           hook_service_id="$(node -e '
-            const value = process.env.RENDER_STAGING_DEPLOY_HOOK_URL;
-            const url = new URL(value);
+            const url = new URL(process.env.RENDER_STAGING_DEPLOY_HOOK_URL);
             if (url.protocol !== "https:" || url.hostname !== "api.render.com") process.exit(2);
             const match = url.pathname.match(/^\/deploy\/(srv-[A-Za-z0-9]+)$/);
             if (!match) process.exit(3);
             process.stdout.write(match[1]);
           ')"
-
           test "$hook_service_id" = "$EXPECTED_STAGING_SERVICE_ID"
           test "$STAGING_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
-          echo "service_id=$hook_service_id" >> "$GITHUB_OUTPUT"
-          echo "Canonical staging hook target proved: $EXPECTED_STAGING_SERVICE_NAME ($hook_service_id)"
 
-      - name: Trigger exact-SHA Render staging deploy
-        id: render-deploy
+      - name: Revalidate receipt inside lock, reserve once, then POST existing hook
         env:
+          GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          CALLER_RUN_ID: ${{ inputs.caller_run_id }}
+          CALLER_RUN_ATTEMPT: ${{ inputs.caller_run_attempt }}
           RENDER_STAGING_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_DEPLOY_HOOK_URL }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          separator='?'
-          if [[ "$RENDER_STAGING_DEPLOY_HOOK_URL" == *\?* ]]; then
-            separator='&'
-          fi
-          deploy_url="${RENDER_STAGING_DEPLOY_HOOK_URL}${separator}ref=${EXPECTED_SHA}"
-          http_status="$(curl --request POST --silent --show-error \
-            --output /tmp/render-staging-deploy-response.json \
-            --write-out '%{http_code}' \
-            "$deploy_url")"
-          case "$http_status" in
-            200|202) ;;
-            *)
-              echo "Render staging deploy hook failed with HTTP $http_status" >&2
-              cat /tmp/render-staging-deploy-response.json >&2
-              exit 1
-              ;;
-          esac
-          deploy_id="$(jq -r '.deploy.id // .id // .deployId // .deploy_id // empty' /tmp/render-staging-deploy-response.json 2>/dev/null || true)"
-          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
-          echo "hook_accepted=true" >> "$GITHUB_OUTPUT"
-          if [ -n "$deploy_id" ]; then
-            echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA as $deploy_id"
-          else
-            echo "Render staging deploy hook accepted for exact SHA $EXPECTED_SHA; response omitted a deployment id"
-          fi
-
-      - name: Wait for exact-SHA staging health and identity
-        id: live-staging
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          MORRO_V2_BASE_URL: ${{ env.STAGING_URL }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          last_output=''
-          for _ in $(seq 1 90); do
-            if output="$(pnpm --silent payments:render:smoke 2>&1)"; then
-              release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
-              if [ "$release_sha" = "$EXPECTED_SHA" ]; then
-                printf '%s\n' "$output"
-                echo "live_sha=$release_sha" >> "$GITHUB_OUTPUT"
-                echo "Exact-SHA staging smoke PASS: $release_sha"
-                exit 0
-              fi
-              last_output="$output"
-              echo "Staging release is ${release_sha:-unknown}; waiting for $EXPECTED_SHA"
-            else
-              last_output="$output"
-              echo "Staging smoke not ready yet; retrying"
-            fi
-            sleep 10
-          done
-          printf '%s\n' "$last_output" >&2
-          echo "Exact-SHA staging smoke timed out for $EXPECTED_SHA" >&2
-          exit 1
-
-      - name: Publish structured staging deployment evidence
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
-          HOOK_ACCEPTED: ${{ steps.render-deploy.outputs.hook_accepted }}
-          LIVE_SHA: ${{ steps.live-staging.outputs.live_sha }}
-          PROVED_SERVICE_ID: ${{ steps.staging-target.outputs.service_id }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$EXPECTED_SHA" = "$LIVE_SHA"
-          test "$PROVED_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
-          test "$STAGING_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
-          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$PROVED_SERVICE_ID"             --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME"             --arg environment "$EXPECTED_STAGING_ENVIRONMENT"             --arg deploymentId "$DEPLOY_ID"             --argjson hookAccepted "$HOOK_ACCEPTED"             --arg canonicalUrl "$STAGING_URL"             --arg liveSha "$LIVE_SHA"             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg workflowRun "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"             '{
-              expectedSha: $expectedSha,
-              serviceId: $serviceId,
-              serviceName: $serviceName,
-              environment: $environment,
-              deploymentId: $deploymentId,
-              hookAccepted: $hookAccepted,
-              canonicalUrl: $canonicalUrl,
-              liveSha: $liveSha,
-              verifiedAt: $verifiedAt,
-              workflowRun: $workflowRun
-            }' > staging-deployment-evidence.json
-          jq -e '
-            .expectedSha == .liveSha and
-            .environment == "staging" and
-            .serviceName == "morro-digital-v2-staging" and
-            .serviceId == "srv-da4hb6c9v7es7386ttt0" and
-            .canonicalUrl == "https://morro-digital-v2-staging.onrender.com" and
-            .hookAccepted == true and
-            (.deploymentId | type) == "string"
-          ' staging-deployment-evidence.json >/dev/null
-          cat staging-deployment-evidence.json
-
-      - name: Upload staging deployment evidence
+        run: node tooling/ci/staging-node-exception.mjs node-dispatch
+      - name: Preserve dispatch outcome including uncertainty
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: staging-deployment-evidence-${{ github.run_id }}
+          name: staging-node-dispatch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-node-dispatch.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Record verifier job barrier after acquiring the service lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          CALLER_RUN_ID: ${{ inputs.caller_run_id }}
+          CALLER_RUN_ATTEMPT: ${{ inputs.caller_run_attempt }}
+        run: node tooling/ci/staging-node-exception.mjs node-verification-barrier
+      - name: Expose the authenticated job barrier before operator readback
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: staging-node-verification-barrier-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-node-verification-barrier.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify original dispatch and external post-receipt without a deploy hook
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          CALLER_RUN_ID: ${{ inputs.caller_run_id }}
+          CALLER_RUN_ATTEMPT: ${{ inputs.caller_run_attempt }}
+          DISPATCH_RUN_ID: ${{ github.run_id }}
+          DISPATCH_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: node tooling/ci/staging-node-exception.mjs node-verify
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: staging-node-verified-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-deployment-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+
+  verify:
+    name: staging / external provider and runtime verification
+    concurrency:
+      group: render-staging-srv-da4hb6c9v7es7386ttt0
+      cancel-in-progress: false
+    needs: [deploy]
+    if: always() && inputs.operation == 'verify-only'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+      - name: Record verifier job barrier after acquiring the service lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          CALLER_RUN_ID: ${{ inputs.caller_run_id }}
+          CALLER_RUN_ATTEMPT: ${{ inputs.caller_run_attempt }}
+        run: node tooling/ci/staging-node-exception.mjs node-verification-barrier
+      - name: Expose the authenticated job barrier before operator readback
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: staging-node-verification-barrier-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-node-verification-barrier.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify original dispatch and external post-receipt without a deploy hook
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          CALLER_RUN_ID: ${{ inputs.caller_run_id }}
+          CALLER_RUN_ATTEMPT: ${{ inputs.caller_run_attempt }}
+          DISPATCH_RUN_ID: ${{ inputs.dispatch_run_id }}
+          DISPATCH_RUN_ATTEMPT: ${{ inputs.dispatch_run_attempt }}
+        run: node tooling/ci/staging-node-exception.mjs node-verify
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: staging-node-verified-${{ github.run_id }}-${{ github.run_attempt }}
           path: staging-deployment-evidence.json
           if-no-files-found: error
           retention-days: 30

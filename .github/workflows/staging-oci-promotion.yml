@@ -31,10 +31,6 @@ permissions:
   actions: read
   deployments: write
 
-concurrency:
-  group: staging-oci-promotion
-  cancel-in-progress: false
-
 env:
   NODE_VERSION: "22"
   PNPM_VERSION: "10.15.0"
@@ -103,6 +99,9 @@ jobs:
           echo "PASS: immutable image $IMAGE_REPOSITORY@$IMAGE_DIGEST from exact run $IMAGE_RUN_ID"
 
   deploy:
+    concurrency:
+      group: render-staging-srv-da4hb6c9v7es7386ttt0
+      cancel-in-progress: false
     needs: preflight
     if: (github.ref == 'refs/heads/main' || github.ref == format('refs/tags/rc/{0}', inputs.expected_sha)) && inputs.confirm_deploy == 'DEPLOY'
     runs-on: ubuntu-24.04

@@ -28,6 +28,16 @@ jobs:
     outputs:
       certified_sha: ${{ steps.certify.outputs.sha }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 1
+      - name: Require typed OCI acceptance before Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACCEPTANCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          ACCEPTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node tooling/ci/staging-node-exception.mjs verify-oci-run "$ACCEPTANCE_RUN_ID" "$ACCEPTED_SHA" pages
       - name: Certify the accepted frozen candidate
         id: certify
         env:
@@ -76,6 +86,16 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 1
+      - name: Require typed OCI acceptance before Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACCEPTANCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          ACCEPTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node tooling/ci/staging-node-exception.mjs verify-oci-run "$ACCEPTANCE_RUN_ID" "$ACCEPTED_SHA" pages
       - name: Re-prove the candidate before Pages promotion
         env:
           CERTIFIED_SHA: ${{ needs.build.outputs.certified_sha }}

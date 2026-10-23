@@ -154,6 +154,10 @@ jobs:
             printf '%s' "$run_id"
           }
 
+          prior_acceptance="$(latest_success final-release-acceptance.yml)"
+          if [ -n "$prior_acceptance" ]; then
+            node tooling/ci/staging-node-exception.mjs verify-oci-run "$prior_acceptance" "$EXPECTED_SHA" production
+          fi
           candidate_run_id="$(
             ensure_success release-candidate-certification.yml
           )"
@@ -188,6 +192,7 @@ jobs:
           dependency_run_id="$(ensure_success dependency-security-audit.yml)"
           security_run_id="$(ensure_success security-scanning.yml)"
           acceptance_run_id="$(ensure_success final-release-acceptance.yml)"
+          node tooling/ci/staging-node-exception.mjs verify-oci-run "$acceptance_run_id" "$EXPECTED_SHA" production
 
           image_run_id="$(latest_success release-oci-image.yml)"
           if [ -z "$image_run_id" ]; then
