@@ -89,6 +89,24 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
+    },
+    "MD-STAGING-NODE-ACCEPTANCE-20261023": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-node-acceptance-20261023",
+      "baseSha": "70920c4fc20d3dec6edf51e3dbb93b0446606674",
+      "paths": [
+        ".morro/changesets/MD-STAGING-NODE-ACCEPTANCE-20261023.json",
+        "tooling/ci/staging-node-dispatch.mjs",
+        "tooling/ci/staging-node-dispatch.test.mjs",
+        "tooling/ci/staging-node-acceptance.mjs",
+        "tooling/ci/staging-node-acceptance.test.mjs",
+        "tooling/ci/staging-node-test-fixtures.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T01:59:59.000Z"
     }
   }
 }
