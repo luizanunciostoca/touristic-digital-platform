@@ -313,3 +313,149 @@ export function barrierFixture(
   });
   return { marker, raw, job, artifact, attemptJobs: [job], expected, binding };
 }
+
+import assert from "node:assert/strict";
+import { verifyConnectorReceipt } from "./staging-node-receipts.mjs";
+
+export function ociFixture() {
+  const run = {
+    id: 42,
+    head_sha: sha,
+    path: ".github/workflows/final-release-acceptance.yml",
+    event: "workflow_dispatch",
+    status: "completed",
+    conclusion: "success",
+    run_attempt: 2,
+  };
+  const artifact = {
+    id: 9,
+    name: "final-release-acceptance-evidence-42-2",
+    expired: false,
+  };
+  const evidence = {
+    expectedSha: sha,
+    acceptanceRunId: "42",
+    acceptanceRunAttempt: "2",
+    mode: "oci-immutable",
+    productionEligible: true,
+    pagesEligible: true,
+    imageDigest: "sha256:" + "e".repeat(64),
+    imageRunId: "40",
+  };
+  const options = {
+    runId: 42,
+    sourceSha: sha,
+    consumer: "production",
+    readRun: async () => structuredClone(run),
+    listArtifacts: async () => ({ complete: true, items: [artifact] }),
+    readEvidence: async () => evidence,
+  };
+  return { run, artifact, evidence, options };
+}
+export async function dispatchFixture() {
+  const f = receiptFixture();
+  const payload = JSON.parse(f.comment.body.split("\n").slice(1).join("\n"));
+  payload.preflight = {
+    configurationPreserved: true,
+    recovery: {
+      status: "PROVEN",
+      candidateSha: sha,
+      backupRef: "retained-backup",
+      restoreRef: "restore-proof",
+      rollbackRef: "rollback-proof",
+      mutationInventoryRef: "wrapper-and-predeploy-inventory",
+    },
+  };
+  f.comment.body = receiptBody(payload);
+  f.reference.sha256 = createHash("sha256")
+    .update(f.comment.body)
+    .digest("hex");
+  const receipt = await verifyConnectorReceipt(f.reference, f.options),
+    refs = new Map();
+  let posts = 0;
+  const options = {
+    policy: {
+      enabled: true,
+      authorizationId: payload.authorizationId,
+      expiresAt: "2026-10-23T05:00:00Z",
+    },
+    receipt,
+    expected: f.options.expected,
+    now,
+    refStore: {
+      getRef: async (ref) => refs.get(ref) ?? null,
+      createRef: async (ref, source) => {
+        if (refs.has(ref)) throw Error("exists");
+        refs.set(ref, { sha: source });
+      },
+    },
+    postHook: async () => {
+      posts++;
+      return { deploymentId: "dep-created" };
+    },
+  };
+  return {
+    options,
+    refs,
+    getPosts: () => posts,
+    setHook: (fn) => {
+      options.postHook = async () => {
+        posts++;
+        return fn();
+      };
+    },
+  };
+}
+export function nodeAcceptanceFixture() {
+  const f = postFixture();
+  const evidence = {
+    ...structuredClone(f.payload.observation),
+    verification: f.payload.verification,
+    verificationBarrier: f.barrier.binding,
+    evidenceStates: ["CI_VERIFIED", "CONNECTOR_OBSERVED", "RUNTIME_OBSERVED"],
+    postReceiptId: 123,
+    postReceiptSha256: f.reference.sha256,
+    preReceiptId: f.payload.preReceiptId,
+    preReceiptSha256: f.payload.preReceiptSha256,
+    dispatchArtifactId: 99,
+    verificationRunId: 14,
+    verificationRunAttempt: 1,
+  };
+  const run = {
+    id: 14,
+    path: ".github/workflows/staging-render-promotion.yml",
+    event: "workflow_dispatch",
+    head_sha: sha,
+    status: "completed",
+    conclusion: "success",
+    run_attempt: 1,
+  };
+  const options = {
+    runId: 14,
+    sourceSha: sha,
+    treeSha: tree,
+    callerRunId: 11,
+    callerRunAttempt: 1,
+    now,
+    actor: f.options.actor,
+    fetchComment: f.options.fetchComment,
+    listComments: f.options.listComments,
+    readRun: async () => structuredClone(run),
+    readBarrier: async () => f.barrier.raw,
+    readJob: async () => f.barrier.job,
+    listJobs: async (id, attempt) => {
+      assert.equal(id, 14);
+      assert.equal(attempt, 1);
+      return [f.barrier.job];
+    },
+    listArtifacts: async () => ({
+      complete: true,
+      items: [
+        { id: 100, name: "staging-node-verified-14-1", expired: false },
+        f.barrier.artifact,
+      ],
+    }),
+    readEvidence: async () => evidence,
+  };
+  return { ...f, evidence, run, acceptanceOptions: options };
+}
