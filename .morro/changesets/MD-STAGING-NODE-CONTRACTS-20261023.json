@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-NODE-CONTRACTS-20261023",
   "objective": "validate-disabled-staging-node-contracts-and-fixed-service-preflight",
-  "baseSha": "21f05938c3813003b01f8f7b29929cff6079ede4",
+  "baseSha": "928aea8da3bf5eaa0664e0008a3d8f9aa2abb007",
   "branch": "fix/staging-node-contracts-20261023",
   "state": "IMPLEMENTING",
   "risk": "critical",
