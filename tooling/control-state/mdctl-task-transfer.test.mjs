@@ -22,13 +22,20 @@ import {
 import { changeSetDigest } from "../mdctl/changeset-v2.mjs";
 
 const now = "2026-10-24T06:00:00.000Z";
-function fixture(id = Object.keys(TRANSFER_SUBJECTS)[0]) {
+function fixture(id = Object.keys(TRANSFER_SUBJECTS)[0], sourceManifest) {
   const subject = TRANSFER_SUBJECTS[id];
-  const manifest = JSON.parse(
-    readFileSync(
-      new URL("../../.morro/changesets/" + id + ".json", import.meta.url),
-    ),
+  const manifest = structuredClone(
+    sourceManifest ??
+      JSON.parse(
+        readFileSync(
+          new URL("../../.morro/changesets/" + id + ".json", import.meta.url),
+        ),
+      ),
   );
+  // These fixtures model the original STARTED task, not the current main state.
+  // Normalize the private copy before computing any task or authority digest.
+  manifest.state = "IMPLEMENTING";
+  manifest.branch = subject.branch;
   const leaseId = "lease-transfer-fixture";
   const task = {
     schemaVersion: 1,
@@ -818,4 +825,34 @@ for (const id of Object.keys(TRANSFER_SUBJECTS)) {
       assert.deepEqual(f, original);
     },
   );
+}
+
+for (const [id, subject] of Object.entries(TRANSFER_SUBJECTS)) {
+  for (const [label, state, branch] of [
+    ["promotion", "LOCAL_PROVEN", subject.branch],
+    ["merge", "MERGED", subject.branch],
+    ["retirement", "MERGED", "chore/retire-css-fixture"],
+  ]) {
+    test("historical fixture survives " + label + ": " + id, async () => {
+      const canonicalPath = new URL(
+        "../../.morro/changesets/" + id + ".json",
+        import.meta.url,
+      );
+      const originalBytes = readFileSync(canonicalPath);
+      const source = { ...JSON.parse(originalBytes), state, branch };
+      const before = structuredClone(source);
+      const f = fixture(id, source);
+      assert.equal(f.manifest.state, "IMPLEMENTING");
+      assert.equal(f.manifest.branch, subject.branch);
+      assert.equal(f.task.changeSetDigest, changeSetDigest(f.manifest));
+      assert.notEqual(f.task.changeSetDigest, changeSetDigest(source));
+
+      const result = validateTaskTransfer(f, now);
+      assert.equal(result.owner, TRANSFER_EXECUTOR);
+      assert.equal(result.changeSetDigest, changeSetDigest(f.manifest));
+      assert.equal(result.branch, subject.branch);
+      assert.deepEqual(source, before);
+      assert.ok(readFileSync(canonicalPath).equals(originalBytes));
+    });
+  }
 }

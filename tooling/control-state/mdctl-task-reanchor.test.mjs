@@ -29,13 +29,23 @@ import {
   loadSchedulerPolicy,
 } from "../mdctl/scheduler.mjs";
 const now = "2026-10-24T09:00:00.000Z";
-function historicalFixture(id = Object.keys(TRANSFER_SUBJECTS)[0]) {
+function historicalFixture(
+  id = Object.keys(TRANSFER_SUBJECTS)[0],
+  sourceManifest,
+) {
   const subject = TRANSFER_SUBJECTS[id];
-  const manifest = JSON.parse(
-    readFileSync(
-      new URL("../../.morro/changesets/" + id + ".json", import.meta.url),
-    ),
+  const manifest = structuredClone(
+    sourceManifest ??
+      JSON.parse(
+        readFileSync(
+          new URL("../../.morro/changesets/" + id + ".json", import.meta.url),
+        ),
+      ),
   );
+  // These fixtures model the original STARTED task, not the current main state.
+  // Normalize the private copy before computing any task or authority digest.
+  manifest.state = "IMPLEMENTING";
+  manifest.branch = subject.branch;
   const leaseId = "lease-transfer-fixture";
   const task = {
     schemaVersion: 1,
@@ -118,8 +128,8 @@ function historicalFixture(id = Object.keys(TRANSFER_SUBJECTS)[0]) {
   return { task, manifest, claim, leases, authority, identity };
 }
 
-function fixture(id) {
-  const f = historicalFixture(id);
+function fixture(id, sourceManifest) {
+  const f = historicalFixture(id, sourceManifest);
   f.claim.baseSha = f.manifest.baseSha;
   f.authority.claimDigest = taskTransferDigest(f.claim);
   const before = structuredClone(f.task);
@@ -620,3 +630,49 @@ test("task CLI routes bounded reanchor without starting worker", async () => {
   const { runTaskCli } = await import("../mdctl/task-lifecycle.mjs");
   await assert.rejects(runTaskCli(["reanchor"]), /TASK_REANCHOR_ARGUMENTS/);
 });
+
+for (const [id, subject] of Object.entries(TRANSFER_SUBJECTS)) {
+  for (const [label, state, branch] of [
+    ["promotion", "LOCAL_PROVEN", subject.branch],
+    ["merge", "MERGED", subject.branch],
+    ["retirement", "MERGED", "chore/retire-css-fixture"],
+  ]) {
+    test("historical fixture survives " + label + ": " + id, async () => {
+      const canonicalPath = new URL(
+        "../../.morro/changesets/" + id + ".json",
+        import.meta.url,
+      );
+      const originalBytes = readFileSync(canonicalPath);
+      const source = { ...JSON.parse(originalBytes), state, branch };
+      const before = structuredClone(source);
+      const f = fixture(id, source);
+      assert.equal(f.manifest.state, "IMPLEMENTING");
+      assert.equal(f.manifest.branch, subject.branch);
+      assert.equal(f.task.changeSetDigest, changeSetDigest(f.manifest));
+      assert.notEqual(f.task.changeSetDigest, changeSetDigest(source));
+
+      const result = buildCssTaskReanchor(f, now);
+      const scheduled = await evaluateReanchorScheduler(
+        result.transition.manifest,
+        f.mainSha,
+        transport(f.mainSha),
+      );
+      assert.equal(scheduled.schedulerPassed, true);
+      assert.equal(scheduled.executionAuthorized, false);
+      const restarted = buildTaskRestart({
+        task: result.nextTask,
+        changeSet: result.transition.manifest,
+        leaseRegistry: f.leases,
+        identity: f.identity,
+        now,
+      });
+      assert.equal(restarted.task.branch, subject.branch);
+      assert.equal(
+        restarted.task.changeSetDigest,
+        changeSetDigest(result.transition.manifest),
+      );
+      assert.deepEqual(source, before);
+      assert.ok(readFileSync(canonicalPath).equals(originalBytes));
+    });
+  }
+}
