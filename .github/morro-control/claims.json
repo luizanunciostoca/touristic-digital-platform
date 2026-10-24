@@ -61,7 +61,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/css-started-transfer-authorizations-20261024",
-      "baseSha": "c0fb96768d86549b05d33a00a2482ccf62f7aa84",
+      "baseSha": "344430fc32ff3683a6f9a81954d5730acda1fb9d",
       "paths": [
         ".morro/changesets/MD-CSS-STARTED-TRANSFER-AUTHORIZATIONS-20261024.json",
         ".morro/task-transfers/MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022.json",

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CSS-STARTED-TRANSFER-AUTHORIZATIONS-20261024",
   "objective": "authorize-two-existing-css-started-task-transfers-to-current-executor",
-  "baseSha": "c0fb96768d86549b05d33a00a2482ccf62f7aa84",
+  "baseSha": "344430fc32ff3683a6f9a81954d5730acda1fb9d",
   "branch": "chore/css-started-transfer-authorizations-20261024",
   "state": "IMPLEMENTING",
   "risk": "critical",
