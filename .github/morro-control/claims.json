@@ -38,7 +38,10 @@
         "tooling/ci/css-cascade-transition.test.mjs",
         "apps/morro-digital-platform/public/dist/entry-css/"
       ],
-      "domains": ["map", "ci-release"],
+      "domains": [
+        "map",
+        "ci-release"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T13:32:04.184Z"
@@ -47,12 +50,14 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "test/css-accessibility-entry-contract-20261022",
-      "baseSha": "07f5a488bc69d121ee57c2f0459418b519b3fdf6",
+      "baseSha": "98e02ead61e2814e5e93f2fa757873554a801537",
       "paths": [
         ".morro/changesets/MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022.json",
         "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts"
       ],
-      "domains": ["map"],
+      "domains": [
+        "map"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
