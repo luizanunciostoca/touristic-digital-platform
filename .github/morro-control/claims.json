@@ -57,32 +57,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
     },
-    "MD-STAGING-NODE-WIRING-20261023": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-node-wiring-20261023",
-      "baseSha": "53f6e3caca32657c7bb8443ba1f1cbfaaf71b310",
-      "paths": [
-        ".morro/changesets/MD-STAGING-NODE-WIRING-20261023.json",
-        ".github/workflows/final-release-acceptance.yml",
-        ".github/workflows/staging-render-promotion.yml",
-        ".github/workflows/staging-oci-promotion.yml",
-        ".github/workflows/release-promotion-gate.yml",
-        ".github/workflows/oci-release-promotion-gate.yml",
-        ".github/workflows/production-render-promotion.yml",
-        ".github/workflows/production-oci-promotion.yml",
-        ".github/workflows/pages-after-final-acceptance.yml",
-        "tooling/ci/staging-node-exception.test.mjs",
-        "docs/operations/STAGING-NODE-EXCEPTION.md",
-        "AGENTS.md",
-        ".github/instructions/render-release.instructions.md",
-        ".github/skills/morro-release-certification/SKILL.md"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T01:59:59.000Z"
-    },
     "MD-RUNTIME-LOGGING-AUTHORITY-20261024": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
