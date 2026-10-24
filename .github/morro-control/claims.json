@@ -47,7 +47,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "test/css-entry-order-regression-20261024",
-      "baseSha": "068dc23e5eb425317422eb9f126b02e1922ab867",
+      "baseSha": "140365faec1a31ee115665c8e260b52f8a68af04",
       "paths": [
         ".morro/changesets/MD-CSS-ENTRY-ORDER-REGRESSION-20261024.json",
         "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts"

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CSS-ENTRY-ORDER-REGRESSION-20261024",
   "objective": "preserve-real-stylesheet-href-order-around-composed-home-css-and-reject-later-overrides",
-  "baseSha": "068dc23e5eb425317422eb9f126b02e1922ab867",
+  "baseSha": "140365faec1a31ee115665c8e260b52f8a68af04",
   "branch": "test/css-entry-order-regression-20261024",
   "state": "IMPLEMENTING",
   "risk": "high",
