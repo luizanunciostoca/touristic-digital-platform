@@ -3,7 +3,8 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { canonicalJson, changeSetDigest } from "./changeset-v2.mjs";
 
-// This is one reviewed correction, not a general delegation facility.
+// Only the two explicitly reviewed corrections are eligible; this is not
+// a general delegation facility. GOVERNANCE remains the default.
 export const CORRECTION = Object.freeze({
   repository: "luizanunciostoca/touristic-digital-platform",
   owner: "CHATGPT-PRO-CONTROL",
@@ -13,6 +14,27 @@ export const CORRECTION = Object.freeze({
   branch: "fix/staging-node-governance-correction-20261023",
   path: ".morro/task-corrections/MD-STAGING-NODE-GOVERNANCE-CORRECTION-20261023.json",
 });
+export const RUNTIME_LOGGING_CORRECTION = Object.freeze({
+  repository: CORRECTION.repository,
+  owner: CORRECTION.owner,
+  executor: CORRECTION.executor,
+  predecessor: "MD-TASK-CORRECTION-RUNTIME-20261023",
+  successor: "MD-TASK-CORRECTION-RUNTIME-LOGGING-20261024",
+  branch: "fix/task-correction-runtime-logging-20261024",
+  path: ".morro/task-corrections/MD-TASK-CORRECTION-RUNTIME-LOGGING-20261024.json",
+});
+function correctionProfile(successor = CORRECTION.successor) {
+  const profile = [CORRECTION, RUNTIME_LOGGING_CORRECTION].find(
+    (candidate) => candidate.successor === successor,
+  );
+  assert.ok(profile, "CORRECTION_GRANT_IDENTITY:successor");
+  return profile;
+}
+function correctionKind(profile) {
+  return profile === CORRECTION
+    ? "TDP_GOVERNANCE_CORRECTION_DELEGATION"
+    : "TDP_RUNTIME_LOGGING_CORRECTION_DELEGATION";
+}
 const SHA = /^[a-f0-9]{40}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const verified = new WeakSet();
@@ -46,15 +68,12 @@ export function correctionClaim(claim) {
   const { baseSha, ...identity } = claim;
   return identity;
 }
-export function correctionKey(handoffDigest) {
+export function correctionKey(handoffDigest, successor = CORRECTION.successor) {
+  const profile = correctionProfile(successor);
   assert.match(handoffDigest ?? "", HASH, "CORRECTION_HANDOFF_INVALID");
   return createHash("sha256")
     .update(
-      CORRECTION.repository +
-        "\n" +
-        CORRECTION.predecessor +
-        "\n" +
-        handoffDigest,
+      CORRECTION.repository + "\n" + profile.predecessor + "\n" + handoffDigest,
     )
     .digest("hex");
 }
@@ -72,11 +91,8 @@ function closed(value, expected, code) {
 export function validateCorrectionGrant(grant) {
   closed(grant, keys, "CORRECTION_GRANT_FIELDS");
   assert.equal(grant.schemaVersion, 1, "CORRECTION_GRANT_VERSION");
-  assert.equal(
-    grant.kind,
-    "TDP_GOVERNANCE_CORRECTION_DELEGATION",
-    "CORRECTION_GRANT_KIND",
-  );
+  const profile = correctionProfile(grant.successor);
+  assert.equal(grant.kind, correctionKind(profile), "CORRECTION_GRANT_KIND");
   for (const field of [
     "repository",
     "owner",
@@ -87,7 +103,7 @@ export function validateCorrectionGrant(grant) {
   ])
     assert.equal(
       grant[field],
-      CORRECTION[field],
+      profile[field],
       "CORRECTION_GRANT_IDENTITY:" + field,
     );
   for (const field of [
@@ -124,7 +140,7 @@ export function validateCorrectionGrant(grant) {
     );
     assert.equal(
       grant.reservation.key,
-      correctionKey(grant.handoffDigest),
+      correctionKey(grant.handoffDigest, grant.successor),
       "CORRECTION_RESERVATION_KEY",
     );
     assert.match(
@@ -208,7 +224,7 @@ export function validateCorrectionHistory(
     grant: current,
     issuedCommitSha: first.commitSha,
     coreDigest: correctionDigest(core(current)),
-    key: correctionKey(current.handoffDigest),
+    key: correctionKey(current.handoffDigest, current.successor),
   };
 }
 
@@ -263,6 +279,7 @@ export function collectCorrectionAuthority(options) {
     "CORRECTION_CLOCK_OVERRIDE_FORBIDDEN",
   );
   const { expectedMain } = options;
+  const profile = correctionProfile(options.successor);
   const now = new Date().toISOString();
   assert.match(expectedMain ?? "", SHA, "CORRECTION_MAIN_REQUIRED");
   const root = "repos/" + CORRECTION.repository;
@@ -276,7 +293,7 @@ export function collectCorrectionAuthority(options) {
       "/commits?sha=" +
       expectedMain +
       "&path=" +
-      encodeURIComponent(CORRECTION.path),
+      encodeURIComponent(profile.path),
   );
   assert.ok(
     commits.length > 0 && commits.length <= 32,
@@ -285,23 +302,28 @@ export function collectCorrectionAuthority(options) {
   // Every path-changing commit is read: deletion/recreation is not collapsed.
   const history = commits.toReversed().map((item) => ({
     commitSha: item.sha,
-    grant: jsonBlob(CORRECTION.path, item.sha),
+    grant: jsonBlob(profile.path, item.sha),
   }));
   const checked = validateCorrectionHistory(history, now);
+  assert.equal(
+    checked.grant.successor,
+    profile.successor,
+    "CORRECTION_PROFILE_MISMATCH",
+  );
   assert.deepEqual(
-    jsonBlob(CORRECTION.path, expectedMain),
+    jsonBlob(profile.path, expectedMain),
     checked.grant,
     "CORRECTION_CURRENT_HISTORY_MISMATCH",
   );
   const registry = jsonBlob(".github/morro-control/claims.json", expectedMain);
-  const claim = registry.claims?.[CORRECTION.successor];
+  const claim = registry.claims?.[profile.successor];
   assert.equal(
     registry.registryAuthority,
     "ORCHESTRATOR",
     "CORRECTION_REGISTRY_AUTHORITY",
   );
-  assert.equal(claim?.owner, CORRECTION.owner, "CORRECTION_CANONICAL_OWNER");
-  assert.equal(claim.branch, CORRECTION.branch, "CORRECTION_CLAIM_BRANCH");
+  assert.equal(claim?.owner, profile.owner, "CORRECTION_CANONICAL_OWNER");
+  assert.equal(claim.branch, profile.branch, "CORRECTION_CLAIM_BRANCH");
   assert.ok(
     Date.parse(claim.expiresAt) > Date.parse(now),
     "CORRECTION_CLAIM_EXPIRED",
@@ -312,7 +334,7 @@ export function collectCorrectionAuthority(options) {
     "CORRECTION_CLAIM_CHANGED",
   );
   const successor = jsonBlob(
-    ".morro/changesets/" + CORRECTION.successor + ".json",
+    ".morro/changesets/" + profile.successor + ".json",
     expectedMain,
   );
   assert.equal(

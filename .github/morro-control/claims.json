@@ -61,7 +61,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/runtime-logging-authority-20261024",
-      "baseSha": "0375d6a122fd3e122776f9a6a46f10cdef9e356f",
+      "baseSha": "b96dea9aa2446a129ad657d50ba86c63a422bf70",
       "paths": [
         ".morro/changesets/MD-RUNTIME-LOGGING-AUTHORITY-20261024.json",
         "tooling/mdctl/task-correction-authority.mjs",
