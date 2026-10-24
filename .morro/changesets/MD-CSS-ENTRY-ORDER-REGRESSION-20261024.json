@@ -4,7 +4,7 @@
   "objective": "preserve-real-stylesheet-href-order-around-composed-home-css-and-reject-later-overrides",
   "baseSha": "140365faec1a31ee115665c8e260b52f8a68af04",
   "branch": "test/css-entry-order-regression-20261024",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
