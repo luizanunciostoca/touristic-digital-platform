@@ -56,6 +56,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
+    },
+    "MD-CSS-STARTED-TASK-TRANSFER-20261024": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/css-started-task-transfer-20261024",
+      "baseSha": "873c7d2f38887e3347c89fcf86423908408719f4",
+      "paths": [
+        ".morro/changesets/MD-CSS-STARTED-TASK-TRANSFER-20261024.json",
+        "tooling/mdctl/task-lifecycle.mjs",
+        "tooling/mdctl/task-transfer.mjs",
+        "tooling/control-state/mdctl-task-transfer.test.mjs",
+        "tooling/control-state/mdctl-task-lifecycle.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T11:59:59.000Z"
     }
   }
 }
