@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CSS-RESTART-REANCHOR-COMPATIBILITY-20261024",
+  "objective": "reconcile-two-transferred-css-started-tasks-with-exact-main-scheduler-and-historical-identity",
+  "baseSha": "bdc19190acd3892ac67b80cb2ed55f667a584406",
+  "branch": "fix/css-restart-reanchor-compatibility-20261024",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CSS-RESTART-REANCHOR-COMPATIBILITY-20261024.json",
+      "tooling/mdctl/task-lifecycle.mjs",
+      "tooling/mdctl/task-reanchor.mjs",
+      "tooling/control-state/mdctl-task-reanchor.test.mjs",
+      "tooling/control-state/mdctl-task-lifecycle.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CSS-STARTED-TASK-TRANSFER-20261024"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "css-restart-reanchor-compatibility",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-task-lifecycle.test.mjs",
+          "tooling/control-state/mdctl-task-reanchor.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
