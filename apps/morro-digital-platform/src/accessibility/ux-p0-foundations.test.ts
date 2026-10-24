@@ -155,13 +155,23 @@ describe("UX P0 + Design System V2 foundations", () => {
           /<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["']([^"']+)["'][^>]*>/giu,
         ),
       ].map((match) => match[1]);
+      let stylesheetOrder = stylesheetHrefs;
+      if (surface === "index.html" && html.includes("data-entry-css")) {
+        expect(stylesheetHrefs).toContain(
+          "/apps/morro-digital-platform/public/dist/entry-css/home.css",
+        );
+        const manifest = JSON.parse(
+          await readRepository("tooling/ci/entry-css-manifest.json"),
+        ) as { sources: { file: string }[] };
+        stylesheetOrder = manifest.sources.map(({ file }) => `/${file}`);
+      }
 
-      expect(stylesheetHrefs, `${surface} does not load foundations`).toContain(
+      expect(stylesheetOrder, `${surface} does not load foundations`).toContain(
         foundationHref,
       );
 
       if (surface === "index.html") {
-        const foundationIndex = stylesheetHrefs.indexOf(foundationHref);
+        const foundationIndex = stylesheetOrder.indexOf(foundationHref);
         const migratedConsumers = [
           "/apps/morro-digital-platform/public/commerce.css",
           "/apps/morro-digital-platform/public/explore-locations.css",
@@ -171,24 +181,24 @@ describe("UX P0 + Design System V2 foundations", () => {
           touristShellHref,
         ];
 
-        expect(stylesheetHrefs).toContain(touristShellHref);
+        expect(stylesheetOrder).toContain(touristShellHref);
         for (const consumer of migratedConsumers) {
-          expect(stylesheetHrefs).toContain(consumer);
+          expect(stylesheetOrder).toContain(consumer);
           expect(foundationIndex).toBeLessThan(
-            stylesheetHrefs.indexOf(consumer),
+            stylesheetOrder.indexOf(consumer),
           );
         }
-        expect(stylesheetHrefs.at(-1)).toBe(touristShellHref);
+        expect(stylesheetOrder.at(-1)).toBe(touristShellHref);
       } else if (surface === "tickets.html") {
         const ticketingHref = "/ticketing.css";
-        expect(stylesheetHrefs).toContain(ticketingHref);
-        expect(stylesheetHrefs.indexOf(foundationHref)).toBeLessThan(
-          stylesheetHrefs.indexOf(ticketingHref),
+        expect(stylesheetOrder).toContain(ticketingHref);
+        expect(stylesheetOrder.indexOf(foundationHref)).toBeLessThan(
+          stylesheetOrder.indexOf(ticketingHref),
         );
-        expect(stylesheetHrefs.at(-1)).toBe(ticketingHref);
+        expect(stylesheetOrder.at(-1)).toBe(ticketingHref);
       } else {
         expect(
-          stylesheetHrefs.at(-1),
+          stylesheetOrder.at(-1),
           `${surface} retains its pre-migration foundation order`,
         ).toBe(foundationHref);
       }

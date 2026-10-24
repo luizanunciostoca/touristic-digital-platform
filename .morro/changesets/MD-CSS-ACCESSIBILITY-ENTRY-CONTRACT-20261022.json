@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022",
   "objective": "accept-composed-home-css-while-preserving-design-system-order",
-  "baseSha": "07f5a488bc69d121ee57c2f0459418b519b3fdf6",
+  "baseSha": "98e02ead61e2814e5e93f2fa757873554a801537",
   "branch": "test/css-accessibility-entry-contract-20261022",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
