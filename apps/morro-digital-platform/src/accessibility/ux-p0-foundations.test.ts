@@ -14,6 +14,53 @@ async function readRepository(path: string): Promise<string> {
   return readFile(`${repositoryRoot}${path}`, "utf8");
 }
 
+const foundationHref =
+  "/apps/morro-digital-platform/public/design-system-v2.css";
+const touristShellHref =
+  "/apps/morro-digital-platform/public/tourist-shell-v2.css";
+const homeBundleHref =
+  "/apps/morro-digital-platform/public/dist/entry-css/home.css";
+
+async function stylesheetOrderFor(
+  surface: string,
+  html: string,
+  readManifest: () => Promise<string> = () =>
+    readRepository("tooling/ci/entry-css-manifest.json"),
+): Promise<string[]> {
+  const hrefs = [
+    ...html.matchAll(
+      /<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["']([^"']+)["'][^>]*>/giu,
+    ),
+  ].map((match) => match[1]);
+  if (surface !== "index.html" || !html.includes("data-entry-css")) {
+    return hrefs;
+  }
+  expect(hrefs).toContain(homeBundleHref);
+  const manifest = JSON.parse(await readManifest()) as {
+    sources: { file: string }[];
+  };
+  const sources = manifest.sources.map(({ file }) => `/${file}`);
+  return hrefs.flatMap((href) => (href === homeBundleHref ? sources : [href]));
+}
+
+function expectHomeAuthorityOrder(stylesheetOrder: string[]): void {
+  expect(stylesheetOrder).toContain(foundationHref);
+  const foundationIndex = stylesheetOrder.indexOf(foundationHref);
+  const migratedConsumers = [
+    "/apps/morro-digital-platform/public/commerce.css",
+    "/apps/morro-digital-platform/public/explore-locations.css",
+    "/apps/morro-digital-platform/public/navigation-map.css",
+    "/apps/morro-digital-platform/public/assistant-v2.css",
+    "/apps/morro-digital-platform/public/premium-ux-v2.css",
+    touristShellHref,
+  ];
+  for (const consumer of migratedConsumers) {
+    expect(stylesheetOrder).toContain(consumer);
+    expect(foundationIndex).toBeLessThan(stylesheetOrder.indexOf(consumer));
+  }
+  expect(stylesheetOrder.at(-1)).toBe(touristShellHref);
+}
+
 describe("UX P0 + Design System V2 foundations", () => {
   it("keeps browser zoom under user control", async () => {
     const html = await readPublic("index.html");
@@ -143,52 +190,16 @@ describe("UX P0 + Design System V2 foundations", () => {
       "experience.html",
       "tickets.html",
     ];
-    const foundationHref =
-      "/apps/morro-digital-platform/public/design-system-v2.css";
-    const touristShellHref =
-      "/apps/morro-digital-platform/public/tourist-shell-v2.css";
-
     for (const surface of surfaces) {
       const html = await readPublic(surface);
-      const stylesheetHrefs = [
-        ...html.matchAll(
-          /<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["']([^"']+)["'][^>]*>/giu,
-        ),
-      ].map((match) => match[1]);
-      let stylesheetOrder = stylesheetHrefs;
-      if (surface === "index.html" && html.includes("data-entry-css")) {
-        expect(stylesheetHrefs).toContain(
-          "/apps/morro-digital-platform/public/dist/entry-css/home.css",
-        );
-        const manifest = JSON.parse(
-          await readRepository("tooling/ci/entry-css-manifest.json"),
-        ) as { sources: { file: string }[] };
-        stylesheetOrder = manifest.sources.map(({ file }) => `/${file}`);
-      }
+      const stylesheetOrder = await stylesheetOrderFor(surface, html);
 
       expect(stylesheetOrder, `${surface} does not load foundations`).toContain(
         foundationHref,
       );
 
       if (surface === "index.html") {
-        const foundationIndex = stylesheetOrder.indexOf(foundationHref);
-        const migratedConsumers = [
-          "/apps/morro-digital-platform/public/commerce.css",
-          "/apps/morro-digital-platform/public/explore-locations.css",
-          "/apps/morro-digital-platform/public/navigation-map.css",
-          "/apps/morro-digital-platform/public/assistant-v2.css",
-          "/apps/morro-digital-platform/public/premium-ux-v2.css",
-          touristShellHref,
-        ];
-
-        expect(stylesheetOrder).toContain(touristShellHref);
-        for (const consumer of migratedConsumers) {
-          expect(stylesheetOrder).toContain(consumer);
-          expect(foundationIndex).toBeLessThan(
-            stylesheetOrder.indexOf(consumer),
-          );
-        }
-        expect(stylesheetOrder.at(-1)).toBe(touristShellHref);
+        expectHomeAuthorityOrder(stylesheetOrder);
       } else if (surface === "tickets.html") {
         const ticketingHref = "/ticketing.css";
         expect(stylesheetOrder).toContain(ticketingHref);
@@ -253,5 +264,87 @@ describe("UX P0 + Design System V2 foundations", () => {
     expect(navigationAccessibility).toContain("text-200-mobile");
     expect(homeResponsive).toContain("horizontal overflow");
     expect(tourResponsive).toContain("horizontal overflow");
+  });
+});
+
+describe("composed home accessibility stylesheet order", () => {
+  const canonical = [
+    foundationHref,
+    "/apps/morro-digital-platform/public/commerce.css",
+    "/apps/morro-digital-platform/public/explore-locations.css",
+    "/apps/morro-digital-platform/public/navigation-map.css",
+    "/apps/morro-digital-platform/public/assistant-v2.css",
+    "/apps/morro-digital-platform/public/premium-ux-v2.css",
+    touristShellHref,
+  ];
+  const htmlFor = (hrefs: string[], composed = true) =>
+    hrefs
+      .map(
+        (href) =>
+          `<link rel="stylesheet" href="${href}"${composed && href === homeBundleHref ? ' data-entry-css="home"' : ""}>`,
+      )
+      .join("\n");
+  const manifestFor =
+    (hrefs = canonical) =>
+    async () =>
+      JSON.stringify({
+        sources: hrefs.map((href) => ({ file: href.slice(1) })),
+      });
+
+  it("preserves separately linked home styles without reading a manifest", async () => {
+    const order = await stylesheetOrderFor(
+      "index.html",
+      htmlFor(canonical, false),
+      async () => {
+        throw new Error("UNEXPECTED_MANIFEST_READ");
+      },
+    );
+    expect(order).toEqual(canonical);
+    expectHomeAuthorityOrder(order);
+  });
+
+  it("expands a valid bundle in place and retains a preceding stylesheet", async () => {
+    const before = "/before-home.css";
+    const order = await stylesheetOrderFor(
+      "index.html",
+      htmlFor([before, homeBundleHref]),
+      manifestFor(),
+    );
+    expect(order).toEqual([before, ...canonical]);
+    expectHomeAuthorityOrder(order);
+  });
+
+  it("rejects reversed source authority inside a composed bundle", async () => {
+    const reversed = [...canonical].reverse();
+    const order = await stylesheetOrderFor(
+      "index.html",
+      htmlFor([homeBundleHref]),
+      manifestFor(reversed),
+    );
+    expect(order).toEqual(reversed);
+    expect(() => expectHomeAuthorityOrder(order)).toThrow();
+  });
+
+  it("retains and rejects a real commerce stylesheet after the bundle", async () => {
+    const before = "/before-home.css";
+    const commerce = "/apps/morro-digital-platform/public/commerce.css";
+    const order = await stylesheetOrderFor(
+      "index.html",
+      htmlFor([before, homeBundleHref, commerce]),
+      manifestFor(),
+    );
+    expect(order).toEqual([before, ...canonical, commerce]);
+    expect(() => expectHomeAuthorityOrder(order)).toThrow();
+  });
+
+  it("retains and rejects an additional stylesheet after the bundle", async () => {
+    const after = "/after-home.css";
+    const order = await stylesheetOrderFor(
+      "index.html",
+      htmlFor([homeBundleHref, after]),
+      manifestFor(),
+    );
+    expect(order).toEqual([...canonical, after]);
+    expect(() => expectHomeAuthorityOrder(order)).toThrow();
   });
 });
