@@ -38,10 +38,7 @@
         "tooling/ci/css-cascade-transition.test.mjs",
         "apps/morro-digital-platform/public/dist/entry-css/"
       ],
-      "domains": [
-        "map",
-        "ci-release"
-      ],
+      "domains": ["map", "ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T13:32:04.184Z"
@@ -55,9 +52,7 @@
         ".morro/changesets/MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022.json",
         "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts"
       ],
-      "domains": [
-        "map"
-      ],
+      "domains": ["map"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
