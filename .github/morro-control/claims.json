@@ -97,6 +97,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T01:59:59.000Z"
+    },
+    "MD-RUNTIME-LOGGING-AUTHORITY-20261024": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/runtime-logging-authority-20261024",
+      "baseSha": "0375d6a122fd3e122776f9a6a46f10cdef9e356f",
+      "paths": [
+        ".morro/changesets/MD-RUNTIME-LOGGING-AUTHORITY-20261024.json",
+        "tooling/mdctl/task-correction-authority.mjs",
+        "tooling/control-state/mdctl-runtime-logging-authority.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T03:59:59.000Z"
     }
   }
 }
