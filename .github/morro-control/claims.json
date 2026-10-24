@@ -83,21 +83,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T01:59:59.000Z"
     },
-    "MD-TASK-CORRECTION-RUNTIME-20261023": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/task-correction-runtime-20261023",
-      "baseSha": "942b9d67f7fec46ba341b0d6081ec8ad7f83dde9",
-      "paths": [
-        ".morro/changesets/MD-TASK-CORRECTION-RUNTIME-20261023.json",
-        "tooling/mdctl/task-correction-runtime.mjs",
-        "tooling/control-state/mdctl-task-correction.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T01:59:59.000Z"
-    },
     "MD-RUNTIME-LOGGING-AUTHORITY-20261024": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
