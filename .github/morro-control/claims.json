@@ -56,6 +56,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
+    },
+    "MD-CSS-STARTED-TRANSFER-AUTHORIZATIONS-20261024": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/css-started-transfer-authorizations-20261024",
+      "baseSha": "c0fb96768d86549b05d33a00a2482ccf62f7aa84",
+      "paths": [
+        ".morro/changesets/MD-CSS-STARTED-TRANSFER-AUTHORIZATIONS-20261024.json",
+        ".morro/task-transfers/MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022.json",
+        ".morro/task-transfers/MD-HOME-CSS-CASCADE-COMPOSITION-20261022.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T11:59:59.000Z"
     }
   }
 }
