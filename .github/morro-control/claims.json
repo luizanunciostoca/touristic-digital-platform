@@ -1,5 +1,24 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-COMMON-PR-COMPATIBILITY-MIGRATION-20261024": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/acquire-common-pr-compatibility-migration-20261024",
+      "baseSha": "3b0f78e5b0ab3de15e8b845335a61083912363b4",
+      "paths": [
+        ".github/workflows/morro-agent-profiles-trusted.yml",
+        "tooling/control-state/mdctl-merge-gate.test.mjs",
+        "tooling/mdctl/merge-gate.mjs",
+        "tooling/mdctl/scheduler-live.mjs",
+        "tooling/quality/independent-proof-trusted.mjs",
+        ".morro/changesets/MD-COMMON-PR-COMPATIBILITY-MIGRATION-20261024.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-25T04:59:59.000Z"
+    }
+  }
 }
