@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-NODE-EXCEPTION-20261023",
+  "objective": "authorize-single-staging-node-rebuild-with-typed-acceptance-and-oci-production-isolation",
+  "baseSha": "5ed2dfb07aee5a6fa76b5da55d5384bba5da5db6",
+  "branch": "chore/retire-voluntary-staging-node-20261023",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-NODE-EXCEPTION-20261023.json",
+      ".github/workflows/final-release-acceptance.yml",
+      ".github/workflows/staging-render-promotion.yml",
+      ".github/workflows/staging-oci-promotion.yml",
+      ".github/workflows/release-promotion-gate.yml",
+      ".github/workflows/oci-release-promotion-gate.yml",
+      ".github/workflows/production-render-promotion.yml",
+      ".github/workflows/production-oci-promotion.yml",
+      ".github/workflows/pages-after-final-acceptance.yml",
+      "tooling/quality/release-target-governance.test.mjs",
+      "tooling/ci/staging-node-exception.mjs",
+      "tooling/ci/staging-node-exception.test.mjs",
+      "tooling/ci/staging-node-exception.json",
+      "tooling/ci/test-impact-manifest.json",
+      "docs/operations/STAGING-NODE-EXCEPTION.md",
+      "AGENTS.md",
+      ".github/instructions/render-release.instructions.md",
+      ".github/skills/morro-release-certification/SKILL.md"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "staging-node-exception-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/staging-node-exception.test.mjs",
+          "tooling/quality/release-target-governance.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

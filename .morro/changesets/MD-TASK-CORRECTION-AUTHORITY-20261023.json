@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TASK-CORRECTION-AUTHORITY-20261023",
+  "objective": "authenticate-canonical-owner-delegation-for-task-correction",
+  "baseSha": "a2078df1244f43aaafcdfcda2c679aad007b47a4",
+  "branch": "chore/retire-task-correction-authority-20261023",
+  "state": "MERGED",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TASK-CORRECTION-AUTHORITY-20261023.json",
+      "tooling/mdctl/task-lifecycle.mjs",
+      "tooling/mdctl/task-correction-authority.mjs",
+      "tooling/mdctl/task-correction-runtime.mjs",
+      "tooling/control-state/mdctl-task-correction.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "task-correction-authority",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-task-correction.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

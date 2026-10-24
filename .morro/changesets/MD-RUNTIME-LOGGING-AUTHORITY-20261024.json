@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RUNTIME-LOGGING-AUTHORITY-20261024",
+  "objective": "prepare-specific-runtime-logging-correction-authority",
+  "baseSha": "39d7cb1543dec11f22bbb13648d43ba4f63b810f",
+  "branch": "chore/retire-runtime-logging-authority-20261024",
+  "state": "MERGED",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-RUNTIME-LOGGING-AUTHORITY-20261024.json",
+      "tooling/mdctl/task-correction-authority.mjs",
+      "tooling/control-state/mdctl-runtime-logging-authority.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-TASK-CORRECTION-AUTHORITY-20261023"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "runtime-logging-authority",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-task-correction.test.mjs",
+          "tooling/control-state/mdctl-runtime-logging-authority.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

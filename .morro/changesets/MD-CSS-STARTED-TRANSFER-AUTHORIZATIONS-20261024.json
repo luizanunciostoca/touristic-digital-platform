@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CSS-STARTED-TRANSFER-AUTHORIZATIONS-20261024",
+  "objective": "authorize-two-existing-css-started-task-transfers-to-current-executor",
+  "baseSha": "640a920414e13b0335d4875aa37805116a93a80d",
+  "branch": "chore/retire-css-transfer-authorizations-20261024",
+  "state": "MERGED",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CSS-STARTED-TRANSFER-AUTHORIZATIONS-20261024.json",
+      ".morro/task-transfers/MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022.json",
+      ".morro/task-transfers/MD-HOME-CSS-CASCADE-COMPOSITION-20261022.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CSS-STARTED-TASK-TRANSFER-20261024"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "css-started-task-transfer",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-task-lifecycle.test.mjs",
+          "tooling/control-state/mdctl-task-transfer.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

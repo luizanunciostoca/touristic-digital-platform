@@ -79,6 +79,19 @@ jobs:
             echo "sha=${{ github.event.merge_group.base_sha }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "push" ]; then
             echo "sha=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [[ "$GITHUB_REF" == refs/tags/rc/* ]]; then
+            # A release tag identifies the exact commit under test. Comparing
+            # it to origin/main would produce an empty diff on current main.
+            if [ "${GITHUB_REF#refs/tags/rc/}" != "$GITHUB_SHA" ]; then
+              echo "::error::Release candidate tag does not match the candidate SHA"
+              exit 1
+            fi
+            base=$(git rev-parse "$GITHUB_SHA^1")
+            if git diff --quiet "$base" "$GITHUB_SHA"; then
+              echo "::error::Release candidate has no changed paths to classify"
+              exit 1
+            fi
+            echo "sha=$base" >> "$GITHUB_OUTPUT"
           else
             echo "sha=$(git merge-base refs/remotes/origin/main HEAD)" >> "$GITHUB_OUTPUT"
           fi

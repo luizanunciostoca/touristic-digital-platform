@@ -404,3 +404,8 @@ test("review metadata change on frozen candidate invalidates only review-depende
     [],
   );
 });
+
+test("task CLI routes bounded transfer without accepting arbitrary lifecycle actions", async () => {
+  const { runTaskCli } = await import("../mdctl/task-lifecycle.mjs");
+  await assert.rejects(runTaskCli(["transfer"]), /TASK_TRANSFER_ARGUMENTS/);
+});
