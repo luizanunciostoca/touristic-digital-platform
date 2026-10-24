@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "TDP_CSS_STARTED_TASK_TRANSFER",
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "changeSetId": "MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022",
+  "fromOwner": "CT1072-CSS-ACCESSIBILITY-IMPLEMENTATION-3c87662f73e4",
+  "toOwner": "CODEX-STAGING-NODE-9482F85B-20261023",
+  "state": "AUTHORIZED",
+  "taskDigest": "sha256:ebb3c114bb76231b8c48412c28ff6cfe2abadc99ff465c3873f86acb74bd78e5",
+  "afterDigest": "sha256:6eb70a61d06f35a7f8292eda941a98efc44e1f3f2fdc57a215929748574ca131",
+  "manifestDigest": "sha256:126894e91142cf458921db870706dcdf9119da07312f7c02e99cdcf416e9da3b",
+  "claimDigest": "sha256:89f0ffb25bb1648764a4f3082730c4cc320415d1b11927af95329dd2803a9df3",
+  "headSha": "5562bcc3c9a7aca23e04981354f356b72b7e7932",
+  "treeSha": "02caa2dbd943b003e392370dceaae5dbd2040d9f",
+  "workspace": "/data/data/com.termux/files/home/worktrees/MD-CSS-ACCESSIBILITY-ENTRY-CONTRACT-20261022-ct1072-css-accessibility-implementation-3c87662f73e4-2abd78d204c8",
+  "issuedAt": "2026-10-24T08:08:09.461Z",
+  "expiresAt": "2026-10-24T08:38:09.461Z",
+  "cessation": {
+    "basis": "REPOSITORY_OWNER_REPORTED_NO_OTHER_WORKERS",
+    "ownerLogin": "luizanunciostoca",
+    "reference": "conversation:01a15822-8562-7478-9704-b21b1c3a8026/Sentinel_47d1367972dc81919a4449d524926012"
+  }
+}

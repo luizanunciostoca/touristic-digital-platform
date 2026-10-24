@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "TDP_CSS_STARTED_TASK_TRANSFER",
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "changeSetId": "MD-HOME-CSS-CASCADE-COMPOSITION-20261022",
+  "fromOwner": "CT1072-CSS-COMPOSITION-IMPLEMENTATION-3c87662f73e4",
+  "toOwner": "CODEX-STAGING-NODE-9482F85B-20261023",
+  "state": "AUTHORIZED",
+  "taskDigest": "sha256:607fdd4bebbe68dd5a05b9966709d353ee015f642429e2d1f39adb44ba0df2df",
+  "afterDigest": "sha256:d34228e4cffe6cf54753e3492200f4b89292b7f0de8ade81724d136e945b7369",
+  "manifestDigest": "sha256:c16b7169bac59861ccdead926a654c84d8e9ee156efeb8fb90d6217fbd2086bd",
+  "claimDigest": "sha256:2126dfe78571f99fddc2552941c08932f31263700a8631d3a8474ddc56bf3a7b",
+  "headSha": "77a7ba8cb8d1b7ed62e6a19b664993e6e7b42ff6",
+  "treeSha": "964f47c9a6777f3e45586677f207801823eeab98",
+  "workspace": "/data/data/com.termux/files/home/worktrees/MD-HOME-CSS-CASCADE-COMPOSITION-20261022-ct1072-css-composition-implementation-3c87662f73e4-07f5a488bc69",
+  "issuedAt": "2026-10-24T08:08:09.461Z",
+  "expiresAt": "2026-10-24T08:38:09.461Z",
+  "cessation": {
+    "basis": "REPOSITORY_OWNER_REPORTED_NO_OTHER_WORKERS",
+    "ownerLogin": "luizanunciostoca",
+    "reference": "conversation:01a15822-8562-7478-9704-b21b1c3a8026/Sentinel_47d1367972dc81919a4449d524926012"
+  }
+}
