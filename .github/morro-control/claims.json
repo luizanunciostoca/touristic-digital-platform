@@ -61,7 +61,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "test/css-historical-fixture-stability-20261024",
-      "baseSha": "cee43de6a8a9d6fd71c4a3b6880cdf4e2e3d6442",
+      "baseSha": "66dc6c3950e42669fd423c2eb71c1cd0b733d671",
       "paths": [
         ".morro/changesets/MD-CSS-HISTORICAL-FIXTURE-STABILITY-20261024.json",
         "tooling/control-state/mdctl-task-transfer.test.mjs",
