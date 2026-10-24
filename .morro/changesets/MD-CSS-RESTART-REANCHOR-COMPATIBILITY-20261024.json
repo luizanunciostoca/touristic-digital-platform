@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-RESTART-REANCHOR-COMPATIBILITY-20261024",
   "objective": "reconcile-two-transferred-css-started-tasks-with-exact-main-scheduler-and-historical-identity",
-  "baseSha": "bdc19190acd3892ac67b80cb2ed55f667a584406",
+  "baseSha": "23d2bffdfae72653ef3182a0b0d4373ec20965b2",
   "branch": "fix/css-restart-reanchor-compatibility-20261024",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
