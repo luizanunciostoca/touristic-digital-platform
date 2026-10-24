@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-HISTORICAL-FIXTURE-STABILITY-20261024",
   "objective": "stabilize-historical-css-fixtures-through-manifest-promotion-and-retirement",
-  "baseSha": "cee43de6a8a9d6fd71c4a3b6880cdf4e2e3d6442",
+  "baseSha": "66dc6c3950e42669fd423c2eb71c1cd0b733d671",
   "branch": "test/css-historical-fixture-stability-20261024",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
