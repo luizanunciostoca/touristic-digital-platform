@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RUNTIME-LOGGING-AUTHORITY-20261024",
   "objective": "prepare-specific-runtime-logging-correction-authority",
-  "baseSha": "b96dea9aa2446a129ad657d50ba86c63a422bf70",
-  "branch": "fix/runtime-logging-authority-20261024",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "39d7cb1543dec11f22bbb13648d43ba4f63b810f",
+  "branch": "chore/retire-runtime-logging-authority-20261024",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
