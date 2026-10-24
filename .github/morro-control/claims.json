@@ -56,6 +56,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
+    },
+    "MD-CSS-HISTORICAL-FIXTURE-STABILITY-20261024": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "test/css-historical-fixture-stability-20261024",
+      "baseSha": "cee43de6a8a9d6fd71c4a3b6880cdf4e2e3d6442",
+      "paths": [
+        ".morro/changesets/MD-CSS-HISTORICAL-FIXTURE-STABILITY-20261024.json",
+        "tooling/control-state/mdctl-task-transfer.test.mjs",
+        "tooling/control-state/mdctl-task-reanchor.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T11:59:59.000Z"
     }
   }
 }
