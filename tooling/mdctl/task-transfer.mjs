@@ -218,6 +218,67 @@ export function validateTaskTransfer(input, now = new Date().toISOString()) {
   }
   return taskTransferAfter(task, authority);
 }
+
+/** Hypothetical capacity only: never persist or dispatch the projected manifest.
+ * EXACT-BASE remains mandatory for actual execution. A later restart needs its
+ * own canonical evaluation and leases. Zero scheduler stats certify no diff.
+ * Optional transport adapters serve isolated tests; constructors stay real.
+ */
+export async function evaluateTransferCapacity(
+  { canonicalManifest, expectedMain },
+  transport = {},
+) {
+  const { buildScheduleCandidateItem } = await import("./mdctl.mjs");
+  const { buildSchedulerPlan, loadSchedulerPolicy } =
+    await import("./scheduler.mjs");
+  const liveApi = await import("./scheduler-live.mjs");
+  fail(
+    TRANSFER_SUBJECTS[canonicalManifest?.id] && SHA.test(expectedMain),
+    "CAPACITY_SUBJECT",
+  );
+  validateChangeSetV2(canonicalManifest);
+  const policy = await (transport.loadPolicy ?? loadSchedulerPolicy)();
+  const live = await (transport.collectLive ?? liveApi.collectLivePullWork)({
+    repository: TRANSFER_REPOSITORY,
+    policy,
+  });
+  fail(
+    live.mainSha === expectedMain &&
+      live.authority === "TRUSTED_PR_EXACT_HEADS",
+    "CAPACITY_LIVE_BASE",
+  );
+  const projection = {
+    ...structuredClone(canonicalManifest),
+    baseSha: expectedMain,
+  };
+  const candidate = await buildScheduleCandidateItem({
+    manifest: projection,
+    repository: TRANSFER_REPOSITORY,
+    mainSha: expectedMain,
+    dependencyEvaluator:
+      transport.evaluateDependencies ?? liveApi.evaluateDependenciesAtMain,
+  });
+  const plan = buildSchedulerPlan({
+    mainSha: expectedMain,
+    workItems: [...live.items, candidate],
+    policy,
+  });
+  return {
+    kind: "TDP_HYPOTHETICAL_TRANSFER_CAPACITY",
+    exactMainSha: expectedMain,
+    historicalManifestDigest: changeSetDigest(canonicalManifest),
+    executionAuthorized: false,
+    diffCertified: false,
+    capacityAvailable:
+      plan.dispatchAllowed === true &&
+      plan.violations.length === 0 &&
+      plan.activeWriters.length === 0 &&
+      plan.grants.some(
+        (g) => g.id === canonicalManifest.id && g.exactBaseSha === expectedMain,
+      ),
+  };
+}
+
 const git = (root, ...args) =>
   execFileSync("git", ["-C", root, ...args], {
     encoding: "utf8",
@@ -423,13 +484,18 @@ export async function runTaskTransferCli(args, { root }) {
             { encoding: "utf8", timeout: 30000 },
           ) === "",
       };
-      // Use the canonical scheduler's LIVE view; a caller-supplied plan is not accepted.
-      const schedule = JSON.parse(
+      // Real constructors evaluate capacity; no projected grant leaves the child.
+      const capacity = JSON.parse(
         execFileSync(
           process.execPath,
-          ["tooling/mdctl/mdctl.mjs", "schedule", manifestPath],
+          [
+            "--input-type=module",
+            "-e",
+            "import fs from 'node:fs';import {evaluateTransferCapacity} from './tooling/mdctl/task-transfer.mjs';console.log(JSON.stringify(await evaluateTransferCapacity(JSON.parse(fs.readFileSync(0,'utf8')))));",
+          ],
           {
             cwd: authorityRoot,
+            input: JSON.stringify({ canonicalManifest, expectedMain }),
             encoding: "utf8",
             timeout: 120000,
             maxBuffer: 4 * 1024 * 1024,
@@ -437,13 +503,13 @@ export async function runTaskTransferCli(args, { root }) {
         ),
       );
       fail(
-        schedule.exactMainSha === expectedMain &&
-          schedule.dispatchAllowed === true &&
-          schedule.violations?.length === 0 &&
-          schedule.activeWriters?.length === 0 &&
-          schedule.grants?.some(
-            (grant) => grant.id === id && grant.exactBaseSha === expectedMain,
-          ),
+        capacity.kind === "TDP_HYPOTHETICAL_TRANSFER_CAPACITY" &&
+          capacity.exactMainSha === expectedMain &&
+          capacity.executionAuthorized === false &&
+          capacity.diffCertified === false &&
+          capacity.capacityAvailable === true &&
+          capacity.historicalManifestDigest ===
+            changeSetDigest(canonicalManifest),
         "CURRENT_SCHEDULER_REQUIRED",
       );
       const after = validateTaskTransfer({

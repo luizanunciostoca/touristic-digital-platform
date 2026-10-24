@@ -524,10 +524,28 @@ async function cliFixture(action) {
         new URL("../mdctl/" + name, import.meta.url),
         join(root, "tooling/mdctl", name),
       );
-    // Simulated scheduler boundary only. No operational task, grant or API call.
+    // Only LIVE/dependency transport is simulated. Both scheduler constructors are real.
     fs.writeFileSync(
       join(root, "tooling/mdctl/mdctl.mjs"),
-      "import fs from 'node:fs';console.log(JSON.stringify(JSON.parse(fs.readFileSync(process.env.CSS_TRANSFER_PROVIDER)).schedule));",
+      "export {buildScheduleCandidateItem} from " +
+        JSON.stringify(new URL("../mdctl/mdctl.mjs", import.meta.url).href) +
+        ";",
+    );
+    fs.writeFileSync(
+      join(root, "tooling/mdctl/scheduler.mjs"),
+      "export * from " +
+        JSON.stringify(
+          new URL("../mdctl/scheduler.mjs", import.meta.url).href,
+        ) +
+        ";",
+    );
+    fs.writeFileSync(
+      join(root, "tooling/mdctl/scheduler-live.mjs"),
+      "import fs from 'node:fs';const c=()=>JSON.parse(fs.readFileSync(process.env.CSS_TRANSFER_PROVIDER));export async function collectLivePullWork(){return c().live;}export async function evaluateDependenciesAtMain(){return c().dependencies;}",
+    );
+    fs.copyFileSync(
+      new URL("../../.morro/scheduler-policy.json", import.meta.url),
+      join(root, ".morro/scheduler-policy.json"),
     );
     git("add", ".");
     git("commit", "-m", "fixture authority");
@@ -571,13 +589,8 @@ async function cliFixture(action) {
       registry: {
         claims: { [f.manifest.id]: f.claim },
       },
-      schedule: {
-        exactMainSha: main,
-        dispatchAllowed: true,
-        violations: [],
-        activeWriters: [],
-        grants: [{ id: f.manifest.id, exactBaseSha: main }],
-      },
+      live: { mainSha: main, authority: "TRUSTED_PR_EXACT_HEADS", items: [] },
+      dependencies: { satisfied: true, unresolved: [] },
     };
     fs.writeFileSync(fixturePath, JSON.stringify(config));
     fs.writeFileSync(
@@ -676,18 +689,23 @@ test("concurrent CLI calls serialize with one preserved transaction", async () =
 for (const [name, mutate, code] of [
   [
     "scheduler conflict",
-    (c) => c.schedule.activeWriters.push({ id: "OTHER" }),
+    (c) =>
+      c.live.items.push({
+        changeSet: c.manifest,
+        writerActive: true,
+        invalid: "FIXTURE_CONFLICT",
+      }),
     /CURRENT_SCHEDULER_REQUIRED/,
   ],
   [
-    "missing scheduler grant",
-    (c) => (c.schedule.grants = []),
+    "pending dependency",
+    (c) => (c.dependencies = { satisfied: false, unresolved: ["pending"] }),
     /CURRENT_SCHEDULER_REQUIRED/,
   ],
   [
     "stale scheduler base",
-    (c) => (c.schedule.exactMainSha = "f".repeat(40)),
-    /CURRENT_SCHEDULER_REQUIRED/,
+    (c) => (c.live.mainSha = "f".repeat(40)),
+    /CAPACITY_LIVE_BASE/,
   ],
   [
     "expired live authorization",
@@ -714,3 +732,90 @@ for (const [name, mutate, code] of [
       assert.ok(existsSync(t.lock), "failure retains reconciliation lock");
     });
   });
+
+for (const id of Object.keys(TRANSFER_SUBJECTS)) {
+  test(
+    "real scheduler preserves historical EXACT-BASE and capacity-only semantics: " +
+      id,
+    async () => {
+      const f = fixture(id),
+        original = structuredClone(f),
+        main = "f".repeat(40);
+      const { buildScheduleCandidateItem } = await import("../mdctl/mdctl.mjs");
+      const { buildSchedulerPlan, DEFAULT_SCHEDULER_POLICY } =
+        await import("../mdctl/scheduler.mjs");
+      const { evaluateTransferCapacity } =
+        await import("../mdctl/task-transfer.mjs");
+      const evaluateDependencies = async () => ({
+        satisfied: true,
+        unresolved: [],
+      });
+      const old = await buildScheduleCandidateItem({
+        manifest: f.manifest,
+        mainSha: main,
+        repository: TRANSFER_REPOSITORY,
+        dependencyEvaluator: evaluateDependencies,
+      });
+      assert.equal(old.invalid, "CANDIDATE_EXACT_BASE_MISMATCH");
+      assert.equal(
+        buildSchedulerPlan({ mainSha: main, workItems: [old] }).grants.length,
+        0,
+      );
+      const live = {
+        mainSha: main,
+        authority: "TRUSTED_PR_EXACT_HEADS",
+        items: [],
+      };
+      const transport = {
+        loadPolicy: async () => DEFAULT_SCHEDULER_POLICY,
+        collectLive: async () => live,
+        evaluateDependencies,
+      };
+      const input = { canonicalManifest: f.manifest, expectedMain: main };
+      const result = await evaluateTransferCapacity(input, transport);
+      assert.equal(result.capacityAvailable, true);
+      assert.equal(result.executionAuthorized, false);
+      assert.equal(result.diffCertified, false);
+      assert.equal(result.grants, undefined);
+      assert.equal(result.changeSet, undefined);
+      assert.deepEqual(f, original);
+      const pending = await evaluateTransferCapacity(input, {
+        ...transport,
+        evaluateDependencies: async () => ({
+          satisfied: false,
+          unresolved: ["pending"],
+        }),
+      });
+      assert.equal(pending.capacityAvailable, false);
+      const other = structuredClone(f.manifest);
+      other.id = "MD-OTHER-CAPACITY-20261024";
+      other.baseSha = main;
+      const active = await buildScheduleCandidateItem({
+        manifest: other,
+        mainSha: main,
+        repository: TRANSFER_REPOSITORY,
+        dependencyEvaluator: evaluateDependencies,
+      });
+      active.writerActive = true;
+      live.items = [active];
+      assert.equal(
+        (await evaluateTransferCapacity(input, transport)).capacityAvailable,
+        false,
+      );
+      live.items = Array.from({ length: 3 }, (_, n) => ({
+        ...active,
+        changeSet: {
+          ...other,
+          id: "MD-ACTIVE-" + n,
+          objective: "capacity-" + n,
+          owns: { ...other.owns, paths: ["isolated/" + n] },
+        },
+      }));
+      assert.equal(
+        (await evaluateTransferCapacity(input, transport)).capacityAvailable,
+        false,
+      );
+      assert.deepEqual(f, original);
+    },
+  );
+}
