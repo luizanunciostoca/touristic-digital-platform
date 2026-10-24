@@ -4,7 +4,7 @@
   "objective": "accept-composed-home-css-while-preserving-design-system-order",
   "baseSha": "98e02ead61e2814e5e93f2fa757873554a801537",
   "branch": "test/css-accessibility-entry-contract-20261022",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
@@ -15,9 +15,7 @@
     "contracts": []
   },
   "reads": {
-    "contracts": [
-      "TDP-CONTROL-PLANE-V3.2"
-    ]
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
   },
   "produces": {
     "events": [],
@@ -48,12 +46,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
