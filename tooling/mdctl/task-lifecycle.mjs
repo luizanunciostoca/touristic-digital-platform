@@ -967,6 +967,10 @@ function parseTaskArgs(args) {
 }
 
 export async function runTaskCli(args, { root = process.cwd() } = {}) {
+  if (args[0] === "reanchor") {
+    const { runTaskReanchorCli } = await import("./task-reanchor.mjs");
+    return runTaskReanchorCli(args.slice(1), { root });
+  }
   if (args[0] === "transfer") {
     const { runTaskTransferCli } = await import("./task-transfer.mjs");
     return runTaskTransferCli(args.slice(1), { root });
