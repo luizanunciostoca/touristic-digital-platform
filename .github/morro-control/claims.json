@@ -56,23 +56,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T14:49:42.000Z"
-    },
-    "MD-CSS-RESTART-REANCHOR-COMPATIBILITY-20261024": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/css-restart-reanchor-compatibility-20261024",
-      "baseSha": "23d2bffdfae72653ef3182a0b0d4373ec20965b2",
-      "paths": [
-        ".morro/changesets/MD-CSS-RESTART-REANCHOR-COMPATIBILITY-20261024.json",
-        "tooling/mdctl/task-lifecycle.mjs",
-        "tooling/mdctl/task-reanchor.mjs",
-        "tooling/control-state/mdctl-task-reanchor.test.mjs",
-        "tooling/control-state/mdctl-task-lifecycle.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-24T11:59:59.000Z"
     }
   }
 }
