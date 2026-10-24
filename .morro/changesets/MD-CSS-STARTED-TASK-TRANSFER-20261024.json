@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CSS-STARTED-TASK-TRANSFER-20261024",
   "objective": "prepare-two-css-started-task-transfers-without-operational-authorization",
-  "baseSha": "873c7d2f38887e3347c89fcf86423908408719f4",
+  "baseSha": "4031171922e035c16cc1a5a9a9e26de46ad0f6cc",
   "branch": "fix/css-started-task-transfer-20261024",
   "state": "IMPLEMENTING",
   "risk": "critical",
