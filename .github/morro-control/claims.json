@@ -42,6 +42,20 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-24T13:32:04.184Z"
+    },
+    "MD-CSS-ENTRY-ORDER-REGRESSION-20261024": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "test/css-entry-order-regression-20261024",
+      "baseSha": "068dc23e5eb425317422eb9f126b02e1922ab867",
+      "paths": [
+        ".morro/changesets/MD-CSS-ENTRY-ORDER-REGRESSION-20261024.json",
+        "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts"
+      ],
+      "domains": ["map"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-24T16:00:00.000Z"
     }
   }
 }
