@@ -1274,3 +1274,47 @@ test("missing start ref cannot be recreated by recovery", async () => {
     rmSync(f.directory, { recursive: true, force: true });
   }
 });
+
+test("recovery rejects altered local transaction bytes before persistence", async () => {
+  const f = await runtimeFixture();
+  f.config.timeoutRefNumber = 2;
+  try {
+    withProvider(f.config, ({ configPath, statePath }) => {
+      const receipt = runCorrectionRuntime({ ...f.options, action: "prepare" });
+      f.consume(receipt, configPath);
+      assert.throws(
+        () => runCorrectionRuntime({ ...f.options, action: "start" }),
+        /Command failed/,
+      );
+      const journalPath = join(f.transactionDir, "journal.ndjson");
+      const records = readCorrectionJournal(journalPath);
+      const intent = records.find((record) => record.stage === "START_INTENT");
+      // Even semantically equivalent bytes must match the remote commitment.
+      intent.value.transaction.task.bytes += "\n";
+      let previous = null;
+      const rewritten =
+        records
+          .map((record) => {
+            const { digest, ...payload } = record;
+            payload.previous = previous;
+            previous = correctionDigest(payload);
+            return JSON.stringify({ ...payload, digest: previous });
+          })
+          .join("\n") + "\n";
+      writeFileSync(journalPath, rewritten);
+      assert.throws(
+        () => runCorrectionRuntime({ ...f.options, action: "recover" }),
+        /CORRECTION_RECOVERY_PAYLOAD_MISMATCH/,
+      );
+      for (const name of [
+        CORRECTION.successor + ".task.json",
+        CORRECTION.successor + ".context-pack.json",
+        "capability-leases.json",
+      ])
+        assert.equal(existsSync(join(f.transactionDir, name)), false);
+      assert.equal(JSON.parse(readFileSync(statePath)).refPosts, 2);
+    });
+  } finally {
+    rmSync(f.directory, { recursive: true, force: true });
+  }
+});

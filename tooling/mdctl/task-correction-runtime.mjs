@@ -451,6 +451,19 @@ export function runCorrectionRuntime({
         intent.value.startPayload,
         "tdp-task-correction-start",
       );
+      assert.deepEqual(
+        intent.value.startPayload,
+        {
+          ...expected,
+          kind: "TDP_GOVERNANCE_CORRECTION_START_INTENT",
+          reservationCommitSha: commit,
+          consumedMainSha: token.mainSha,
+          candidateSha: intent.value.identity.headSha,
+          treeSha: intent.value.identity.treeSha,
+          transactionDigest: correctionDigest(intent.value.transaction),
+        },
+        "CORRECTION_RECOVERY_PAYLOAD_MISMATCH",
+      );
       persistCorrectionTransaction(directory, intent.value.transaction);
       append(journal, "PERSISTENCE_RECONCILED", {
         startIntentDigest: intent.digest,
