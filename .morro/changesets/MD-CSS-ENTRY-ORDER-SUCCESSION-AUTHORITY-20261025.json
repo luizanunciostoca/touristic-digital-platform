@@ -56,11 +56,12 @@
     },
     "commands": [
       {
-        "id": "claim-lifecycle-contract",
+        "id": "css-entry-order-correction",
         "argv": [
           "node",
           "--test",
-          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+          "tooling/control-state/mdctl-task-correction.test.mjs",
+          "tooling/control-state/mdctl-css-entry-order-correction.test.mjs"
         ],
         "timeoutSeconds": 300
       }
