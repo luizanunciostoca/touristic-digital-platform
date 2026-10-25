@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawnSync, execFileSync } from "node:child_process";
 import {
   CSS_ENTRY_ORDER_CORRECTION as C,
   CORRECTION,
@@ -23,6 +23,7 @@ import {
   assertCorrectionAuthority,
 } from "../mdctl/task-correction-authority.mjs";
 import {
+  readCssCorrectionCandidate,
   persistCssCorrection,
   prepareCssEntryOrderCorrection,
   validateCssCorrectionInputs,
@@ -558,3 +559,121 @@ test("genuine ISSUED token cannot authorize persistence preparation", () =>
     },
     (c) => (c.issuedOnly = true),
   ));
+
+test("adapter admits only the existing committed reanchor proof", async () => {
+  const { buildClaimReanchor } = await import("../mdctl/claim-lifecycle.mjs");
+  const root = mkdtempSync(join(tmpdir(), "css-reanchor-fixture-"));
+  const git = (...args) =>
+    execFileSync("git", ["-C", root, ...args], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  const commit = () => {
+    git("add", ".");
+    git(
+      "-c",
+      "user.name=Fixture",
+      "-c",
+      "user.email=fixture@example.invalid",
+      "commit",
+      "-qm",
+      "fixture",
+    );
+    return git("rev-parse", "HEAD");
+  };
+  try {
+    git("init", "-q", "-b", C.branch);
+    writeFileSync(join(root, "seed"), "fixture");
+    const seed = commit();
+    const manifest = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../.morro/changesets/MD-CSS-ENTRY-ORDER-SUCCESSION-AUTHORITY-20261025.json",
+          import.meta.url,
+        ),
+      ),
+    );
+    manifest.id = C.successor;
+    manifest.branch = C.branch;
+    manifest.baseSha = seed;
+    manifest.owns.paths = [
+      ".morro/changesets/" + C.successor + ".json",
+      C.productPath,
+    ];
+    const registry = {
+      registryAuthority: "ORCHESTRATOR",
+      claims: {
+        [C.successor]: {
+          owner: C.owner,
+          reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+          branch: C.branch,
+          baseSha: seed,
+          paths: manifest.owns.paths,
+          domains: ["ci-release"],
+          risk: "P0",
+          status: "IMPLEMENTING",
+          expiresAt: "2026-10-25T04:59:59Z",
+        },
+      },
+    };
+    const mp = join(root, ".morro/changesets/" + C.successor + ".json"),
+      rp = join(root, ".github/morro-control/claims.json"),
+      ep = join(root, ".github/morro-control/events.ndjson");
+    mkdirSync(join(root, ".morro/changesets"), { recursive: true });
+    mkdirSync(join(root, ".github/morro-control"), { recursive: true });
+    writeFileSync(mp, JSON.stringify(manifest));
+    writeFileSync(rp, JSON.stringify(registry));
+    writeFileSync(ep, "");
+    const base = commit();
+    const authority = {
+      successor: manifest,
+      claim: registry.claims[C.successor],
+    };
+    assert.throws(
+      () =>
+        readCssCorrectionCandidate({
+          workspace: root,
+          expectedMain: base,
+          authority,
+          identity: { headSha: base },
+        }),
+      /CANDIDATE_BASE/,
+    );
+    const transition = buildClaimReanchor({
+      registry,
+      ledgerText: "",
+      manifest,
+      newBaseSha: base,
+      observedAt: "2026-10-25T03:00:00Z",
+    });
+    writeFileSync(mp, JSON.stringify(transition.manifest));
+    writeFileSync(rp, JSON.stringify(transition.registry));
+    writeFileSync(ep, transition.ledgerText);
+    const head = commit();
+    const result = readCssCorrectionCandidate({
+      workspace: root,
+      expectedMain: base,
+      authority,
+      identity: { headSha: head },
+    });
+    assert.equal(result.successor.baseSha, base);
+    assert.equal(result.reanchorProof.headSha, head);
+    assert.deepEqual(result.registry, transition.registry);
+    const expanded = structuredClone(transition.registry);
+    expanded.claims[C.successor].paths.push("apps/**");
+    writeFileSync(rp, JSON.stringify(expanded));
+    const bad = commit();
+    assert.throws(
+      () =>
+        readCssCorrectionCandidate({
+          workspace: root,
+          expectedMain: base,
+          authority,
+          identity: { headSha: bad },
+        }),
+      /ONLY_TARGET_BASE_MAY_CHANGE/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

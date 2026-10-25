@@ -24,8 +24,11 @@ import {
   collectCorrectionAuthority,
   assertCorrectionAuthority,
   correctionDigest,
+  correctionEnvelope,
   CSS_ENTRY_ORDER_CORRECTION as C,
 } from "./task-correction-authority.mjs";
+
+import { buildClaimReanchorProof } from "../fabric/claim-guard.mjs";
 
 const check = (value, code) => assert.ok(value, "CSS_CORRECTION_" + code);
 const same = (a, b, code) => assert.deepEqual(a, b, "CSS_CORRECTION_" + code);
@@ -179,6 +182,47 @@ export function persistCssCorrection({
   }
 }
 
+// Read a committed, canonically proven reanchor; never synthesize or write one.
+// Canonical grants bind the envelope, while the existing reanchor certificate
+// binds the current base and the exact candidate registry/ledger transition.
+export function readCssCorrectionCandidate({
+  workspace,
+  expectedMain,
+  authority,
+  identity,
+}) {
+  const manifestPath = ".morro/changesets/" + C.successor + ".json";
+  const successor = json(join(workspace, manifestPath));
+  same(
+    correctionEnvelope(successor),
+    correctionEnvelope(authority.successor),
+    "CANONICAL_ENVELOPE",
+  );
+  same(successor.baseSha, expectedMain, "CANDIDATE_BASE");
+  same(successor.id, C.successor, "SUCCESSOR");
+  same(successor.branch, C.branch, "BRANCH");
+  const registry = JSON.parse(
+    git(
+      workspace,
+      "show",
+      identity.headSha + ":.github/morro-control/claims.json",
+    ),
+  );
+  const canonical = JSON.parse(
+    git(workspace, "show", expectedMain + ":.github/morro-control/claims.json"),
+  );
+  same(canonical.claims[C.successor], authority.claim, "CLAIM_READBACK");
+  let reanchorProof;
+  if (authority.successor.baseSha !== expectedMain) {
+    reanchorProof = buildClaimReanchorProof(workspace, {
+      baseSha: expectedMain,
+      headSha: identity.headSha,
+      manifestPath,
+    });
+  } else same(registry, canonical, "CANONICAL_REGISTRY");
+  return { successor, registry, reanchorProof };
+}
+
 // Explicit library entrypoint only. No CLI registration, issuance, consumption,
 // workflow, dispatch or task execution. A canonical CONSUMED grant is a separate
 // reviewed transition; absent/ISSUED/revoked grants cannot reach persistence.
@@ -312,15 +356,19 @@ export async function prepareCssEntryOrderCorrection({
     expectedMain,
     successor: C.successor,
   });
-  const successor = authority.successor;
-  same(
-    json(join(workspace, ".morro/changesets/" + C.successor + ".json")),
-    successor,
-    "CANONICAL_MANIFEST",
-  );
   const identity = await collectTaskGitIdentity(workspace, expectedMain);
   same(identity.branch, C.branch, "TARGET_BRANCH");
   same(identity.dirty, false, "TARGET_DIRTY");
+  const {
+    successor,
+    registry: canonicalRegistry,
+    reanchorProof,
+  } = readCssCorrectionCandidate({
+    workspace,
+    expectedMain,
+    authority,
+    identity,
+  });
   validateCssCorrectionInputs({
     task,
     changeSet,
@@ -331,24 +379,10 @@ export async function prepareCssEntryOrderCorrection({
     workspace,
     grant: authority.grant,
   });
-  const claimRegistry = {
-    schemaVersion: 1,
-    registryAuthority: "ORCHESTRATOR",
-    claims: { [C.successor]: authority.claim },
-  };
-  // Use the complete current-main registry, preserving collision checks.
-  same(git(root, "rev-parse", "HEAD"), expectedMain, "TRUSTED_HEAD");
-  const canonicalRegistry = JSON.parse(
-    git(root, "show", expectedMain + ":.github/morro-control/claims.json"),
-  );
-  same(
-    canonicalRegistry.claims[C.successor],
-    claimRegistry.claims[C.successor],
-    "CLAIM_READBACK",
-  );
   const isAncestor = (a, b) => git(workspace, "merge-base", a, b) === a;
   const proposal = buildTaskCorrection({
     authority,
+    reanchorProof,
     task,
     changeSet,
     handoff,
