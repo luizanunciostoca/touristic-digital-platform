@@ -1,7 +1,19 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { canonicalJson, changeSetDigest } from "./changeset-v2.mjs";
+import { readFileSync } from "node:fs";
+import { buildDispatchRequest } from "./dispatch-runtime.mjs";
+import {
+  assertCanonicalRetirementTransition,
+  validateCandidateRetirementManifest,
+  validateClaimRetirements,
+  validateRetirementEvents,
+} from "../fabric/claim-retirement-proof.mjs";
+import {
+  canonicalJson,
+  changeSetDigest,
+  validateChangeSetV2,
+} from "./changeset-v2.mjs";
 
 // Only explicitly reviewed corrections are eligible; this is not
 // a general delegation facility. GOVERNANCE remains the default.
@@ -741,4 +753,619 @@ export function assertCorrectionAuthority(
     "TASK_CORRECTION_CLAIM_CHANGED",
   );
   return token;
+}
+
+// Cloud artifact recovery is a distinct, inert proposal. It never enters the
+// Native authority WeakSet and cannot be consumed as a correction grant.
+export const CLOUD_CSS_RECOVERY = Object.freeze({
+  repository: CORRECTION.repository,
+  owner: CORRECTION.owner,
+  operatorLogin: "luizanunciostoca",
+  operatorId: 318748875,
+  predecessor: CSS_ENTRY_ORDER_CORRECTION.predecessor,
+  supersedes: CSS_ENTRY_ORDER_CORRECTION.successor,
+  successor: "MD-CSS-ENTRY-ORDER-CLOUD-RECOVERY-20261027",
+  branch: "fix/css-entry-order-cloud-recovery-20261027",
+  path: ".morro/task-corrections/MD-CSS-ENTRY-ORDER-CLOUD-RECOVERY-20261027.json",
+});
+const cloudFields = [
+  "schemaVersion",
+  "kind",
+  "repository",
+  "owner",
+  "predecessor",
+  "supersedes",
+  "successor",
+  "branch",
+  "sourceMainSha",
+  "originKey",
+  "claimDigest",
+  "envelopeDigest",
+  "workspace",
+  "nonce",
+  "issuedAt",
+  "expiresAt",
+  "retirements",
+  "approval",
+  "state",
+];
+function cloudTime(value) {
+  const parsed = Date.parse(value);
+  assert.ok(
+    typeof value === "string" &&
+      Number.isFinite(parsed) &&
+      new Date(parsed).toISOString() === value,
+    "CLOUD_DECLARATION_TIME",
+  );
+  return parsed;
+}
+const cloudCore = ({ approval, state, ...value }) => value;
+export function cloudCorrectionApprovalBody(value) {
+  validateCloudCorrectionProposal(value);
+  return (
+    "TDP_CLOUD_CSS_ARTIFACT_RECOVERY\n" +
+    correctionDigest(cloudCore(value)) +
+    "\nDeclaration only; no grant, dispatch, or attestation of prior writer cessation."
+  );
+}
+export function validateCloudCorrectionProposal(value) {
+  closed(value, cloudFields, "CLOUD_DECLARATION_FIELDS");
+  const p = CLOUD_CSS_RECOVERY;
+  assert.equal(value.schemaVersion, 1, "CLOUD_DECLARATION_VERSION");
+  assert.equal(
+    value.kind,
+    "TDP_CLOUD_CSS_ARTIFACT_RECOVERY",
+    "CLOUD_DECLARATION_KIND",
+  );
+  for (const key of [
+    "repository",
+    "owner",
+    "predecessor",
+    "supersedes",
+    "successor",
+    "branch",
+  ])
+    assert.equal(value[key], p[key], "CLOUD_DECLARATION_IDENTITY:" + key);
+  assert.match(value.sourceMainSha ?? "", SHA, "CLOUD_DECLARATION_SOURCE");
+  assert.equal(
+    value.originKey,
+    correctionKey(
+      CSS_ENTRY_ORDER_CORRECTION.handoffDigest,
+      CSS_ENTRY_ORDER_CORRECTION.successor,
+    ),
+    "CLOUD_DECLARATION_ORIGIN",
+  );
+  for (const key of ["claimDigest", "envelopeDigest"])
+    assert.match(value[key] ?? "", HASH, "CLOUD_DECLARATION_DIGEST");
+  assert.match(
+    value.nonce ?? "",
+    /^[a-f0-9]{32,128}$/u,
+    "CLOUD_DECLARATION_NONCE",
+  );
+  const issued = cloudTime(value.issuedAt),
+    expires = cloudTime(value.expiresAt);
+  assert.ok(
+    expires > issued && expires - issued <= 1800000,
+    "CLOUD_DECLARATION_WINDOW",
+  );
+  assert.ok(
+    ["ISSUED", "REVOKED"].includes(value.state),
+    "CLOUD_DECLARATION_STATE",
+  );
+  closed(
+    value.workspace,
+    ["executor", "path", "headSha", "treeSha"],
+    "CLOUD_WORKSPACE_FIELDS",
+  );
+  assert.equal(value.workspace.executor, "codex", "CLOUD_WORKSPACE_EXECUTOR");
+  assert.match(
+    value.workspace.path ?? "",
+    /^\/workspace\/[a-zA-Z0-9][a-zA-Z0-9_-]{2,119}$/u,
+    "CLOUD_WORKSPACE_PATH",
+  );
+  assert.equal(
+    value.workspace.headSha,
+    value.sourceMainSha,
+    "CLOUD_WORKSPACE_ANCHOR",
+  );
+  assert.match(value.workspace.treeSha ?? "", SHA, "CLOUD_WORKSPACE_TREE");
+  closed(value.retirements, ["product", "grant"], "CLOUD_RETIREMENTS_FIELDS");
+  for (const sha of Object.values(value.retirements))
+    assert.match(sha ?? "", SHA, "CLOUD_RETIREMENT_SHA");
+  assert.notEqual(
+    value.retirements.product,
+    value.retirements.grant,
+    "CLOUD_RETIREMENTS_DISTINCT",
+  );
+  closed(value.approval, ["issue", "comment"], "CLOUD_APPROVAL_FIELDS");
+  for (const n of Object.values(value.approval))
+    assert.ok(Number.isSafeInteger(n) && n > 0, "CLOUD_APPROVAL_ID");
+  return value;
+}
+export function validateCloudCorrectionHistory(history, now) {
+  assert.ok(
+    Array.isArray(history) && history.length > 0 && history.length <= 32,
+    "CLOUD_HISTORY_BOUND",
+  );
+  const clock = cloudTime(now),
+    seen = new Set();
+  let first, last;
+  for (const item of history) {
+    closed(item, ["commitSha", "proposal"], "CLOUD_HISTORY_FIELDS");
+    assert.match(item.commitSha ?? "", SHA, "CLOUD_HISTORY_COMMIT");
+    assert.ok(!seen.has(item.commitSha), "CLOUD_HISTORY_DUPLICATE");
+    seen.add(item.commitSha);
+    validateCloudCorrectionProposal(item.proposal);
+    if (!first) {
+      assert.equal(item.proposal.state, "ISSUED", "CLOUD_HISTORY_INITIAL");
+      first = item;
+    } else {
+      assert.deepEqual(
+        cloudCore(item.proposal),
+        cloudCore(first.proposal),
+        "CLOUD_HISTORY_CORE_CHANGED",
+      );
+      assert.deepEqual(
+        item.proposal.approval,
+        first.proposal.approval,
+        "CLOUD_HISTORY_APPROVAL_CHANGED",
+      );
+      assert.equal(last.proposal.state, "ISSUED", "CLOUD_HISTORY_TERMINAL");
+      assert.equal(item.proposal.state, "REVOKED", "CLOUD_HISTORY_REISSUE");
+    }
+    last = item;
+  }
+  assert.ok(
+    cloudTime(first.proposal.issuedAt) <= clock &&
+      clock < cloudTime(first.proposal.expiresAt),
+    "CLOUD_HISTORY_EXPIRED_OR_FUTURE",
+  );
+  assert.equal(last.proposal.state, "ISSUED", "CLOUD_HISTORY_REVOKED");
+  return { proposal: last.proposal, issuedCommitSha: first.commitSha };
+}
+function cloudHistoryCommits(path, ref, maximum = 32) {
+  // A single bounded page, before any history blob reads. A full page fails
+  // closed; no deletion/recreation or excess history is silently discarded.
+  const commits = correctionGithub(
+    "repos/" +
+      CORRECTION.repository +
+      "/commits?sha=" +
+      ref +
+      "&path=" +
+      encodeURIComponent(path) +
+      "&per_page=" +
+      (maximum + 1) +
+      "&page=1",
+  );
+  assert.ok(
+    Array.isArray(commits) && commits.length <= maximum,
+    "CLOUD_HISTORY_BOUND",
+  );
+  for (const item of commits)
+    assert.match(item.sha ?? "", SHA, "CLOUD_HISTORY_COMMIT");
+  return commits;
+}
+function cloudApproval(proposal, observedAt) {
+  const p = CLOUD_CSS_RECOVERY,
+    root = "repos/" + p.repository;
+  const ref = proposal.approval;
+  const issue = correctionGithub(root + "/issues/" + ref.issue);
+  assert.equal(issue.number, ref.issue, "CLOUD_APPROVAL_ISSUE");
+  assert.equal(
+    issue.html_url,
+    "https://github.com/" + p.repository + "/issues/" + ref.issue,
+    "CLOUD_APPROVAL_ISSUE_URL",
+  );
+  const comment = correctionGithub(root + "/issues/comments/" + ref.comment);
+  assert.equal(comment.id, ref.comment, "CLOUD_APPROVAL_COMMENT");
+  assert.equal(
+    comment.issue_url,
+    "https://api.github.com/" + root + "/issues/" + ref.issue,
+    "CLOUD_APPROVAL_ISSUE_BINDING",
+  );
+  assert.equal(
+    comment.html_url,
+    issue.html_url + "#issuecomment-" + ref.comment,
+    "CLOUD_APPROVAL_URL",
+  );
+  assert.equal(comment.user?.login, p.operatorLogin, "CLOUD_APPROVAL_LOGIN");
+  assert.equal(comment.user?.id, p.operatorId, "CLOUD_APPROVAL_ACTOR");
+  assert.equal(comment.user?.type, "User", "CLOUD_APPROVAL_ACTOR_TYPE");
+  assert.equal(
+    comment.author_association,
+    "OWNER",
+    "CLOUD_APPROVAL_ASSOCIATION",
+  );
+  assert.equal(comment.performed_via_github_app, null, "CLOUD_APPROVAL_APP");
+  assert.equal(
+    comment.body,
+    cloudCorrectionApprovalBody(proposal),
+    "CLOUD_APPROVAL_BODY",
+  );
+  assert.equal(comment.created_at, comment.updated_at, "CLOUD_APPROVAL_EDITED");
+  assert.match(
+    comment.created_at ?? "",
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u,
+    "CLOUD_APPROVAL_TIME",
+  );
+  const created = cloudTime(comment.created_at.replace("Z", ".000Z"));
+  assert.ok(
+    created >= cloudTime(proposal.issuedAt) && created <= cloudTime(observedAt),
+    "CLOUD_APPROVAL_TIME",
+  );
+  return comment;
+}
+function cloudRetirement(
+  id,
+  mergeSha,
+  sourceMain,
+  expectedMain,
+  registry,
+  declaredAt,
+) {
+  const root = "repos/" + CORRECTION.repository;
+  assertCanonicalAncestor(mergeSha, sourceMain);
+  const commit = correctionGithub(root + "/commits/" + mergeSha);
+  assert.equal(commit.sha, mergeSha, "CLOUD_RETIREMENT_COMMIT");
+  assert.equal(commit.parents?.length, 2, "CLOUD_RETIREMENT_MERGE_REQUIRED");
+  const [base, head] = commit.parents.map((parent) => parent.sha);
+  const prs = correctionGithub(
+    root + "/commits/" + mergeSha + "/pulls?per_page=100",
+  );
+  assert.ok(
+    Array.isArray(prs) && prs.length < 100,
+    "CLOUD_RETIREMENT_PR_BOUND",
+  );
+  const matches = prs.filter(
+    (pr) => pr.merge_commit_sha === mergeSha && pr.base?.ref === "main",
+  );
+  assert.equal(matches.length, 1, "CLOUD_RETIREMENT_PR_UNIQUE");
+  const pr = correctionGithub(root + "/pulls/" + matches[0].number);
+  assert.equal(pr.merged, true, "CLOUD_RETIREMENT_PR_MERGED");
+  assert.equal(pr.merge_commit_sha, mergeSha, "CLOUD_RETIREMENT_PR_MERGE");
+  assert.equal(pr.base?.sha, base, "CLOUD_RETIREMENT_PR_BASE");
+  assert.equal(pr.head?.sha, head, "CLOUD_RETIREMENT_PR_HEAD");
+  for (const side of [pr.base, pr.head])
+    assert.equal(
+      side.repo?.full_name,
+      CORRECTION.repository,
+      "CLOUD_RETIREMENT_PR_REPOSITORY",
+    );
+  const headCommit = correctionGithub(root + "/commits/" + head);
+  assert.equal(
+    headCommit.commit?.tree?.sha,
+    commit.commit?.tree?.sha,
+    "CLOUD_RETIREMENT_TREE",
+  );
+  const manifestPath = ".morro/changesets/" + id + ".json";
+  const paths = [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+    manifestPath,
+  ];
+  assert.deepEqual(
+    commit.files?.map((f) => f.filename).sort(),
+    [...paths].sort(),
+    "CLOUD_RETIREMENT_PATHS",
+  );
+  assert.ok(
+    commit.files.every((f) => f.status === "modified"),
+    "CLOUD_RETIREMENT_FILE_STATUS",
+  );
+  const before = jsonBlob(paths[0], base),
+    after = jsonBlob(paths[0], mergeSha);
+  assert.deepEqual(
+    assertCanonicalRetirementTransition(before, after).removed,
+    [id],
+    "CLOUD_RETIREMENT_ID",
+  );
+  const oldText = readBlob(paths[1], base).bytes.toString("utf8");
+  const newText = readBlob(paths[1], mergeSha).bytes.toString("utf8");
+  assert.ok(newText.startsWith(oldText), "CLOUD_RETIREMENT_LEDGER_PREFIX");
+  const events = newText
+    .slice(oldText.length)
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.equal(events.length, 1, "CLOUD_RETIREMENT_EVENT_COUNT");
+  const when = cloudTime(events[0].observedAt);
+  assert.ok(
+    when <= cloudTime(declaredAt) && when <= Date.now(),
+    "CLOUD_RETIREMENT_FUTURE",
+  );
+  const claim = before.claims[id];
+  const evidence = {
+    id,
+    branch: claim.branch,
+    baseSha: claim.baseSha,
+    reason: "EXPIRED",
+  };
+  validateClaimRetirements({
+    baseRegistry: before,
+    candidateRegistry: after,
+    evidenceById: { [id]: evidence },
+    now: when,
+  });
+  validateRetirementEvents({
+    canonicalText: oldText,
+    candidateText: newText,
+    claimId: id,
+    expectedBaseSha: base,
+    evidence,
+    requestedReason: events[0].payload?.requestedReason,
+  });
+  const retired = readBlob(manifestPath, mergeSha);
+  validateCandidateRetirementManifest(JSON.parse(retired.bytes), {
+    claimId: id,
+    expectedBaseSha: base,
+    canonicalManifest: jsonBlob(manifestPath, base),
+    evidence,
+  });
+  assert.equal(
+    readBlob(manifestPath, expectedMain).sha,
+    retired.sha,
+    "CLOUD_RETIREMENT_MANIFEST_CHANGED",
+  );
+  assert.equal(
+    Object.hasOwn(registry.claims, id),
+    false,
+    "CLOUD_RETIREMENT_CLAIM_PRESENT",
+  );
+  return {
+    id,
+    mergeSha,
+    baseSha: base,
+    headSha: head,
+    treeSha: commit.commit.tree.sha,
+    prNumber: pr.number,
+    reason: "EXPIRED",
+    observedAt: events[0].observedAt,
+  };
+}
+export function collectCloudCorrectionProposal(options) {
+  closed(options, ["expectedMain"], "CLOUD_COLLECTOR_OPTIONS");
+  const { expectedMain } = options,
+    p = CLOUD_CSS_RECOVERY;
+  assert.match(expectedMain ?? "", SHA, "CLOUD_COLLECTOR_MAIN");
+  const root = "repos/" + p.repository,
+    now = new Date().toISOString();
+  assert.equal(
+    correctionGithub(root + "/commits/main").sha,
+    expectedMain,
+    "CLOUD_MAIN_MOVED",
+  );
+  const commits = cloudHistoryCommits(p.path, expectedMain);
+  const history = commits
+    .toReversed()
+    .map(({ sha }) => ({ commitSha: sha, proposal: jsonBlob(p.path, sha) }));
+  const { proposal, issuedCommitSha } = validateCloudCorrectionHistory(
+    history,
+    now,
+  );
+  assert.deepEqual(
+    jsonBlob(p.path, expectedMain),
+    proposal,
+    "CLOUD_HISTORY_CURRENT",
+  );
+  assertCanonicalAncestor(proposal.sourceMainSha, issuedCommitSha);
+  assertCanonicalAncestor(issuedCommitSha, expectedMain);
+  const approval = cloudApproval(proposal, now);
+  const registry = jsonBlob(".github/morro-control/claims.json", expectedMain);
+  assert.equal(
+    registry.registryAuthority,
+    "ORCHESTRATOR",
+    "CLOUD_REGISTRY_AUTHORITY",
+  );
+  const claim = registry.claims?.[p.successor],
+    manifestPath = ".morro/changesets/" + p.successor + ".json";
+  assert.equal(claim?.owner, p.owner, "CLOUD_CLAIM_OWNER");
+  assert.equal(claim.branch, p.branch, "CLOUD_CLAIM_BRANCH");
+  assert.equal(claim.status, "IMPLEMENTING", "CLOUD_CLAIM_STATE");
+  assert.deepEqual(claim.domains, ["map"], "CLOUD_CLAIM_DOMAINS");
+  assert.equal(claim.risk, "P1", "CLOUD_CLAIM_RISK");
+  assert.equal(
+    claim.reviewer,
+    "AUTOMATED-INDEPENDENT-PROOF",
+    "CLOUD_CLAIM_REVIEWER",
+  );
+  assert.ok(
+    cloudTime(claim.expiresAt) >= cloudTime(proposal.expiresAt),
+    "CLOUD_CLAIM_WINDOW",
+  );
+  assert.equal(
+    correctionDigest(correctionClaim(claim)),
+    proposal.claimDigest,
+    "CLOUD_CLAIM_DIGEST",
+  );
+  const manifest = validateChangeSetV2(jsonBlob(manifestPath, expectedMain));
+  assert.equal(manifest.state, "IMPLEMENTING", "CLOUD_MANIFEST_STATE");
+  assert.equal(manifest.baseSha, claim.baseSha, "CLOUD_BASE_BINDING");
+  assertCanonicalAncestor(manifest.baseSha, proposal.sourceMainSha);
+  assert.equal(manifest.id, p.successor, "CLOUD_MANIFEST_ID");
+  assert.equal(manifest.branch, p.branch, "CLOUD_MANIFEST_BRANCH");
+  assert.equal(manifest.scope, "DESTINATION:MORRO", "CLOUD_MANIFEST_SCOPE");
+  assert.equal(
+    correctionDigest(correctionEnvelope(manifest)),
+    proposal.envelopeDigest,
+    "CLOUD_ENVELOPE_DIGEST",
+  );
+  const paths = [manifestPath, CSS_ENTRY_ORDER_CORRECTION.productPath].sort();
+  assert.deepEqual([...claim.paths].sort(), paths, "CLOUD_CLAIM_PATHS");
+  assert.deepEqual(
+    [...manifest.owns.paths].sort(),
+    paths,
+    "CLOUD_MANIFEST_PATHS",
+  );
+  // Even expired overlapping declarations must be reconciled explicitly.
+  for (const [id, other] of Object.entries(registry.claims)) {
+    if (id === p.successor) continue;
+    assert.ok(Array.isArray(other.paths), "CLOUD_REGISTRY_PATHS");
+    for (const a of other.paths)
+      for (const b of paths)
+        assert.ok(
+          ![
+            a === b,
+            b.startsWith(a.replace(/\/$/u, "") + "/"),
+            a.startsWith(b + "/"),
+            a.includes("*"),
+          ].some(Boolean),
+          "CLOUD_CLAIM_COLLISION",
+        );
+  }
+  assertRetiredCssIdentity(expectedMain, registry, proposal.sourceMainSha);
+  const retirements = [
+    cloudRetirement(
+      p.supersedes,
+      proposal.retirements.product,
+      proposal.sourceMainSha,
+      expectedMain,
+      registry,
+      proposal.issuedAt,
+    ),
+    cloudRetirement(
+      "MD-CSS-ENTRY-ORDER-GRANT-R2-20261027",
+      proposal.retirements.grant,
+      proposal.sourceMainSha,
+      expectedMain,
+      registry,
+      proposal.issuedAt,
+    ),
+  ];
+  assert.equal(
+    cloudHistoryCommits(CSS_ENTRY_ORDER_CORRECTION.path, expectedMain, 0)
+      .length,
+    0,
+    "CLOUD_PRIOR_NATIVE_GRANT_HISTORY",
+  );
+  const origin = CSS_ENTRY_ORDER_CORRECTION;
+  const source = correctionGithub(root + "/commits/" + origin.preservedSha);
+  assert.equal(source.sha, origin.preservedSha, "CLOUD_SOURCE_COMMIT");
+  assert.equal(
+    source.commit?.tree?.sha,
+    "ccacb2ae3c47260b2a9c9a132704bf02ce727a94",
+    "CLOUD_SOURCE_TREE",
+  );
+  assert.equal(
+    readBlob(origin.productPath, origin.preservedSha).sha,
+    origin.productBlob,
+    "CLOUD_SOURCE_PRODUCT",
+  );
+  assert.equal(
+    readBlob(
+      ".morro/changesets/" + p.predecessor + ".json",
+      origin.preservedSha,
+    ).sha,
+    "630879dc8e21829937acd9288cfbf9e7225aa446",
+    "CLOUD_SOURCE_MANIFEST",
+  );
+  const historical = validateChangeSetV2(
+    jsonBlob(
+      ".morro/changesets/" + p.predecessor + ".json",
+      origin.preservedSha,
+    ),
+  );
+  historical.owns.paths = historical.owns.paths.map((path) =>
+    path === ".morro/changesets/" + p.predecessor + ".json"
+      ? manifestPath
+      : path,
+  );
+  assert.deepEqual(
+    correctionEnvelope(manifest),
+    correctionEnvelope(historical),
+    "CLOUD_HISTORICAL_ENVELOPE_CHANGED",
+  );
+  const comparison = correctionGithub(
+    root + "/compare/" + origin.handoffSha + "..." + origin.preservedSha,
+  );
+  assert.equal(
+    comparison.base_commit?.sha,
+    origin.handoffSha,
+    "CLOUD_HANDOFF_BASE",
+  );
+  assert.equal(
+    comparison.merge_base_commit?.sha,
+    origin.handoffSha,
+    "CLOUD_HANDOFF_ANCESTRY",
+  );
+  assert.equal(comparison.status, "ahead", "CLOUD_HANDOFF_STATUS");
+  assert.deepEqual(
+    comparison.files?.map((f) => [f.filename, f.status]),
+    [[".morro/changesets/" + p.predecessor + ".json", "modified"]],
+    "CLOUD_HANDOFF_DELTA",
+  );
+  const anchor = correctionGithub(root + "/commits/" + proposal.sourceMainSha);
+  assert.equal(anchor.sha, proposal.sourceMainSha, "CLOUD_ANCHOR_COMMIT");
+  assert.equal(
+    anchor.commit?.tree?.sha,
+    proposal.workspace.treeSha,
+    "CLOUD_ANCHOR_TREE",
+  );
+  for (const path of [
+    "tooling/mdctl/task-correction-authority.mjs",
+    "tooling/mdctl/dispatch-runtime.mjs",
+    "tooling/fabric/claim-retirement-proof.mjs",
+    "tooling/fabric/claim-guard.mjs",
+    "tooling/mdctl/changeset-v2.mjs",
+    "tooling/mdctl/event-ledger.mjs",
+    origin.productPath,
+  ]) {
+    const anchored = readBlob(path, proposal.sourceMainSha).sha;
+    assert.equal(
+      anchored,
+      readBlob(path, expectedMain).sha,
+      "CLOUD_ANCHOR_BYTES_CHANGED",
+    );
+    if (path.startsWith("tooling/")) {
+      const bytes = readFileSync(new URL("../../" + path, import.meta.url));
+      const localSha = createHash("sha1")
+        .update("blob " + bytes.length + "\0")
+        .update(bytes)
+        .digest("hex");
+      assert.equal(localSha, anchored, "CLOUD_EXECUTING_VALIDATOR_CHANGED");
+    }
+  }
+  const observedAt = new Date().toISOString();
+  assert.deepEqual(
+    cloudApproval(proposal, observedAt),
+    approval,
+    "CLOUD_APPROVAL_CHANGED",
+  );
+  assert.equal(
+    correctionGithub(root + "/commits/main").sha,
+    expectedMain,
+    "CLOUD_MAIN_MOVED",
+  );
+  validateCloudCorrectionHistory(history, new Date().toISOString());
+  const declaredRequest = buildDispatchRequest({
+    grant: {
+      id: p.successor,
+      exactBaseSha: proposal.sourceMainSha,
+      objective: manifest.objective,
+    },
+    workspace: {
+      ready: true,
+      path: proposal.workspace.path,
+      runtime: "native",
+      exactBaseSha: proposal.sourceMainSha,
+    },
+    executor: proposal.workspace.executor,
+  });
+  return freeze({
+    status: "DECLARATION_VERIFIED",
+    operationalAuthority: false,
+    proposal,
+    issuedCommitSha,
+    currentMainSha: expectedMain,
+    observedAt,
+    retirements,
+    declaredRequest,
+    requiresReanchor: proposal.sourceMainSha !== expectedMain,
+    unverified: [
+      "WORKSPACE_EXISTENCE_AND_ISOLATION",
+      "PRIOR_WRITER_CESSATION",
+      "ATOMIC_RESERVATION_AND_REPLAY_PROTECTION",
+      "EXECUTOR_READBACK",
+      "EXECUTION_ADMISSION",
+    ],
+  });
 }
