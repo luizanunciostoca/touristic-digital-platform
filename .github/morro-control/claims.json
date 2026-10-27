@@ -111,6 +111,47 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T20:00:00.000Z"
+    },
+    "MD-CSS-ARTIFACT-RECOVERY-20261027": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/css-artifact-recovery-20261027",
+      "baseSha": "3b7a6d06c80bc2e877db498b84dbfdcbe91e873f",
+      "paths": [
+        "apps/morro-digital-platform/package.json",
+        "apps/morro-digital-platform/public/index.html",
+        "apps/morro-digital-platform/public/service-worker.js",
+        "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+        "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+        "apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.ts",
+        "apps/morro-digital-platform/src/map/feature-styles.test.ts",
+        "apps/morro-digital-platform/src/map/feature-styles.ts",
+        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
+        "apps/morro-digital-platform/src/onboarding/public-onboarding.ts",
+        "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
+        "apps/morro-digital-platform/src/ux/css-cascade-contract.ts",
+        "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/legacy-css-bundle-v2-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts",
+        "apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/stylelint-governance-v2-contract.test.ts",
+        "apps/morro-digital-platform/src/weather/weather-forecast-modal.ts",
+        "pnpm-lock.yaml",
+        "tooling/ci/build-entry-css.mjs",
+        "tooling/ci/build-entry-css.test.mjs",
+        "tooling/ci/css-cascade-transition.test.mjs",
+        "tooling/ci/entry-css-manifest.json",
+        ".morro/changesets/MD-CSS-ARTIFACT-RECOVERY-20261027.json"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-27T23:59:59.000Z"
     }
   }
 }
