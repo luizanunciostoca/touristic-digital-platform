@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { canonicalJson, changeSetDigest } from "./changeset-v2.mjs";
 
-// Only the two explicitly reviewed corrections are eligible; this is not
+// Only explicitly reviewed corrections are eligible; this is not
 // a general delegation facility. GOVERNANCE remains the default.
 export const CORRECTION = Object.freeze({
   repository: "luizanunciostoca/touristic-digital-platform",
@@ -23,14 +23,43 @@ export const RUNTIME_LOGGING_CORRECTION = Object.freeze({
   branch: "fix/task-correction-runtime-logging-20261024",
   path: ".morro/task-corrections/MD-TASK-CORRECTION-RUNTIME-LOGGING-20261024.json",
 });
+// This profile alone grants nothing: an independently reviewed canonical grant,
+// consumed reservation and current claim remain mandatory. No issuance API here.
+export const CSS_ENTRY_ORDER_CORRECTION = Object.freeze({
+  repository: CORRECTION.repository,
+  owner: CORRECTION.owner,
+  executor: CORRECTION.executor,
+  predecessor: "MD-CSS-ENTRY-ORDER-REGRESSION-20261024",
+  successor: "MD-CSS-ENTRY-ORDER-CORRECTION-20261025",
+  branch: "fix/css-entry-order-correction-20261025",
+  path: ".morro/task-corrections/MD-CSS-ENTRY-ORDER-CORRECTION-20261025.json",
+  taskDigest:
+    "sha256:f7272bdc71184c2126ac18ad43bc9fefb49787da75091abb5a3f758882f1771c",
+  handoffDigest:
+    "sha256:0777a2e98cfb63f4af6d3d75d6d429c9186ae1afe7461c2e2da36f4b8c3bc940",
+  manifestDigest:
+    "sha256:364a314466ceeaf61600a4ccf64e20a7d65d70dddcdac6a44132794a35e3f715",
+  handoffSha: "91cf3647afbcc66fa0a8938305a2adabaee10d2a",
+  preservedSha: "1d1120a59b2a9fd7f5edcf25924fca1b369f6f2f",
+  productPath:
+    "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts",
+  productBlob: "9e190c930ce3794bf71521130124f7fa2f16be7e",
+  nativeHome: "/data/data/com.termux/files/home",
+  predecessorDirectory:
+    "MD-CSS-ENTRY-ORDER-REGRESSION-20261024-ct1072-css-entry-order-regression-20261024-068dc23e5eb4",
+});
 function correctionProfile(successor = CORRECTION.successor) {
-  const profile = [CORRECTION, RUNTIME_LOGGING_CORRECTION].find(
-    (candidate) => candidate.successor === successor,
-  );
+  const profile = [
+    CORRECTION,
+    RUNTIME_LOGGING_CORRECTION,
+    CSS_ENTRY_ORDER_CORRECTION,
+  ].find((candidate) => candidate.successor === successor);
   assert.ok(profile, "CORRECTION_GRANT_IDENTITY:successor");
   return profile;
 }
 function correctionKind(profile) {
+  if (profile === CSS_ENTRY_ORDER_CORRECTION)
+    return "TDP_CSS_ENTRY_ORDER_CORRECTION_DELEGATION";
   return profile === CORRECTION
     ? "TDP_GOVERNANCE_CORRECTION_DELEGATION"
     : "TDP_RUNTIME_LOGGING_CORRECTION_DELEGATION";
@@ -89,7 +118,8 @@ function closed(value, expected, code) {
   assert.deepEqual(Object.keys(value).sort(), [...expected].sort(), code);
 }
 export function validateCorrectionGrant(grant) {
-  closed(grant, keys, "CORRECTION_GRANT_FIELDS");
+  const css = grant?.successor === CSS_ENTRY_ORDER_CORRECTION.successor;
+  closed(grant, css ? [...keys, "workspace"] : keys, "CORRECTION_GRANT_FIELDS");
   assert.equal(grant.schemaVersion, 1, "CORRECTION_GRANT_VERSION");
   const profile = correctionProfile(grant.successor);
   assert.equal(grant.kind, correctionKind(profile), "CORRECTION_GRANT_KIND");
@@ -114,6 +144,29 @@ export function validateCorrectionGrant(grant) {
     "claimDigest",
   ])
     assert.match(grant[field], HASH, "CORRECTION_GRANT_DIGEST:" + field);
+  if (css) {
+    for (const field of ["taskDigest", "handoffDigest", "manifestDigest"])
+      assert.equal(
+        grant[field],
+        CSS_ENTRY_ORDER_CORRECTION[field],
+        "CSS_CORRECTION_PIN:" + field,
+      );
+    const prefix =
+      CSS_ENTRY_ORDER_CORRECTION.nativeHome +
+      "/worktrees/" +
+      CSS_ENTRY_ORDER_CORRECTION.successor +
+      "-";
+    assert.ok(
+      typeof grant.workspace === "string" &&
+        grant.workspace.startsWith(prefix) &&
+        /^[a-z0-9-]{12,120}$/u.test(grant.workspace.slice(prefix.length)),
+      "CSS_CORRECTION_WORKSPACE",
+    );
+    assert.ok(
+      Date.parse(grant.expiresAt) - Date.parse(grant.issuedAt) <= 1800000,
+      "CSS_CORRECTION_VALIDITY",
+    );
+  }
   assert.match(
     grant.nonce,
     /^[a-zA-Z0-9-]{20,80}$/u,
@@ -353,6 +406,23 @@ export function collectCorrectionAuthority(options) {
     Date.parse(claim.expiresAt) > Date.parse(observedAt),
     "CORRECTION_CLAIM_EXPIRED",
   );
+  if (profile === CSS_ENTRY_ORDER_CORRECTION) {
+    const paths = [
+      ".morro/changesets/" + profile.successor + ".json",
+      profile.productPath,
+    ].sort();
+    assert.deepEqual(
+      [...claim.paths].sort(),
+      paths,
+      "CSS_CORRECTION_CLAIM_PATHS",
+    );
+    assert.deepEqual(
+      [...successor.owns.paths].sort(),
+      paths,
+      "CSS_CORRECTION_MANIFEST_PATHS",
+    );
+    assert.equal(successor.scope, "DESTINATION:MORRO", "CSS_CORRECTION_SCOPE");
+  }
   const token = freeze({
     ...checked,
     mainSha: expectedMain,
