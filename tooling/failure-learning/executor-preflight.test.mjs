@@ -134,6 +134,10 @@ function cloudFixture() {
     attempt: 1,
   };
   const expected = {
+    executor: "chatgpt-control",
+    workspacePath: "/tmp/cloud-fixture",
+    runtime: "native",
+    objective: null,
     repository: "example/product",
     operator: { login: "example-owner", id: 123 },
     claimId: "MD-CLOUD-FIXTURE",
@@ -341,4 +345,80 @@ test("missing inputs remain preparation failures and cannot dispatch", () => {
     assert.equal(result.compatible, false);
     assert.equal(authorizeDispatch(result).result, "BLOCK");
   }
+});
+
+for (const [field, change, code] of [
+  [
+    "path",
+    (x) => (x.dispatch.workspace.path = "/tmp/copied-workspace"),
+    "WORKSPACE_PATH_BINDING_MISMATCH",
+  ],
+  [
+    "executor",
+    (x) => (x.dispatch.executor = "codex"),
+    "EXECUTOR_BINDING_MISMATCH",
+  ],
+  [
+    "objective",
+    (x) => (x.dispatch.grant.objective = "different-objective"),
+    "OBJECTIVE_BINDING_MISMATCH",
+  ],
+])
+  test(
+    "coordinated proposal and dispatch mutation cannot change expected " +
+      field,
+    () => {
+      const input = cloudFixture();
+      change(input);
+      input.proposal.request = buildDispatchRequest(input.dispatch);
+      const result = evaluateCloudDispatchProposal(input);
+      assert.equal(result.compatible, false);
+      assert.ok(result.findings.includes(code));
+      assert.equal(result.request, null);
+    },
+  );
+
+test("impossible calendar dates cannot be normalized into a valid window", () => {
+  const input = cloudFixture();
+  input.now = "2026-03-02T13:00:00Z";
+  input.proposal.issuedAt = "2026-02-30T12:59:00Z";
+  input.proposal.expiresAt = "2026-02-30T13:10:00Z";
+  assert.ok(
+    evaluateCloudDispatchProposal(input).findings.includes("WINDOW_INVALID"),
+  );
+});
+
+for (const field of ["runtime", "objective"])
+  for (const [label, payload] of [
+    ["object", { syntheticMarker: "must-not-echo" }],
+    ["function", () => {}],
+    ["oversized", "x".repeat(2048)],
+  ])
+    test(
+      "untrusted " +
+        field +
+        " " +
+        label +
+        " is rejected without echo or clone error",
+      () => {
+        const input = cloudFixture();
+        if (field === "runtime") input.dispatch.workspace.runtime = payload;
+        else input.dispatch.grant.objective = payload;
+        input.proposal.request = buildDispatchRequest(input.dispatch);
+        const result = evaluateCloudDispatchProposal(input);
+        assert.ok(result.findings.includes("DISPATCH_INPUT_INVALID"));
+        assert.equal(result.compatible, false);
+        assert.equal(result.request, null);
+        assert.ok(!JSON.stringify(result).includes("must-not-echo"));
+      },
+    );
+
+test("extra dispatch fields cannot define an unreviewed protocol", () => {
+  const input = cloudFixture();
+  input.dispatch.workspace.authorization = true;
+  assert.ok(
+    evaluateCloudDispatchProposal(input).findings.includes(
+      "DISPATCH_INPUT_INVALID",
+    ),
+  );
 });

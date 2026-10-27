@@ -16,13 +16,45 @@ export function evaluateCloudDispatchProposal(input = {}) {
   const sha = /^[a-f0-9]{40}$/u;
   const digest = /^sha256:[a-f0-9]{64}$/u;
   const identifier = /^[A-Z][A-Z0-9-]{2,119}$/u;
-  const instant = (value) =>
-    typeof value === "string" &&
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
-      ? Date.parse(value)
+  const instant = (value) => {
+    if (
+      typeof value !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
+    )
+      return NaN;
+    const parsed = Date.parse(value);
+    const canonical = value.includes(".") ? value : value.replace("Z", ".000Z");
+    return Number.isFinite(parsed) &&
+      new Date(parsed).toISOString() === canonical
+      ? parsed
       : NaN;
+  };
+  const fields = (value, allowed) =>
+    value !== null &&
+    typeof value === "object" &&
+    [Object.prototype, null].includes(Object.getPrototypeOf(value)) &&
+    Object.keys(value).every((key) => allowed.includes(key));
+  const dispatch = input.dispatch;
+  const objective = dispatch?.grant?.objective ?? null;
+  const validDispatch =
+    fields(dispatch, ["grant", "workspace", "executor", "attempt"]) &&
+    fields(dispatch.grant, [
+      "id",
+      "changeSetId",
+      "exactBaseSha",
+      "objective",
+    ]) &&
+    fields(dispatch.workspace, ["ready", "path", "runtime", "exactBaseSha"]) &&
+    identifier.test(dispatch.grant.id ?? dispatch.grant.changeSetId ?? "") &&
+    typeof dispatch.workspace.path === "string" &&
+    dispatch.workspace.path.length <= 1024 &&
+    dispatch.workspace.runtime === "native" &&
+    (objective === null ||
+      (typeof objective === "string" &&
+        /^[a-z0-9][a-z0-9-]{0,239}$/u.test(objective)));
   let request = null;
   try {
+    if (!validDispatch) throw new Error("INVALID_DECLARED_DISPATCH");
     request = buildDispatchRequest(input.dispatch);
   } catch {
     findings.push("DISPATCH_INPUT_INVALID");
@@ -31,6 +63,13 @@ export function evaluateCloudDispatchProposal(input = {}) {
     request?.executor === "codex" || request?.executor === "chatgpt-control",
     "EXECUTOR_ROLE_INVALID",
   );
+  add(request?.executor === expected.executor, "EXECUTOR_BINDING_MISMATCH");
+  add(
+    request?.workspacePath === expected.workspacePath,
+    "WORKSPACE_PATH_BINDING_MISMATCH",
+  );
+  add(request?.runtime === expected.runtime, "RUNTIME_BINDING_MISMATCH");
+  add(request?.objective === expected.objective, "OBJECTIVE_BINDING_MISMATCH");
   add(
     isDeepStrictEqual(proposal.request, request),
     "DISPATCH_BINDING_MISMATCH",
@@ -126,7 +165,7 @@ export function evaluateCloudDispatchProposal(input = {}) {
     status: "PREPARATION_ONLY",
     operationalAuthority: false,
     compatible: findings.length === 0,
-    request: request ? structuredClone(request) : null,
+    request: findings.length === 0 ? structuredClone(request) : null,
     findings: [...new Set(findings)],
     unverified: [
       "PROVIDER_ORIGIN_AND_CURRENT_AUTHORIZATION",
