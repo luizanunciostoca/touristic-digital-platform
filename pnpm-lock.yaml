@@ -134,6 +134,16 @@ importers:
       "@touristic/ticketing-server":
         specifier: workspace:*
         version: link:../../services/ticketing
+    devDependencies:
+      cssnano:
+        specifier: 9.9.0
+        version: 9.9.0(postcss@8.5.29)
+      esbuild:
+        specifier: 0.28.1
+        version: 0.28.1
+      postcss:
+        specifier: 8.5.29
+        version: 8.5.29
 
   packages/affiliates: {}
 
@@ -346,6 +356,19 @@ importers:
         version: 3.23.3(@types/node@24.13.3)
 
 packages:
+  "@colordx/core@7.3.0":
+    resolution:
+      {
+        integrity: sha512-LVzTTPhX7wpy7TkGjouA9zbbCBIw92RGm7ZQqSKFE0oYE3sMx2FGXz90eVpgw7k/+wrrY+qJ86nHXifZWMS5jA==,
+      }
+
+  "@csstools/css-tokenizer@4.0.2":
+    resolution:
+      {
+        integrity: sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==,
+      }
+    engines: { node: ">=20.19.0" }
+
   "@esbuild/aix-ppc64@0.28.1":
     resolution:
       {
@@ -1180,6 +1203,14 @@ packages:
       }
     engines: { node: 18 || 20 || >=22 }
 
+  baseline-browser-mapping@2.11.30:
+    resolution:
+      {
+        integrity: sha512-YJs6Pz17RMNv8HoyKREtCY38E3BV1nPkWVmIb+XN1uHC1Vqt3KZCH/uJH9ZKRoiKb/icZ6tvehyee6RZNbFfRA==,
+      }
+    engines: { node: ">=6.0.0" }
+    hasBin: true
+
   brace-expansion@1.1.21:
     resolution:
       {
@@ -1193,12 +1224,32 @@ packages:
       }
     engines: { node: 20 || >=22 }
 
+  browserslist@4.29.4:
+    resolution:
+      {
+        integrity: sha512-2TcbbiwXEq+N0kD36tykpCfyyQigUXmuwNQbnPp4Xk4PX9JOqVIKjJlIDjpH7uY6tmRGoAd+apeT1p60T8wsdA==,
+      }
+    engines: { node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7 }
+    hasBin: true
+
   callsites@3.1.0:
     resolution:
       {
         integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==,
       }
     engines: { node: ">=6" }
+
+  caniuse-api@4.0.0:
+    resolution:
+      {
+        integrity: sha512-B0hQ1OLyJuHTQSOWXvwibWqM6DCoqJdvBA6X1S/53bd4XU7LJ1yurIPlrsouol3mw1jh9pGI4ivubSpmJeIqCA==,
+      }
+
+  caniuse-lite@1.0.30001819:
+    resolution:
+      {
+        integrity: sha512-LFUqIIAwpzsIuevnKnsR9qnStBcgzPShTX61lBwN9uFkkf8o8zLiebEjbW8AYtZiF+1YKDWfdt/pWDtMuG8Xwg==,
+      }
 
   chai@6.2.2:
     resolution:
@@ -1246,6 +1297,15 @@ packages:
       }
     engines: { node: ">= 8" }
 
+  cssnano@9.9.0:
+    resolution:
+      {
+        integrity: sha512-JS914Th2NRk2979JHJvbE3UjPtLmyXtPnr23NNul9BOQwEt9r/A2aM1STrKtKHAPc3XRaUDwMoqkXnjEpgHkAw==,
+      }
+    engines: { node: ^22.22.3 || ^24.15.0 || >=26.0 }
+    peerDependencies:
+      postcss: ^8.5.29
+
   debug@4.4.3:
     resolution:
       {
@@ -1264,6 +1324,12 @@ packages:
         integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==,
       }
 
+  electron-to-chromium@1.5.463:
+    resolution:
+      {
+        integrity: sha512-nVWNU6ltFjopvOdD44J4zoBkgO0M+WZiFKKFV7EjebOH9z0KNphk6bCEjplXtJofL21ARIuuwWOCsFkBVklm6w==,
+      }
+
   es-module-lexer@2.3.2:
     resolution:
       {
@@ -1277,6 +1343,13 @@ packages:
       }
     engines: { node: ">=18" }
     hasBin: true
+
+  escalade@3.2.0:
+    resolution:
+      {
+        integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==,
+      }
+    engines: { node: ">=6" }
 
   escape-string-regexp@4.0.0:
     resolution:
@@ -1647,6 +1720,13 @@ packages:
         integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==,
       }
 
+  node-releases@2.0.60:
+    resolution:
+      {
+        integrity: sha512-OmO8+GM1JUZqXET720VrJCwkjUCXmCMQm0Z3UDDRbfNLHS4NEAvY60j5jiFv0tkKw2PNNlqOLhahVmwJIOLDIQ==,
+      }
+    engines: { node: ">=18" }
+
   obug@2.2.1:
     resolution:
       {
@@ -1715,10 +1795,26 @@ packages:
       }
     engines: { node: ">=12" }
 
+  postcss-calc@11.2.3:
+    resolution:
+      {
+        integrity: sha512-pFW3MR2a4W7uHcSGUiyQGGXZWHon83ljbNwnUJ1mRKublWQbv+3o9NiqhlV4TJfNby+U+zLY2OgiywzhA5eFqw==,
+      }
+    engines: { node: ^22.22.3 || ^24.15 || >=26.0 }
+    peerDependencies:
+      postcss: ^8.5.29
+
   postcss@8.5.25:
     resolution:
       {
         integrity: sha512-DTPx3RWSSnWyzLxQnlH0rJP+EW5ekl16ZU4/psbIhA0e53kJfdgaN5vKM+xP7yJtXVu+nfdVFmlgFDEKAe4Pyw==,
+      }
+    engines: { node: ^10 || ^12 || >=14 }
+
+  postcss@8.5.29:
+    resolution:
+      {
+        integrity: sha512-49cGhUbXj8Qenv0iTMxA1cFBzxXoctpC9Ujd77t1WcbJIr6nF/eI7g/8MgxrYldFRuAXvja7xQRwavoW7kgrxQ==,
       }
     engines: { node: ^10 || ^12 || >=14 }
 
@@ -1907,6 +2003,15 @@ packages:
         integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==,
       }
 
+  update-browserslist-db@1.3.4:
+    resolution:
+      {
+        integrity: sha512-t8wonIOdQyOjtPd2VktlBu6QjTVTks6v8bSi7kd0r2Vll8TK1JYDZtRRdbmCHOAMphkZgrzK+L+vXK4pyZ8t4A==,
+      }
+    hasBin: true
+    peerDependencies:
+      browserslist: ">= 4.21.0"
+
   uri-js@4.4.1:
     resolution:
       {
@@ -2031,6 +2136,10 @@ packages:
     engines: { node: ">=10" }
 
 snapshots:
+  "@colordx/core@7.3.0": {}
+
+  "@csstools/css-tokenizer@4.0.2": {}
+
   "@esbuild/aix-ppc64@0.28.1":
     optional: true
 
@@ -2445,6 +2554,8 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
+  baseline-browser-mapping@2.11.30: {}
+
   brace-expansion@1.1.21:
     dependencies:
       balanced-match: 1.0.2
@@ -2454,7 +2565,22 @@ snapshots:
     dependencies:
       balanced-match: 4.0.4
 
+  browserslist@4.29.4:
+    dependencies:
+      baseline-browser-mapping: 2.11.30
+      caniuse-lite: 1.0.30001819
+      electron-to-chromium: 1.5.463
+      node-releases: 2.0.60
+      update-browserslist-db: 1.3.4(browserslist@4.29.4)
+
   callsites@3.1.0: {}
+
+  caniuse-api@4.0.0:
+    dependencies:
+      browserslist: 4.29.4
+      caniuse-lite: 1.0.30001819
+
+  caniuse-lite@1.0.30001819: {}
 
   chai@6.2.2: {}
 
@@ -2479,11 +2605,22 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
+  cssnano@9.9.0(postcss@8.5.29):
+    dependencies:
+      "@colordx/core": 7.3.0
+      "@csstools/css-tokenizer": 4.0.2
+      browserslist: 4.29.4
+      caniuse-api: 4.0.0
+      postcss: 8.5.29
+      postcss-calc: 11.2.3(postcss@8.5.29)
+
   debug@4.4.3:
     dependencies:
       ms: 2.1.3
 
   deep-is@0.1.4: {}
+
+  electron-to-chromium@1.5.463: {}
 
   es-module-lexer@2.3.2: {}
 
@@ -2515,6 +2652,8 @@ snapshots:
       "@esbuild/win32-arm64": 0.28.1
       "@esbuild/win32-ia32": 0.28.1
       "@esbuild/win32-x64": 0.28.1
+
+  escalade@3.2.0: {}
 
   escape-string-regexp@4.0.0: {}
 
@@ -2720,6 +2859,8 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
+  node-releases@2.0.60: {}
+
   obug@2.2.1: {}
 
   optionator@0.9.4:
@@ -2753,7 +2894,18 @@ snapshots:
 
   picomatch@4.0.5: {}
 
+  postcss-calc@11.2.3(postcss@8.5.29):
+    dependencies:
+      "@csstools/css-tokenizer": 4.0.2
+      postcss: 8.5.29
+
   postcss@8.5.25:
+    dependencies:
+      nanoid: 3.3.19
+      picocolors: 1.1.1
+      source-map-js: 1.2.2
+
+  postcss@8.5.29:
     dependencies:
       nanoid: 3.3.19
       picocolors: 1.1.1
@@ -2867,6 +3019,12 @@ snapshots:
   typescript@5.9.3: {}
 
   undici-types@7.18.2: {}
+
+  update-browserslist-db@1.3.4(browserslist@4.29.4):
+    dependencies:
+      browserslist: 4.29.4
+      escalade: 3.2.0
+      picocolors: 1.1.1
 
   uri-js@4.4.1:
     dependencies:

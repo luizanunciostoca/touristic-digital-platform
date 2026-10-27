@@ -34,10 +34,15 @@
     "@touristic/ticketing-server": "workspace:*"
   },
   "scripts": {
-    "build": "node tooling/build-legacy-css.mjs && node tooling/ensure-core-runtime.mjs && tsc -p tsconfig.json",
+    "build": "node tooling/build-legacy-css.mjs && node ../../tooling/ci/build-entry-css.mjs && node tooling/ensure-core-runtime.mjs && tsc -p tsconfig.json",
     "dev": "pnpm -w build && node tooling/dev-server.mjs",
     "lint": "eslint src",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "cssnano": "9.9.0",
+    "esbuild": "0.28.1",
+    "postcss": "8.5.29"
   }
 }
