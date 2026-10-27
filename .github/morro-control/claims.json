@@ -81,6 +81,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T15:00:00.000Z"
+    },
+    "MD-HOME-CSS-RECOVERY-CONTRACT-20261027": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/prepare-composition-recovery-contract-20261027",
+      "baseSha": "c4d51119e09ac0586fca5d0147ee97dc47527762",
+      "paths": [
+        "tooling/mdctl/task-reanchor.mjs",
+        "tooling/control-state/mdctl-task-reanchor.test.mjs",
+        ".morro/changesets/MD-HOME-CSS-RECOVERY-CONTRACT-20261027.json"
+      ],
+      "domains": ["control-plane"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-27T15:00:00.000Z"
     }
   }
 }
