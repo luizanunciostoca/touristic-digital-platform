@@ -30,9 +30,13 @@ export const CSS_ENTRY_ORDER_CORRECTION = Object.freeze({
   owner: CORRECTION.owner,
   executor: CORRECTION.executor,
   predecessor: "MD-CSS-ENTRY-ORDER-REGRESSION-20261024",
-  successor: "MD-CSS-ENTRY-ORDER-CORRECTION-20261025",
-  branch: "fix/css-entry-order-correction-20261025",
-  path: ".morro/task-corrections/MD-CSS-ENTRY-ORDER-CORRECTION-20261025.json",
+  successor: "MD-CSS-ENTRY-ORDER-CORRECTION-R2-20261027",
+  retiredSuccessor: "MD-CSS-ENTRY-ORDER-CORRECTION-20261025",
+  retirementSha: "52aa70c688dc4207af688f5bccfbe633c328ef5e",
+  retiredManifestBlob: "53fa7b91cdbbd3bd91c7beb01975ae6036e818f0",
+  retirementLedgerBlob: "955b53aa2083cdefaaa1bc64eaa4f773cd32db7f",
+  branch: "fix/css-entry-order-correction-r2-20261027",
+  path: ".morro/task-corrections/MD-CSS-ENTRY-ORDER-CORRECTION-R2-20261027.json",
   taskDigest:
     "sha256:f7272bdc71184c2126ac18ad43bc9fefb49787da75091abb5a3f758882f1771c",
   handoffDigest:
@@ -494,7 +498,7 @@ function pages(path) {
   }
   throw new Error("CORRECTION_PAGINATION_INCOMPLETE");
 }
-function jsonBlob(path, ref) {
+function readBlob(path, ref) {
   const value = correctionGithub(
     "repos/" + CORRECTION.repository + "/contents/" + path + "?ref=" + ref,
   );
@@ -506,7 +510,47 @@ function jsonBlob(path, ref) {
     .update(bytes)
     .digest("hex");
   assert.equal(sha, value.sha, "CORRECTION_BLOB_HASH");
-  return JSON.parse(bytes.toString("utf8"));
+  return { bytes, sha };
+}
+function jsonBlob(path, ref) {
+  return JSON.parse(readBlob(path, ref).bytes.toString("utf8"));
+}
+function assertRetiredCssIdentity(expectedMain, registry, sourceMainSha) {
+  const p = CSS_ENTRY_ORDER_CORRECTION;
+  assert.equal(
+    Object.hasOwn(registry.claims ?? {}, p.retiredSuccessor),
+    false,
+    "CSS_RETIRED_CLAIM_PRESENT",
+  );
+  assertCanonicalAncestor(p.retirementSha, sourceMainSha);
+  assertCanonicalAncestor(p.retirementSha, expectedMain);
+  const manifestPath = ".morro/changesets/" + p.retiredSuccessor + ".json";
+  assert.equal(
+    readBlob(manifestPath, p.retirementSha).sha,
+    p.retiredManifestBlob,
+    "CSS_RETIREMENT_MANIFEST",
+  );
+  assert.equal(
+    readBlob(".github/morro-control/events.ndjson", p.retirementSha).sha,
+    p.retirementLedgerBlob,
+    "CSS_RETIREMENT_LEDGER",
+  );
+  assert.equal(
+    readBlob(manifestPath, expectedMain).sha,
+    p.retiredManifestBlob,
+    "CSS_RETIRED_MANIFEST_CHANGED",
+  );
+  const history = pages(
+    "repos/" +
+      p.repository +
+      "/commits?sha=" +
+      expectedMain +
+      "&path=" +
+      encodeURIComponent(
+        ".morro/task-corrections/" + p.retiredSuccessor + ".json",
+      ),
+  );
+  assert.equal(history.length, 0, "CSS_RETIRED_GRANT_HISTORY");
 }
 export function collectCorrectionAuthority(options) {
   assert.ok(
@@ -573,6 +617,11 @@ export function collectCorrectionAuthority(options) {
     expectedMain,
   );
   if (profile === CSS_ENTRY_ORDER_CORRECTION) {
+    assertRetiredCssIdentity(
+      expectedMain,
+      registry,
+      checked.grant.provisioningLease.sourceMainSha,
+    );
     assertCanonicalAncestor(
       checked.grant.provisioningLease.sourceMainSha,
       checked.issuedCommitSha,

@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   readFileSync,
+  readdirSync,
   realpathSync,
   lstatSync,
   existsSync,
@@ -32,6 +33,7 @@ import {
 
 import { buildClaimReanchorProof } from "../fabric/claim-guard.mjs";
 import { buildClaimReanchor } from "./claim-lifecycle.mjs";
+import { validateLeaseRegistry } from "./capability-leases.mjs";
 
 const check = (value, code) => assert.ok(value, "CSS_CORRECTION_" + code);
 const same = (a, b, code) => assert.deepEqual(a, b, "CSS_CORRECTION_" + code);
@@ -65,6 +67,67 @@ function pathPresent(path) {
     if (error.code === "ENOENT") return false;
     throw error;
   }
+}
+// Inventory only the fixed canonical directories; never discover another root.
+// Expired metadata does not prove the earlier successor was never provisioned.
+function assertRetiredNativeIdentityAbsent() {
+  const home = join(C.nativeHome, "worktrees");
+  same(realpathSync(home), home, "RETIRED_INVENTORY_PATH");
+  check(
+    !readdirSync(home).some(
+      (name) =>
+        name === C.retiredSuccessor ||
+        name.startsWith(C.retiredSuccessor + "-"),
+    ),
+    "RETIRED_WORKSPACE_PRESENT",
+  );
+  const meta = join(home, ".morro-meta");
+  if (pathPresent(meta)) {
+    same(realpathSync(meta), meta, "RETIRED_META_PATH");
+    check(
+      !readdirSync(meta).some((name) =>
+        name.startsWith(C.retiredSuccessor + "-"),
+      ),
+      "RETIRED_RECEIPT_PRESENT",
+    );
+  }
+  const inventory = git(nativeCommon, "worktree", "list", "--porcelain");
+  check(
+    !inventory
+      .split("\n")
+      .some(
+        (line) =>
+          line.startsWith("worktree ") &&
+          (line.slice(9).split("/").at(-1) ?? "").startsWith(
+            C.retiredSuccessor + "-",
+          ),
+      ),
+    "RETIRED_REGISTERED_WORKSPACE",
+  );
+  const sourceState = resolve(
+    predecessorWorkspace,
+    git(predecessorWorkspace, "rev-parse", "--git-path", "morro-control"),
+  );
+  for (const suffix of ["task", "handoff", "context-pack"])
+    check(
+      !pathPresent(
+        join(sourceState, C.retiredSuccessor + "." + suffix + ".json"),
+      ),
+      "RETIRED_TASK_PRESENT",
+    );
+  const captured = snapshot(join(sourceState, "capability-leases.json"));
+  const leases = validateLeaseRegistry(JSON.parse(captured.bytes));
+  same(
+    snapshot(captured.path).bytes,
+    captured.bytes,
+    "RETIRED_LEASE_INPUT_CHANGED",
+  );
+  check(
+    !Object.values(leases.leases).some(
+      (lease) => lease.changeSetId === C.retiredSuccessor,
+    ),
+    "RETIRED_LEASE_PRESENT",
+  );
 }
 function snapshot(path) {
   check(
@@ -163,6 +226,7 @@ export function bindCssCorrectionWorkspace({
 }) {
   check(/^[a-f0-9]{40}$/u.test(candidateSha), "BIND_CANDIDATE");
   trustedPreparationRoot(root, expectedMain);
+  assertRetiredNativeIdentityAbsent();
   const authority = assertCssProvisioningAuthority(
     collectCorrectionAuthority({ expectedMain, successor: C.successor }),
     "CONSUMED",
@@ -229,6 +293,7 @@ export function bindCssCorrectionWorkspace({
   mkdirSync(lock, { mode: 0o700 });
   let checkoutAttempted = false;
   const stable = () => {
+    assertRetiredNativeIdentityAbsent();
     const fresh = assertCssProvisioningAuthority(
       collectCorrectionAuthority({ expectedMain, successor: C.successor }),
       "CONSUMED",
@@ -273,6 +338,7 @@ export function bindCssCorrectionWorkspace({
       ),
       "RESERVATION_REPLAY",
     );
+    assertRetiredNativeIdentityAbsent();
     assertCssProvisioningAuthority(fresh, "CONSUMED");
   };
   try {
@@ -315,6 +381,7 @@ export function bindCssCorrectionWorkspace({
 // separately obtain a reviewed canonical ISSUED grant; absence fails closed.
 export function prepareCssCorrectionWorkspace({ root, expectedMain }) {
   trustedPreparationRoot(root, expectedMain);
+  assertRetiredNativeIdentityAbsent();
   const authority = assertCssProvisioningAuthority(
     collectCorrectionAuthority({ expectedMain, successor: C.successor }),
   );
@@ -391,6 +458,7 @@ export function prepareCssCorrectionWorkspace({ root, expectedMain }) {
   let controllerAttempted = false;
   let stage = "AUTHORITY_RECHECK";
   const stable = () => {
+    assertRetiredNativeIdentityAbsent();
     const fresh = assertCssProvisioningAuthority(
       collectCorrectionAuthority({ expectedMain, successor: C.successor }),
     );
@@ -449,6 +517,7 @@ export function prepareCssCorrectionWorkspace({ root, expectedMain }) {
         "PROVISION_DIRTY",
       );
     }
+    assertRetiredNativeIdentityAbsent();
     assertCssProvisioningAuthority(fresh);
   };
   try {
@@ -914,6 +983,7 @@ export async function prepareCssEntryOrderCorrection({
     "",
     "SOURCE_DIRTY",
   );
+  assertRetiredNativeIdentityAbsent();
   const authority = collectCorrectionAuthority({
     expectedMain,
     successor: C.successor,
@@ -1030,13 +1100,16 @@ export async function prepareCssEntryOrderCorrection({
       canonicalJson(authority.grant),
       "GRANT_CHANGED",
     );
-    return () =>
-      assertCorrectionAuthority(fresh, {
+    assertRetiredNativeIdentityAbsent();
+    return () => {
+      assertRetiredNativeIdentityAbsent();
+      return assertCorrectionAuthority(fresh, {
         task,
         changeSet,
         successor,
         claim: fresh.claim,
       });
+    };
   };
   return persistCssCorrection({
     common,
