@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-P2-BOOTSTRAP-COVERAGE-20261025",
+  "objective": "acquire-bounded-bootstrap-coverage-for-independent-review",
+  "baseSha": "6d88118729d104cb19cf9c52ed5189877de63e07",
+  "branch": "chore/acquire-bootstrap-coverage-r2-20261027",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      "tooling/control-state/trust-root-reconciliation.test.mjs",
+      ".morro/changesets/MD-P2-BOOTSTRAP-COVERAGE-20261025.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 60
+    },
+    "commands": [
+      {
+        "id": "bootstrap-path-coverage",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/trust-root-reconciliation.test.mjs"
+        ],
+        "timeoutSeconds": 60
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
