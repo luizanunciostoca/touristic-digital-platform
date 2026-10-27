@@ -114,7 +114,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/cloud-p2-authority-preparation-20261027",
-      "baseSha": "9191ae39e24a086aa9302c5a0c512d21c7fb2d4a",
+      "baseSha": "fccdc72fa25fa5a842c4161e2a856431ce2f8063",
       "paths": [
         "tooling/mdctl/task-correction-authority.mjs",
         "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
