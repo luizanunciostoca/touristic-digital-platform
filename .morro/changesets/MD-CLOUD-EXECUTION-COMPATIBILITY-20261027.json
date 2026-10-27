@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CLOUD-EXECUTION-COMPATIBILITY-20261027",
   "objective": "prepare-inactive-operator-bound-cloud-execution-compatibility",
-  "baseSha": "922fd701b9a126c7745d29fa42b62606463f6a5a",
+  "baseSha": "bac7b4221a1c35df98b96c774d2955158343790c",
   "branch": "chore/cloud-execution-compatibility-20261027",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {

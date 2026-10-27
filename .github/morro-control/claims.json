@@ -115,7 +115,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/cloud-execution-compatibility-20261027",
-      "baseSha": "922fd701b9a126c7745d29fa42b62606463f6a5a",
+      "baseSha": "bac7b4221a1c35df98b96c774d2955158343790c",
       "paths": [
         "tooling/failure-learning/executor-preflight.mjs",
         "tooling/failure-learning/executor-preflight.test.mjs",
