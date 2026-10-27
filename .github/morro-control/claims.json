@@ -39,7 +39,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/acquire-p2-provisioning-r3-20261027",
-      "baseSha": "62235cd50568d67dfddd8cdd409c3176629afe1d",
+      "baseSha": "aa37a4f3d687740121d2dc2a6eff6e1b3a0cad15",
       "paths": [
         "tooling/mdctl/task-correction-authority.mjs",
         "tooling/mdctl/css-entry-order-correction-runtime.mjs",

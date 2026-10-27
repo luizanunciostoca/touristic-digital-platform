@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CSS-ENTRY-ORDER-PROVISIONING-R3-20261027",
   "objective": "prepare-bounded-native-css-entry-order-succession-authority",
-  "baseSha": "62235cd50568d67dfddd8cdd409c3176629afe1d",
+  "baseSha": "aa37a4f3d687740121d2dc2a6eff6e1b3a0cad15",
   "branch": "chore/acquire-p2-provisioning-r3-20261027",
   "state": "LOCAL_PROVEN",
   "risk": "critical",
