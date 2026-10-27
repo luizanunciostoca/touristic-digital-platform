@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-MYSQL-LIBBROTLI-SECURITY-20261027",
+  "objective": "patch-oracle-libbrotli-in-mysql-images-without-database-or-runtime-policy-changes",
+  "baseSha": "52aa70c688dc4207af688f5bccfbe633c328ef5e",
+  "branch": "chore/acquire-mysql-libbrotli-20261027",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-MYSQL-LIBBROTLI-SECURITY-20261027.json",
+      "tooling/render/mysql-staging/Dockerfile",
+      "tooling/render/mysql-production/Dockerfile",
+      "tooling/render/mysql-production-dr/Dockerfile",
+      "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "mysql-image-security-source-regressions",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/mysql-gosu-go-builder-contract.test.mjs",
+          "tooling/quality/production-mysql-dr-contract.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

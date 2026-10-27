@@ -64,6 +64,23 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T12:00:00.000Z"
+    },
+    "MD-MYSQL-LIBBROTLI-SECURITY-20261027": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/acquire-mysql-libbrotli-20261027",
+      "baseSha": "52aa70c688dc4207af688f5bccfbe633c328ef5e",
+      "paths": [
+        ".morro/changesets/MD-MYSQL-LIBBROTLI-SECURITY-20261027.json",
+        "tooling/render/mysql-staging/Dockerfile",
+        "tooling/render/mysql-production/Dockerfile",
+        "tooling/render/mysql-production-dr/Dockerfile",
+        "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-27T14:00:00.000Z"
     }
   }
 }
