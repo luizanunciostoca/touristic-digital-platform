@@ -422,3 +422,13 @@ test("extra dispatch fields cannot define an unreviewed protocol", () => {
     ),
   );
 });
+
+for (const ready of ["false", 1, {}])
+  test("workspace readiness must be the boolean true: " + typeof ready, () => {
+    const input = cloudFixture();
+    input.dispatch.workspace.ready = ready;
+    const result = evaluateCloudDispatchProposal(input);
+    assert.equal(result.compatible, false);
+    assert.ok(result.findings.includes("DISPATCH_INPUT_INVALID"));
+    assert.equal(result.request, null);
+  });

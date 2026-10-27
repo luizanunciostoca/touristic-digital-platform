@@ -46,6 +46,7 @@ export function evaluateCloudDispatchProposal(input = {}) {
     ]) &&
     fields(dispatch.workspace, ["ready", "path", "runtime", "exactBaseSha"]) &&
     identifier.test(dispatch.grant.id ?? dispatch.grant.changeSetId ?? "") &&
+    dispatch.workspace.ready === true &&
     typeof dispatch.workspace.path === "string" &&
     dispatch.workspace.path.length <= 1024 &&
     dispatch.workspace.runtime === "native" &&
