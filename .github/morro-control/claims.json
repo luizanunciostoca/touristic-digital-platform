@@ -35,22 +35,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T08:00:00.000Z"
     },
-    "MD-CSS-ENTRY-ORDER-SUCCESSION-R2-20261027": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/acquire-p2-extension-r2-20261027",
-      "baseSha": "7c65b82291b13b28fa466e608adc76ccb5ccd206",
-      "paths": [
-        "tooling/mdctl/task-correction-authority.mjs",
-        "tooling/mdctl/css-entry-order-correction-runtime.mjs",
-        "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
-        ".morro/changesets/MD-CSS-ENTRY-ORDER-SUCCESSION-R2-20261027.json"
-      ],
-      "domains": ["control-plane"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-27T08:00:00.000Z"
-    },
     "MD-CSS-ENTRY-ORDER-CORRECTION-20261025": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
