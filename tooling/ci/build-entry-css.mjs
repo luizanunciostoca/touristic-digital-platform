@@ -223,8 +223,8 @@ if (
 ) {
   buildEntryCss()
     .then((report) => console.log(JSON.stringify(report)))
-    .catch((error) => {
-      console.error(error.message);
+    .catch(() => {
+      console.error("CSS_ENTRY_BUILD_FAILED");
       process.exitCode = 1;
     });
 }
