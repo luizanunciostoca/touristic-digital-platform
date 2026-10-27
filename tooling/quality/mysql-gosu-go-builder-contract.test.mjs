@@ -44,17 +44,18 @@ for (const path of dockerfiles) {
     }
   });
 
-  test(`${path}: runtime update includes the fixable Oracle pcre2 package`, () => {
+  test(`${path}: runtime update includes the fixable Oracle pcre2 and libbrotli packages`, () => {
     const active = readFileSync(path, "utf8")
       .split(/\r?\n/u)
       .filter((line) => !line.trimStart().startsWith("#"))
       .join("\n")
       .replace(/\\\r?\n/gu, " ");
     const updates = [...active.matchAll(/microdnf update -y ([^;\n]+)/gu)];
-    assert.ok(
-      updates.some((match) => match[1].trim().split(/\s+/u).includes("pcre2")),
-      "pcre2 must be updated by an active command",
-    );
+    for (const pkg of ["pcre2", "libbrotli"])
+      assert.ok(
+        updates.some((match) => match[1].trim().split(/\s+/u).includes(pkg)),
+        `${pkg} must be updated by an active command`,
+      );
   });
 }
 

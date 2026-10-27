@@ -23,7 +23,7 @@ RUN set -eux; \
     gosu --version; \
     gosu nobody true; \
     microdnf remove -y mysql-shell; \
-    microdnf update -y openssl openssl-libs libevent curl libcurl libxml2 pcre2; \
+    microdnf update -y openssl openssl-libs libevent curl libcurl libxml2 pcre2 libbrotli; \
     microdnf install -y jq gzip diffutils; \
     for command_name in mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat rm mkdir chmod printenv seq sleep gzip base64; do \
         command -v "$command_name" >/dev/null; \
