@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-ENTRY-ORDER-SUCCESSION-R2-20261027",
   "objective": "prepare-bounded-native-css-entry-order-succession-authority",
-  "baseSha": "6fc288f6bbca8ec6cf249b837cc0aaee1bf5334f",
+  "baseSha": "7c65b82291b13b28fa466e608adc76ccb5ccd206",
   "branch": "chore/acquire-p2-extension-r2-20261027",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
