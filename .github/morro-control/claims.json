@@ -19,22 +19,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-25T04:59:59.000Z"
-    },
-    "MD-CSS-ENTRY-ORDER-SUCCESSION-AUTHORITY-20261025": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/acquire-css-entry-order-succession-authority-20261025",
-      "baseSha": "5503ba847373c7fa0c15cdd02406a79545e89af6",
-      "paths": [
-        "tooling/mdctl/task-correction-authority.mjs",
-        "tooling/mdctl/css-entry-order-correction-runtime.mjs",
-        "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
-        ".morro/changesets/MD-CSS-ENTRY-ORDER-SUCCESSION-AUTHORITY-20261025.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-25T04:59:59.000Z"
     }
   }
 }
