@@ -20,7 +20,7 @@ RUN set -eux; \
     gosu --version; \
     gosu nobody true; \
     microdnf remove -y mysql-shell; \
-    microdnf update -y openssl openssl-libs libevent curl libcurl libxml2 pcre2; \
+    microdnf update -y openssl openssl-libs libevent curl libcurl libxml2 pcre2 libbrotli; \
     microdnf clean all
 
 COPY tooling/render/mysql-production/morro-memory.cnf /etc/mysql/conf.d/99-morro-memory.cnf
