@@ -1854,30 +1854,43 @@ async function withCloudCollectorFixture(run, variant = "success") {
     ])
       source = source.replaceAll(before, after);
     put(modulePath, source);
-    const canonicalRegistry = JSON.parse(
-      readFileSync(
-        new URL("../../.github/morro-control/claims.json", import.meta.url),
-      ),
-    );
+    // Operational claims may be retired legitimately. Build the complete
+    // isolated history instead of borrowing mutable registry state.
     const ids = [C.successor, "MD-CSS-ENTRY-ORDER-GRANT-R2-20261027"];
+    const fixtureManifests = new Map();
+    const fixtureClaims = new Map();
     let registry = {
       schemaVersion: 1,
       registryAuthority: "ORCHESTRATOR",
       claims: {},
     };
     for (const id of ids) {
-      registry.claims[id] = {
-        ...canonicalRegistry.claims[id],
-        expiresAt: "2026-10-26T00:00:00.000Z",
-      };
-      put(
-        join(repo, ".morro/changesets/" + id + ".json"),
-        JSON.parse(
-          readFileSync(
-            new URL("../../.morro/changesets/" + id + ".json", import.meta.url),
-          ),
+      const manifest = JSON.parse(
+        readFileSync(
+          new URL("../../.morro/changesets/" + id + ".json", import.meta.url),
         ),
       );
+      Object.assign(manifest, {
+        id,
+        branch: id === C.successor ? C.branch : "chore/fixture-grant-r2",
+        baseSha: preserved,
+        state: "IMPLEMENTING",
+      });
+      const claim = {
+        owner: C.owner,
+        reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+        branch: manifest.branch,
+        baseSha: manifest.baseSha,
+        paths: [...manifest.owns.paths],
+        domains: [id === C.successor ? "map" : "ci-release"],
+        risk: id === C.successor ? "P1" : "P0",
+        status: "IMPLEMENTING",
+        expiresAt: "2026-10-26T00:00:00.000Z",
+      };
+      fixtureManifests.set(id, manifest);
+      fixtureClaims.set(id, claim);
+      registry.claims[id] = structuredClone(claim);
+      put(join(repo, ".morro/changesets/" + id + ".json"), manifest);
     }
     put(join(repo, ".github/morro-control/claims.json"), registry);
     put(join(repo, ".github/morro-control/events.ndjson"), "");
@@ -1945,14 +1958,7 @@ async function withCloudCollectorFixture(run, variant = "success") {
       rmSync(join(repo, path));
       commit();
     }
-    const manifest = JSON.parse(
-      readFileSync(
-        new URL(
-          "../../.morro/changesets/" + C.successor + ".json",
-          import.meta.url,
-        ),
-      ),
-    );
+    const manifest = structuredClone(fixtureManifests.get(C.successor));
     Object.assign(manifest, {
       id: CLOUD.successor,
       branch: CLOUD.branch,
@@ -1968,7 +1974,7 @@ async function withCloudCollectorFixture(run, variant = "success") {
       ).toISOString();
     const expiresAt = new Date(Date.parse(issuedAt) + 1800000).toISOString();
     const claim = {
-      ...canonicalRegistry.claims[C.successor],
+      ...fixtureClaims.get(C.successor),
       branch: CLOUD.branch,
       paths: manifest.owns.paths,
       baseSha: manifest.baseSha,

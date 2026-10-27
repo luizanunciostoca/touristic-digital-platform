@@ -78,7 +78,7 @@ function createElement(initialClasses: string[] = []) {
   };
 }
 
-function fixture() {
+function fixture(entryMarker = false) {
   const minimize = createElement();
   const assistant = createElement(["assistant-modal", "hidden"]);
   assistant.querySelector = (selector: string) =>
@@ -134,6 +134,8 @@ function fixture() {
       return null;
     },
     querySelector(selector: string) {
+      if (selector === "link[data-entry-css]")
+        return entryMarker ? createElement() : null;
       if (selector === ".carousel-container") return carousel;
       if (selector === ".carousel-follow-up") return followUp;
       return null;
@@ -180,6 +182,29 @@ function fixture() {
     },
   };
 }
+
+// These extracted shell tests model only the legacy document without an entry
+// stylesheet. Loader integration is proved by runtime/feature/browser tests.
+function legacyStyleDependency(expectedDocument: Document) {
+  return (document: Document): null => {
+    expect(document).toBe(expectedDocument);
+    if (document.querySelector("link[data-entry-css]"))
+      throw new Error("SHELL_FIXTURE_ENTRY_MARKER_UNSUPPORTED");
+    return null;
+  };
+}
+
+it("legacy shell fixture rejects an entry marker and a different document", () => {
+  const legacy = fixture(),
+    entry = fixture(true);
+  expect(legacyStyleDependency(legacy.document)(legacy.document)).toBeNull();
+  expect(() => legacyStyleDependency(entry.document)(entry.document)).toThrow(
+    "SHELL_FIXTURE_ENTRY_MARKER_UNSUPPORTED",
+  );
+  expect(() =>
+    legacyStyleDependency(legacy.document)(entry.document),
+  ).toThrow();
+});
 
 describe("assistant shell UI", () => {
   it("starts hidden and exposes shell readiness with synchronized accessibility state", () => {
@@ -464,6 +489,7 @@ describe("production voice/request UI composition", () => {
       const turns = [oldText.promise, newVoice.promise];
       const runtime = (
         compileFunction(compiled, [
+          "ensureFeatureStyles",
           "processInputTurn",
           "dispatchAssistantUiState",
           "options",
@@ -472,6 +498,7 @@ describe("production voice/request UI composition", () => {
           "destroyed",
         ]) as (...args: unknown[]) => unknown
       )(
+        legacyStyleDependency(view.document),
         () => turns.shift(),
         (_document: Document, state: string) => {
           states.push(state);
@@ -583,6 +610,7 @@ async function voiceErrorComposition() {
   });
   const runtime = (
     compileFunction(compiled, [
+      "ensureFeatureStyles",
       "processInputTurn",
       "dispatchAssistantUiState",
       "options",
@@ -596,6 +624,7 @@ async function voiceErrorComposition() {
       "voiceInput",
     ]) as (...args: unknown[]) => unknown
   )(
+    legacyStyleDependency(view.document),
     () => turn,
     (_document: Document, state: string) => view.dispatchUiState(state),
     { document: view.document },
