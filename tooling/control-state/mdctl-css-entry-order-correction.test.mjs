@@ -1,3 +1,6 @@
+import { buildClaimAcquisition } from "../mdctl/claim-lifecycle.mjs";
+import { buildClaimGuardProof } from "../fabric/claim-guard.mjs";
+import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -596,6 +599,26 @@ async function composedFixture(mode, action) {
       ),
     );
     git(seedRoot, "init", "-q", "-b", "main");
+    const retiredPath = ".morro/changesets/" + C.retiredSuccessor + ".json";
+    const retiredManifest = JSON.parse(
+      readFileSync(new URL("../../" + retiredPath, import.meta.url), "utf8"),
+    );
+    const retiredLedger =
+      readFileSync(
+        new URL("../../.github/morro-control/events.ndjson", import.meta.url),
+        "utf8",
+      )
+        .split("\n")
+        .filter(
+          (line) =>
+            line &&
+            JSON.parse(line).entity === C.retiredSuccessor &&
+            JSON.parse(line).payload?.reason === "EXPIRED",
+        )
+        .join("\n") + "\n";
+    assert.ok(retiredLedger.trim(), "canonical retirement fixture missing");
+    put(join(seedRoot, retiredPath), retiredManifest);
+    put(join(seedRoot, ".github/morro-control/events.ndjson"), retiredLedger);
     const seed = commit(seedRoot);
     mkdirSync(dirname(common), { recursive: true });
     execFileSync("git", ["clone", "--bare", "--quiet", seedRoot, common]);
@@ -689,6 +712,13 @@ async function composedFixture(mode, action) {
     });
     const preservedSha = commit(source);
     const pins = {
+      retirementSha: seed,
+      retiredManifestBlob: git(seedRoot, "rev-parse", seed + ":" + retiredPath),
+      retirementLedgerBlob: git(
+        seedRoot,
+        "rev-parse",
+        seed + ":.github/morro-control/events.ndjson",
+      ),
       nativeHome: home,
       nativeBin: "/usr/bin",
       gitRemote: "file://" + seedRoot,
@@ -763,8 +793,8 @@ async function composedFixture(mode, action) {
     put(controller, controllerSource);
     assert.equal(git(root, "hash-object", controller), C.controllerBlobSha);
     git(common, "remote", "set-url", "origin", "file://" + seedRoot);
-    const blob = (v) => {
-      const data = Buffer.from(JSON.stringify(v));
+    const blob = (v, raw = false) => {
+      const data = Buffer.from(raw ? v : JSON.stringify(v));
       return {
         type: "file",
         encoding: "base64",
@@ -797,7 +827,53 @@ async function composedFixture(mode, action) {
         );
       responses[prefix + "/contents/" + rp + "?ref=" + main] = blob(registry);
       responses[prefix + "/contents/" + mp + "?ref=" + main] = blob(successor);
+      responses[prefix + "/contents/" + retiredPath + "?ref=" + seed] =
+        blob(retiredManifest);
+      responses[prefix + "/contents/" + retiredPath + "?ref=" + main] =
+        blob(retiredManifest);
+      responses[prefix + "/contents/" + ep + "?ref=" + seed] = blob(
+        retiredLedger,
+        true,
+      );
+      const legacyHistory =
+        prefix +
+        "/commits?sha=" +
+        main +
+        "&path=" +
+        encodeURIComponent(
+          ".morro/task-corrections/" + C.retiredSuccessor + ".json",
+        ) +
+        "&per_page=100&page=1";
+      responses[legacyHistory] = [];
+      if (
+        mode === "provision-retired-grant" ||
+        mode === "provision-retired-deleted-grant"
+      )
+        responses[legacyHistory] = [{ sha: seed }];
+      if (mode === "provision-retired-api") delete responses[legacyHistory];
+      if (mode === "provision-retired-claim")
+        responses[prefix + "/contents/" + rp + "?ref=" + main] = blob({
+          ...registry,
+          claims: { ...registry.claims, [C.retiredSuccessor]: claim },
+        });
+      if (mode === "provision-retired-manifest")
+        responses[prefix + "/contents/" + retiredPath + "?ref=" + seed] = blob({
+          ...retiredManifest,
+          state: "MERGED",
+        });
+      if (mode === "provision-retired-ledger")
+        responses[prefix + "/contents/" + ep + "?ref=" + seed] = blob(
+          "{}\n",
+          true,
+        );
+      if (mode === "provision-retired-current-manifest")
+        responses[prefix + "/contents/" + retiredPath + "?ref=" + main] = blob({
+          ...retiredManifest,
+          state: "MERGED",
+        });
       for (const [base, head] of [
+        [seed, seed],
+        [seed, main],
         [seed, issued],
         [issued, main],
       ]) {
@@ -834,6 +910,7 @@ if(c.mode==='provision-ancestry'&&target.includes('/compare/')){c.responses[targ
 if(target.endsWith('/commits/main')){const n=(fs.existsSync(c.calls)?Number(fs.readFileSync(c.calls)):0)+1;fs.writeFileSync(c.calls,String(n));
  if((n===3&&c.mode==='provision-before')||(n===7&&c.mode==='provision-after'))process.exit(3);
  if(n===7&&c.mode==='provision-receipt')fs.appendFileSync(p.join(p.dirname(c.workspace),'.morro-meta',p.basename(c.workspace)+'.json'),' ');
+ if(n===4&&c.mode==='bind-retired-drift')fs.mkdirSync(p.join(p.dirname(c.workspace),'${C.retiredSuccessor}-late'));
  if(n===5&&c.mode==='bind-after')process.exit(3);
  if(n===7&&c.mode==='bind-final-drift')fs.appendFileSync(p.join(p.dirname(c.workspace),'.morro-meta',p.basename(c.workspace)+'.json'),' ');
  if(n===6){if(c.mode==='provider-failure')process.exit(3);if(c.mode==='branch-drift')cp.execFileSync('git',['-C',c.workspace,'switch','-c','fixture-other']);if(c.mode==='identity-drift')cp.execFileSync('git',['-C',c.source,'update-ref','refs/heads/fixture-predecessor',c.handoffSha]);if(c.mode==='input-drift')fs.appendFileSync(p.join(c.sourceState,'${C.predecessor}.task.json'),' ');if(c.mode==='receipt-drift')fs.appendFileSync(p.join(p.dirname(c.workspace),'.morro-meta',p.basename(c.workspace)+'.json'),' ');if(c.mode==='journal-drift'){const common=cp.execFileSync('git',['-C',c.workspace,'rev-parse','--git-common-dir'],{encoding:'utf8'}).trim();const name=fs.readdirSync(common).find(x=>x.startsWith('css-entry-order-provisioning-'));fs.appendFileSync(p.join(common,name),' ');}if(c.mode==='prepared-drift')fs.writeFileSync(p.join(c.stateDir+'.correction-pending','${C.successor}.task.json'),'{}');}}
@@ -869,6 +946,15 @@ try{console.log(JSON.stringify(prepareCssCorrectionWorkspace(${JSON.stringify({ 
         child.on("error", reject);
         child.on("close", (status) => resolve({ status, stdout, stderr }));
       });
+    if (mode === "provision-retired-lease-schema")
+      put(join(sourceState, "capability-leases.json"), {});
+    if (mode === "provision-retired-lease") {
+      const leases = JSON.parse(
+        readFileSync(join(sourceState, "capability-leases.json")),
+      );
+      Object.values(leases.leases)[0].changeSetId = C.retiredSuccessor;
+      put(join(sourceState, "capability-leases.json"), leases);
+    }
     const predecessorBefore = Object.keys(values).map((name) => ({
       path: join(sourceState, name),
       bytes: readFileSync(join(sourceState, name)),
@@ -884,6 +970,25 @@ try{console.log(JSON.stringify(prepareCssCorrectionWorkspace(${JSON.stringify({ 
       await action({ results, workspace, common, key });
       return;
     }
+    if (mode === "provision-retired-workspace")
+      mkdirSync(join(home, "worktrees", C.retiredSuccessor + "-old"));
+    if (mode === "provision-retired-receipt")
+      put(
+        join(home, "worktrees/.morro-meta", C.retiredSuccessor + "-old.json"),
+        {},
+      );
+    if (mode === "provision-retired-task")
+      put(join(sourceState, C.retiredSuccessor + ".task.json"), {
+        state: "STARTED",
+      });
+    if (mode === "provision-retired-journal")
+      put(join(common, "css-entry-order-provisioning-" + key + ".json"), {
+        state: "RESERVED",
+      });
+    if (mode === "provision-retired-execution")
+      put(join(common, "css-entry-order-correction-" + key + ".json"), {
+        state: "COMPLETED",
+      });
     const provisionResult = provisionRun();
     for (const e of predecessorBefore)
       assert.deepEqual(readFileSync(e.path), e.bytes);
@@ -1291,7 +1396,13 @@ test("CSS provisioning time uses controller second precision", () => {
   assert.throws(() => validateCorrectionGrant(g), /SECOND_PRECISION/);
 });
 
-for (const mode of ["bind-path", "bind-base", "bind-after", "bind-final-drift"])
+for (const mode of [
+  "bind-path",
+  "bind-base",
+  "bind-after",
+  "bind-final-drift",
+  "bind-retired-drift",
+])
   test(mode + " cannot publish a task", async () =>
     composedFixture(mode, (f) => {
       const r = JSON.parse(f.binding.stdout);
@@ -1340,3 +1451,136 @@ test("bound journal cannot be rebound or silently replayed", async () =>
       before,
     );
   }));
+
+for (const mode of [
+  "grant",
+  "deleted-grant",
+  "lease",
+  "lease-schema",
+  "api",
+  "claim",
+  "manifest",
+  "ledger",
+  "current-manifest",
+  "workspace",
+  "receipt",
+  "task",
+  "journal",
+  "execution",
+])
+  test(
+    "retired successor evidence rejects " +
+      mode +
+      " before workspace publication",
+    async () =>
+      composedFixture("provision-retired-" + mode, (f) => {
+        const result = JSON.parse(f.provisionResult.stdout);
+        assert.ok(
+          result.error || result.state === "PROVISION_RECONCILIATION_REQUIRED",
+          f.provisionResult.stdout,
+        );
+        assert.equal(existsSync(f.workspace), false);
+      }),
+  );
+
+test("replacement is one fixed profile and preserves the predecessor replay key", () => {
+  assert.equal(C.successor, "MD-CSS-ENTRY-ORDER-CORRECTION-R2-20261027");
+  assert.equal(C.retiredSuccessor, "MD-CSS-ENTRY-ORDER-CORRECTION-20261025");
+  const oldFormula = createHash("sha256")
+    .update(C.repository + "\n" + C.predecessor + "\n" + C.handoffDigest)
+    .digest("hex");
+  assert.equal(correctionKey(C.handoffDigest, C.successor), oldFormula);
+  assert.throws(() =>
+    validateCorrectionGrant({ ...grant(), successor: C.retiredSuccessor }),
+  );
+  assert.throws(() =>
+    validateCorrectionGrant({ ...grant(), successor: "MD-ARBITRARY" }),
+  );
+});
+
+test("new fixed successor acquires canonically while retired manifest and ledger remain immutable", () => {
+  const dir = mkdtempSync(join(tmpdir(), "p2-acquisition-"));
+  const git = (...args) =>
+    execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" }).trim();
+  const put = (p, value) => {
+    const dest = join(dir, p);
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(
+      dest,
+      typeof value === "string" ? value : JSON.stringify(value),
+    );
+  };
+  const commit = () => {
+    git("add", ".");
+    git(
+      "-c",
+      "user.name=Fixture",
+      "-c",
+      "user.email=fixture@example.invalid",
+      "commit",
+      "-qm",
+      "fixture",
+    );
+    return git("rev-parse", "HEAD");
+  };
+  try {
+    git("init", "-q", "-b", C.branch);
+    const oldPath = ".morro/changesets/" + C.retiredSuccessor + ".json",
+      path = ".morro/changesets/" + C.successor + ".json";
+    const old = readFileSync(
+      new URL("../../" + oldPath, import.meta.url),
+      "utf8",
+    );
+    const ledger = readFileSync(
+      new URL("../../.github/morro-control/events.ndjson", import.meta.url),
+      "utf8",
+    );
+    const registry = {
+      schemaVersion: 1,
+      registryAuthority: "ORCHESTRATOR",
+      claims: {},
+    };
+    put(oldPath, old);
+    put(".github/morro-control/claims.json", registry);
+    put(".github/morro-control/events.ndjson", ledger);
+    const base = commit();
+    const manifest = {
+      ...JSON.parse(old),
+      id: C.successor,
+      baseSha: base,
+      branch: C.branch,
+    };
+    manifest.owns.paths = [path, C.productPath];
+    const transition = buildClaimAcquisition({
+      registry,
+      ledgerText: ledger,
+      manifest,
+      domains: ["control-plane"],
+      observedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 600000).toISOString(),
+    });
+    put(path, manifest);
+    put(".github/morro-control/claims.json", transition.registry);
+    put(".github/morro-control/events.ndjson", transition.ledgerText);
+    const head = commit();
+    assert.ok(git("diff", "--name-status", base, head).includes("A\t" + path));
+    assert.equal(readFileSync(join(dir, oldPath), "utf8"), old);
+    assert.ok(transition.ledgerText.startsWith(ledger));
+    assert.equal(
+      Object.hasOwn(transition.registry.claims, C.retiredSuccessor),
+      false,
+    );
+    const proof = buildClaimGuardProof(dir, {
+      EXPECTED_BASE_SHA: base,
+      EXPECTED_CANDIDATE_SHA: head,
+      EXPECTED_BRANCH: C.branch,
+      MANIFEST_PATH: path,
+      CLAIM_GUARD_AUTHORITY: "ORCHESTRATOR",
+    });
+    assert.equal(proof.status, "pass");
+    assert.equal(proof.acquisition, true);
+    assert.equal(proof.collisions, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
