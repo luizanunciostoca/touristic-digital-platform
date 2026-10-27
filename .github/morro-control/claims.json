@@ -109,6 +109,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T18:00:00.000Z"
+    },
+    "MD-CLOUD-CSS-CONSUMER-PREPARATION-20261027": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/cloud-css-consumer-preparation-20261027",
+      "baseSha": "a68259251970d78f0a6c92f2c82eeac220c9dc4e",
+      "paths": [
+        "tooling/mdctl/task-correction-authority.mjs",
+        "tooling/mdctl/css-entry-order-correction-runtime.mjs",
+        "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
+        ".morro/changesets/MD-CLOUD-CSS-CONSUMER-PREPARATION-20261027.json"
+      ],
+      "domains": ["control-plane"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-27T20:00:00.000Z"
     }
   }
 }
