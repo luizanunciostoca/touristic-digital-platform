@@ -45,9 +45,21 @@ export const CSS_ENTRY_ORDER_CORRECTION = Object.freeze({
     "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts",
   productBlob: "9e190c930ce3794bf71521130124f7fa2f16be7e",
   nativeHome: "/data/data/com.termux/files/home",
+  nativeBin: "/data/data/com.termux/files/usr/bin",
+  gitRemote:
+    "https://github.com/luizanunciostoca/touristic-digital-platform.git",
   predecessorDirectory:
     "MD-CSS-ENTRY-ORDER-REGRESSION-20261024-ct1072-css-entry-order-regression-20261024-068dc23e5eb4",
+  controllerRepository: "luizanunciostoca/morro-termux-control",
+  controllerCommitSha: "07cd523020f3a50f347966c883ad90cd369a3208",
+  controllerBlobSha: "e03766e827074fa58b698e148373ad1f3fa3e765",
 });
+export const CSS_PREPARATION_ACTIONS = Object.freeze([
+  "create-detached",
+  "verify-receipt",
+  "bind-successor-branch",
+  "checkout-proven-reanchor",
+]);
 function correctionProfile(successor = CORRECTION.successor) {
   const profile = [
     CORRECTION,
@@ -119,8 +131,12 @@ function closed(value, expected, code) {
 }
 export function validateCorrectionGrant(grant) {
   const css = grant?.successor === CSS_ENTRY_ORDER_CORRECTION.successor;
-  closed(grant, css ? [...keys, "workspace"] : keys, "CORRECTION_GRANT_FIELDS");
-  assert.equal(grant.schemaVersion, 1, "CORRECTION_GRANT_VERSION");
+  closed(
+    grant,
+    css ? [...keys, "workspace", "provisioningLease"] : keys,
+    "CORRECTION_GRANT_FIELDS",
+  );
+  assert.equal(grant.schemaVersion, css ? 2 : 1, "CORRECTION_GRANT_VERSION");
   const profile = correctionProfile(grant.successor);
   assert.equal(grant.kind, correctionKind(profile), "CORRECTION_GRANT_KIND");
   for (const field of [
@@ -188,7 +204,9 @@ export function validateCorrectionGrant(grant) {
   if (grant.reservation !== null) {
     closed(
       grant.reservation,
-      ["key", "commitSha", "issuedCommitSha"],
+      css
+        ? ["key", "commitSha", "issuedCommitSha", "provisioningReceipt"]
+        : ["key", "commitSha", "issuedCommitSha"],
       "CORRECTION_RESERVATION_FIELDS",
     );
     assert.equal(
@@ -211,9 +229,173 @@ export function validateCorrectionGrant(grant) {
     assert.equal(grant.reservation, null, "CORRECTION_ISSUED_RESERVED");
   if (grant.state === "CONSUMED")
     assert.ok(grant.reservation, "CORRECTION_CONSUMPTION_REQUIRED");
+  if (css) validateCssProvisioning(grant);
   return grant;
 }
 const core = ({ state, reservation, ...rest }) => rest;
+
+function validateCssProvisioning(g) {
+  assert.ok(
+    Date.parse(g.issuedAt) % 1000 === 0 && Date.parse(g.expiresAt) % 1000 === 0,
+    "CSS_PROVISION_SECOND_PRECISION",
+  );
+  const p = CSS_ENTRY_ORDER_CORRECTION,
+    l = g.provisioningLease;
+  closed(
+    l,
+    [
+      "schemaVersion",
+      "leaseId",
+      "taskId",
+      "executor",
+      "workspace",
+      "branch",
+      "actions",
+      "issuedAt",
+      "expiresAt",
+      "sourceMainSha",
+    ],
+    "CSS_PROVISION_LEASE_FIELDS",
+  );
+  assert.equal(l.schemaVersion, 1, "CSS_PROVISION_VERSION");
+  assert.match(l.leaseId, /^[a-z0-9-]{12,60}$/u, "CSS_PROVISION_LEASE_ID");
+  assert.match(l.sourceMainSha, SHA, "CSS_PROVISION_SOURCE");
+  assert.equal(l.taskId, p.successor, "CSS_PROVISION_TASK");
+  for (const k of ["executor", "workspace", "branch", "issuedAt", "expiresAt"])
+    assert.equal(l[k], g[k], "CSS_PROVISION_BINDING:" + k);
+  assert.deepEqual(l.actions, CSS_PREPARATION_ACTIONS, "CSS_PROVISION_ACTIONS");
+  assert.equal(
+    g.workspace,
+    p.nativeHome +
+      "/worktrees/" +
+      p.successor +
+      "-" +
+      l.leaseId +
+      "-" +
+      l.sourceMainSha.slice(0, 12),
+    "CSS_PROVISION_WORKSPACE",
+  );
+  if (!g.reservation) return;
+  const r = g.reservation.provisioningReceipt;
+  closed(
+    r,
+    [
+      "schemaVersion",
+      "taskId",
+      "executor",
+      "leaseId",
+      "workspace",
+      "commonDir",
+      "sourceMainSha",
+      "detachedHeadSha",
+      "controllerRepository",
+      "controllerCommitSha",
+      "controllerBlobSha",
+      "nativeIssueNumber",
+      "requestSha256",
+      "attestationCommentId",
+      "resultCommentId",
+      "receiptSha256",
+      "createdAt",
+      "verifiedAt",
+    ],
+    "CSS_PROVISION_RECEIPT_FIELDS",
+  );
+  assert.equal(r.schemaVersion, 1, "CSS_PROVISION_RECEIPT_VERSION");
+  for (const k of [
+    "taskId",
+    "executor",
+    "leaseId",
+    "workspace",
+    "sourceMainSha",
+  ])
+    assert.equal(r[k], l[k], "CSS_PROVISION_RECEIPT_BINDING:" + k);
+  for (const k of [
+    "controllerRepository",
+    "controllerCommitSha",
+    "controllerBlobSha",
+  ])
+    assert.equal(r[k], p[k], "CSS_PROVISION_CONTROLLER:" + k);
+  assert.equal(
+    r.commonDir,
+    p.nativeHome + "/repos/touristic-digital-platform.git",
+    "CSS_PROVISION_COMMON",
+  );
+  assert.equal(r.detachedHeadSha, l.sourceMainSha, "CSS_PROVISION_DETACHED");
+  for (const k of [
+    "nativeIssueNumber",
+    "attestationCommentId",
+    "resultCommentId",
+  ])
+    assert.ok(Number.isSafeInteger(r[k]) && r[k] > 0, "CSS_PROVISION_ID:" + k);
+  for (const k of ["requestSha256", "receiptSha256"])
+    assert.match(r[k], /^[a-f0-9]{64}$/u, "CSS_PROVISION_HASH:" + k);
+  assert.ok(
+    Number.isFinite(Date.parse(r.createdAt)) &&
+      Date.parse(r.createdAt) >= Date.parse(g.issuedAt) &&
+      Date.parse(r.verifiedAt) >= Date.parse(r.createdAt) &&
+      Date.parse(r.verifiedAt) < Date.parse(g.expiresAt),
+    "CSS_PROVISION_RECEIPT_TIME",
+  );
+  assert.equal(
+    g.reservation.commitSha,
+    g.reservation.issuedCommitSha,
+    "CSS_PROVISION_RESERVATION_COMMIT",
+  );
+}
+
+// This checks authenticated GitHub ancestry, not caller-supplied booleans.
+function assertCanonicalAncestor(base, head) {
+  const prefix = "repos/" + CORRECTION.repository;
+  assert.equal(
+    correctionGithub(prefix + "/commits/" + base).sha,
+    base,
+    "CSS_PROVISION_COMMIT",
+  );
+  const comparison = correctionGithub(
+    prefix + "/compare/" + base + "..." + head,
+  );
+  assert.equal(comparison.base_commit?.sha, base, "CSS_PROVISION_COMPARE_BASE");
+  assert.equal(
+    comparison.merge_base_commit?.sha,
+    base,
+    "CSS_PROVISION_ANCESTRY",
+  );
+  assert.ok(
+    comparison.status === (base === head ? "identical" : "ahead"),
+    "CSS_PROVISION_COMPARE_STATUS",
+  );
+}
+
+export function assertCssProvisioningAuthority(
+  token,
+  requiredState = "ISSUED",
+) {
+  assert.ok(
+    ["ISSUED", "CONSUMED"].includes(requiredState),
+    "CSS_PROVISION_REQUIRED_STATE",
+  );
+  assert.ok(verified.has(token), "CSS_PROVISION_AUTHORITY_UNVERIFIED");
+  assert.equal(
+    token.grant.successor,
+    CSS_ENTRY_ORDER_CORRECTION.successor,
+    "CSS_PROVISION_PROFILE",
+  );
+  assert.equal(
+    token.grant.state,
+    requiredState,
+    "CSS_PROVISION_REQUIRED_STATE",
+  );
+  const now = Date.now();
+  assert.ok(
+    now >= Date.parse(token.observedAt) &&
+      now - Date.parse(token.observedAt) <= 30000 &&
+      now < Date.parse(token.grant.expiresAt) &&
+      now < Date.parse(token.claim.expiresAt),
+    "CSS_PROVISION_AUTHORITY_STALE",
+  );
+  return token;
+}
 
 // A pure validation result is deliberately NOT an authority token.
 export function validateCorrectionHistory(
@@ -390,6 +572,13 @@ export function collectCorrectionAuthority(options) {
     ".morro/changesets/" + profile.successor + ".json",
     expectedMain,
   );
+  if (profile === CSS_ENTRY_ORDER_CORRECTION) {
+    assertCanonicalAncestor(
+      checked.grant.provisioningLease.sourceMainSha,
+      checked.issuedCommitSha,
+    );
+    assertCanonicalAncestor(checked.issuedCommitSha, expectedMain);
+  }
   assert.equal(
     correctionDigest(correctionEnvelope(successor)),
     checked.grant.envelopeDigest,

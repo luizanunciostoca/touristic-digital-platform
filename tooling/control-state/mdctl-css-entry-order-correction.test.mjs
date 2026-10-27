@@ -14,9 +14,10 @@ import {
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { spawnSync, execFileSync } from "node:child_process";
+import { spawn, spawnSync, execFileSync } from "node:child_process";
 import {
   CSS_ENTRY_ORDER_CORRECTION as C,
+  CSS_PREPARATION_ACTIONS,
   CORRECTION,
   correctionEnvelope,
   correctionClaim,
@@ -25,9 +26,11 @@ import {
   validateCorrectionGrant,
   validateCorrectionHistory,
   assertCorrectionAuthority,
+  assertCssProvisioningAuthority,
 } from "../mdctl/task-correction-authority.mjs";
 import {
   persistCssCorrection,
+  prepareCssCorrectionWorkspace,
   prepareCssEntryOrderCorrection,
   validateCssCorrectionInputs,
 } from "../mdctl/css-entry-order-correction-runtime.mjs";
@@ -35,8 +38,8 @@ import {
 const sha = "a".repeat(40),
   hash = "sha256:" + "b".repeat(64);
 function grant() {
-  return {
-    schemaVersion: 1,
+  const g = {
+    schemaVersion: 2,
     kind: "TDP_CSS_ENTRY_ORDER_CORRECTION_DELEGATION",
     repository: C.repository,
     owner: C.owner,
@@ -55,7 +58,50 @@ function grant() {
     state: "ISSUED",
     reservation: null,
     workspace:
-      C.nativeHome + "/worktrees/" + C.successor + "-fixture-000000000001",
+      C.nativeHome +
+      "/worktrees/" +
+      C.successor +
+      "-fixture-lease-0001-000000000000",
+  };
+  g.provisioningLease = lease(g, "0".repeat(40));
+  return g;
+}
+function lease(g, sourceMainSha) {
+  return {
+    schemaVersion: 1,
+    leaseId: "fixture-lease-0001",
+    taskId: C.successor,
+    executor: g.executor,
+    workspace: g.workspace,
+    branch: g.branch,
+    actions: [...CSS_PREPARATION_ACTIONS],
+    issuedAt: g.issuedAt,
+    expiresAt: g.expiresAt,
+    sourceMainSha,
+  };
+}
+function receipt(g, changes = {}) {
+  const l = g.provisioningLease;
+  return {
+    schemaVersion: 1,
+    taskId: C.successor,
+    executor: g.executor,
+    leaseId: l.leaseId,
+    workspace: g.workspace,
+    commonDir: C.nativeHome + "/repos/touristic-digital-platform.git",
+    sourceMainSha: l.sourceMainSha,
+    detachedHeadSha: l.sourceMainSha,
+    controllerRepository: C.controllerRepository,
+    controllerCommitSha: C.controllerCommitSha,
+    controllerBlobSha: C.controllerBlobSha,
+    nativeIssueNumber: 1,
+    requestSha256: "b".repeat(64),
+    attestationCommentId: 2,
+    resultCommentId: 3,
+    receiptSha256: "c".repeat(64),
+    createdAt: g.issuedAt,
+    verifiedAt: g.issuedAt,
+    ...changes,
   };
 }
 function history() {
@@ -69,8 +115,9 @@ function history() {
         state: "CONSUMED",
         reservation: {
           key: correctionKey(issued.handoffDigest, C.successor),
-          commitSha: "d".repeat(40),
+          commitSha: sha,
           issuedCommitSha: sha,
+          provisioningReceipt: receipt(issued),
         },
       },
     },
@@ -139,7 +186,7 @@ for (const [name, mutate, code] of [
   [
     "workspace change",
     (h) => (h[1].grant.workspace += "-other"),
-    /IDENTITY_CHANGED/,
+    /IDENTITY_CHANGED|PROVISION_BINDING/,
   ],
   [
     "double reservation",
@@ -149,7 +196,7 @@ for (const [name, mutate, code] of [
   [
     "wrong issuance",
     (h) => (h[1].grant.reservation.issuedCommitSha = "f".repeat(40)),
-    /CONSUMPTION_ISSUANCE/,
+    /CONSUMPTION_ISSUANCE|RESERVATION_COMMIT/,
   ],
 ])
   test("history rejects " + name, () => {
@@ -496,6 +543,8 @@ storageTest("last local freshness failure remains before publication", (f) => {
 // validators and real atomic storage. Only immutable subject fixture anchors
 // (paths/hashes) in a disposable copy of the profile are substituted. No gate,
 // function or token factory is mocked; the gh executable is GET-only and local.
+const controllerSource =
+  '#!/usr/bin/env bash\nset -euo pipefail\n\nREPO_URL="${TDP_REPO_URL:-https://github.com/luizanunciostoca/touristic-digital-platform.git}"\nSTORE="${TDP_BARE_STORE:-$HOME/repos/touristic-digital-platform.git}"\nROOT="${TDP_WORKTREE_ROOT:-$HOME/worktrees}"\nMETA_ROOT="${TDP_WORKTREE_META_ROOT:-$ROOT/.morro-meta}"\nDEFAULT_BRANCH="${TDP_DEFAULT_BRANCH:-main}"\nLOCK_DIR="${STORE}.morro-lock"\n\nfail() {\n  echo "${1:-TDP_WORKTREE_ERROR}" >&2\n  exit "${2:-1}"\n}\n\nrequire_token() {\n  [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]] || fail "IDENTIFIER_INVALID:${1:-}"\n}\n\nrequire_ref() {\n  [[ "${1:-}" =~ ^[A-Za-z0-9._/-]+$ ]] || fail "REF_INVALID:${1:-}"\n  [[ "${1:-}" != *".."* ]] || fail "REF_TRAVERSAL_DENIED"\n}\n\ngit_store() {\n  git --git-dir="$STORE" "$@"\n}\nrelease_lock() {\n  rm -rf "$LOCK_DIR"\n}\n\nacquire_lock() {\n  mkdir -p "$(dirname "$STORE")"\n  if ! mkdir "$LOCK_DIR" 2>/dev/null; then\n    fail "WORKTREE_STORE_BUSY" 75\n  fi\n  printf \'pid=%s\\nutc=%s\\n\' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$LOCK_DIR/owner"\n  trap release_lock EXIT INT TERM\n}\n\nensure_store() {\n  [[ -d "$STORE" ]] || fail "BARE_STORE_MISSING"\n  [[ "$(git_store rev-parse --is-bare-repository)" == "true" ]] ||\n    fail "BARE_STORE_INVALID"\n  git_store remote get-url origin >/dev/null 2>&1 || fail "ORIGIN_MISSING"\n}\n\nfetch_main() {\n  git_store fetch --filter=blob:none --prune origin     "+refs/heads/$DEFAULT_BRANCH:refs/heads/$DEFAULT_BRANCH"\n}\n\nbootstrap() {\n  mkdir -p "$(dirname "$STORE")" "$ROOT" "$META_ROOT"\n  acquire_lock\n  if [[ ! -d "$STORE" ]]; then\n    git init --bare "$STORE" >/dev/null\n  fi\n  if git_store remote get-url origin >/dev/null 2>&1; then\n    git_store remote set-url origin "$REPO_URL"\n  else\n    git_store remote add origin "$REPO_URL"\n  fi\n  git_store config remote.origin.promisor true\n  git_store config remote.origin.partialclonefilter blob:none\n  git_store config remote.origin.fetch     "+refs/heads/$DEFAULT_BRANCH:refs/heads/$DEFAULT_BRANCH"\n  fetch_main\n  git_store symbolic-ref HEAD "refs/heads/$DEFAULT_BRANCH"\n  echo "state=READY"\n  echo "store=$STORE"\n  echo "main=$(git_store rev-parse "refs/heads/$DEFAULT_BRANCH")"\n}\n\nrefresh() {\n  ensure_store\n  acquire_lock\n  fetch_main\n  echo "main=$(git_store rev-parse "refs/heads/$DEFAULT_BRANCH")"\n}\n\ncreate_worktree() {\n  local task="${1:-}" lease="${2:-}" ref="${3:-}" expected="${4:-}"\n  require_token "$task"\n  require_token "$lease"\n  require_ref "$ref"\n  [[ -z "$expected" || "$expected" =~ ^[0-9a-f]{40}$ ]] ||\n    fail "EXPECTED_SHA_INVALID"\n  ensure_store\n  acquire_lock\n  mkdir -p "$ROOT" "$META_ROOT"\n  git_store fetch --filter=blob:none origin "$ref" >/dev/null\n  local sha path name\n  sha="$(git_store rev-parse \'FETCH_HEAD^{commit}\')"\n  [[ -z "$expected" || "$sha" == "$expected" ]] ||\n    fail "EXACT_SHA_MISMATCH:expected=$expected:observed=$sha" 42\n  name="${task}-${lease}-${sha:0:12}"\n  path="$ROOT/$name"\n  [[ ! -e "$path" ]] || fail "WORKTREE_REUSE_FORBIDDEN:$path" 43\n  git_store worktree add --detach "$path" "$sha" >/dev/null\n  printf \'{"task":"%s","lease":"%s","sha":"%s","ref":"%s","path":"%s","createdAt":"%s"}\\n\'     "$task" "$lease" "$sha" "$ref" "$path" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"     >"$META_ROOT/$name.json"\n  echo "state=CREATED"\n  echo "path=$path"\n  echo "sha=$sha"\n}\n\nretire_worktree() {\n  local input="${1:-}"\n  [[ -n "$input" ]] || fail "WORKTREE_PATH_REQUIRED"\n  ensure_store\n  acquire_lock\n  local path root_real name dirty\n  root_real="$(realpath -m "$ROOT")"\n  path="$(realpath -m "$input")"\n  [[ "$path" == "$root_real/"* ]] || fail "WORKTREE_PATH_OUTSIDE_ROOT"\n  [[ -d "$path" ]] || fail "WORKTREE_MISSING:$path"\n  name="$(basename "$path")"\n  dirty="$(git -C "$path" status --porcelain --untracked-files=all)"\n  if [[ -n "$dirty" ]]; then\n    mkdir -p "$META_ROOT/quarantine"\n    printf \'{"state":"QUARANTINED","path":"%s","observedAt":"%s"}\\n\'       "$path" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"       >"$META_ROOT/quarantine/$name.json"\n    echo "state=QUARANTINED"\n    echo "path=$path"\n    return 3\n  fi\n  git_store worktree remove "$path"\n  rm -f "$META_ROOT/$name.json"\n  git_store worktree prune\n  echo "state=RETIRED"\n  echo "path=$path"\n}\n\ncompact_local_refs() {\n  ensure_store\n  acquire_lock\n  local protected ref\n  protected="refs/heads/$DEFAULT_BRANCH"\n  while IFS= read -r ref; do\n    [[ "$ref" == "$protected" ]] && continue\n    if git_store worktree list --porcelain | grep -Fxq "branch $ref"; then\n      continue\n    fi\n    git_store update-ref -d "$ref"\n  done < <(git_store for-each-ref --format=\'%(refname)\' refs/heads)\n  git_store worktree prune\n  echo "state=COMPACTED"\n  echo "localHeads=$(git_store for-each-ref --format=\'%(refname)\' refs/heads | wc -l)"\n}\n\nstatus_store() {\n  ensure_store\n  echo "state=READY"\n  echo "store=$STORE"\n  echo "main=$(git_store rev-parse "refs/heads/$DEFAULT_BRANCH")"\n  echo "localHeads=$(git_store for-each-ref --format=\'%(refname)\' refs/heads | wc -l)"\n  git_store worktree list --porcelain\n}\n\nusage() {\n  cat <<\'EOF\'\nusage: tdp-worktreectl.sh <command> [args]\n  bootstrap\n  refresh\n  create <task-id> <lease-id> <remote-ref> [expected-sha]\n  retire <worktree-path>\n  compact-local-refs\n  status\nEOF\n}\n\ncase "${1:-}" in\n  bootstrap) bootstrap ;;\n  refresh) refresh ;;\n  create) shift; create_worktree "$@" ;;\n  retire) shift; retire_worktree "$@" ;;\n  compact-local-refs) compact_local_refs ;;\n  status) status_store ;;\n  *) usage; exit 64 ;;\nesac\n';
 async function composedFixture(mode, action) {
   const { buildTaskStart, buildTaskTest, buildTaskSubmit } =
     await import("../mdctl/task-lifecycle.mjs");
@@ -556,7 +605,7 @@ async function composedFixture(mode, action) {
       workspace = join(
         home,
         "worktrees",
-        C.successor + "-fixture-000000000001",
+        C.successor + "-fixture-lease-0001-" + seed.slice(0, 12),
       );
     git(
       common,
@@ -596,7 +645,7 @@ async function composedFixture(mode, action) {
       baseIsAncestor: true,
       dirty: false,
     };
-    const now = Date.now(),
+    const now = Math.floor(Date.now() / 1000) * 1000,
       stamp = (n) => new Date(now + n).toISOString();
     let serial = 0;
     const started = buildTaskStart({
@@ -641,6 +690,8 @@ async function composedFixture(mode, action) {
     const preservedSha = commit(source);
     const pins = {
       nativeHome: home,
+      nativeBin: "/usr/bin",
+      gitRemote: "file://" + seedRoot,
       taskDigest: correctionDigest(submitted.task),
       handoffDigest: submitted.handoff.digest,
       manifestDigest: submitted.task.changeSetDigest,
@@ -685,20 +736,6 @@ async function composedFixture(mode, action) {
     put(join(root, mp), successor);
     put(join(root, rp), registry);
     put(join(root, ep), "");
-    const main = commit(root);
-    git(common, "worktree", "add", "--quiet", "-b", C.branch, workspace, main);
-    const reanchor = buildClaimReanchor({
-      registry,
-      ledgerText: "",
-      manifest: successor,
-      newBaseSha: main,
-      observedAt: stamp(0),
-    });
-    put(join(workspace, mp), reanchor.manifest);
-    put(join(workspace, rp), reanchor.registry);
-    put(join(workspace, ep), reanchor.ledgerText);
-    commit(workspace);
-    const stateDir = git(workspace, "rev-parse", "--git-path", "morro-control");
     const g = {
       ...grant(),
       ...Object.fromEntries(
@@ -708,19 +745,24 @@ async function composedFixture(mode, action) {
         ]),
       ),
       workspace,
-      issuedAt: stamp(-500),
+      issuedAt: stamp(-2000),
       expiresAt: stamp(600000),
       envelopeDigest: correctionDigest(correctionEnvelope(successor)),
       claimDigest: correctionDigest(correctionClaim(claim)),
     };
-    const key = correctionKey(g.handoffDigest, C.successor),
-      issued = "e".repeat(40),
-      consumed = "c".repeat(40);
-    const cg = {
-      ...g,
-      state: "CONSUMED",
-      reservation: { key, commitSha: "d".repeat(40), issuedCommitSha: issued },
-    };
+    g.provisioningLease = lease(g, seed);
+    const key = correctionKey(g.handoffDigest, C.successor);
+    put(join(root, C.path), g);
+    const issued = commit(root);
+    let main = issued;
+    let stateDir = "";
+    const controller = join(
+      home,
+      "morro-termux-control/scripts/tdp-worktreectl.sh",
+    );
+    put(controller, controllerSource);
+    assert.equal(git(root, "hash-object", controller), C.controllerBlobSha);
+    git(common, "remote", "set-url", "origin", "file://" + seedRoot);
     const blob = (v) => {
       const data = Buffer.from(JSON.stringify(v));
       return {
@@ -734,27 +776,49 @@ async function composedFixture(mode, action) {
       };
     };
     const prefix = "repos/" + C.repository;
-    const responses = {
-      [prefix + "/commits/main"]: { sha: main },
-      [prefix +
-      "/commits?sha=" +
-      main +
-      "&path=" +
-      encodeURIComponent(C.path) +
-      "&per_page=100&page=1"]: [{ sha: consumed }, { sha: issued }],
-      [prefix + "/contents/" + C.path + "?ref=" + main]: blob(cg),
-      [prefix + "/contents/" + C.path + "?ref=" + consumed]: blob(cg),
-      [prefix + "/contents/" + C.path + "?ref=" + issued]: blob(g),
-      [prefix + "/contents/" + rp + "?ref=" + main]: blob(registry),
-      [prefix + "/contents/" + mp + "?ref=" + main]: blob(successor),
+    const responses = {};
+    const configure = () => {
+      for (const key of Object.keys(responses)) delete responses[key];
+      responses[prefix + "/commits/main"] = { sha: main };
+      const commits = git(root, "log", "--format=%H", main, "--", C.path).split(
+        "\n",
+      );
+      responses[
+        prefix +
+          "/commits?sha=" +
+          main +
+          "&path=" +
+          encodeURIComponent(C.path) +
+          "&per_page=100&page=1"
+      ] = commits.map((sha) => ({ sha }));
+      for (const sha of new Set([...commits, main]))
+        responses[prefix + "/contents/" + C.path + "?ref=" + sha] = blob(
+          JSON.parse(git(root, "show", sha + ":" + C.path)),
+        );
+      responses[prefix + "/contents/" + rp + "?ref=" + main] = blob(registry);
+      responses[prefix + "/contents/" + mp + "?ref=" + main] = blob(successor);
+      for (const [base, head] of [
+        [seed, issued],
+        [issued, main],
+      ]) {
+        responses[prefix + "/commits/" + base] = {
+          sha: git(root, "rev-parse", base + "^{commit}"),
+        };
+        responses[prefix + "/compare/" + base + "..." + head] = {
+          base_commit: { sha: base },
+          merge_base_commit: { sha: git(root, "merge-base", base, head) },
+          status: base === head ? "identical" : "ahead",
+        };
+      }
     };
+    configure();
     const cfg = join(dir, "provider.json"),
       calls = join(dir, "calls"),
       bin = join(dir, "bin");
     mkdirSync(bin);
     put(cfg, {
       responses,
-      mode,
+      mode: mode.startsWith("provision-") ? mode : "success",
       calls,
       source,
       sourceState,
@@ -766,11 +830,185 @@ async function composedFixture(mode, action) {
       join(bin, "gh"),
       `#!/usr/bin/env node
 const fs=require('node:fs'),cp=require('node:child_process'),p=require('node:path');const c=JSON.parse(fs.readFileSync(${JSON.stringify(cfg)}));const a=process.argv.slice(2),target=a.find(x=>x.startsWith('repos/'));if(a[a.indexOf('--method')+1]!=='GET'||!Object.hasOwn(c.responses,target))process.exit(2);
+if(c.mode==='provision-ancestry'&&target.includes('/compare/')){c.responses[target].merge_base_commit.sha='f'.repeat(40);}
 if(target.endsWith('/commits/main')){const n=(fs.existsSync(c.calls)?Number(fs.readFileSync(c.calls)):0)+1;fs.writeFileSync(c.calls,String(n));
- if(n===6){if(c.mode==='provider-failure')process.exit(3);if(c.mode==='branch-drift')cp.execFileSync('git',['-C',c.workspace,'switch','-c','fixture-other']);if(c.mode==='identity-drift')cp.execFileSync('git',['-C',c.source,'update-ref','refs/heads/fixture-predecessor',c.handoffSha]);if(c.mode==='input-drift')fs.appendFileSync(p.join(c.sourceState,'${C.predecessor}.task.json'),' ');if(c.mode==='prepared-drift')fs.writeFileSync(p.join(c.stateDir+'.correction-pending','${C.successor}.task.json'),'{}');}}
+ if((n===3&&c.mode==='provision-before')||(n===7&&c.mode==='provision-after'))process.exit(3);
+ if(n===7&&c.mode==='provision-receipt')fs.appendFileSync(p.join(p.dirname(c.workspace),'.morro-meta',p.basename(c.workspace)+'.json'),' ');
+ if(n===5&&c.mode==='bind-after')process.exit(3);
+ if(n===7&&c.mode==='bind-final-drift')fs.appendFileSync(p.join(p.dirname(c.workspace),'.morro-meta',p.basename(c.workspace)+'.json'),' ');
+ if(n===6){if(c.mode==='provider-failure')process.exit(3);if(c.mode==='branch-drift')cp.execFileSync('git',['-C',c.workspace,'switch','-c','fixture-other']);if(c.mode==='identity-drift')cp.execFileSync('git',['-C',c.source,'update-ref','refs/heads/fixture-predecessor',c.handoffSha]);if(c.mode==='input-drift')fs.appendFileSync(p.join(c.sourceState,'${C.predecessor}.task.json'),' ');if(c.mode==='receipt-drift')fs.appendFileSync(p.join(p.dirname(c.workspace),'.morro-meta',p.basename(c.workspace)+'.json'),' ');if(c.mode==='journal-drift'){const common=cp.execFileSync('git',['-C',c.workspace,'rev-parse','--git-common-dir'],{encoding:'utf8'}).trim();const name=fs.readdirSync(common).find(x=>x.startsWith('css-entry-order-provisioning-'));fs.appendFileSync(p.join(common,name),' ');}if(c.mode==='prepared-drift')fs.writeFileSync(p.join(c.stateDir+'.correction-pending','${C.successor}.task.json'),'{}');}}
 process.stdout.write(JSON.stringify(c.responses[target]));`,
     );
     execFileSync("chmod", ["700", join(bin, "gh")]);
+    const provisionScript = `
+import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';
+const mode=${JSON.stringify(mode)};
+if(mode.startsWith('provision-fsync-')){const original=fs.fsyncSync;let count=0;fs.fsyncSync=(fd)=>{if(++count===Number(mode.split('-').at(-1)))throw Object.assign(new Error('fixture fsync'),{code:'EIO'});return original(fd)};syncBuiltinESMExports();}
+if(mode==='provision-rename'){fs.renameSync=()=>{throw Object.assign(new Error('fixture rename'),{code:'EIO'})};syncBuiltinESMExports();}
+const {prepareCssCorrectionWorkspace}=await import(${JSON.stringify(pathToFileURL(join(root, "tooling/mdctl/css-entry-order-correction-runtime.mjs")).href)});
+try{console.log(JSON.stringify(prepareCssCorrectionWorkspace(${JSON.stringify({ root, expectedMain: issued })})));}catch(e){console.log(JSON.stringify({error:e.message}));process.exitCode=2;}`;
+    const provisionArgs = ["--input-type=module", "-e", provisionScript],
+      provisionOptions = {
+        encoding: "utf8",
+        timeout: 30000,
+        env: {
+          ...process.env,
+          PATH: bin + ":" + process.env.PATH,
+          TDP_WORKTREE_ROOT: join(dir, "forbidden"),
+        },
+      };
+    const provisionRun = () =>
+      spawnSync(process.execPath, provisionArgs, provisionOptions);
+    const provisionAsync = () =>
+      new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, provisionArgs, provisionOptions);
+        let stdout = "",
+          stderr = "";
+        child.stdout.on("data", (b) => (stdout += b));
+        child.stderr.on("data", (b) => (stderr += b));
+        child.on("error", reject);
+        child.on("close", (status) => resolve({ status, stdout, stderr }));
+      });
+    const predecessorBefore = Object.keys(values).map((name) => ({
+      path: join(sourceState, name),
+      bytes: readFileSync(join(sourceState, name)),
+    }));
+    if (mode === "provision-lock")
+      mkdirSync(join(common, "css-started-transfer.lock"));
+    if (mode === "provision-controller")
+      writeFileSync(controller, controllerSource + "\n");
+    if (mode === "provision-race") {
+      const results = await Promise.all([provisionAsync(), provisionAsync()]);
+      for (const e of predecessorBefore)
+        assert.deepEqual(readFileSync(e.path), e.bytes);
+      await action({ results, workspace, common, key });
+      return;
+    }
+    const provisionResult = provisionRun();
+    for (const e of predecessorBefore)
+      assert.deepEqual(readFileSync(e.path), e.bytes);
+    if (mode.startsWith("provision-")) {
+      await action({
+        provisionResult,
+        workspace,
+        common,
+        issued,
+        key,
+        sourceState,
+        provisionRun,
+      });
+      return;
+    }
+    assert.equal(
+      provisionResult.status,
+      0,
+      provisionResult.stdout + provisionResult.stderr,
+    );
+    assert.equal(
+      JSON.parse(provisionResult.stdout).state,
+      "WORKSPACE_PROVISIONED_CONSUMPTION_REVIEW_REQUIRED",
+      provisionResult.stdout,
+    );
+    assert.equal(existsSync(join(dir, "forbidden")), false);
+    assert.equal(git(workspace, "branch", "--show-current"), "");
+    const premature = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `import {prepareCssEntryOrderCorrection} from ${JSON.stringify(pathToFileURL(join(root, "tooling/mdctl/css-entry-order-correction-runtime.mjs")).href)};try{await prepareCssEntryOrderCorrection(${JSON.stringify({ root, workspace, expectedMain: issued })});process.exitCode=9;}catch(e){console.log(e.message);process.exitCode=2;}`,
+      ],
+      provisionOptions,
+    );
+    assert.equal(premature.status, 2);
+    assert.match(premature.stdout, /PROVISION_CONSUMPTION_REQUIRED/);
+    const receiptFile = join(
+        home,
+        "worktrees/.morro-meta",
+        workspace.split("/").at(-1) + ".json",
+      ),
+      rawReceipt = JSON.parse(readFileSync(receiptFile));
+    const { createHash } = await import("node:crypto");
+    const receiptSha256 = createHash("sha256")
+      .update(readFileSync(receiptFile))
+      .digest("hex");
+    const cg = {
+      ...g,
+      state: "CONSUMED",
+      reservation: {
+        key,
+        commitSha: issued,
+        issuedCommitSha: issued,
+        provisioningReceipt: receipt(g, {
+          commonDir: common,
+          createdAt: rawReceipt.createdAt,
+          verifiedAt: new Date().toISOString(),
+          receiptSha256,
+        }),
+      },
+    };
+    put(join(root, C.path), cg);
+    main = commit(root);
+    const coordinator = join(dir, "coordinator");
+    git(common, "worktree", "add", "--quiet", "--detach", coordinator, main);
+    const reanchor = buildClaimReanchor({
+      registry,
+      ledgerText: "",
+      manifest: successor,
+      newBaseSha: main,
+      observedAt: stamp(0),
+    });
+    put(join(coordinator, mp), reanchor.manifest);
+    put(join(coordinator, rp), reanchor.registry);
+    put(join(coordinator, ep), reanchor.ledgerText);
+    if (mode === "bind-path")
+      put(join(coordinator, "forbidden-product-file"), "not admitted");
+    const candidateSha = mode === "bind-base" ? issued : commit(coordinator);
+    configure();
+    rmSync(calls, { force: true });
+    put(cfg, {
+      responses,
+      mode: mode.startsWith("bind-") ? mode : "success",
+      calls,
+      source,
+      sourceState,
+      stateDir,
+      handoffSha,
+      workspace,
+    });
+    const bindRun = () =>
+      spawnSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          `import {bindCssCorrectionWorkspace} from ${JSON.stringify(pathToFileURL(join(root, "tooling/mdctl/css-entry-order-correction-runtime.mjs")).href)};try{console.log(JSON.stringify(bindCssCorrectionWorkspace(${JSON.stringify({ root, expectedMain: main, candidateSha })})));}catch(e){console.log(JSON.stringify({error:e.message}));process.exitCode=2;}`,
+        ],
+        provisionOptions,
+      );
+    const binding = bindRun();
+    if (mode.startsWith("bind-")) {
+      await action({ binding, bindRun, workspace, common, key });
+      return;
+    }
+    assert.equal(binding.status, 0, binding.stdout + binding.stderr);
+    assert.equal(
+      JSON.parse(binding.stdout).state,
+      "WORKSPACE_BOUND_TASK_PREPARATION_REQUIRED",
+      binding.stdout,
+    );
+    stateDir = git(workspace, "rev-parse", "--git-path", "morro-control");
+    rmSync(calls, { force: true });
+    put(cfg, {
+      responses,
+      mode,
+      calls,
+      source,
+      sourceState,
+      stateDir,
+      handoffSha,
+      workspace,
+    });
     const before = Object.keys(values).map((name) => ({
       path: join(sourceState, name),
       bytes: readFileSync(join(sourceState, name)),
@@ -834,6 +1072,8 @@ for (const [mode, code] of [
   ["identity-drift", /SOURCE_CHANGED/],
   ["input-drift", /INPUT_CHANGED/],
   ["prepared-drift", /PREPARED_READBACK/],
+  ["receipt-drift", /INPUT_CHANGED/],
+  ["journal-drift", /INPUT_CHANGED/],
 ])
   test("composed final " + mode + " cannot publish", async () =>
     composedFixture(mode, (f) => {
@@ -850,3 +1090,253 @@ for (const [mode, code] of [
       }
     }),
   );
+
+for (const mode of [
+  "provision-before",
+  "provision-after",
+  "provision-receipt",
+  "provision-ancestry",
+  "provision-lock",
+  "provision-controller",
+]) {
+  test(mode + " fails closed without a conventional successor", async () =>
+    composedFixture(mode, (f) => {
+      const result = JSON.parse(f.provisionResult.stdout);
+      assert.ok(
+        result.error || result.state === "PROVISION_RECONCILIATION_REQUIRED",
+        f.provisionResult.stdout,
+      );
+      const created = ["provision-after", "provision-receipt"].includes(mode);
+      assert.equal(existsSync(f.workspace), created);
+      if (created) {
+        assert.equal(result.controllerAttempted, true);
+        assert.equal(result.workspaceExists, true);
+        const state = execFileSync(
+          "git",
+          ["-C", f.workspace, "rev-parse", "--git-path", "morro-control"],
+          { encoding: "utf8" },
+        ).trim();
+        assert.equal(existsSync(state), false);
+        assert.equal(
+          JSON.parse(
+            readFileSync(
+              join(f.common, "css-entry-order-provisioning-" + f.key + ".json"),
+            ),
+          ).state,
+          "RESERVED",
+        );
+      }
+    }),
+  );
+}
+test("provision replay preserves receipt and journal", async () =>
+  composedFixture("provision-replay", (f) => {
+    assert.equal(
+      JSON.parse(f.provisionResult.stdout).state,
+      "WORKSPACE_PROVISIONED_CONSUMPTION_REVIEW_REQUIRED",
+    );
+    const journal = join(
+        f.common,
+        "css-entry-order-provisioning-" + f.key + ".json",
+      ),
+      before = readFileSync(journal);
+    const replay = f.provisionRun();
+    assert.equal(replay.status, 2);
+    assert.match(replay.stdout, /PROVISION_REUSE/);
+    assert.deepEqual(readFileSync(journal), before);
+  }));
+for (const [name, mutate, pattern] of [
+  [
+    "lease scope",
+    (g) => g.provisioningLease.actions.push("start-worker"),
+    /ACTIONS/,
+  ],
+  [
+    "lease executor",
+    (g) => (g.provisioningLease.executor = "RECOVERY"),
+    /BINDING/,
+  ],
+  ["lease task", (g) => (g.provisioningLease.taskId = "OTHER"), /TASK/],
+  ["lease path", (g) => (g.provisioningLease.workspace += "-other"), /BINDING/],
+  [
+    "lease traversal",
+    (g) => (g.provisioningLease.leaseId = "../other"),
+    /LEASE_ID/,
+  ],
+  [
+    "lease expiry",
+    (g) => (g.provisioningLease.expiresAt = "2030-01-01"),
+    /BINDING/,
+  ],
+  [
+    "source prefix",
+    (g) => (g.provisioningLease.sourceMainSha = "f".repeat(40)),
+    /WORKSPACE/,
+  ],
+  ["lease unknown field", (g) => (g.provisioningLease.extra = true), /FIELDS/],
+])
+  test(name + " is rejected", () => {
+    const g = grant();
+    mutate(g);
+    assert.throws(() => validateCorrectionGrant(g), pattern);
+  });
+for (const [name, mutate, pattern] of [
+  [
+    "arbitrary reservation",
+    (g) => (g.reservation.commitSha = "f".repeat(40)),
+    /RESERVATION_COMMIT/,
+  ],
+  [
+    "receipt task",
+    (g) => (g.reservation.provisioningReceipt.taskId = "OTHER"),
+    /BINDING/,
+  ],
+  [
+    "receipt lease",
+    (g) => (g.reservation.provisioningReceipt.leaseId = "other-lease-001"),
+    /BINDING/,
+  ],
+  [
+    "receipt controller",
+    (g) =>
+      (g.reservation.provisioningReceipt.controllerBlobSha = "f".repeat(40)),
+    /CONTROLLER/,
+  ],
+  [
+    "receipt common dir",
+    (g) => (g.reservation.provisioningReceipt.commonDir = "/tmp/other"),
+    /COMMON/,
+  ],
+  [
+    "receipt unknown field",
+    (g) => (g.reservation.provisioningReceipt.extra = true),
+    /FIELDS/,
+  ],
+  [
+    "receipt unverifiable ID",
+    (g) => (g.reservation.provisioningReceipt.nativeIssueNumber = 0),
+    /ID/,
+  ],
+  [
+    "receipt time",
+    (g) => (g.reservation.provisioningReceipt.verifiedAt = g.expiresAt),
+    /TIME/,
+  ],
+])
+  test(name + " is rejected", () => {
+    const g = history()[1].grant;
+    mutate(g);
+    assert.throws(() => validateCorrectionGrant(g), pattern);
+  });
+test("pure ISSUED history cannot mint provisioning authority", () => {
+  const token = validateCorrectionHistory(
+    [history()[0]],
+    "2026-10-25T03:01:00Z",
+  );
+  assert.throws(() => assertCssProvisioningAuthority(token), /UNVERIFIED/);
+});
+
+test("two real provisioners admit at most one creation", async () =>
+  composedFixture("provision-race", (f) => {
+    const outcomes = f.results.map((r) => JSON.parse(r.stdout));
+    assert.equal(
+      outcomes.filter(
+        (r) => r.state === "WORKSPACE_PROVISIONED_CONSUMPTION_REVIEW_REQUIRED",
+      ).length,
+      1,
+      JSON.stringify(outcomes),
+    );
+    assert.equal(outcomes.filter((r) => r.error).length, 1);
+    assert.equal(
+      JSON.parse(
+        readFileSync(
+          join(f.common, "css-entry-order-provisioning-" + f.key + ".json"),
+        ),
+      ).state,
+      "PROVISIONED",
+    );
+  }));
+for (const mode of [
+  "provision-fsync-1",
+  "provision-fsync-3",
+  "provision-fsync-4",
+  "provision-rename",
+])
+  test(mode + " preserves uncertain state and lock", async () =>
+    composedFixture(mode, (f) => {
+      const r = JSON.parse(f.provisionResult.stdout);
+      assert.equal(r.state, "PROVISION_RECONCILIATION_REQUIRED");
+      assert.equal(r.reason, "EIO");
+      assert.equal(
+        existsSync(join(f.common, "css-started-transfer.lock")),
+        true,
+      );
+      assert.equal(existsSync(f.workspace), mode !== "provision-fsync-1");
+      if (mode === "provision-fsync-4")
+        assert.equal(
+          JSON.parse(
+            readFileSync(
+              join(f.common, "css-entry-order-provisioning-" + f.key + ".json"),
+            ),
+          ).state,
+          "PROVISIONED",
+        );
+    }),
+  );
+
+test("CSS provisioning time uses controller second precision", () => {
+  const g = grant();
+  g.issuedAt = "2026-10-25T03:00:00.001Z";
+  g.provisioningLease.issuedAt = g.issuedAt;
+  assert.throws(() => validateCorrectionGrant(g), /SECOND_PRECISION/);
+});
+
+for (const mode of ["bind-path", "bind-base", "bind-after", "bind-final-drift"])
+  test(mode + " cannot publish a task", async () =>
+    composedFixture(mode, (f) => {
+      const r = JSON.parse(f.binding.stdout);
+      assert.ok(
+        r.error || r.state === "BINDING_RECONCILIATION_REQUIRED",
+        f.binding.stdout,
+      );
+      const state = execFileSync(
+        "git",
+        ["-C", f.workspace, "rev-parse", "--git-path", "morro-control"],
+        { encoding: "utf8" },
+      ).trim();
+      assert.equal(existsSync(state), false);
+      const branch = execFileSync(
+        "git",
+        ["-C", f.workspace, "branch", "--show-current"],
+        { encoding: "utf8" },
+      ).trim();
+      assert.equal(
+        branch,
+        ["bind-after", "bind-final-drift"].includes(mode) ? C.branch : "",
+      );
+      if (branch)
+        assert.equal(
+          existsSync(join(f.common, "css-started-transfer.lock")),
+          true,
+        );
+    }),
+  );
+test("bound journal cannot be rebound or silently replayed", async () =>
+  composedFixture("bind-replay", (f) => {
+    assert.equal(
+      JSON.parse(f.binding.stdout).state,
+      "WORKSPACE_BOUND_TASK_PREPARATION_REQUIRED",
+    );
+    const before = readFileSync(
+      join(f.common, "css-entry-order-provisioning-" + f.key + ".json"),
+    );
+    const again = f.bindRun();
+    assert.equal(again.status, 2);
+    assert.match(again.stdout, /PROVISION_JOURNAL/);
+    assert.deepEqual(
+      readFileSync(
+        join(f.common, "css-entry-order-provisioning-" + f.key + ".json"),
+      ),
+      before,
+    );
+  }));
