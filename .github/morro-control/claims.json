@@ -52,20 +52,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T14:00:00.000Z"
     },
-    "MD-CSS-ENTRY-ORDER-CORRECTION-R2-20261027": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/css-entry-order-correction-r2-20261027",
-      "baseSha": "4e67354b0896402bc2a427ce725c965ec97cfa2d",
-      "paths": [
-        ".morro/changesets/MD-CSS-ENTRY-ORDER-CORRECTION-R2-20261027.json",
-        "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts"
-      ],
-      "domains": ["map"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-27T15:00:00.000Z"
-    },
     "MD-HOME-CSS-RECOVERY-CONTRACT-20261027": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
