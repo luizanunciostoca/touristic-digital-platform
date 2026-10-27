@@ -110,6 +110,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T15:00:00.000Z"
+    },
+    "MD-CLOUD-EXECUTION-COMPATIBILITY-20261027": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/cloud-execution-compatibility-20261027",
+      "baseSha": "922fd701b9a126c7745d29fa42b62606463f6a5a",
+      "paths": [
+        "tooling/failure-learning/executor-preflight.mjs",
+        "tooling/failure-learning/executor-preflight.test.mjs",
+        ".morro/changesets/MD-CLOUD-EXECUTION-COMPATIBILITY-20261027.json"
+      ],
+      "domains": ["control-plane"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-27T18:00:00.000Z"
     }
   }
 }
