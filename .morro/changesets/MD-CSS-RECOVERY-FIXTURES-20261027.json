@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CSS-RECOVERY-FIXTURES-20261027",
+  "objective": "repair-isolated-css-recovery-test-fixtures-without-runtime-or-authority-changes",
+  "baseSha": "62b6f9ce75fcac45f14f4eb7f8bec6231bea5053",
+  "branch": "fix/css-recovery-fixtures-20261027",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
+      "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
+      ".morro/changesets/MD-CSS-RECOVERY-FIXTURES-20261027.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "cloud-collector-fixtures",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-css-entry-order-correction.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

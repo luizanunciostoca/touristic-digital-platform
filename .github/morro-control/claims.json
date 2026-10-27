@@ -136,6 +136,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T23:59:59.000Z"
+    },
+    "MD-CSS-RECOVERY-FIXTURES-20261027": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/css-recovery-fixtures-20261027",
+      "baseSha": "62b6f9ce75fcac45f14f4eb7f8bec6231bea5053",
+      "paths": [
+        "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
+        ".morro/changesets/MD-CSS-RECOVERY-FIXTURES-20261027.json"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-27T23:59:59.000Z"
     }
   }
 }
