@@ -1,3 +1,4 @@
+import { ensureFeatureStyles } from "../map/feature-styles.js";
 import { readFileSync } from "node:fs";
 import { compileFunction } from "node:vm";
 import {
@@ -24,7 +25,10 @@ function runtimeClosure(name: string): string {
   return result;
 }
 
-function failureFixture(language = "pt-BR") {
+function failureFixture(
+  language = "pt-BR",
+  styleLoader: typeof ensureFeatureStyles = ensureFeatureStyles,
+) {
   class Input {
     value = "ajuda";
   }
@@ -45,7 +49,13 @@ function failureFixture(language = "pt-BR") {
   const messages: string[] = [];
   let state = createDefaultAssistantContext(() => 1000);
   const dependencies = {
-    options: { document: { documentElement: { lang: language } } },
+    options: {
+      document: {
+        documentElement: { lang: language },
+        querySelector: () => null,
+      },
+    },
+    ensureFeatureStyles: styleLoader,
     assistantUiStateStatus,
     createAssistantDialogController,
     createAssistantLlmHandler: () => async () => null,
@@ -765,5 +775,52 @@ describe("manual conformance recovery isolation", () => {
       f.written.has("/isolated-evidence/assistant-recovery-fixture.json"),
     ).toBe(false);
     expect(f.browser.close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("actual assistant turn waits for feature styles", () => {
+  it("does not publish unstyled loading or error messages when stylesheet loading fails", async () => {
+    const f = failureFixture("pt-BR", () =>
+      Promise.reject(new Error("FEATURE_STYLES_UNAVAILABLE")),
+    );
+    const turn = vi.fn(async () => ({ text: "ready" }));
+    f.setTurn(turn);
+    await expect(f.processInput("beaches")).rejects.toThrow(
+      "FEATURE_STYLES_UNAVAILABLE",
+    );
+    expect(turn).not.toHaveBeenCalled();
+    expect(f.events).toEqual([]);
+    expect(f.messages).toEqual([]);
+  });
+  it("does not execute an old turn after the controller is destroyed while styles load", async () => {
+    let release!: () => void;
+    const styles = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const f = failureFixture("pt-BR", () => styles);
+    const turn = vi.fn(async () => ({ text: "ready" }));
+    f.setTurn(turn);
+    const pending = f.processInput("beaches");
+    expect(turn).not.toHaveBeenCalled();
+    f.destroy();
+    release();
+    expect((await pending).metadata?.state).toBe("superseded");
+    expect(turn).not.toHaveBeenCalled();
+    expect(f.events).toEqual([]);
+  });
+  it("keeps the latest turn and invokes it exactly once after shared styles finish", async () => {
+    let release!: () => void;
+    const styles = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const f = failureFixture("pt-BR", () => styles);
+    const turn = vi.fn(async () => ({ text: "ready" }));
+    f.setTurn(turn);
+    const old = f.processInput("old");
+    const current = f.processInput("current");
+    release();
+    expect((await old).metadata?.state).toBe("superseded");
+    expect((await current).text).toBe("ready");
+    expect(turn).toHaveBeenCalledOnce();
   });
 });

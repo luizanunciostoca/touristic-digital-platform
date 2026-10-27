@@ -1,3 +1,4 @@
+import { createFeatureStyleGate } from "../map/feature-styles.js";
 import type { WeatherForecastDay, WeatherReading } from "./weather-widget.js";
 import {
   getWeatherPresentationCopy,
@@ -160,6 +161,7 @@ export function openWeatherForecastModal({
       : null;
   let selectedIndex = 0;
   let closed = false;
+  const featureStyles = createFeatureStyleGate(document);
   let currentLocale = weatherPresentationLocale(
     locale ?? document.documentElement.lang,
   );
@@ -275,6 +277,7 @@ export function openWeatherForecastModal({
   };
 
   const close = (): void => {
+    featureStyles.cancel();
     if (closed) return;
     closed = true;
     document.removeEventListener("keydown", onKeyDown, true);
@@ -334,9 +337,6 @@ export function openWeatherForecastModal({
   });
 
   renderLocale();
-  document.body.appendChild(modal);
-  document.addEventListener("keydown", onKeyDown, true);
-  document.addEventListener("focusin", onFocusIn, true);
 
   const focusInitialControl = (): void => {
     if (closed || !closeButton || !modal.isConnected) return;
@@ -344,9 +344,15 @@ export function openWeatherForecastModal({
       closeButton.focus({ preventScroll: true });
     }
   };
-  closeButton?.focus({ preventScroll: true });
-  queueMicrotask(focusInitialControl);
-  document.defaultView?.requestAnimationFrame?.(focusInitialControl);
+  featureStyles.run(() => {
+    if (closed) return;
+    document.body.appendChild(modal);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("focusin", onFocusIn, true);
+    closeButton?.focus({ preventScroll: true });
+    queueMicrotask(focusInitialControl);
+    document.defaultView?.requestAnimationFrame?.(focusInitialControl);
+  }, close);
 
   return Object.freeze({ element: modal, close, updateLocale });
 }

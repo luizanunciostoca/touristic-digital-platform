@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 
 const publicUrl = new URL("../../public/", import.meta.url);
@@ -67,6 +68,91 @@ describe("PWA manifest", () => {
 });
 
 describe("PWA offline authority boundary", () => {
+  it("installs full feature styles before first intent and retains them offline after cache update", async () => {
+    const origin = "https://morro.example";
+    const feature =
+      "/apps/morro-digital-platform/public/dist/entry-css/features.css";
+    const handlers = new Map<string, (event: unknown) => void>();
+    const stores = new Map<string, Map<string, Response>>([
+      ["morro-digital-static-v5", new Map([[feature, new Response("old")]])],
+    ]);
+    const requests: string[] = [];
+    const key = (request: string | Request): string =>
+      new URL(typeof request === "string" ? request : request.url, origin)
+        .pathname;
+    let offline = false;
+    let claimed = false;
+    class LocalRequest extends Request {
+      constructor(url: string, init?: RequestInit) {
+        super(new URL(url, origin), init);
+      }
+    }
+    runInNewContext(await readPublicFile("service-worker.js"), {
+      URL,
+      Request: LocalRequest,
+      Response,
+      self: {
+        location: { origin },
+        addEventListener: (name: string, handler: (event: unknown) => void) =>
+          handlers.set(name, handler),
+        clients: {
+          claim: async () => {
+            claimed = true;
+          },
+        },
+      },
+      fetch: async (request: Request) => {
+        requests.push(key(request));
+        if (offline) throw new Error("FIXTURE_OFFLINE");
+        const response = new Response("fixture:" + key(request));
+        Object.defineProperty(response, "type", { value: "basic" });
+        return response;
+      },
+      caches: {
+        open: async (name: string) => {
+          if (!stores.has(name)) stores.set(name, new Map());
+          const store = stores.get(name)!;
+          return {
+            put: async (request: string | Request, response: Response) => {
+              store.set(key(request), response.clone());
+            },
+            match: async (request: string | Request) =>
+              store.get(key(request))?.clone(),
+          };
+        },
+        keys: async () => [...stores.keys()],
+        delete: async (name: string) => stores.delete(name),
+      },
+    });
+    for (const phase of ["install", "activate"]) {
+      const pending: Promise<unknown>[] = [];
+      handlers.get(phase)!({
+        waitUntil: (promise: Promise<unknown>) => pending.push(promise),
+      });
+      await Promise.all(pending);
+    }
+    expect(requests).toContain(feature);
+    expect(stores.has("morro-digital-static-v5")).toBe(false);
+    expect(claimed).toBe(true);
+    offline = true;
+    let response: Promise<Response> | undefined;
+    handlers.get("fetch")!({
+      request: new LocalRequest(feature),
+      respondWith: (value: Promise<Response>) => {
+        response = value;
+      },
+    });
+    expect(response).toBeDefined();
+    expect(await (await response!).text()).toBe("fixture:" + feature);
+    response = undefined;
+    handlers.get("fetch")!({
+      request: new LocalRequest("/api/payments"),
+      respondWith: (value: Promise<Response>) => {
+        response = value;
+      },
+    });
+    expect(response).toBeUndefined();
+  });
   it("keeps APIs, runtime configuration and health probes network-only", async () => {
     const worker = await readPublicFile("service-worker.js");
 
@@ -88,7 +174,7 @@ describe("PWA offline authority boundary", () => {
   it("uses a versioned cache and network-first runtime assets", async () => {
     const worker = await readPublicFile("service-worker.js");
 
-    expect(worker).toContain("static-v5");
+    expect(worker).toContain("static-v6");
     expect(worker).toContain("function isRuntimeAsset(pathname)");
     expect(worker).toContain("networkFirstStatic(request)");
     expect(worker).toContain("isRuntimeAsset(url.pathname)");
@@ -104,7 +190,10 @@ describe("PWA offline authority boundary", () => {
       '"/assets/brand/morro-digital-maskable-v2-512.png"',
     );
     expect(worker).toContain(
-      '"/apps/morro-digital-platform/public/brand-v2.css"',
+      '"/apps/morro-digital-platform/public/dist/entry-css/home.css"',
+    );
+    expect(worker).toContain(
+      '"/apps/morro-digital-platform/public/dist/entry-css/features.css"',
     );
     expect(worker).not.toContain('"/pwa-icon-192.png"');
     expect(worker).not.toContain('"/pwa-icon-512.png"');

@@ -124,8 +124,16 @@ describe("Assistant Modal V2 contract", () => {
     const legacy =
       "/apps/morro-digital-platform/public/legacy/legacy.bundle.css";
 
-    expect(html).toContain(assistant);
-    expect(html.indexOf(assistant)).toBeGreaterThan(html.indexOf(legacy));
-    expect(worker).toContain(assistant);
+    const manifest = JSON.parse(
+      await readRepository("tooling/ci/entry-css-manifest.json"),
+    ) as { sources: { file: string }[] };
+    const paths = manifest.sources.map((source) => "/" + source.file);
+    expect(paths).toContain(legacy);
+    expect(paths.indexOf(assistant)).toBeGreaterThan(paths.indexOf(legacy));
+    expect(html).toContain("data-feature-css");
+    expect(html).not.toContain(assistant);
+    expect(worker).not.toContain(assistant);
+    expect(worker).toContain('"/apps/morro-digital-platform/public/"');
+    expect(worker).toContain("networkFirstStatic(request)");
   });
 });

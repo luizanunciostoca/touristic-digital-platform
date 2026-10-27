@@ -1,3 +1,4 @@
+import { ensureFeatureStyles } from "../map/feature-styles.js";
 import {
   createAssistantContextManager,
   createAssistantDialogController,
@@ -1445,6 +1446,8 @@ export function installBrowserAssistantRuntime(
   ): Promise<AssistantDialogResponse> => {
     const generation = assistantUiGeneration;
     try {
+      if (destroyed || generation !== assistantUiGeneration)
+        return supersededResponse();
       return await executeInputTurn(...args);
     } catch (error) {
       if (!destroyed && generation === assistantUiGeneration) {
@@ -1477,8 +1480,14 @@ export function installBrowserAssistantRuntime(
     }
 
     const uiGeneration = ++assistantUiGeneration;
-    dispatchAssistantUiState(options.document, "loading");
+    let stylesReady = false;
     try {
+      const pendingStyles = ensureFeatureStyles(options.document);
+      if (pendingStyles) await pendingStyles;
+      if (destroyed || uiGeneration !== assistantUiGeneration)
+        return supersededResponse();
+      stylesReady = true;
+      dispatchAssistantUiState(options.document, "loading");
       const response = await processInputTurn(
         rawInput,
         optionOverride,
@@ -1499,7 +1508,7 @@ export function installBrowserAssistantRuntime(
       }
       return response;
     } catch (error) {
-      if (!destroyed && uiGeneration === assistantUiGeneration) {
+      if (stylesReady && !destroyed && uiGeneration === assistantUiGeneration) {
         dispatchAssistantUiState(options.document, "error");
       }
       throw error;

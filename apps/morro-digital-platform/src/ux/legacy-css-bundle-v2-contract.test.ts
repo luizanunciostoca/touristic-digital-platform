@@ -33,14 +33,29 @@ describe("deterministic legacy CSS bundle contract", () => {
 
     const bundle =
       "/apps/morro-digital-platform/public/legacy/legacy.bundle.css";
-    expect(html).toContain(bundle);
+    const manifest = JSON.parse(
+      await readRepository("tooling/ci/entry-css-manifest.json"),
+    ) as { sources: { file: string }[] };
+    expect(manifest.sources.map((source) => "/" + source.file)).toContain(
+      bundle,
+    );
+    expect(html).not.toContain(bundle);
+    expect(html).toContain(
+      "/apps/morro-digital-platform/public/dist/entry-css/home.css",
+    );
     expect(html).not.toContain(
       "/apps/morro-digital-platform/public/legacy/checkpoint.css",
     );
     expect(html).not.toContain(
       "/apps/morro-digital-platform/public/legacy/index-inline.css",
     );
-    expect(worker).toContain(bundle);
+    expect(worker).not.toContain(bundle);
+    expect(worker).toContain(
+      "/apps/morro-digital-platform/public/dist/entry-css/home.css",
+    );
+    expect(pkg.indexOf("build-legacy-css.mjs")).toBeLessThan(
+      pkg.indexOf("build-entry-css.mjs"),
+    );
     expect(worker).not.toContain(
       "/apps/morro-digital-platform/public/legacy/checkpoint.css",
     );
