@@ -96,6 +96,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T15:00:00.000Z"
+    },
+    "MD-CSS-ENTRY-ORDER-GRANT-R2-20261027": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/p2-grant-r2-acquisition-20261027",
+      "baseSha": "c7adda0fab09af4d638c4fefbe3bd0f07c523e97",
+      "paths": [
+        ".morro/task-corrections/MD-CSS-ENTRY-ORDER-CORRECTION-R2-20261027.json",
+        ".morro/changesets/MD-CSS-ENTRY-ORDER-GRANT-R2-20261027.json"
+      ],
+      "domains": ["control-plane"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-27T15:00:00.000Z"
     }
   }
 }
