@@ -109,21 +109,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T18:00:00.000Z"
-    },
-    "MD-CLOUD-P2-AUTHORITY-PREPARATION-20261027": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/cloud-p2-authority-preparation-20261027",
-      "baseSha": "fccdc72fa25fa5a842c4161e2a856431ce2f8063",
-      "paths": [
-        "tooling/mdctl/task-correction-authority.mjs",
-        "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
-        ".morro/changesets/MD-CLOUD-P2-AUTHORITY-PREPARATION-20261027.json"
-      ],
-      "domains": ["control-plane"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-27T20:00:00.000Z"
     }
   }
 }
