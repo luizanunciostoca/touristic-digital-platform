@@ -1,23 +1,53 @@
 const PUBLIC_CSS = "/apps/morro-digital-platform/public/";
 const HOME_CSS = PUBLIC_CSS + "dist/entry-css/home.css";
 const FEATURE_CSS = PUBLIC_CSS + "dist/entry-css/features.css";
+const VENDOR_CSS = new Set([
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+  "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css",
+  "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap",
+]);
 
-/** Resolve the actual source cascade without equating a filename comment with a stylesheet. */
+/** Resolve supported static local links; effective browser cascade still needs runtime proof. */
 export function resolveCssCascade(html: string, manifest?: unknown): string[] {
   const activeHtml = html
     .replace(/<!--[\s\S]*?-->/gu, "")
-    .replace(/<(template|noscript)\b[^>]*>[\s\S]*?<\/\1>/giu, "");
-  const links = activeHtml.match(/<link\b[^>]*>/giu) ?? [];
+    .replace(
+      /<(template|noscript|script|textarea|title)\b[^>]*>[\s\S]*?<\/\1>/giu,
+      "",
+    );
+  if (/<style\b/iu.test(activeHtml))
+    throw new Error("CSS_INLINE_STYLESHEET_UNSUPPORTED");
+  const links =
+    activeHtml.match(/<link\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/giu) ?? [];
   const attribute = (link: string, name: string): string | undefined =>
-    new RegExp("(?:\\s|^)" + name + "\\s*=\\s*[\"']([^\"']*)[\"']", "iu").exec(
-      link,
-    )?.[1];
-  const styles = links.filter(
-    (link) => attribute(link, "rel") === "stylesheet",
+    [
+      ...link.matchAll(
+        /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/gu,
+      ),
+    ]
+      .find((match) => match[1]?.toLowerCase() === name)
+      ?.slice(2)
+      .find((value) => value !== undefined);
+  const styles = links.filter((link) =>
+    (attribute(link, "rel") ?? "")
+      .toLowerCase()
+      .split(/\s+/u)
+      .includes("stylesheet"),
   );
-  const local = styles
-    .map((link) => attribute(link, "href") ?? "")
-    .filter((href) => href.startsWith(PUBLIC_CSS));
+  const local: string[] = [];
+  for (const link of styles) {
+    const media = attribute(link, "media");
+    if (
+      attribute(link, "rel")?.toLowerCase() !== "stylesheet" ||
+      /\sdisabled(?:\s|=|>)/iu.test(link) ||
+      (media !== undefined && media !== "" && media.toLowerCase() !== "all")
+    )
+      throw new Error("CSS_STYLESHEET_CONDITION_UNSUPPORTED");
+    const href = attribute(link, "href") ?? "";
+    if (href.startsWith(PUBLIC_CSS)) local.push(href);
+    else if (!VENDOR_CSS.has(href) || local.length > 0)
+      throw new Error("CSS_UNRECOGNIZED_OR_LATE_VENDOR_STYLESHEET");
+  }
   const entry = links.filter((link) =>
     /\sdata-entry-css(?:\s|=|>)/u.test(link),
   );
