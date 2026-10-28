@@ -164,6 +164,8 @@ function sourceMode(root, manifest, files, executor, now) {
           baseIsAncestor: true,
         },
       );
+    if (task.state === "SUBMITTED")
+      check(Date.parse(task.submittedAt) <= now, "HISTORY_FUTURE_SUBMISSION");
     if (task.state !== "STARTED")
       check(task.localProof, "HISTORY_PROOF_REQUIRED");
     if (task.localProof)
@@ -268,11 +270,8 @@ export async function captureGeneration(
     prNumber,
     executor,
     observed,
-    pull,
     id,
     claim,
-    registry,
-    canonicalManifest,
     manifest,
     mp,
     files,
@@ -504,6 +503,23 @@ async function terminalCapture(
   );
   return current;
 }
+export async function runGenerationProofCommand(workspace, command) {
+  // Nested proofs must run without the parent's Node test-runner marker.
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const result = spawnSync(process.execPath, command.argv.slice(1), {
+    cwd: workspace,
+    encoding: "utf8",
+    timeout: command.timeoutSeconds * 1000,
+    maxBuffer: 4 * 1024 * 1024,
+    env,
+  });
+  return {
+    status: result.status === 0 && !result.error ? "PASS" : "FAIL",
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+}
 async function boundedProof(capture, manifest, registry, clock) {
   const initial = identity(capture.workspace, manifest.baseSha);
   const started = buildTaskStart({
@@ -520,24 +536,8 @@ async function boundedProof(capture, manifest, registry, clock) {
     leaseRegistry: started.leaseRegistry,
     identity: initial,
     now: () => new Date(clock()).toISOString(),
-    commandRunner: async (command) => {
-      // Node's parent test-runner marker can make a nested --test invocation
-      // return without executing its requested file. A proof is a fresh process.
-      const env = { ...process.env };
-      delete env.NODE_TEST_CONTEXT;
-      const result = spawnSync(process.execPath, command.argv.slice(1), {
-        cwd: capture.workspace,
-        encoding: "utf8",
-        timeout: command.timeoutSeconds * 1000,
-        maxBuffer: 4 * 1024 * 1024,
-        env,
-      });
-      return {
-        status: result.status === 0 && !result.error ? "PASS" : "FAIL",
-        stdout: result.stdout,
-        stderr: result.stderr,
-      };
-    },
+    commandRunner: (command) =>
+      runGenerationProofCommand(capture.workspace, command),
   });
   same(
     identity(capture.workspace, manifest.baseSha),
@@ -558,22 +558,33 @@ async function boundedProof(capture, manifest, registry, clock) {
   };
 }
 
-// Reconstruct released evidence with the same canonical builders that issued it.
-// An in-memory expected value is never persisted over predecessor history.
+// Reconstruct with canonical builders in memory; never overwrite history.
 function validateSubmitted(record, manifest, identity, prior) {
   const { task, contextPack, localProof, leaseRegistry } = record;
-  const lease = leaseRegistry.leases[task.leaseIds[0]];
+  check(
+    Date.parse(task.startedAt) <= Date.parse(localProof.completedAt) &&
+      Date.parse(localProof.completedAt) <= Date.parse(task.submittedAt),
+    "HISTORY_PROOF_TIME",
+  );
+  const historical = structuredClone(leaseRegistry);
+  if (!prior)
+    for (const id of task.leaseIds) {
+      const lease = historical.leases[id];
+      same(lease.state, "RELEASED", "HISTORY_RELEASED_LEASE");
+      check(
+        Date.parse(lease.issuedAt) <= Date.parse(task.startedAt),
+        "HISTORY_LEASE_TIME",
+      );
+      lease.state = "ACTIVE";
+    }
   const ids = [...task.leaseIds];
-  const ttlSeconds = prior
-    ? 1800
-    : (Date.parse(lease.expiresAt) - Date.parse(lease.issuedAt)) / 1000;
   const started = buildTaskStart({
     changeSet: manifest,
     owner: task.owner,
     identity,
-    leaseRegistry: prior ?? createLeaseRegistry(),
+    leaseRegistry: prior ?? historical,
     now: task.startedAt,
-    ttlSeconds,
+    ttlSeconds: 1800,
     idFactory: () => ids.shift()?.replace(/^lease-/u, ""),
   });
   const tested = {
@@ -913,7 +924,7 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 )
-  main(process.argv.slice(2)).catch((error) => {
-    console.error(String(error.message).split("\n")[0]);
+  main(process.argv.slice(2)).catch(() => {
+    console.error("GENERATION_COMMAND_FAILED");
     process.exitCode = 1;
   });

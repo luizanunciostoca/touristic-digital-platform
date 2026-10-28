@@ -15,6 +15,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   captureGeneration,
+  runGenerationProofCommand,
   generationRequest,
   generationDigest,
   prepareGeneration,
@@ -24,6 +25,7 @@ import {
 } from "../mdctl/task-generation.mjs";
 import {
   buildTaskStart,
+  buildTaskRestart,
   buildTaskTest,
   buildTaskSubmit,
 } from "../mdctl/task-lifecycle.mjs";
@@ -268,42 +270,46 @@ test("closed acquisition cannot authorize continuation", async (t) => {
   assert.equal(existsSync(f.state), false);
 });
 
-for (const submitted of [false, true])
-  test(`complete ${submitted ? "SUBMITTED" : "expired STARTED"} history survives reanchor and final proof`, async (t) => {
+for (const mode of [false, true, "restarted", "early-proof", "early-submit"])
+  test(`complete ${mode || "expired STARTED"} history survives reanchor and final proof`, async (t) => {
     const f = fixture(t);
     const identity = fixtureIdentity(f);
-    const started = buildTaskStart({
+    let started = buildTaskStart({
       changeSet: f.manifest,
       owner: OWNER,
       identity,
-      now: new Date(Date.now() - (submitted ? 0 : 3600000)).toISOString(),
+      now: new Date(Date.now() - (mode ? 10000 : 3600000)).toISOString(),
       ttlSeconds: 60,
     });
+    if (typeof mode === "string")
+      started = buildTaskRestart({
+        ...started,
+        changeSet: f.manifest,
+        identity,
+      });
+    if (typeof mode === "string")
+      assert.ok(
+        started.leaseRegistry.leases[started.task.leaseIds[0]].issuedAt <
+          started.task.startedAt,
+      );
+    const earlier = new Date(Date.now() - 5000).toISOString();
     let record = started;
-    if (submitted) {
+    if (mode) {
       const tested = await buildTaskTest({
         task: started.task,
+        now: mode === "early-proof" ? earlier : undefined,
         changeSet: f.manifest,
         leaseRegistry: started.leaseRegistry,
         identity,
-        commandRunner: async (command) => {
-          const env = { ...process.env };
-          delete env.NODE_TEST_CONTEXT;
-          const r = spawnSync(process.execPath, command.argv.slice(1), {
-            cwd: f.root,
-            encoding: "utf8",
-            env,
-          });
-          return {
-            status: r.status === 0 && !r.error ? "PASS" : "FAIL",
-            stdout: r.stdout,
-            stderr: r.stderr,
-          };
-        },
+        commandRunner: (command) => runGenerationProofCommand(f.root, command),
       });
       record = {
         ...buildTaskSubmit({
           task: tested.task,
+          now:
+            mode === "early-submit"
+              ? new Date(Date.now() - 5000).toISOString()
+              : undefined,
           changeSet: f.manifest,
           leaseRegistry: started.leaseRegistry,
           identity,
@@ -319,6 +325,10 @@ for (const submitted of [false, true])
       ["capability-leases.json", record.leaseRegistry],
     ])
       if (value) writeFileSync(join(f.state, name), encode(value));
+    if (String(mode).startsWith("early-")) {
+      await assert.rejects(f.capture(), /HISTORY_PROOF_TIME/);
+      return;
+    }
     const capture = await f.capture();
     assert.equal(capture.mode, "HISTORY");
     const request = generationRequest(capture);
@@ -459,7 +469,7 @@ test("proof that mutates candidate cannot promote; canonical CLI refuses uninteg
     { encoding: "utf8" },
   );
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /CANONICAL_EXECUTABLE_REQUIRED/);
+  assert.equal(result.stderr, "GENERATION_COMMAND_FAILED\n");
 });
 
 test("changed candidate invalidates request before reservation", async (t) => {
