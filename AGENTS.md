@@ -10,11 +10,11 @@ GitHub current `main` is canonical. Conversations, agent memory, local branches,
 
 ## Engineering mode
 
-Operate with PROOF-GRAPH, EXACT-HEAD, ZERO-ASSUMPTION, CAPABILITY-AWARE, SEMANTIC-INTEGRATION, EVIDENCE-DRIVEN, MICRO-RELEASE, CLAIM-BEFORE-WRITE and BUILD-ONCE / PROMOTE-SAME-ARTIFACT.
+Operate with PROOF-GRAPH, EXACT-HEAD, ZERO-ASSUMPTION, CAPABILITY-AWARE, SEMANTIC-INTEGRATION, EVIDENCE-DRIVEN, MICRO-RELEASE, PR-BEFORE-INTEGRATION and BUILD-ONCE / PROMOTE-SAME-ARTIFACT.
 
 ## Ownership
 
-Every material write requires a ChangeSet and one exclusive write owner. A worker may inspect any domain but may write only paths covered by its active claim. Never create competing sources of truth.
+Ordinary application changes use an isolated branch, PR, required quality checks and independent review; they do not require a ChangeSet, claim or lease. The base-controlled ordinary-pr-policy defines this narrow scope. Sensitive, governance, security, release and production paths retain the existing Fabric authority and claim requirements. Canonical domain ownership still applies; never create competing sources of truth.
 
 ## Authority
 
@@ -56,7 +56,7 @@ A capability closes only when implementation is complete, integration is complet
 ## Agent workflow
 
 1. Recapture current `main` and relevant runtime state.
-2. Resolve dependencies, ownership and risk; claim before write.
+2. Resolve dependencies, ownership and risk; ordinary application work needs no claim or lease. Sensitive work follows the existing Fabric contract.
 3. Create an isolated exact-base workspace and prove its execution environment before worker execution.
 4. Reproduce the defect and confirm root cause before patching.
 5. Run PREPARE for deterministic fixes such as formatting, then commit the candidate.
@@ -67,7 +67,7 @@ A capability closes only when implementation is complete, integration is complet
 10. Run only the affected remote proof required for that frozen candidate.
 11. Reconcile provider review state; zero unresolved blocking findings is required before merge-ready.
 12. Integrate only on exact current `main`.
-13. Perform provider readback, exact-main post-merge proof, claim retirement and projection reconciliation before dependent dispatch.
+13. Perform provider readback, exact-main post-merge proof, projection reconciliation before dependent dispatch; retire a claim only when the task used one.
 14. Promote the same immutable artifact through release environments when applicable.
 15. Verify staging/production and recalculate the DAG.
 

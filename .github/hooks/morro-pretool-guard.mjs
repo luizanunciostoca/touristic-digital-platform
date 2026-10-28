@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ordinaryPrScope } from "../../tooling/fabric/ordinary-pr-policy.mjs";
 import { validateClaimContext } from "../../tooling/fabric/claim-guard.mjs";
 
 const WRITE_TOOLS = new Set([
@@ -381,8 +382,8 @@ function resolveCurrentBaseSha(root) {
 function changedWorktreeFiles(root) {
   const paths = new Set();
   for (const args of [
-    ["diff", "--name-only", "HEAD"],
-    ["diff", "--cached", "--name-only"],
+    ["diff", "--no-renames", "--name-only", "HEAD"],
+    ["diff", "--cached", "--no-renames", "--name-only"],
     ["ls-files", "--others", "--exclude-standard"],
   ]) {
     const raw = git(root, args);
@@ -417,12 +418,17 @@ function validatePathsAgainstActiveClaim({
   changedFiles,
   authority,
 }) {
+  const currentBaseSha = resolveCurrentBaseSha(root);
+  const branchHeadSha = git(root, ["rev-parse", "HEAD"]);
+  assert.ok(isGitAncestor(root, currentBaseSha, branchHeadSha), "HOOK_BASE_NOT_ANCESTOR");
+  const baseJson = path => JSON.parse(git(root, ["show", `${currentBaseSha}:${path}`]));
+  if (ordinaryPrScope(changedFiles, baseJson(".morro/risk-policy.json"), baseJson(".morro/ownership.json"))) {
+    return { mode: "NATIVE_PR", currentBaseSha, branchHeadSha };
+  }
   const manifest = loadManifestForBranch(root, branch);
   const registry = JSON.parse(
     readFileSync(resolve(root, ".github/morro-control/claims.json"), "utf8"),
   );
-  const currentBaseSha = resolveCurrentBaseSha(root);
-  const branchHeadSha = git(root, ["rev-parse", "HEAD"]);
   const effectiveAuthority =
     authority ?? authorityForManifestState(manifest.state);
 

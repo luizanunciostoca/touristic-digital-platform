@@ -10,13 +10,13 @@ Authority order is: live observed runtime/external state; current GitHub `main`;
 
 1. **Derived state** — calculate operational state from evidence whenever possible.
 2. **Explicit contracts** — cross-domain behavior uses versioned contracts and ownership.
-3. **Ephemeral workers** — bounded context, lease and disposable workspace per task.
+3. **Ephemeral workers** — bounded context and disposable workspace per task; leases apply only to sensitive Fabric-governed work.
 4. **Impact-selected proof** — semantic impact plus risk selects proof; unknown risk fails closed.
 5. **Immutable artifact promotion** — build once and promote the same certified artifact.
 
 ## Invariants
 
-- Claim before write; expired authority fails closed.
+- Ordinary application changes use branch → PR → required quality → independent review without claims or leases. Sensitive Fabric-governed work retains claim authority; expired authority fails closed.
 - One authoritative owner per protected domain.
 - Exact-head identity is mandatory for integration and release.
 - A candidate cannot approve itself with a validator it changed.
