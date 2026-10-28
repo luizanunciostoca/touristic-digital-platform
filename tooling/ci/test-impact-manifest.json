@@ -203,6 +203,7 @@
     "governance": {
       "paths": [
         "AGENTS.md",
+        "CONSTITUTION.md",
         ".morro/",
         ".github/agents/",
         ".github/instructions/",

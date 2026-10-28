@@ -65,6 +65,13 @@ function fixture(
       readFileSync(new URL(name, import.meta.url), "utf8"),
     );
   put(
+    "tooling/fabric/ordinary-pr-policy.mjs",
+    readFileSync(
+      new URL("../fabric/ordinary-pr-policy.mjs", import.meta.url),
+      "utf8",
+    ),
+  );
+  put(
     "tooling/fabric/ownership-path.mjs",
     "export const matchesOwnershipPath=(path,prefix)=>path.startsWith(prefix);\n",
   );
@@ -89,9 +96,21 @@ function fixture(
   });
   put(".github/morro-control/events.ndjson", "");
   put(".morro/changesets/FIXTURE.json", { state: "IMPLEMENTING" });
+  put(
+    ".morro/risk-policy.json",
+    JSON.parse(
+      readFileSync(
+        new URL("../../.morro/risk-policy.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+  );
   put(".morro/ownership.json", {
     domains: [
-      { pathPrefixes: ["tooling/", "apps/", "packages/", "unknown/", "docs/"] },
+      {
+        pathPrefixes: ["tooling/", "apps/", "packages/", "unknown/", "docs/"],
+        contracts: [],
+      },
     ],
   });
   put(PKG, {

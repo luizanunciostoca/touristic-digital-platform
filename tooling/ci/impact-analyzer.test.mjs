@@ -1443,3 +1443,63 @@ test("initial CSS exact runtime paths select required suites without broadening 
     }
   }
 });
+
+test("constitution has exact governance classification with security preserved", () => {
+  const result = analyzeFiles(["CONSTITUTION.md"]);
+  assert.equal(result.classificationBlocked, false);
+  assert.deepEqual(result.unknownFiles, []);
+  assert.deepEqual(result.domains, ["governance"]);
+  assert.equal(result.risk, "HIGH");
+  assert.equal(result.needsFullSecurity, true);
+  assert.equal(result.nonRuntime, true);
+  assert.equal(result.qualityProfile, "NON_RUNTIME");
+});
+
+test("constitution mapping does not classify adjacent or unknown root paths", () => {
+  for (const file of [
+    "CONSTITUTION.md.backup",
+    "CONSTITUTION.md-old",
+    "CONSTITUTION.md/child",
+    "UNKNOWN_ROOT.md",
+  ]) {
+    const result = analyzeFiles([file]);
+    assert.equal(result.classificationBlocked, true, file);
+    assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
+    assert.deepEqual(result.unknownFiles, [file]);
+  }
+});
+
+test("constitution PR1240 complete diff remains governance high and fail-closed on unknown extras", () => {
+  const files = [
+    ".github/hooks/morro-pretool-guard.mjs",
+    "AGENTS.md",
+    "CONSTITUTION.md",
+    "tooling/ci/local-fast-gate.mjs",
+    "tooling/fabric/ordinary-pr-policy.mjs",
+    "tooling/fabric/ordinary-pr-policy.test.mjs",
+    "tooling/ci/test-impact-manifest.json",
+    "tooling/ci/impact-analyzer.test.mjs",
+  ];
+  const result = analyzeFiles(files);
+  assert.equal(result.classificationBlocked, false);
+  assert.deepEqual(result.unknownFiles, []);
+  assert.equal(result.risk, "HIGH");
+  assert.equal(result.needsFullSecurity, true);
+  assert.equal(result.nonRuntime, true);
+  const unknown = analyzeFiles([...files, "UNKNOWN_ROOT.md"]);
+  assert.equal(unknown.classificationBlocked, true);
+  assert.deepEqual(unknown.unknownFiles, ["UNKNOWN_ROOT.md"]);
+});
+
+test("constitution does not downgrade production or financial changes", () => {
+  for (const path of [
+    ".github/workflows/production-oci-promotion.yml",
+    "packages/financial/src/example.ts",
+  ]) {
+    const result = analyzeFiles(["CONSTITUTION.md", path]);
+    assert.equal(result.classificationBlocked, false);
+    assert.equal(result.risk, "CRITICAL");
+    assert.equal(result.needsFullSecurity, true);
+    assert.equal(result.nonRuntime, false);
+  }
+});
