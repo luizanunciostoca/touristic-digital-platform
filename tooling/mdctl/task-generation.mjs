@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import prettier from "prettier";
 import { createHash, randomUUID } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
@@ -51,6 +52,7 @@ const same = (a, b, code) => assert.deepEqual(a, b, "GENERATION_" + code);
 const hash = (v) => createHash("sha256").update(v).digest("hex");
 export const generationDigest = (v) => hash(canonicalJson(v));
 const bytes = (v) => JSON.stringify(v, null, 2) + "\n";
+const pretty = (v) => prettier.format(bytes(v), { parser: "json" });
 const git = (root, ...args) =>
   execFileSync("git", ["--no-optional-locks", "-C", root, ...args], {
     encoding: "utf8",
@@ -528,7 +530,6 @@ async function boundedProof(capture, manifest, registry, clock) {
     identity: initial,
     leaseRegistry: registry,
     now: () => new Date(clock()).toISOString(),
-    ttlSeconds: 1800,
   });
   const tested = await buildTaskTest({
     task: started.task,
@@ -558,7 +559,6 @@ async function boundedProof(capture, manifest, registry, clock) {
   };
 }
 
-// Reconstruct with canonical builders in memory; never overwrite history.
 function validateSubmitted(record, manifest, identity, prior) {
   const { task, contextPack, localProof, leaseRegistry } = record;
   check(
@@ -584,7 +584,6 @@ function validateSubmitted(record, manifest, identity, prior) {
     identity,
     leaseRegistry: prior ?? historical,
     now: task.startedAt,
-    ttlSeconds: 1800,
     idFactory: () => ids.shift()?.replace(/^lease-/u, ""),
   });
   const tested = {
@@ -625,7 +624,7 @@ function validateSubmitted(record, manifest, identity, prior) {
   );
 }
 
-function metadataProjection(capture, preimages, projectedAt) {
+async function metadataProjection(capture, preimages, projectedAt) {
   const transition =
     capture.manifest.baseSha === capture.mainSha
       ? {
@@ -641,13 +640,14 @@ function metadataProjection(capture, preimages, projectedAt) {
           observedAt: projectedAt,
           reason: "PROVEN_TASK_GENERATION_REANCHOR",
         });
+  const proven = { ...transition.manifest, state: "LOCAL_PROVEN" };
   return {
-    [RP]: bytes(transition.registry),
+    [RP]: await pretty(transition.registry),
     [EP]: transition.ledgerText,
-    [capture.mp]: bytes({ ...transition.manifest, state: "LOCAL_PROVEN" }),
+    [capture.mp]: await pretty(proven),
   };
 }
-function validateJournal(capture, nonce, intent, prepared, preliminary) {
+async function validateJournal(capture, nonce, intent, prepared, preliminary) {
   const request = intent.request;
   same(request.nonce, nonce, "JOURNAL_NONCE");
   same(prepared.state, "PREPARED_REQUIRES_FINAL_PROOF", "JOURNAL_STATE");
@@ -695,7 +695,7 @@ function validateJournal(capture, nonce, intent, prepared, preliminary) {
   );
   same(
     prepared.after,
-    metadataProjection(original, preimages, prepared.projectedAt),
+    await metadataProjection(original, preimages, prepared.projectedAt),
     "JOURNAL_PROJECTION",
   );
   const prior = intent.files[3].content
@@ -757,7 +757,7 @@ export async function prepareGeneration(options, request, dependencies = {}) {
     );
     validateRequest(request, terminal);
     const projectedAt = new Date(clock()).toISOString();
-    const after = metadataProjection(capture, preimages, projectedAt);
+    const after = await metadataProjection(capture, preimages, projectedAt);
     verifyFiles(capture.workspace, preimages, "PREIMAGE_CHANGED");
     preserveJournal(paths.directory, journal);
     journal["prepared.json"] = bytes({
@@ -818,7 +818,7 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
   const request = intent.request;
   const preliminary = JSON.parse(journal["preliminary-proof.json"]);
   const capture = await captureGeneration(options, { api, clock });
-  validateJournal(capture, nonce, intent, prepared, preliminary);
+  await validateJournal(capture, nonce, intent, prepared, preliminary);
   check(
     capture.observed.headSha !== request.candidateSha &&
       git(capture.workspace, "merge-base", request.candidateSha, "HEAD") ===
@@ -848,7 +848,7 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
       "PROVIDER_CHANGED",
     );
     preserveJournal(directory, journal);
-    validateJournal(recaptured, nonce, intent, prepared, preliminary);
+    await validateJournal(recaptured, nonce, intent, prepared, preliminary);
     const final = await boundedProof(
       capture,
       capture.manifest,
@@ -862,7 +862,7 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
       intent.ownerDecision,
       { api, clock },
     );
-    validateJournal(terminal, nonce, intent, prepared, preliminary);
+    await validateJournal(terminal, nonce, intent, prepared, preliminary);
     preserveJournal(directory, journal);
     journal["final-proof.json"] = bytes({
       state: "FINAL_PROVEN",
