@@ -182,7 +182,7 @@ function sourceMode(root, manifest, files, executor, now) {
     );
     return "HISTORY";
   }
-  return "MISSING";
+  throw new Error("GENERATION_HISTORY_REQUIRED");
 }
 
 // Transport injection is for deterministic provider fixtures. The operational
@@ -296,6 +296,7 @@ export async function captureGeneration(
 }
 
 export function generationRequest(capture, nonce = randomUUID()) {
+  check(capture.mode === "HISTORY", "HISTORY_REQUIRED");
   return {
     schemaVersion: 1,
     kind: "TDP_TASK_GENERATION_REQUEST",
@@ -312,11 +313,7 @@ export function generationRequest(capture, nonce = randomUUID()) {
     workspace: capture.workspace,
     mode: capture.mode,
     history: capture.files.map(({ name, sha256 }) => ({ name, sha256 })),
-    authority:
-      capture.mode === "MISSING"
-        ? "OWNER_ATTESTED_NO_OTHER_WRITERS"
-        : "CANONICAL_CLAIM_AND_TASK_HISTORY",
-    missingHistoryAcknowledged: capture.mode === "MISSING",
+    authority: "CANONICAL_CLAIM_AND_TASK_HISTORY",
     nonce,
     issuedAt: new Date(capture.now).toISOString(),
     expiresAt: new Date(
@@ -346,77 +343,6 @@ function validateRequest(request, capture) {
     },
     "REQUEST_CHANGED",
   );
-}
-export async function verifyGenerationOwner(
-  request,
-  { api = githubApi, clock = Date.now } = {},
-) {
-  check(
-    Date.parse(request.issuedAt) <= clock() &&
-      clock() < Date.parse(request.expiresAt),
-    "REQUEST_EXPIRED",
-  );
-  const remote = "repos/" + GENERATION_REPOSITORY;
-  const repo = await api(remote);
-  check(
-    repo.full_name === GENERATION_REPOSITORY &&
-      repo.owner?.type === "User" &&
-      Number.isSafeInteger(repo.owner.id) &&
-      repo.owner.login === GENERATION_REPOSITORY.split("/")[0],
-    "REPOSITORY_OWNER",
-  );
-  const suffix = `${request.claimId}:${generationDigest(request)}:${request.nonce}:${request.mainSha}`;
-  const approval = "APPROVED_TASK_GENERATION:" + suffix;
-  const revocation = "REVOKED_TASK_GENERATION:" + suffix;
-  async function readDecision() {
-    const found = [];
-    for (let page = 1; page <= 10; page++) {
-      const comments = await api(
-        `${remote}/issues/${request.prNumber}/comments?per_page=100&page=${page}`,
-      );
-      check(Array.isArray(comments) && comments.length <= 100, "COMMENT_PAGE");
-      for (const comment of comments) {
-        if (![approval, revocation].includes(comment.body)) continue;
-        check(
-          comment.user?.id === repo.owner.id &&
-            comment.user.login === repo.owner.login &&
-            comment.user.type === "User" &&
-            comment.author_association === "OWNER" &&
-            comment.performed_via_github_app === null,
-          "OWNER_COMMENT_IDENTITY",
-        );
-        check(comment.body !== revocation, "OWNER_REVOKED");
-        check(
-          Number.isSafeInteger(comment.id) &&
-            comment.id > 0 &&
-            comment.created_at === comment.updated_at,
-          "OWNER_COMMENT_EDITED",
-        );
-        const created = Date.parse(comment.created_at);
-        check(
-          created >= Date.parse(request.issuedAt) &&
-            created <= clock() &&
-            clock() - created <= 1800000,
-          "OWNER_COMMENT_EXPIRED",
-        );
-        found.push(comment);
-      }
-      if (comments.length < 100) {
-        check(found.length === 1, "OWNER_DECISION_REQUIRED");
-        return found[0];
-      }
-    }
-    throw new Error("GENERATION_COMMENT_PAGINATION_LIMIT");
-  }
-  const first = await readDecision();
-  const normalize = (v) => ({ ...v, pin: v.pin ?? null });
-  same(
-    normalize(await api(`${remote}/issues/comments/${first.id}`)),
-    normalize(first),
-    "OWNER_COMMENT_CHANGED",
-  );
-  same(await readDecision(), first, "OWNER_COMMENT_CHANGED");
-  return first;
 }
 function durable(path, content, exclusive = true) {
   const temporary = exclusive ? path : path + ".tmp-" + randomUUID();
@@ -470,9 +396,20 @@ function preserveJournal(directory, expected) {
   for (const [name, content] of Object.entries(expected))
     same(regular(join(directory, name)), content, "JOURNAL_CHANGED");
 }
+function appendJournal(directory, journal, name, value) {
+  preserveJournal(directory, journal);
+  journal[name] = bytes(value);
+  durable(join(directory, name), journal[name]);
+  preserveJournal(directory, journal);
+}
 function verifyFiles(root, expected, code) {
   for (const [path, content] of Object.entries(expected))
     same(regular(join(root, path)), content, code);
+}
+function sameCapture(current, capture) {
+  same(current.observed, capture.observed, "FINAL_CANDIDATE_MOVED");
+  same(current.manifest, capture.manifest, "FINAL_MANIFEST_MOVED");
+  same(current.providerIdentity, capture.providerIdentity, "PROVIDER_CHANGED");
 }
 function finalFence(capture, request, clock) {
   preserveSource(capture);
@@ -496,15 +433,8 @@ async function terminalCapture(
 ) {
   const { clock } = dependencies;
   const current = await captureGeneration(options, dependencies);
-  same(current.observed, capture.observed, "FINAL_CANDIDATE_MOVED");
-  same(current.manifest, capture.manifest, "FINAL_MANIFEST_MOVED");
-  same(current.providerIdentity, capture.providerIdentity, "PROVIDER_CHANGED");
-  if (decision)
-    same(
-      await verifyGenerationOwner(request, dependencies),
-      decision,
-      "OWNER_COMMENT_CHANGED",
-    );
+  sameCapture(current, capture);
+  same(decision, null, "OWNER_DECISION_UNSUPPORTED");
   finalFence(capture, request, clock);
   return current;
 }
@@ -528,19 +458,20 @@ export async function runGenerationProofCommand(workspace, command) {
 async function boundedProof(capture, manifest, registry, clock) {
   const initial = identity(capture.workspace, manifest.baseSha);
   same(initial, capture.observed, "FINAL_CANDIDATE_MOVED");
+  const shared = {
+    changeSet: manifest,
+    identity: initial,
+    now: () => new Date(clock()).toISOString(),
+  };
   const started = buildTaskStart({
-    changeSet: manifest,
+    ...shared,
     owner: capture.executor,
-    identity: initial,
     leaseRegistry: registry,
-    now: () => new Date(clock()).toISOString(),
   });
+  const active = { ...shared, leaseRegistry: started.leaseRegistry };
   const tested = await buildTaskTest({
+    ...active,
     task: started.task,
-    changeSet: manifest,
-    leaseRegistry: started.leaseRegistry,
-    identity: initial,
-    now: () => new Date(clock()).toISOString(),
     commandRunner: (command) =>
       runGenerationProofCommand(capture.workspace, command),
   });
@@ -549,13 +480,7 @@ async function boundedProof(capture, manifest, registry, clock) {
     initial,
     "CANDIDATE_CHANGED_DURING_PROOF",
   );
-  const submitted = buildTaskSubmit({
-    task: tested.task,
-    changeSet: manifest,
-    leaseRegistry: started.leaseRegistry,
-    identity: initial,
-    now: () => new Date(clock()).toISOString(),
-  });
+  const submitted = buildTaskSubmit({ ...active, task: tested.task });
   return {
     ...submitted,
     contextPack: tested.contextPack,
@@ -590,6 +515,11 @@ function validateSubmitted(record, manifest, identity, prior) {
     now: task.startedAt,
     idFactory: () => ids.shift()?.replace(/^lease-/u, ""),
   });
+  const active = {
+    changeSet: manifest,
+    identity,
+    leaseRegistry: started.leaseRegistry,
+  };
   const tested = {
     ...started.task,
     state: "LOCAL_PROVEN",
@@ -597,17 +527,10 @@ function validateSubmitted(record, manifest, identity, prior) {
     contextPackDigest: contextPack.digest,
     localProof,
   };
-  validateTaskContext({
-    task: tested,
-    changeSet: manifest,
-    leaseRegistry: started.leaseRegistry,
-    contextPack,
-  });
+  validateTaskContext({ ...active, task: tested, contextPack });
   const submitted = buildTaskSubmit({
     task: tested,
-    changeSet: manifest,
-    leaseRegistry: started.leaseRegistry,
-    identity,
+    ...active,
     now: task.submittedAt,
   });
   for (const id of task.leaseIds)
@@ -678,11 +601,8 @@ async function validateJournal(capture, nonce, intent, prepared, preliminary) {
     },
   };
   validateRequest(request, original);
-  same(
-    Boolean(intent.ownerDecision),
-    request.mode === "MISSING",
-    "JOURNAL_AUTHORITY",
-  );
+  same(request.mode, "HISTORY", "HISTORY_REQUIRED");
+  same(intent.ownerDecision, null, "JOURNAL_AUTHORITY");
   const preimages = Object.fromEntries(
     [RP, EP, capture.mp].map((p) => [
       p,
@@ -708,26 +628,29 @@ async function validateJournal(capture, nonce, intent, prepared, preliminary) {
   validateSubmitted(preliminary, original.manifest, original.observed, prior);
 }
 
+async function withGenerationLock(lock, action) {
+  mkdirSync(lock);
+  const result = await action();
+  rmdirSync(lock);
+  return result;
+}
 export async function prepareGeneration(options, request, dependencies = {}) {
   const api = dependencies.api ?? githubApi,
     clock = dependencies.clock ?? Date.now;
   const capture = await captureGeneration(options, { api, clock });
   validateRequest(request, capture);
-  const ownerDecision =
-    capture.mode === "MISSING"
-      ? await verifyGenerationOwner(request, { api, clock })
-      : null;
+  check(capture.mode === "HISTORY", "HISTORY_REQUIRED");
+  const ownerDecision = null;
   const paths = generationPaths(capture, request);
-  check(!existsSync(paths.directory), "NONCE_ALREADY_USED");
-  mkdirSync(paths.lock);
-  let complete = false;
-  try {
+  const { directory } = paths;
+  check(!existsSync(directory), "NONCE_ALREADY_USED");
+  return withGenerationLock(paths.lock, async () => {
     const recaptured = await captureGeneration(options, { api, clock });
     validateRequest(request, recaptured);
     const preimages = Object.fromEntries(
       [RP, EP, capture.mp].map((p) => [p, regular(join(capture.workspace, p))]),
     );
-    mkdirSync(paths.directory, { recursive: true, mode: 0o700 });
+    mkdirSync(directory, { recursive: true, mode: 0o700 });
     const journal = {
       "intent.json": bytes({
         request,
@@ -736,7 +659,7 @@ export async function prepareGeneration(options, request, dependencies = {}) {
         preimages,
       }),
     };
-    durable(join(paths.directory, "intent.json"), journal["intent.json"]);
+    durable(join(directory, "intent.json"), journal["intent.json"]);
     const priorLeases = capture.files.find(
       (f) => f.name === "capability-leases.json",
     ).content;
@@ -746,12 +669,7 @@ export async function prepareGeneration(options, request, dependencies = {}) {
       priorLeases ? JSON.parse(priorLeases) : createLeaseRegistry(),
       clock,
     );
-    preserveJournal(paths.directory, journal);
-    journal["preliminary-proof.json"] = bytes(preliminary);
-    durable(
-      join(paths.directory, "preliminary-proof.json"),
-      journal["preliminary-proof.json"],
-    );
+    appendJournal(directory, journal, "preliminary-proof.json", preliminary);
     const terminal = await terminalCapture(
       options,
       capture,
@@ -764,17 +682,15 @@ export async function prepareGeneration(options, request, dependencies = {}) {
     const after = await metadataProjection(capture, preimages, projectedAt);
     finalFence(capture, request, clock);
     verifyFiles(capture.workspace, preimages, "PREIMAGE_CHANGED");
-    preserveJournal(paths.directory, journal);
-    journal["prepared.json"] = bytes({
+    appendJournal(directory, journal, "prepared.json", {
       state: "PREPARED_REQUIRES_FINAL_PROOF",
       requestDigest: generationDigest(request),
       preliminaryDigest: generationDigest(preliminary),
       projectedAt,
       after,
     });
-    durable(join(paths.directory, "prepared.json"), journal["prepared.json"]);
     for (const [path, content] of Object.entries(after)) {
-      preserveJournal(paths.directory, journal);
+      preserveJournal(directory, journal);
       preserveSource(capture);
       same(
         regular(join(capture.workspace, path)),
@@ -786,17 +702,14 @@ export async function prepareGeneration(options, request, dependencies = {}) {
       same(regular(join(capture.workspace, path)), content, "WRITE_READBACK");
     }
     verifyFiles(capture.workspace, after, "TERMINAL_WRITE_READBACK");
-    preserveJournal(paths.directory, journal);
-    complete = true;
+    preserveJournal(directory, journal);
     return {
       state: "PREPARED_REQUIRES_FINAL_PROOF",
-      directory: paths.directory,
+      directory: directory,
       candidateSha: capture.observed.headSha,
       published: false,
     };
-  } finally {
-    if (complete) rmdirSync(paths.lock);
-  }
+  });
 }
 
 export async function proveGeneration(options, nonce, dependencies = {}) {
@@ -835,23 +748,10 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
   // existing claim, and are tested again here. No preliminary result is reused.
   const paths = generationPaths(capture, request);
   check(!existsSync(join(directory, "final-proof.json")), "FINAL_PROOF_EXISTS");
-  mkdirSync(paths.lock);
-  let complete = false;
-  try {
-    if (intent.ownerDecision)
-      same(
-        await verifyGenerationOwner(request, { api, clock }),
-        intent.ownerDecision,
-        "OWNER_COMMENT_CHANGED",
-      );
+  return withGenerationLock(paths.lock, async () => {
+    same(intent.ownerDecision, null, "JOURNAL_AUTHORITY");
     const recaptured = await captureGeneration(options, { api, clock });
-    same(recaptured.observed, capture.observed, "FINAL_CANDIDATE_MOVED");
-    same(recaptured.manifest, capture.manifest, "FINAL_MANIFEST_MOVED");
-    same(
-      recaptured.providerIdentity,
-      capture.providerIdentity,
-      "PROVIDER_CHANGED",
-    );
+    sameCapture(recaptured, capture);
     preserveJournal(directory, journal);
     await validateJournal(recaptured, nonce, intent, prepared, preliminary);
     const final = await boundedProof(
@@ -869,8 +769,7 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
     );
     await validateJournal(terminal, nonce, intent, prepared, preliminary);
     finalFence(capture, request, clock);
-    preserveJournal(directory, journal);
-    journal["final-proof.json"] = bytes({
+    appendJournal(directory, journal, "final-proof.json", {
       state: "FINAL_PROVEN",
       requestDigest: generationDigest(request),
       mainSha: capture.mainSha,
@@ -878,9 +777,6 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
       treeSha: capture.observed.treeSha,
       ...final,
     });
-    durable(join(directory, "final-proof.json"), journal["final-proof.json"]);
-    preserveJournal(directory, journal);
-    complete = true;
     return {
       state: "FINAL_PROVEN",
       directory,
@@ -890,9 +786,7 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
       localProofDigest: final.localProof.digest,
       remoteProofAccepted: false,
     };
-  } finally {
-    if (complete) rmdirSync(paths.lock);
-  }
+  });
 }
 
 async function main(args) {

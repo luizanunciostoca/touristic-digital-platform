@@ -20,7 +20,6 @@ import {
   generationDigest,
   prepareGeneration,
   proveGeneration,
-  verifyGenerationOwner,
   GENERATION_REPOSITORY,
 } from "../mdctl/task-generation.mjs";
 import {
@@ -37,7 +36,10 @@ const EP = ".github/morro-control/events.ndjson";
 const BRANCH = "fix/generation-fixture";
 const OWNER = "FIXTURE-EXECUTOR";
 const encode = (v) => JSON.stringify(v, null, 2) + "\n";
-const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
+const assertExists = (path, expected) =>
+  assert.equal(existsSync(path), expected);
+const readText = (path) => readFileSync(path, "utf8");
+const readJson = (path) => JSON.parse(readText(path));
 function fixtureIdentity(f) {
   return {
     branch: BRANCH,
@@ -55,7 +57,6 @@ function setPath(object, path, value) {
 async function authorized(t, options) {
   const f = fixture(t, options);
   const request = generationRequest(await f.capture());
-  f.approve(request);
   return { f, request };
 }
 function fixture(
@@ -171,24 +172,13 @@ function fixture(
   const provider = {
     main,
     pull,
-    comments: [],
-    owner: { id: 19, login: "luizanunciostoca", type: "User" },
   };
   const api = async (path) => {
     const suffix = path.replace("repos/" + GENERATION_REPOSITORY, "");
-    if (suffix === "")
-      return structuredClone({
-        full_name: GENERATION_REPOSITORY,
-        owner: provider.owner,
-      });
     if (suffix === "/commits/main") return { sha: provider.main };
     if (suffix === "/pulls/7") return structuredClone(provider.pull);
     if (suffix.startsWith("/git/ref/heads/"))
       return { object: { sha: provider.pull.head.sha } };
-    if (suffix.startsWith("/issues/7/comments?"))
-      return structuredClone(provider.comments);
-    if (suffix === "/issues/comments/31")
-      return structuredClone(provider.comments.find((c) => c.id === 31));
     throw new Error("unexpected fixture API: " + path);
   };
   const options = {
@@ -198,20 +188,28 @@ function fixture(
     executor: OWNER,
   };
   const state = join(root, ".git/morro-control");
-  const approve = (request) => {
-    const time = new Date().toISOString();
-    provider.comments = [
-      {
-        id: 31,
-        body: `APPROVED_TASK_GENERATION:${ID}:${generationDigest(request)}:${request.nonce}:${main}`,
-        user: structuredClone(provider.owner),
-        author_association: "OWNER",
-        performed_via_github_app: null,
-        created_at: time,
-        updated_at: time,
-      },
-    ];
-  };
+  const lock = join(root, ".git/task-generation.lock");
+  const journalPath = (nonce, name) => join(state, "generations", nonce, name);
+  const historical = buildTaskStart({
+    changeSet: manifest,
+    owner: OWNER,
+    identity: {
+      branch: BRANCH,
+      headSha: head,
+      treeSha: git("rev-parse", "HEAD^{tree}"),
+      dirty: false,
+      baseIsAncestor: true,
+    },
+    now: new Date(Date.now() - 3600000).toISOString(),
+    ttlSeconds: 60,
+  });
+  mkdirSync(state, { recursive: true });
+  for (const [name, value] of [
+    [ID + ".task.json", historical.task],
+    [ID + ".context-pack.json", historical.contextPack],
+    ["capability-leases.json", historical.leaseRegistry],
+  ])
+    writeFileSync(join(state, name), encode(value));
   return {
     root,
     git,
@@ -224,30 +222,25 @@ function fixture(
     provider,
     api,
     state,
-    approve,
+    lock,
+    journalPath,
     capture: () => captureGeneration(options, { api }),
     prepare: (request) => prepareGeneration(options, request, { api }),
     prove: (nonce) => proveGeneration(options, nonce, { api }),
   };
 }
 
-test("missing history requires real owner identity before writes; actual final proof follows metadata commit", async (t) => {
+test("history recovery executes final proof after metadata commit", async (t) => {
   const f = fixture(t);
   const capture = await f.capture();
-  assert.equal(capture.mode, "MISSING");
+  assert.equal(capture.mode, "HISTORY");
   const request = generationRequest(capture);
-  await assert.rejects(f.prepare(request), /OWNER_DECISION_REQUIRED/);
-  assert.equal(existsSync(f.state), false);
-  f.approve(request);
   const prepared = await f.prepare(request);
   assert.equal(prepared.state, "PREPARED_REQUIRES_FINAL_PROOF");
-  assert.equal(existsSync(join(prepared.directory, "final-proof.json")), false);
+  assertExists(join(prepared.directory, "final-proof.json"), false);
   const intent = readJson(join(prepared.directory, "intent.json"));
-  assert.deepEqual(
-    intent.files.map((file) => file.content),
-    [null, null, null, null],
-  );
-  assert.equal(intent.ownerDecision.id, 31);
+  assert.deepEqual(intent.files, capture.files);
+  assert.equal(intent.ownerDecision, null);
   const finalHead = f.commit();
   const result = await f.prove(request.nonce);
   assert.equal(result.state, "FINAL_PROVEN");
@@ -261,13 +254,31 @@ test("missing history requires real owner identity before writes; actual final p
   await assert.rejects(f.prove(request.nonce), /FINAL_PROOF_EXISTS/);
 });
 
+for (const missing of ["all", "context"])
+  test(`missing ${missing} history cannot issue or execute a generation request`, async (t) => {
+    const { f, request } = await authorized(t);
+    if (missing === "all") rmSync(f.state, { recursive: true });
+    else rmSync(join(f.state, ID + ".context-pack.json"));
+    await assert.rejects(f.capture(), /HISTORY_REQUIRED/);
+    assert.throws(
+      () => generationRequest({ mode: "MISSING" }),
+      /HISTORY_REQUIRED/,
+    );
+    await assert.rejects(
+      f.prepare({ ...request, mode: "MISSING" }),
+      /HISTORY_REQUIRED/,
+    );
+    assertExists(join(f.state, "generations"), false);
+    assertExists(f.lock, false);
+  });
+
 test("closed acquisition cannot authorize continuation", async (t) => {
   const f = fixture(t);
   f.provider.pull.state = "closed";
   f.provider.pull.merged_at = new Date().toISOString();
   f.provider.pull.merge_commit_sha = f.main;
   await assert.rejects(f.capture(), /PR_NOT_OPEN/);
-  assert.equal(existsSync(f.state), false);
+  assertExists(join(f.state, "generations"), false);
 });
 
 for (const mode of [false, true, "restarted", "early-proof", "early-submit"])
@@ -344,67 +355,8 @@ for (const mode of [false, true, "restarted", "early-proof", "early-submit"])
     await f.prove(request.nonce);
     for (const file of capture.files)
       if (file.content !== null)
-        assert.equal(
-          readFileSync(join(f.state, file.name), "utf8"),
-          file.content,
-        );
+        assert.equal(readText(join(f.state, file.name)), file.content);
   });
-
-for (const [name, path, value, expected] of [
-  [
-    "app comment",
-    "performed_via_github_app",
-    { id: 1 },
-    /OWNER_COMMENT_IDENTITY/,
-  ],
-  ["wrong owner", "user.id", 20, /OWNER_COMMENT_IDENTITY/],
-  ["edited", "updated_at", "2026-01-01T00:00:00Z", /OWNER_COMMENT_EDITED/],
-  ["revoked", "body", null, /OWNER_REVOKED/],
-  [
-    "old approval",
-    "created_at",
-    "2026-01-01T00:00:00Z",
-    /OWNER_COMMENT_EXPIRED/,
-  ],
-])
-  test("owner decision rejects " + name, async (t) => {
-    const { f, request } = await authorized(t);
-    const comment = f.provider.comments[0];
-    setPath(
-      comment,
-      path,
-      value ?? comment.body.replace("APPROVED_", "REVOKED_"),
-    );
-    if (name === "old approval") comment.updated_at = value;
-    await assert.rejects(f.prepare(request), expected);
-    assert.equal(existsSync(f.state), false);
-  });
-
-test("duplicate, stale request and owner readback mutation fail closed", async (t) => {
-  const { f, request } = await authorized(t);
-  f.provider.comments.push(structuredClone(f.provider.comments[0]));
-  await assert.rejects(
-    verifyGenerationOwner(request, { api: f.api }),
-    /OWNER_DECISION_REQUIRED/,
-  );
-  f.provider.comments.pop();
-  await assert.rejects(
-    verifyGenerationOwner(
-      { ...request, expiresAt: "2026-01-01T00:00:00Z" },
-      { api: f.api },
-    ),
-    /REQUEST_EXPIRED/,
-  );
-  const api = async (path) => {
-    const result = await f.api(path);
-    if (path.endsWith("/issues/comments/31")) result.body += " changed";
-    return result;
-  };
-  await assert.rejects(
-    verifyGenerationOwner(request, { api }),
-    /OWNER_COMMENT_CHANGED/,
-  );
-});
 
 test("changed request, dirty checkout, wrong main, source symlink and active predecessor are rejected", async (t) => {
   const { f, request } = await authorized(t);
@@ -419,6 +371,7 @@ test("changed request, dirty checkout, wrong main, source symlink and active pre
   await assert.rejects(f.capture(), /WORKSPACE_IDENTITY/);
   f.write("tooling/product.mjs", "export const product = 1;\n");
   mkdirSync(f.state, { recursive: true });
+  rmSync(join(f.state, ID + ".task.json"));
   symlinkSync(join(f.root, MP), join(f.state, ID + ".task.json"));
   await assert.rejects(f.capture(), /REGULAR_FILE_REQUIRED/);
   rmSync(join(f.state, ID + ".task.json"));
@@ -438,17 +391,14 @@ test("existing lock prevents any generation and failing proof preserves intent w
   const { f, request } = await authorized(t, {
     proof: "throw new Error('deliberate fixture failure');",
   });
-  const lock = join(f.root, ".git/task-generation.lock");
+  const lock = f.lock;
   mkdirSync(lock);
   await assert.rejects(f.prepare(request), /EEXIST/);
-  assert.equal(existsSync(f.state), false);
+  assertExists(join(f.state, "generations"), false);
   rmSync(lock, { recursive: true });
   await assert.rejects(f.prepare(request), /TASK_PROOF_COMMAND_FAILED/);
-  assert.equal(existsSync(lock), true);
-  assert.equal(
-    existsSync(join(f.state, "generations", request.nonce, "intent.json")),
-    true,
-  );
+  assertExists(lock, true);
+  assertExists(f.journalPath(request.nonce, "intent.json"), true);
   assert.equal(readJson(join(f.root, MP)).state, "IMPLEMENTING");
   assert.equal(f.git("status", "--porcelain"), "");
 });
@@ -477,7 +427,7 @@ test("changed candidate invalidates request before reservation", async (t) => {
   f.write("tooling/product.mjs", "export const product = 2;\n");
   f.commit();
   await assert.rejects(f.prepare(request), /REQUEST_CHANGED/);
-  assert.equal(existsSync(f.state), false);
+  assertExists(join(f.state, "generations"), false);
 });
 
 test("main drift after actual preliminary proof preserves evidence but makes no metadata mutation", async (t) => {
@@ -492,14 +442,9 @@ test("main drift after actual preliminary proof preserves evidence but makes no 
     prepareGeneration(f.options, request, { api }),
     /MAIN_MOVED/,
   );
-  assert.equal(
-    existsSync(
-      join(f.state, "generations", request.nonce, "preliminary-proof.json"),
-    ),
-    true,
-  );
+  assertExists(f.journalPath(request.nonce, "preliminary-proof.json"), true);
   assert.equal(f.git("status", "--porcelain"), "");
-  assert.equal(existsSync(join(f.root, ".git/task-generation.lock")), true);
+  assertExists(f.lock, true);
 });
 
 test("final proof rejects dirty or changed metadata and changed journal", async (t) => {
@@ -513,7 +458,7 @@ test("final proof rejects dirty or changed metadata and changed journal", async 
     "preliminary-proof.json",
   ];
   const originals = journalFiles.map((name) =>
-    readFileSync(join(prepared.directory, name), "utf8"),
+    readText(join(prepared.directory, name)),
   );
   for (const [index, path, value, expected] of [
     [0, "request.executor", "OTHER", /JOURNAL_DIGEST/],
@@ -548,7 +493,7 @@ test("final proof rejects dirty or changed metadata and changed journal", async 
   f.write(MP, encode(manifest));
   f.commit();
   await assert.rejects(f.prove(request.nonce), /PREPARED_METADATA_CHANGED/);
-  assert.equal(existsSync(join(prepared.directory, "final-proof.json")), false);
+  assertExists(join(prepared.directory, "final-proof.json"), false);
 });
 
 test("proof timeout is a failure, never an empty successful proof", async (t) => {
@@ -567,7 +512,7 @@ test("generation parent symlink cannot redirect durable writes", async (t) => {
   mkdirSync(elsewhere);
   symlinkSync(elsewhere, join(f.state, "generations"));
   await assert.rejects(f.prepare(request), /GENERATION_DIRECTORY/);
-  assert.equal(existsSync(join(elsewhere, request.nonce)), false);
+  assertExists(join(elsewhere, request.nonce), false);
 });
 
 test("proof cannot redirect preliminary evidence through a symlink", async (t) => {
@@ -579,12 +524,8 @@ test("proof cannot redirect preliminary evidence through a symlink", async (t) =
       symlinkSync(process.cwd() + '/.git/redirected', source);`,
   });
   const request = generationRequest(await f.capture());
-  f.approve(request);
   await assert.rejects(f.prepare(request), /GENERATION_DIRECTORY/);
-  assert.equal(
-    existsSync(join(f.root, ".git/redirected/preliminary-proof.json")),
-    false,
-  );
+  assertExists(join(f.root, ".git/redirected/preliminary-proof.json"), false);
   assert.equal(f.git("status", "--porcelain"), "");
 });
 
@@ -595,9 +536,7 @@ for (const phase of ["prepare", "prove"])
       await f.prepare(request);
       f.commit();
     }
-    const before = [RP, EP, MP].map((path) =>
-      readFileSync(join(f.root, path), "utf8"),
-    );
+    const before = [RP, EP, MP].map((path) => readText(join(f.root, path)));
     let scheduled = false;
     const clock = () => {
       const stack = new Error().stack;
@@ -623,15 +562,12 @@ for (const phase of ["prepare", "prove"])
     );
     assert.equal(scheduled, true);
     assert.deepEqual(
-      [RP, EP, MP].map((path) => readFileSync(join(f.root, path), "utf8")),
+      [RP, EP, MP].map((path) => readText(join(f.root, path))),
       before,
     );
     const receipt = phase === "prepare" ? "prepared.json" : "final-proof.json";
-    assert.equal(
-      existsSync(join(f.state, "generations", request.nonce, receipt)),
-      false,
-    );
-    assert.equal(existsSync(join(f.root, ".git/task-generation.lock")), true);
+    assertExists(f.journalPath(request.nonce, receipt), false);
+    assertExists(f.lock, true);
     assert.equal(f.git("status", "--porcelain"), "");
   });
 
@@ -655,12 +591,9 @@ for (const movedAt of [3, 4])
       proveGeneration(f.options, request.nonce, { api }),
       /FINAL_CANDIDATE_MOVED/,
     );
-    assert.equal(
-      existsSync(join(prepared.directory, "final-proof.json")),
-      false,
-    );
-    assert.equal(existsSync(join(f.root, ".git/stale-proof-ran")), false);
-    assert.equal(existsSync(join(f.root, ".git/task-generation.lock")), true);
+    assertExists(join(prepared.directory, "final-proof.json"), false);
+    assertExists(join(f.root, ".git/stale-proof-ran"), false);
+    assertExists(f.lock, true);
   });
 
 async function rejectConcurrentChange(t, phase, mutate, expected) {
@@ -682,10 +615,9 @@ async function rejectConcurrentChange(t, phase, mutate, expected) {
       : prepareGeneration(f.options, request, { api }),
     expected,
   );
-  assert.equal(existsSync(join(directory, "final-proof.json")), false);
+  assertExists(join(directory, "final-proof.json"), false);
   assert.equal(f.git("status", "--porcelain"), "");
-  if (phase !== "request")
-    assert.equal(existsSync(join(f.root, ".git/task-generation.lock")), true);
+  if (phase !== "request") assertExists(f.lock, true);
 }
 for (const phase of ["request", "prepare", "prove"])
   for (const change of ["head", "state"])
