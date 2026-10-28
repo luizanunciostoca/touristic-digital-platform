@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TASK-GENERATION-MISSING-20261028",
+  "objective": "recover-absent-task-history-with-exact-owner-attestation-and-no-active-writers",
+  "baseSha": "af949838410832f98df1ac95bc4892b2fab54d2c",
+  "branch": "chore/task-generation-missing-20261028",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "tooling/mdctl/task-generation.mjs",
+      "tooling/control-state/mdctl-task-generation.test.mjs",
+      "tooling/mdctl/task-generation.md",
+      ".morro/changesets/MD-TASK-GENERATION-MISSING-20261028.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "task-generation-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-task-generation.test.mjs",
+          "tooling/control-state/mdctl-task-lifecycle.test.mjs",
+          "tooling/control-state/mdctl-task-reanchor.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
