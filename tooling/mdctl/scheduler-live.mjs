@@ -727,7 +727,12 @@ export async function verifyTrustedClaimEvidence({
         run?.head_sha === headSha &&
         run?.head_branch === branch &&
         Array.isArray(run?.pull_requests) &&
-        run.pull_requests.some((pull) => pull?.number === prNumber),
+        run.pull_requests.some(
+          (pull) =>
+            pull?.number === prNumber &&
+            pull?.head?.sha === headSha &&
+            pull?.base?.sha === mainSha,
+        ),
     )
     .sort(
       (left, right) =>
@@ -757,7 +762,8 @@ export async function verifyTrustedClaimEvidence({
       matching.length !== 1 ||
       matching[0]?.status !== "completed" ||
       matching[0]?.conclusion !== "success" ||
-      matching[0]?.head_sha !== headSha
+      matching[0]?.head_sha !== headSha ||
+      matching[0]?.run_id !== run.id
     ) {
       return {
         trusted: false,
@@ -772,8 +778,24 @@ export async function verifyTrustedClaimEvidence({
     "check_runs",
   );
   for (const name of TRUSTED_JOBS) {
+    const job = jobs.find((entry) => entry?.name === name);
     const check = checks.find(
       (entry) =>
+        Number.isSafeInteger(entry?.id) &&
+        entry.id > 0 &&
+        entry?.head_sha === headSha &&
+        Number.isSafeInteger(job?.id) &&
+        job.id > 0 &&
+        job?.html_url ===
+          "https://github.com/" +
+            repository +
+            "/actions/runs/" +
+            run.id +
+            "/job/" +
+            job.id &&
+        entry?.details_url === job.html_url &&
+        job?.check_run_url ===
+          "https://api.github.com/" + root + "/check-runs/" + entry.id &&
         entry?.name === name &&
         entry?.status === "completed" &&
         entry?.conclusion === "success" &&

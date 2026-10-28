@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import {
+  classifyNativeScope,
+  evaluateNativeFronts,
+  nativeFrontSnapshot,
+  assertFrontsStable,
+} from "./native-pr-gate.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -876,6 +882,30 @@ export async function runMergeGate({
     pr?.deletions,
     "MERGE_GATE_PR_DELETIONS_MISMATCH",
   );
+
+  if (classifyNativeScope(trustedDir, candidateDir, baseSha, headSha)) {
+    const fronts = await nativeFrontSnapshot(repository, api);
+    const unresolvedReviewThreads = await reviewThreadCounter({
+      repository,
+      prNumber,
+    });
+    const result = evaluateNativeFronts({
+      fronts,
+      prNumber,
+      head: headSha,
+      base: baseSha,
+      repository,
+      files: diff.authorizationPaths,
+      changedLines: diff.changedLines,
+      changedFileCount: diff.changedFileCount,
+      policy,
+      unresolvedReviewThreads,
+    });
+    await assertFrontsStable(fronts, repository, api);
+    const finalMain = await api(root + "/commits/main");
+    assert.equal(finalMain?.sha, baseSha, "MERGE_GATE_MAIN_MOVED_DURING_PROOF");
+    return result;
+  }
 
   const removedClaims = removedClaimIds(canonicalRegistry, registry);
   if (removedClaims.length > 0) {
