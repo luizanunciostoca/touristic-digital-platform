@@ -474,6 +474,19 @@ function verifyFiles(root, expected, code) {
   for (const [path, content] of Object.entries(expected))
     same(regular(join(root, path)), content, code);
 }
+function finalFence(capture, request, clock) {
+  preserveSource(capture);
+  check(clock() < Date.parse(request.expiresAt), "REQUEST_EXPIRED");
+  check(
+    clock() < Date.parse(capture.claim.expiresAt),
+    "CLAIM_EXPIRED_DURING_PROOF",
+  );
+  same(
+    identity(capture.workspace, capture.mainSha),
+    capture.observed,
+    "FINAL_CANDIDATE_MOVED",
+  );
+}
 async function terminalCapture(
   options,
   capture,
@@ -492,17 +505,7 @@ async function terminalCapture(
       decision,
       "OWNER_COMMENT_CHANGED",
     );
-  preserveSource(capture);
-  check(clock() < Date.parse(request.expiresAt), "REQUEST_EXPIRED");
-  check(
-    clock() < Date.parse(capture.claim.expiresAt),
-    "CLAIM_EXPIRED_DURING_PROOF",
-  );
-  same(
-    identity(capture.workspace, capture.mainSha),
-    capture.observed,
-    "FINAL_CANDIDATE_MOVED",
-  );
+  finalFence(capture, request, clock);
   return current;
 }
 export async function runGenerationProofCommand(workspace, command) {
@@ -524,6 +527,7 @@ export async function runGenerationProofCommand(workspace, command) {
 }
 async function boundedProof(capture, manifest, registry, clock) {
   const initial = identity(capture.workspace, manifest.baseSha);
+  same(initial, capture.observed, "FINAL_CANDIDATE_MOVED");
   const started = buildTaskStart({
     changeSet: manifest,
     owner: capture.executor,
@@ -758,6 +762,7 @@ export async function prepareGeneration(options, request, dependencies = {}) {
     validateRequest(request, terminal);
     const projectedAt = new Date(clock()).toISOString();
     const after = await metadataProjection(capture, preimages, projectedAt);
+    finalFence(capture, request, clock);
     verifyFiles(capture.workspace, preimages, "PREIMAGE_CHANGED");
     preserveJournal(paths.directory, journal);
     journal["prepared.json"] = bytes({
@@ -863,6 +868,7 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
       { api, clock },
     );
     await validateJournal(terminal, nonce, intent, prepared, preliminary);
+    finalFence(capture, request, clock);
     preserveJournal(directory, journal);
     journal["final-proof.json"] = bytes({
       state: "FINAL_PROVEN",

@@ -588,28 +588,80 @@ test("proof cannot redirect preliminary evidence through a symlink", async (t) =
   assert.equal(f.git("status", "--porcelain"), "");
 });
 
-test("final lock recapture rejects a candidate committed after initial capture", async (t) => {
-  const { f, request } = await authorized(t);
-  const prepared = await f.prepare(request);
-  f.commit();
-  let reads = 0;
-  const api = async (path) => {
-    if (path.endsWith("/commits/main") && ++reads === 3) {
-      f.write(
-        "tooling/proof.test.mjs",
-        "throw Error('must not execute stale proof');",
-      );
+for (const phase of ["prepare", "prove"])
+  test(`${phase} rejects candidate movement during terminal formatting`, async (t) => {
+    const { f, request } = await authorized(t);
+    if (phase === "prove") {
+      await f.prepare(request);
       f.commit();
     }
-    return f.api(path);
-  };
-  await assert.rejects(
-    proveGeneration(f.options, request.nonce, { api }),
-    /FINAL_CANDIDATE_MOVED/,
-  );
-  assert.equal(existsSync(join(prepared.directory, "final-proof.json")), false);
-  assert.equal(existsSync(join(f.root, ".git/task-generation.lock")), true);
-});
+    const before = [RP, EP, MP].map((path) =>
+      readFileSync(join(f.root, path), "utf8"),
+    );
+    let scheduled = false;
+    const clock = () => {
+      const stack = new Error().stack;
+      // Commit after terminal identity is checked, before the awaited projection completes.
+      if (
+        !scheduled &&
+        /at (finalFence|terminalCapture) /.test(stack.split("\n")[2]) &&
+        stack.includes("at terminalCapture ")
+      ) {
+        scheduled = true;
+        queueMicrotask(() => {
+          f.write("tooling/product.mjs", "export const product = 2;\n");
+          f.commit();
+        });
+      }
+      return Date.now();
+    };
+    await assert.rejects(
+      phase === "prepare"
+        ? prepareGeneration(f.options, request, { api: f.api, clock })
+        : proveGeneration(f.options, request.nonce, { api: f.api, clock }),
+      /FINAL_CANDIDATE_MOVED/,
+    );
+    assert.equal(scheduled, true);
+    assert.deepEqual(
+      [RP, EP, MP].map((path) => readFileSync(join(f.root, path), "utf8")),
+      before,
+    );
+    const receipt = phase === "prepare" ? "prepared.json" : "final-proof.json";
+    assert.equal(
+      existsSync(join(f.state, "generations", request.nonce, receipt)),
+      false,
+    );
+    assert.equal(existsSync(join(f.root, ".git/task-generation.lock")), true);
+    assert.equal(f.git("status", "--porcelain"), "");
+  });
+
+for (const movedAt of [3, 4])
+  test(`final lock rejects candidate movement at main read ${movedAt} before executing proof`, async (t) => {
+    const { f, request } = await authorized(t);
+    const prepared = await f.prepare(request);
+    f.commit();
+    let reads = 0;
+    const api = async (path) => {
+      if (path.endsWith("/commits/main") && ++reads === movedAt) {
+        f.write(
+          "tooling/proof.test.mjs",
+          "import {writeFileSync} from 'node:fs'; writeFileSync('.git/stale-proof-ran', 'yes'); throw Error('must not execute stale proof');",
+        );
+        f.commit();
+      }
+      return f.api(path);
+    };
+    await assert.rejects(
+      proveGeneration(f.options, request.nonce, { api }),
+      /FINAL_CANDIDATE_MOVED/,
+    );
+    assert.equal(
+      existsSync(join(prepared.directory, "final-proof.json")),
+      false,
+    );
+    assert.equal(existsSync(join(f.root, ".git/stale-proof-ran")), false);
+    assert.equal(existsSync(join(f.root, ".git/task-generation.lock")), true);
+  });
 
 async function rejectConcurrentChange(t, phase, mutate, expected) {
   const { f, request } = await authorized(t);
