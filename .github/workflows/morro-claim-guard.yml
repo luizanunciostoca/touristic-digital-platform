@@ -205,7 +205,7 @@ jobs:
             exit 0
           fi
           test "$bootstrap_changed" = "true"
-          test "$profiles_changed" = "true"
+          test "$profiles_changed" = "false"
           claim_id="$(
             jq -r --arg branch "$HEAD_BRANCH" '.claims | to_entries | map(select(.value.branch == $branch) | .key) | if length == 1 then .[0] else empty end' candidate/.github/morro-control/claims.json
           )"
@@ -220,19 +220,37 @@ jobs:
         env:
           EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          EXPECTED_BASE_BOOTSTRAP_BLOB: 2babbadac3d43ba3119a027ba39be18ce31c06f3
-          EXPECTED_CANDIDATE_BOOTSTRAP_BLOB: 0b64cc545e9f07e1df17d924cd98a4b42886991f
-          EXPECTED_BASE_AGENT_PROFILES_BLOB: 88a4891c1eb4b2a99d7e7cb8b89b304b5dd1441a
-          EXPECTED_CANDIDATE_AGENT_PROFILES_BLOB: 38824df595d1f42f4e5cd89b81d2ac35cbb87e80
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
-          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
-          test "$(git -C trusted rev-parse HEAD:.github/workflows/morro-claim-guard-trust-bootstrap.yml)" = "$EXPECTED_BASE_BOOTSTRAP_BLOB"
-          test "$(git -C candidate rev-parse HEAD:.github/workflows/morro-claim-guard-trust-bootstrap.yml)" = "$EXPECTED_CANDIDATE_BOOTSTRAP_BLOB"
-          test "$(git -C trusted rev-parse HEAD:.github/workflows/morro-agent-profiles.yml)" = "$EXPECTED_BASE_AGENT_PROFILES_BLOB"
-          test "$(git -C candidate rev-parse HEAD:.github/workflows/morro-agent-profiles.yml)" = "$EXPECTED_CANDIDATE_AGENT_PROFILES_BLOB"
+          python3 -I - <<'PY_ROUTING'
+          import itertools, os, subprocess
+
+          def git(repo, *args):
+              return subprocess.check_output(["git", "-C", repo, *args])
+
+          for repo, key in [("trusted", "EXPECTED_BASE_SHA"), ("candidate", "EXPECTED_CANDIDATE_SHA")]:
+              assert git(repo, "rev-parse", "HEAD").decode().strip() == os.environ[key], "IDENTITY_MISMATCH"
+          bootstrap = ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+          profiles = ".github/workflows/morro-agent-profiles.yml"
+          for repo in ["trusted", "candidate"]:
+              for path in [bootstrap, profiles]:
+                  entry = git(repo, "ls-tree", "HEAD", "--", path).decode().strip()
+                  assert entry.startswith("100644 blob ") and entry.endswith("\t" + path), "ROUTING_FILE_MODE_INVALID"
+          assert git("trusted", "show", "HEAD:" + profiles) == git("candidate", "show", "HEAD:" + profiles), "PROFILES_CHANGED"
+          before = git("trusted", "show", "HEAD:" + bootstrap)
+          after = git("candidate", "show", "HEAD:" + bootstrap)
+          anchor = b"    paths:\n"
+          assert before.count(anchor) == 1, "PATHS_ANCHOR_AMBIGUOUS"
+          allowed = [b'      - "tooling/ci/**"\n', b'      - "turbo.json"\n']
+          missing = [entry for entry in allowed if entry not in before]
+          permitted = []
+          for size in range(1, len(missing) + 1):
+              for subset in itertools.combinations(missing, size):
+                  permitted.append(before.replace(anchor, anchor + b"".join(subset), 1))
+          assert after in permitted, "ROUTING_DELTA_NOT_APPROVED"
+          print("EXACT_ADDITIVE_ROUTING_PROOF_PASS")
+          PY_ROUTING
 
       - name: Prove trust-root reconciliation with trusted base code
         if: steps.reconciliation.outputs.required == 'true'
