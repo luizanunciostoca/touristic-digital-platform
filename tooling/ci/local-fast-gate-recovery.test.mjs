@@ -131,8 +131,19 @@ function setup(t, acquisition = false) {
   put(REG, originalRegistry);
   put(LED, "");
   if (!acquisition) put(MAN, originalManifest);
+  put(
+    ".morro/risk-policy.json",
+    JSON.parse(
+      readFileSync(
+        new URL("../../.morro/risk-policy.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+  );
   put(".morro/ownership.json", {
-    domains: [{ pathPrefixes: [".github/", ".morro/", "tooling/"] }],
+    domains: [
+      { pathPrefixes: [".github/", ".morro/", "tooling/"], contracts: [] },
+    ],
   });
   git("add", ".");
   git("commit", "-qm", "canonical fixture");

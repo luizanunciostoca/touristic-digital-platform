@@ -397,6 +397,13 @@ test("real --certify CLI rejects zero tasks; reverting its dispatch restores fal
     readFileSync(new URL("./affected-task-proof.mjs", import.meta.url), "utf8"),
   );
   put(
+    "tooling/fabric/ordinary-pr-policy.mjs",
+    readFileSync(
+      new URL("../fabric/ordinary-pr-policy.mjs", import.meta.url),
+      "utf8",
+    ),
+  );
+  put(
     "tooling/fabric/ownership-path.mjs",
     "export const matchesOwnershipPath=(path,prefix)=>path.startsWith(prefix);\n",
   );
@@ -425,8 +432,17 @@ test("real --certify CLI rejects zero tasks; reverting its dispatch restores fal
   });
   put(".github/morro-control/events.ndjson", "");
   put(".morro/changesets/FIXTURE.json", { state: "IMPLEMENTING" });
+  put(
+    ".morro/risk-policy.json",
+    JSON.parse(
+      readFileSync(
+        new URL("../../.morro/risk-policy.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+  );
   put(".morro/ownership.json", {
-    domains: [{ pathPrefixes: ["fixture.txt", "tooling/"] }],
+    domains: [{ pathPrefixes: ["fixture.txt", "tooling/"], contracts: [] }],
   });
   // Only the external pnpm producer is substituted. Node executes the real
   // tracked root test; the gate performs real Git/base/blob/clean checks.
