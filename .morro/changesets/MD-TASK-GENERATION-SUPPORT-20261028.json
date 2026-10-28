@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TASK-GENERATION-SUPPORT-20261028",
   "objective": "preserve-task-history-and-prove-exact-candidate-generation-transitions",
-  "baseSha": "c782b4a25febd049d62b2433f6ee01ad1bfa4a48",
-  "branch": "chore/task-generation-support-20261028",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "74b44d9f60a6410022e03fa51e5b302ed6ecbc69",
+  "branch": "chore/retire-task-generation-support-20261028",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
