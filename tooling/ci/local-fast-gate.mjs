@@ -303,12 +303,29 @@ export async function validateAdmission(
   );
   const branch = git("branch", "--show-current");
   assert.ok(branch && branch !== "main", "FAST_GATE_BRANCH_INVALID");
-  const baseOwnership = JSON.parse(git("show", `${baseSha}:.morro/ownership.json`));
-  const baseRisk = JSON.parse(git("show", `${baseSha}:.morro/risk-policy.json`));
-  const scopeFiles = git("diff", "--no-renames", "--name-only", `${baseSha}...${headSha}`).split("\n").filter(Boolean);
+  const baseOwnership = JSON.parse(
+    git("show", `${baseSha}:.morro/ownership.json`),
+  );
+  const baseRisk = JSON.parse(
+    git("show", `${baseSha}:.morro/risk-policy.json`),
+  );
+  const scopeFiles = git(
+    "diff",
+    "--no-renames",
+    "--name-only",
+    `${baseSha}...${headSha}`,
+  )
+    .split("\n")
+    .filter(Boolean);
   if (ordinaryPrScope(scopeFiles, baseRisk, baseOwnership)) {
     const ownership = assertOwnershipCoverage(files, baseOwnership);
-    return { mode: "NATIVE_PR", claimId: null, exactHead: headSha, currentBaseSha: baseSha, ownership };
+    return {
+      mode: "NATIVE_PR",
+      claimId: null,
+      exactHead: headSha,
+      currentBaseSha: baseSha,
+      ownership,
+    };
   }
   const registryPath = ".github/morro-control/claims.json";
   const ledgerPath = ".github/morro-control/events.ndjson";

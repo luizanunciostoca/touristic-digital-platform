@@ -1456,7 +1456,12 @@ test("constitution has exact governance classification with security preserved",
 });
 
 test("constitution mapping does not classify adjacent or unknown root paths", () => {
-  for (const file of ["CONSTITUTION.md.backup", "CONSTITUTION.md-old", "CONSTITUTION.md/child", "UNKNOWN_ROOT.md"]) {
+  for (const file of [
+    "CONSTITUTION.md.backup",
+    "CONSTITUTION.md-old",
+    "CONSTITUTION.md/child",
+    "UNKNOWN_ROOT.md",
+  ]) {
     const result = analyzeFiles([file]);
     assert.equal(result.classificationBlocked, true, file);
     assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
@@ -1465,7 +1470,16 @@ test("constitution mapping does not classify adjacent or unknown root paths", ()
 });
 
 test("constitution PR1240 complete diff remains governance high and fail-closed on unknown extras", () => {
-  const files = [".github/hooks/morro-pretool-guard.mjs", "AGENTS.md", "CONSTITUTION.md", "tooling/ci/local-fast-gate.mjs", "tooling/fabric/ordinary-pr-policy.mjs", "tooling/fabric/ordinary-pr-policy.test.mjs", "tooling/ci/test-impact-manifest.json", "tooling/ci/impact-analyzer.test.mjs"];
+  const files = [
+    ".github/hooks/morro-pretool-guard.mjs",
+    "AGENTS.md",
+    "CONSTITUTION.md",
+    "tooling/ci/local-fast-gate.mjs",
+    "tooling/fabric/ordinary-pr-policy.mjs",
+    "tooling/fabric/ordinary-pr-policy.test.mjs",
+    "tooling/ci/test-impact-manifest.json",
+    "tooling/ci/impact-analyzer.test.mjs",
+  ];
   const result = analyzeFiles(files);
   assert.equal(result.classificationBlocked, false);
   assert.deepEqual(result.unknownFiles, []);
@@ -1478,7 +1492,10 @@ test("constitution PR1240 complete diff remains governance high and fail-closed 
 });
 
 test("constitution does not downgrade production or financial changes", () => {
-  for (const path of [".github/workflows/production-oci-promotion.yml", "packages/financial/src/example.ts"]) {
+  for (const path of [
+    ".github/workflows/production-oci-promotion.yml",
+    "packages/financial/src/example.ts",
+  ]) {
     const result = analyzeFiles(["CONSTITUTION.md", path]);
     assert.equal(result.classificationBlocked, false);
     assert.equal(result.risk, "CRITICAL");

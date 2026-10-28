@@ -420,9 +420,19 @@ function validatePathsAgainstActiveClaim({
 }) {
   const currentBaseSha = resolveCurrentBaseSha(root);
   const branchHeadSha = git(root, ["rev-parse", "HEAD"]);
-  assert.ok(isGitAncestor(root, currentBaseSha, branchHeadSha), "HOOK_BASE_NOT_ANCESTOR");
-  const baseJson = path => JSON.parse(git(root, ["show", `${currentBaseSha}:${path}`]));
-  if (ordinaryPrScope(changedFiles, baseJson(".morro/risk-policy.json"), baseJson(".morro/ownership.json"))) {
+  assert.ok(
+    isGitAncestor(root, currentBaseSha, branchHeadSha),
+    "HOOK_BASE_NOT_ANCESTOR",
+  );
+  const baseJson = (path) =>
+    JSON.parse(git(root, ["show", `${currentBaseSha}:${path}`]));
+  if (
+    ordinaryPrScope(
+      changedFiles,
+      baseJson(".morro/risk-policy.json"),
+      baseJson(".morro/ownership.json"),
+    )
+  ) {
     return { mode: "NATIVE_PR", currentBaseSha, branchHeadSha };
   }
   const manifest = loadManifestForBranch(root, branch);
