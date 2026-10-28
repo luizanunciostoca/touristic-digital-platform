@@ -174,7 +174,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/task-generation-support-20261028",
-      "baseSha": "22a6ce1bf0e14f49dc6fc37267f5dd83d3ed034c",
+      "baseSha": "c782b4a25febd049d62b2433f6ee01ad1bfa4a48",
       "paths": [
         "tooling/mdctl/task-generation.mjs",
         "tooling/control-state/mdctl-task-generation.test.mjs",
