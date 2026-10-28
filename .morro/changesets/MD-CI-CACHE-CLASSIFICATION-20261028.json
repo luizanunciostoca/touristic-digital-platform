@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CI-CACHE-CLASSIFICATION-20261028",
+  "objective": "classify-and-prove-exact-turbo-css-cache-contract",
+  "baseSha": "c87ecf74c533b11aa0f6f3779a108dc9654227c5",
+  "branch": "chore/ci-cache-classification-20261028",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/ownership.json",
+      "tooling/ci/impact-analyzer.test.mjs",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/turbo-entry-css-cache.test.mjs",
+      "turbo.json",
+      ".morro/changesets/MD-CI-CACHE-CLASSIFICATION-20261028.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 60
+    },
+    "commands": [
+      {
+        "id": "impact-classification-contract",
+        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
+        "timeoutSeconds": 60
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
