@@ -74,7 +74,7 @@ test("merge-gate workflow shares the required context across PR and merge-group 
   assert.ok(
     source.includes(
       "      - name: Wait for exact-head Trusted Claim Guard\n" +
-        "        if: github.event_name == 'pull_request' && steps.retirement.outputs.eligible != 'true'\n",
+        "        if: github.event_name == 'pull_request' && steps.retirement.outputs.eligible != 'true' && steps.native-scope.outputs.ordinary != 'true'\n",
     ),
     "RETIREMENT_BOOTSTRAP_GUARD_MISSING",
   );
@@ -976,6 +976,15 @@ function createRunGateFixture() {
     ".github/morro-control/claims.json",
     canonicalRegistry,
   );
+  for (const path of [".morro/risk-policy.json", ".morro/ownership.json"]) {
+    writeFixtureJson(
+      source,
+      path,
+      JSON.parse(
+        readFileSync(new URL("../../" + path, import.meta.url), "utf8"),
+      ),
+    );
+  }
   writeFixtureJson(source, ".morro/scheduler-policy.json", {
     version: 1,
     globalWriterLimit: 3,
@@ -1183,6 +1192,15 @@ function createAcquisitionRunGateFixture({
     join(source, ".github", "morro-control", "events.ndjson"),
     JSON.stringify(canonicalEvent) + "\n",
   );
+  for (const path of [".morro/risk-policy.json", ".morro/ownership.json"]) {
+    writeFixtureJson(
+      source,
+      path,
+      JSON.parse(
+        readFileSync(new URL("../../" + path, import.meta.url), "utf8"),
+      ),
+    );
+  }
   writeFixtureJson(source, ".morro/scheduler-policy.json", {
     version: 1,
     globalWriterLimit: 3,
@@ -1880,6 +1898,15 @@ function createRetirementRunGateFixture({
     ".github/morro-control/claims.json",
     canonicalRegistry,
   );
+  for (const path of [".morro/risk-policy.json", ".morro/ownership.json"]) {
+    writeFixtureJson(
+      source,
+      path,
+      JSON.parse(
+        readFileSync(new URL("../../" + path, import.meta.url), "utf8"),
+      ),
+    );
+  }
   writeFixtureJson(source, ".morro/scheduler-policy.json", {
     version: 1,
     globalWriterLimit: 3,

@@ -24,15 +24,44 @@ test("immutable trust-root candidate exits wait before polling", () => {
   const earlyExit = wait.indexOf(
     "TRUSTED_CLAIM_GUARD_WAIT_SKIPPED_IMMUTABLE_ROOT",
   );
-  const poll = wait.indexOf("for attempt in $(seq 1 60)");
+  const poll = wait.indexOf("for (let attempt = 1; attempt <= 60; attempt++)");
   assert.ok(rootCheck >= 0 && rootCheck < earlyExit && earlyExit < poll);
 });
 
-test("ordinary candidates preserve exact-head Trusted Claim Guard polling", () => {
-  assert.match(workflow, /TRUSTED_CLAIM_GUARD_TIMEOUT:\$HEAD_SHA/);
-  assert.match(workflow, /\.name == "Trusted Claim Guard Bootstrap"/);
-  assert.match(workflow, /\.head_sha == env\.HEAD_SHA/);
-  assert.match(workflow, /test "\$conclusion" = "success"/);
+test("ordinary scope is classified from base and only exempts claim wait", () => {
+  assert.match(
+    workflow,
+    /node trusted\/tooling\/mdctl\/native-pr-gate\.mjs --classify trusted candidate/,
+  );
+  const wait = workflow.match(
+    /- name: Wait for exact-head Trusted Claim Guard[\s\S]*?- name: Run trusted merge-gate policy/,
+  )?.[0];
+  assert.match(wait, /steps\.native-scope\.outputs\.ordinary != 'true'/);
+  assert.doesNotMatch(
+    workflow,
+    /node candidate\/tooling\/mdctl\/native-pr-gate/,
+  );
+});
+
+test("sensitive wait consumes base verifier and never accepts absence by name", () => {
+  const wait = workflow.match(
+    /- name: Wait for exact-head Trusted Claim Guard[\s\S]*?- name: Run trusted merge-gate policy/,
+  )?.[0];
+  assert.match(
+    wait,
+    /import \{ verifyTrustedClaimEvidence \} from '\.\/trusted\/tooling\/mdctl\/scheduler-live\.mjs'/,
+  );
+  assert.match(
+    wait,
+    /const evidence = await verifyTrustedClaimEvidence\(args\)/,
+  );
+  assert.match(wait, /if \(evidence\.trusted === true\) process\.exit\(0\)/);
+  assert.match(wait, /headSha: process\.env\.HEAD_SHA/);
+  assert.match(wait, /mainSha: process\.env\.BASE_SHA/);
+  assert.match(wait, /prNumber: Number\(process\.env\.PR_NUMBER\)/);
+  assert.match(wait, /throw new Error\('TRUSTED_PRODUCER_REJECTED:'/);
+  assert.match(wait, /throw new Error\('TRUSTED_PRODUCER_TIMEOUT:'/);
+  assert.doesNotMatch(wait, /\.name == "Trusted Claim Guard Bootstrap"/);
 });
 
 test("fail-fast exit cannot bypass the trusted merge-gate policy", () => {

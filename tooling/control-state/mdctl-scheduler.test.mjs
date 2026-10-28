@@ -769,7 +769,11 @@ function createLiveApi(options = {}) {
               conclusion: "success",
               created_at: "2026-10-01T12:10:00Z",
               pull_requests: [
-                { number: options.wrongTrustPrAssociation ? 8 : 7 },
+                {
+                  number: options.wrongTrustPrAssociation ? 8 : 7,
+                  head: { sha: LIVE_HEAD },
+                  base: { sha: LIVE_MAIN },
+                },
               ],
             },
             ...(options.trustRootReconciled
@@ -814,7 +818,11 @@ function createLiveApi(options = {}) {
                     conclusion: "failure",
                     created_at: "2026-10-01T12:11:00Z",
                     pull_requests: [
-                      { number: options.wrongTrustPrAssociation ? 8 : 7 },
+                      {
+                        number: options.wrongTrustPrAssociation ? 8 : 7,
+                        head: { sha: LIVE_HEAD },
+                        base: { sha: LIVE_MAIN },
+                      },
                     ],
                   },
                 ]
@@ -831,6 +839,14 @@ function createLiveApi(options = {}) {
             .filter((name) => name !== options.missingTrustJob)
             .map((name) => ({
               name,
+              id: 990 + trustJobs.indexOf(name),
+              run_id: 99,
+              html_url:
+                "https://github.com/example/repo/actions/runs/99/job/" +
+                (990 + trustJobs.indexOf(name)),
+              check_run_url:
+                "https://api.github.com/repos/example/repo/check-runs/" +
+                (990 + trustJobs.indexOf(name)),
               status: "completed",
               conclusion: "success",
               head_sha: LIVE_HEAD,
@@ -873,7 +889,12 @@ function createLiveApi(options = {}) {
       return [
         {
           check_runs: [
-            ...trustJobs.map((name) => ({
+            ...trustJobs.map((name, index) => ({
+              id: 990 + index,
+              head_sha: LIVE_HEAD,
+              details_url:
+                "https://github.com/example/repo/actions/runs/99/job/" +
+                (990 + index),
               name,
               status: "completed",
               conclusion: "success",
