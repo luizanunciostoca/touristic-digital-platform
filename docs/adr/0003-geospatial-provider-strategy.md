@@ -43,3 +43,5 @@ Camadas, marcadores, câmera, rotas, geolocalização, estilos e fallbacks devem
 ## Rollback
 
 Cada capacidade migrada poderá retornar ao adapter legado correspondente por feature flag controlada.
+
+<!-- Temporary ordinary gate canary; never merge this PR. -->
