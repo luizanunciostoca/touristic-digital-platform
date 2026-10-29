@@ -174,7 +174,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/css-browser-waits-20261029",
-      "baseSha": "86809ef67421f924ebcc96f13cefcff29bd91fa3",
+      "baseSha": "a9d2abc21db9bd1e60927d4139e37475678bf0e1",
       "paths": [
         ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
         ".github/workflows/home-first-run-browser-regression.yml",
