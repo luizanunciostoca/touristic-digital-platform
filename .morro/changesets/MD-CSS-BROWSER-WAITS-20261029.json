@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-BROWSER-WAITS-20261029",
   "objective": "prove-css-browser-greeting-under-strict-csp-and-settled-first-access",
-  "baseSha": "a9d2abc21db9bd1e60927d4139e37475678bf0e1",
-  "branch": "fix/css-browser-waits-20261029",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "63f90517e1c69be98f54359a95ac27ca56c5b9f9",
+  "branch": "chore/retire-css-browser-waits-20261029",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
