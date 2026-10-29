@@ -100,7 +100,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/css-artifact-recovery-r2-20261028",
-      "baseSha": "4648a4b44ac1b57dace0c3e0d59b57c923675c86",
+      "baseSha": "86809ef67421f924ebcc96f13cefcff29bd91fa3",
       "paths": [
         "apps/morro-digital-platform/package.json",
         "apps/morro-digital-platform/public/index.html",
