@@ -1,3 +1,4 @@
+import { createFeatureStyleGate } from "../map/feature-styles.js";
 import {
   installPublicInteractiveTour,
   type PublicInteractiveTourController,
@@ -65,6 +66,7 @@ export function installPublicOnboarding(
   let overlay: HTMLElement | null = null;
   let dialogHostSnapshot: PublicOnboardingDialogHostSnapshot | null = null;
   let destroyed = false;
+  const featureStyles = createFeatureStyleGate(options.document);
   let interactiveTour: PublicInteractiveTourController | null = null;
 
   setOnboardingSettled(options.document, false);
@@ -90,6 +92,7 @@ export function installPublicOnboarding(
   };
 
   const removeOverlay = (animate = true): void => {
+    featureStyles.cancel();
     if (!overlay) return;
     const currentOverlay = overlay;
     overlay = null;
@@ -145,7 +148,7 @@ export function installPublicOnboarding(
     dispatch(PUBLIC_ONBOARDING_SKIP_EVENT);
   };
 
-  const start = (): void => {
+  const startReady = (): void => {
     if (destroyed || !overlay) return;
     state = "in_progress";
     setOnboardingSettled(options.document, false);
@@ -153,6 +156,8 @@ export function installPublicOnboarding(
     dispatch(PUBLIC_ONBOARDING_START_EVENT);
     interactiveTour?.start();
   };
+
+  const start = (): void => featureStyles.run(startReady);
 
   function onOverlayKeyDown(event: KeyboardEvent): void {
     const currentOverlay = overlay;
@@ -194,7 +199,7 @@ export function installPublicOnboarding(
 
       overlay
         .querySelector<HTMLElement>('[data-public-onboarding-action="start"]')
-        ?.addEventListener("click", start, { once: true });
+        ?.addEventListener("click", start);
       overlay
         .querySelector<HTMLElement>('[data-public-onboarding-action="skip"]')
         ?.addEventListener("click", skip, { once: true });

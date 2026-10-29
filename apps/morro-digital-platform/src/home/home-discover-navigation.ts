@@ -1,3 +1,4 @@
+import { createFeatureStyleGate } from "../map/feature-styles.js";
 import {
   createManualPlaceSearch,
   type ManualSearchSnapshot,
@@ -247,6 +248,7 @@ export function installHomeDiscoverNavigation({
     "assistantInput",
   ) as HTMLInputElement | null;
   let destroyed = false;
+  const featureStyles = createFeatureStyleGate(document);
   let blurTimer: number | undefined;
 
   const setActive = (action: string): void => {
@@ -306,6 +308,7 @@ export function installHomeDiscoverNavigation({
   };
 
   const closeProfile = (): void => {
+    featureStyles.cancel();
     if (!profilePanel || !profileButton) return;
     setProfileExpanded(false);
     profilePanel.classList.add("hidden");
@@ -314,7 +317,7 @@ export function installHomeDiscoverNavigation({
     setActive("explore");
   };
 
-  const openProfile = (): void => {
+  const showProfile = (): void => {
     if (!profilePanel || !profileButton) return;
     dispatch(document, ASSISTANT_CLOSE_REQUEST_EVENT);
     profilePanel.classList.remove("hidden");
@@ -324,6 +327,11 @@ export function installHomeDiscoverNavigation({
     setActive("profile");
     profileClose?.focus();
   };
+
+  const openProfile = (): void =>
+    featureStyles.run(() => {
+      if (!destroyed) showProfile();
+    });
 
   const toggleProfile = (): void => {
     if (profilePanel?.classList.contains("hidden")) openProfile();
@@ -357,6 +365,7 @@ export function installHomeDiscoverNavigation({
   const manualCopy = () =>
     MANUAL_COPY[normalizeLocale(document.documentElement.lang || "pt")];
   const closeManual = (restoreFocus = false): void => {
+    featureStyles.cancel();
     manualPanelGeneration += 1;
     refreshManualLocale = undefined;
     searchAbort?.abort();
@@ -366,7 +375,7 @@ export function installHomeDiscoverNavigation({
         ?.querySelector<HTMLElement>(`[data-home-nav-action="${manualAction}"]`)
         ?.focus();
   };
-  const openManual = (action: string): void => {
+  const showManual = (action: string): void => {
     closeProfile();
     closeManual();
     const panelGeneration = manualPanelGeneration;
@@ -639,6 +648,11 @@ export function installHomeDiscoverNavigation({
     }, 120);
   };
 
+  const openManual = (action: string): void =>
+    featureStyles.run(() => {
+      if (!destroyed) showManual(action);
+    });
+
   const onNavClick = (event: Event): void => {
     const target = event.target;
     if (!(target instanceof Element)) return;
@@ -668,7 +682,9 @@ export function installHomeDiscoverNavigation({
 
   const onPrivacyClick = (): void => {
     closeProfile();
-    openPrivacyPreferences();
+    featureStyles.run(() => {
+      if (!destroyed) openPrivacyPreferences();
+    });
   };
 
   const onConfigClick = (): void => {

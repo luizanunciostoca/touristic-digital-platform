@@ -1,7 +1,7 @@
 {
   "version": 1,
   "sourceBase": "3f8961529966be420449ef3562ef5d85cff92cfb",
-  "coverage": "Firefox 140.16.0: 24 paired entry/skip/focus cases; pt-BR,en-US,es-ES,he-IL; 320,390,768,1440 px",
+  "coverage": "Entry preserves initial location markers and direct map/rail interactions. Onboarding and other deferred surfaces are gated on the full stylesheet. Browser contracts cover mobile, desktop and stylesheet activation; external provider acceptance is separate.",
   "maxEntryBytes": 100000,
   "sources": [
     {
@@ -43,7 +43,7 @@
       "file": "apps/morro-digital-platform/public/explore-locations.css",
       "sha256": "d729fa32b44a09a6f0d9dcd2223821b18c94ce379f019b5d05e61d3b0795d650",
       "ruleCount": 192,
-      "keep": "",
+      "keep": "17,132-133,186-189,191",
       "hide": "190"
     },
     {
@@ -92,7 +92,7 @@
       "file": "apps/morro-digital-platform/public/onboarding-v2.css",
       "sha256": "0d48768ab91e07325573792e3ec7c4fecae4d8a9df095ba73ee99ad79db16206",
       "ruleCount": 55,
-      "keep": "0-4,6-21,47,50,52-53",
+      "keep": "",
       "hide": "5"
     },
     {
@@ -106,7 +106,7 @@
       "file": "apps/morro-digital-platform/public/tourist-shell-v2.css",
       "sha256": "2d6ae81031da7615da1a0be13592a5838aa9923431ca4c05605766255a8f6b92",
       "ruleCount": 370,
-      "keep": "0-13,16-20,27-29,31-36,38,44-47,49-70,72-82,84-92,94,96-99,101-102,107-109,139-145,147-158,165-168,171-174,181,185,187,190,193,197-199,201-202,205-211,214,216-233,235,244-245,247,249-254,257-258,263-288,297,300-302,313,315-316,318-320,324-327,329-330,332-336,338-341,343-345,347-350,356-360",
+      "keep": "0-13,16-20,22-29,31-36,38,44-47,49-70,72-82,84-92,94,96-99,101-102,107-109,139-145,147-161,165-174,181,183,185-187,190,193,197-199,201-202,205-211,214,216-233,235,244-245,247,249-254,257-258,263-288,297,300-303,305,307-313,315-316,318-341,343-345,347-350,356-360",
       "hide": "21,95,112,127,138,175,177,200,203-204,248,304,342,362"
     }
   ]

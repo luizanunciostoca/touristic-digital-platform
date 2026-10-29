@@ -1,3 +1,4 @@
+import { createFeatureStyleGate } from "../map/feature-styles.js";
 import type {
   NavigationGuidanceSnapshot,
   NavigationRuntimeSnapshot,
@@ -214,6 +215,7 @@ export function createNavigationGuidanceUi(
   let navigationDockSummary: HTMLElement | null = null;
   let active = false;
   let destroyed = false;
+  const featureStyles = createFeatureStyleGate(document);
 
   const navigationStopLabel = (): string => {
     const language = document.documentElement.lang.toLowerCase();
@@ -331,7 +333,7 @@ export function createNavigationGuidanceUi(
   };
   voiceButton?.addEventListener("click", onNavigationStopVoiceClick, true);
 
-  const show = (): void => {
+  const showReady = (): void => {
     if (destroyed) return;
     active = true;
     document.body.classList.add("navigation-active");
@@ -347,7 +349,10 @@ export function createNavigationGuidanceUi(
     }
   };
 
+  const show = (): void => featureStyles.run(showReady);
+
   const hide = (): void => {
+    featureStyles.cancel();
     if (destroyed) return;
     active = false;
     document.body.classList.remove("navigation-active");
