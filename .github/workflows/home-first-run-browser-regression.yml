@@ -75,6 +75,7 @@ jobs:
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const { expect } = require('/tmp/pw/node_modules/playwright/test');
           const outputDir = '/tmp/home-first-run-evidence';
 
           async function waitForHome(page) {
@@ -297,6 +298,7 @@ jobs:
             await skipPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
             await skipPage.keyboard.press('Escape');
             await skipPage.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
+            await expect(skipPage.locator('#assistant-messages')).toHaveCSS('opacity', '1', { timeout: 3000 });
             const skipped = await readState(skipPage);
             assertIdleMap(skipped, 'Escape-skipped tutorial');
             if (skipped.onboarded !== '1' || skipped.tourActive || !skipped.assistantVisible || !skipped.composerVisible || !skipped.welcomeVisible) {

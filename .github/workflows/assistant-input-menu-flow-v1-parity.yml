@@ -277,16 +277,9 @@ jobs:
               }
 
               await submit('olá');
-              await page.waitForFunction(() => {
-                const messages = Array.from(
-                  document.querySelectorAll('#assistant-messages .messages-area .message.assistant'),
-                );
-                return messages.some(message =>
-                  message.textContent?.includes(
-                    'Bem-vindo a Morro de São Paulo! Sou seu guia digital. Como posso ajudar?'
-                  ),
-                );
-              });
+              await page.locator('#assistant-messages .messages-area .message.assistant').filter({
+                hasText: 'Bem-vindo a Morro de São Paulo! Sou seu guia digital. Como posso ajudar?',
+              }).first().waitFor({ state: 'attached', timeout: 30000 });
 
               const greetingState = await page.evaluate(() => {
                 const assistantMessages = Array.from(
