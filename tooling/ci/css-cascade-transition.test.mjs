@@ -38,6 +38,73 @@ const manifest = {
   ].map((name) => ({ file: (root + name).slice(1), sha256: "a".repeat(64) })),
 };
 
+test("inert raw text cannot supply a stylesheet and active inline CSS is unsupported", () => {
+  for (const tag of ["script", "textarea", "title"]) {
+    assert.throws(() =>
+      resolveCssCascade(`<${tag}>${direct("brand-v2.css")}</${tag}>`),
+    );
+  }
+  assert.throws(
+    () =>
+      resolveCssCascade(
+        direct("brand-v2.css") + "<style>body{color:red}</style>",
+      ),
+    /CSS_INLINE_STYLESHEET_UNSUPPORTED/u,
+  );
+});
+
+test("conditional, disabled and alternate links cannot prove an unconditional cascade", () => {
+  for (const attribute of ['media="print"', "disabled", 'disabled="false"']) {
+    assert.throws(
+      () =>
+        resolveCssCascade(
+          direct("brand-v2.css").replace("<link ", `<link ${attribute} `),
+        ),
+      /CSS_STYLESHEET_CONDITION_UNSUPPORTED/u,
+    );
+  }
+  assert.throws(
+    () =>
+      resolveCssCascade(
+        direct("brand-v2.css").replace(
+          'rel="stylesheet"',
+          'rel="alternate stylesheet"',
+        ),
+      ),
+    /CSS_STYLESHEET_CONDITION_UNSUPPORTED/u,
+  );
+});
+
+test("only pinned vendors may precede local authority; no external override is ignored", () => {
+  const vendor =
+    '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">';
+  assert.deepEqual(resolveCssCascade(vendor + direct("brand-v2.css")), [
+    root + "brand-v2.css",
+  ]);
+  for (const external of [
+    vendor,
+    '<link rel="stylesheet" href="/override.css">',
+    '<link rel="stylesheet" href="https://example.org/override.css">',
+  ]) {
+    assert.throws(
+      () => resolveCssCascade(entry + external, manifest),
+      /CSS_UNRECOGNIZED_OR_LATE_VENDOR_STYLESHEET/u,
+    );
+  }
+});
+
+test("attribute-like text inside a value is not a stylesheet declaration", () => {
+  assert.throws(() =>
+    resolveCssCascade(
+      `<link data-note='rel="stylesheet" href="${root}brand-v2.css"'>`,
+    ),
+  );
+  assert.deepEqual(
+    resolveCssCascade(`<link rel=stylesheet href=${root}brand-v2.css>`),
+    [root + "brand-v2.css"],
+  );
+});
+
 test("direct stylesheet order remains authoritative before migration", () => {
   assert.deepEqual(
     resolveCssCascade(direct("styles.css") + direct("tourist-shell-v2.css")),
@@ -56,7 +123,10 @@ test("comments, templates and data-href do not prove active stylesheet loading",
     "<template>" + direct("brand-v2.css") + "</template>",
     '<link rel="stylesheet" data-href="' + root + 'brand-v2.css">',
   ])
-    assert.throws(() => resolveCssCascade(html), /DIRECT_CASCADE_INVALID/u);
+    assert.throws(
+      () => resolveCssCascade(html),
+      /DIRECT_CASCADE_INVALID|CSS_UNRECOGNIZED_OR_LATE_VENDOR_STYLESHEET/u,
+    );
 });
 test("entry mode rejects missing, unknown and weakened manifests", () => {
   for (const value of [

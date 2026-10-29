@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { resolveCssCascade } from "./css-cascade-contract.js";
 
 const readPublic = (path: string) =>
   readFile(new URL(`../../public/${path}`, import.meta.url), "utf8");
@@ -7,7 +8,26 @@ const readPublic = (path: string) =>
 describe("Profile assistant settings row visibility", () => {
   it("keeps Tourist Shell V2 as the final surface-specific CSS authority", async () => {
     const html = await readPublic("index.html");
-    expect(html).toContain("tourist-shell-v2.css");
+    const cascade = resolveCssCascade(
+      html,
+      html.includes("data-entry-css")
+        ? JSON.parse(
+            await readFile(
+              new URL(
+                "../../../../tooling/ci/entry-css-manifest.json",
+                import.meta.url,
+              ),
+              "utf8",
+            ),
+          )
+        : undefined,
+    );
+    expect(cascade.at(-1)).toBe(
+      "/apps/morro-digital-platform/public/tourist-shell-v2.css",
+    );
+    expect(cascade).not.toContain(
+      "/apps/morro-digital-platform/public/profile-settings-row-fix.css",
+    );
     expect(html).not.toContain("profile-settings-row-fix.css");
   });
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   compileBundles,
@@ -28,6 +29,39 @@ const manifestFor = (text, selection = {}) => ({
       ...selection,
     },
   ],
+});
+
+test("the real entry selection retains complete weather failure and loading rules", async () => {
+  const manifest = JSON.parse(
+    await readFile(
+      new URL("./entry-css-manifest.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const source = manifest.sources.find((row) =>
+    row.file.endsWith("/tourist-shell-v2.css"),
+  );
+  const css = await readFile(
+    new URL("../../" + source.file, import.meta.url),
+    "utf8",
+  );
+  const weatherStates = (ast) => {
+    const rules = [];
+    ast.walkRules((rule) => {
+      if (
+        rule.selector.includes(".weather-error") ||
+        rule.selector.includes('[data-weather-state="loading"]')
+      )
+        rules.push(rule.toString());
+    });
+    return rules;
+  };
+  const expected = weatherStates(postcss.parse(css));
+  assert.ok(expected.length > 0);
+  assert.deepEqual(
+    weatherStates(selectEntryRules(postcss.parse(css), source)),
+    expected,
+  );
 });
 
 test("coverage ranges reject malformed, overlapping, and stale indices", () => {

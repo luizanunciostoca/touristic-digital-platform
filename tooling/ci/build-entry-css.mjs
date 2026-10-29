@@ -161,18 +161,27 @@ export async function compileBundles(manifest, readSource) {
       minify: true,
       legalComments: "none",
     });
-    return (
+    const normalized = (
       await postcss([cssnano({ preset: "default" })]).process(minified.code, {
         from: undefined,
         map: false,
       })
     ).css;
+    // Normalize the optimizer's emitted syntax through the same pinned CSS
+    // compiler, without dropping selected states or increasing the budget.
+    return (
+      await transform(normalized, {
+        loader: "css",
+        minify: true,
+        legalComments: "none",
+      })
+    ).code.trim();
   }
   const home = await optimize(entryAst.toString());
   const features = await optimize(full.join("\n"));
   assert.ok(
     Buffer.byteLength(home) <= manifest.maxEntryBytes,
-    "CSS_ENTRY_BUDGET_EXCEEDED",
+    "CSS_ENTRY_BUDGET_EXCEEDED:" + Buffer.byteLength(home),
   );
   return {
     home,

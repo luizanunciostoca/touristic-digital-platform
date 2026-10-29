@@ -17,11 +17,15 @@ async function readRepository(path: string): Promise<string> {
 describe("Home / Discover V2 visual shell", () => {
   it("loads the V2 shell authority after Design System V2", async () => {
     const html = await readPublic("index.html");
-    const designSystem = html.indexOf(
-      "/apps/morro-digital-platform/public/design-system-v2.css",
+    expect(html).toContain(
+      "/apps/morro-digital-platform/public/dist/entry-css/home.css",
     );
-    const shell = html.indexOf(
-      "/apps/morro-digital-platform/public/tourist-shell-v2.css",
+    const manifest = await readRepository("tooling/ci/entry-css-manifest.json");
+    const designSystem = manifest.indexOf(
+      "apps/morro-digital-platform/public/design-system-v2.css",
+    );
+    const shell = manifest.indexOf(
+      "apps/morro-digital-platform/public/tourist-shell-v2.css",
     );
 
     expect(designSystem).toBeGreaterThan(-1);
