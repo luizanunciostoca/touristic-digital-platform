@@ -84,15 +84,14 @@ services:
 
   - type: web
     name: morro-digital-v2-staging
-    runtime: node
-    repo: https://github.com/luizanunciostoca/touristic-digital-platform
-    branch: main
+    runtime: image
+    image:
+      url: ghcr.io/luizanunciostoca/morro-digital-v2@sha256:d67257be996d4f29837dba1bb3244deb36d92108fb953cd79b720c316e0bdf04
     region: ohio
     plan: starter
     autoDeploy: false
-    buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build
-    preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/staging-predeploy.mjs
-    startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs
+    preDeployCommand: /nodejs/bin/node tooling/render/with-staging-mysql-env.mjs /nodejs/bin/node apps/morro-digital-platform/tooling/staging-predeploy.mjs
+    dockerCommand: /nodejs/bin/node tooling/render/with-staging-mysql-env.mjs /nodejs/bin/node apps/morro-digital-platform/tooling/dev-server.mjs
     healthCheckPath: /readyz
     maxShutdownDelaySeconds: 30
     envVars:

@@ -185,6 +185,7 @@ jobs:
               if [ "$release_sha" = "$EXPECTED_SHA" ] && [ "$image_run_id" = "$EXPECTED_IMAGE_RUN_ID" ]; then
                 printf '%s\n' "$output"
                 echo "live_image_run_id=$image_run_id" >> "$GITHUB_OUTPUT"
+                echo "live_release_sha=$release_sha" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
               last_output="$output"
@@ -203,19 +204,13 @@ jobs:
           IMAGE_DIGEST: ${{ inputs.image_digest }}
           IMAGE_RUN_ID: ${{ inputs.image_run_id }}
           LIVE_IMAGE_RUN_ID: ${{ steps.runtime.outputs.live_image_run_id }}
+          LIVE_RELEASE_SHA: ${{ steps.runtime.outputs.live_release_sha }}
+          RUNTIME_OUTCOME: ${{ steps.runtime.outcome }}
           DEPLOY_ID: ${{ steps.render.outputs.deploy_id }}
         shell: bash
         run: |
           set -euo pipefail
-          {
-            echo "expected_sha=$EXPECTED_SHA"
-            echo "image=$IMAGE_REPOSITORY"
-            echo "digest=$IMAGE_DIGEST"
-            echo "image_run_id=$IMAGE_RUN_ID"
-            echo "live_image_run_id=${LIVE_IMAGE_RUN_ID:-unknown}"
-            echo "render_deploy_id=${DEPLOY_ID:-unknown}"
-            echo "target_url=$TARGET_URL"
-          } > oci-deployment-evidence.txt
+          node tooling/ci/staging-oci-deployment-evidence.mjs
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

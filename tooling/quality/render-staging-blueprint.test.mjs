@@ -53,6 +53,37 @@ function rejects(result, expected) {
   assert.match(result.stderr, expected);
 }
 
+test("staging cannot return to a native Node runtime", (t) => {
+  rejects(
+    check(t, (source) => source.replace("runtime: image", "runtime: node")),
+    /Missing staging contract: runtime: image/u,
+  );
+});
+
+test("distroless predeploy must use the absolute Node executable", (t) => {
+  rejects(
+    check(t, (source) =>
+      source.replace(
+        "preDeployCommand: /nodejs/bin/node",
+        "preDeployCommand: node",
+      ),
+    ),
+    /Missing staging contract: preDeployCommand/u,
+  );
+});
+
+test("distroless startup must preserve the MySQL wrapper", (t) => {
+  rejects(
+    check(t, (source) =>
+      source.replace(
+        "dockerCommand: /nodejs/bin/node tooling/render/with-staging-mysql-env.mjs",
+        "dockerCommand: /nodejs/bin/node",
+      ),
+    ),
+    /Missing staging contract: dockerCommand/u,
+  );
+});
+
 test("current Blueprint and init script satisfy the complete database contract", (t) => {
   const result = check(t);
   assert.equal(result.error, undefined);
