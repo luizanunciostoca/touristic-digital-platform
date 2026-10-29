@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-OCI-BLUEPRINT-RECONCILE-20261029",
+  "objective": "reconcile-staging-image-blueprint-and-exact-provider-deployment-evidence",
+  "baseSha": "046c1291193cc82151694f4eaae08156d51a7e7f",
+  "branch": "fix/staging-oci-blueprint-reconcile-20261029",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "render.staging.yaml",
+      "tooling/quality/check-render-staging-blueprint.mjs",
+      "tooling/quality/render-staging-blueprint.test.mjs",
+      ".github/workflows/staging-oci-promotion.yml",
+      "tooling/ci/staging-oci-deployment-evidence.mjs",
+      "tooling/ci/staging-oci-deployment-evidence.test.mjs",
+      ".morro/changesets/MD-STAGING-OCI-BLUEPRINT-RECONCILE-20261029.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "blueprint-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/render-staging-blueprint.test.mjs"
+        ],
+        "timeoutSeconds": 120
+      },
+      {
+        "id": "deploy-evidence",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/staging-oci-deployment-evidence.test.mjs"
+        ],
+        "timeoutSeconds": 120
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

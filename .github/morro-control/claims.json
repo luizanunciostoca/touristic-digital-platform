@@ -110,6 +110,25 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-29T07:00:00.000Z"
+    },
+    "MD-STAGING-OCI-BLUEPRINT-RECONCILE-20261029": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-oci-blueprint-reconcile-20261029",
+      "baseSha": "046c1291193cc82151694f4eaae08156d51a7e7f",
+      "paths": [
+        "render.staging.yaml",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/render-staging-blueprint.test.mjs",
+        ".github/workflows/staging-oci-promotion.yml",
+        "tooling/ci/staging-oci-deployment-evidence.mjs",
+        "tooling/ci/staging-oci-deployment-evidence.test.mjs",
+        ".morro/changesets/MD-STAGING-OCI-BLUEPRINT-RECONCILE-20261029.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }
