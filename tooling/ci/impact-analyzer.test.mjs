@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { nonRuntimeTests } from "./affected-task-proof.mjs";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
   mkdirSync,
@@ -1501,5 +1502,28 @@ test("constitution does not downgrade production or financial changes", () => {
     assert.equal(result.risk, "CRITICAL");
     assert.equal(result.needsFullSecurity, true);
     assert.equal(result.nonRuntime, false);
+  }
+});
+
+test("exact Turbo CSS cache paths require full quality and the actual cache regression", () => {
+  const regression = "tooling/ci/turbo-entry-css-cache.test.mjs";
+  for (const file of ["turbo.json", regression]) {
+    const result = analyzeFiles([file]);
+    assert.equal(result.classificationBlocked, false, file);
+    assert.deepEqual(result.unknownFiles, [], file);
+    assert.equal(result.risk, "CRITICAL", file);
+    assert.equal(result.qualityProfile, "DEEP_PROOF", file);
+    assert.equal(result.nonRuntime, false, file);
+    assert.equal(result.needsBrowser, true, file);
+    assert.equal(result.needsVisual, true, file);
+    assert.equal(result.needsFullSecurity, true, file);
+    assert.ok(result.domains.includes("cicd"), file);
+    assert.ok(result.domains.includes("entry-css-runtime"), file);
+    assert.ok(nonRuntimeTests(result.domains).includes(regression), file);
+    for (const suffix of [".backup", "-old", "/child"]) {
+      const neighbor = analyzeFiles([file + suffix]);
+      assert.equal(neighbor.classificationBlocked, true, file + suffix);
+      assert.deepEqual(neighbor.unknownFiles, [file + suffix]);
+    }
   }
 });

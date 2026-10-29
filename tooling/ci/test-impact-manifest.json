@@ -144,7 +144,9 @@
         ".github/workflows/",
         "tooling/quality/",
         ".github/actions/",
-        "tooling/ci/staging-node-"
+        "tooling/ci/staging-node-",
+        "turbo.json",
+        "tooling/ci/turbo-entry-css-cache.test.mjs"
       ],
       "risk": "CRITICAL",
       "dependsOn": ["release-governance", "security"],
@@ -168,7 +170,8 @@
       "needsFullSecurity": false,
       "excludePaths": [
         "tooling/ci/build-entry-css",
-        "tooling/ci/entry-css-manifest"
+        "tooling/ci/entry-css-manifest",
+        "tooling/ci/turbo-entry-css-cache"
       ]
     },
     "database": {
@@ -752,7 +755,9 @@
         "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
         "apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts",
         "apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts",
-        "apps/morro-digital-platform/src/ux/css-cascade-contract.ts"
+        "apps/morro-digital-platform/src/ux/css-cascade-contract.ts",
+        "turbo.json",
+        "tooling/ci/turbo-entry-css-cache.test.mjs"
       ],
       "risk": "HIGH",
       "dependsOn": [],

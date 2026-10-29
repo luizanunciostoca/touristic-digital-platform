@@ -211,7 +211,8 @@
         "tooling/performance/check-morro-digital-budget.mjs",
         "tooling/performance/check-morro-digital-budget.test.mjs",
         "apps/morro-digital-platform/package.json",
-        "docs/operations/STAGING-NODE-EXCEPTION.md"
+        "docs/operations/STAGING-NODE-EXCEPTION.md",
+        "turbo.json"
       ],
       "contracts": []
     }
