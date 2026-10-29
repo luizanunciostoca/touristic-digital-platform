@@ -1,14 +1,33 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["eslint.config.mjs", "tsconfig.base.json"],
+  "globalDependencies": [
+    "eslint.config.mjs",
+    "tsconfig.base.json",
+    "tooling/ci/build-entry-css.mjs",
+    "tooling/ci/entry-css-manifest.json"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "public/legacy/legacy.bundle.css"]
+      "outputs": [
+        "dist/**",
+        "public/legacy/legacy.bundle.css",
+        "public/dist/entry-css/**"
+      ]
     },
-    "dev": { "cache": false, "persistent": true },
-    "lint": { "dependsOn": ["^lint"] },
-    "test": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
-    "typecheck": { "dependsOn": ["^typecheck"] }
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    }
   }
 }
