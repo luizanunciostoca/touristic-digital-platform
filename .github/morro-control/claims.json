@@ -152,24 +152,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-29T07:00:00.000Z"
     },
-    "MD-CI-CACHE-CLASSIFICATION-20261028": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/ci-cache-classification-20261028",
-      "baseSha": "53965f990276abf89fc30e8973e6b43f19478cd1",
-      "paths": [
-        ".morro/ownership.json",
-        "tooling/ci/impact-analyzer.test.mjs",
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/turbo-entry-css-cache.test.mjs",
-        "turbo.json",
-        ".morro/changesets/MD-CI-CACHE-CLASSIFICATION-20261028.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-29T07:00:00.000Z"
-    },
     "MD-CSS-BROWSER-WAITS-20261029": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
