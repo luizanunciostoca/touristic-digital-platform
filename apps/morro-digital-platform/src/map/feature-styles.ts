@@ -46,7 +46,10 @@ export function ensureFeatureStyles(document: Document): Promise<void> | null {
   }
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.media = "not all";
+  // Load as an applicable stylesheet. Changing media inside onload can defer
+  // activation until after the entry sheet is disabled, exposing UA defaults
+  // and starting transitions from an unstyled layout.
+  link.media = "all";
   link.href = url.href;
   link.dataset.featureCss = "true";
   const state = { ready: false } as StyleState;
@@ -74,7 +77,6 @@ export function ensureFeatureStyles(document: Document): Promise<void> | null {
       }
       cleanup();
       // Both changes occur in one task: never expose an unstyled feature.
-      link.media = "all";
       entry.disabled = true;
       state.ready = true;
       document.querySelector("[data-feature-style-status]")?.remove();

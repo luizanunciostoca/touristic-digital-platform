@@ -165,6 +165,9 @@ describe("feature stylesheet loading", () => {
     expect(ensureFeatureStyles(document)).toBe(first);
     expect(entry(document).disabled).toBeFalsy();
     expect(document.querySelectorAll("link")).toHaveLength(2);
+    // The replacement must already be applicable when load fires; switching
+    // from a nonmatching media query can leave a frame with UA defaults.
+    expect(feature(document).media).toBe("all");
     const link = loaded(document);
     await first;
     expect(link.media).toBe("all");

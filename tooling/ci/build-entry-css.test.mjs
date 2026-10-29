@@ -31,6 +31,44 @@ const manifestFor = (text, selection = {}) => ({
   ],
 });
 
+test("entry styles preserve location visibility, map labels and rail touch targets", async () => {
+  const manifest = JSON.parse(
+    await readFile(
+      new URL("./entry-css-manifest.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const name of ["tourist-shell-v2.css", "explore-locations.css"]) {
+    const source = manifest.sources.find((row) =>
+      row.file.endsWith("/" + name),
+    );
+    const css = await readFile(
+      new URL("../../" + source.file, import.meta.url),
+      "utf8",
+    );
+    const relevant = (ast) => {
+      const rules = [];
+      ast.walkRules((rule) => {
+        if (
+          rule.selector.includes(".md-current-location-marker") ||
+          rule.selector.includes(".morro-explore-marker-label") ||
+          (rule.selector.trim().endsWith(".md-context-rail-back") &&
+            rule.nodes.some((node) => node.prop === "min-height"))
+        ) {
+          rules.push(rule.toString());
+        }
+      });
+      return rules;
+    };
+    const expected = relevant(postcss.parse(css));
+    assert.ok(expected.length > 0);
+    assert.deepEqual(
+      relevant(selectEntryRules(postcss.parse(css), source)),
+      expected,
+    );
+  }
+});
+
 test("the real entry selection retains complete weather failure and loading rules", async () => {
   const manifest = JSON.parse(
     await readFile(
