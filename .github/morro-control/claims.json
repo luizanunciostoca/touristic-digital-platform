@@ -169,22 +169,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-29T07:00:00.000Z"
-    },
-    "MD-TASK-GENERATION-MISSING-20261028": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/task-generation-missing-20261028",
-      "baseSha": "1f81c567d55efd9b3f98bcad2fc5b5c1d6395cb1",
-      "paths": [
-        "tooling/mdctl/task-generation.mjs",
-        "tooling/control-state/mdctl-task-generation.test.mjs",
-        "tooling/mdctl/task-generation.md",
-        ".morro/changesets/MD-TASK-GENERATION-MISSING-20261028.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-29T12:30:00.000Z"
     }
   }
 }
