@@ -20,6 +20,7 @@ import {
   generationDigest,
   prepareGeneration,
   proveGeneration,
+  verifyGenerationOwner,
   GENERATION_REPOSITORY,
 } from "../mdctl/task-generation.mjs";
 import {
@@ -57,6 +58,16 @@ function setPath(object, path, value) {
 async function authorized(t, options) {
   const f = fixture(t, options);
   const request = generationRequest(await f.capture());
+  return { f, request };
+}
+async function missingRequest(t, { keepRegistry = false } = {}) {
+  const f = fixture(t);
+  if (keepRegistry)
+    for (const suffix of ["task", "context-pack", "handoff"])
+      rmSync(join(f.state, `${ID}.${suffix}.json`), { force: true });
+  else rmSync(f.state, { recursive: true });
+  const request = generationRequest(await f.capture());
+  assert.equal(request.mode, "MISSING");
   return { f, request };
 }
 function fixture(
@@ -172,13 +183,32 @@ function fixture(
   const provider = {
     main,
     pull,
+    owner: { id: 19, login: "luizanunciostoca", type: "User" },
+    comments: [],
   };
   const api = async (path) => {
     const suffix = path.replace("repos/" + GENERATION_REPOSITORY, "");
+    if (suffix === "")
+      return structuredClone({
+        full_name: GENERATION_REPOSITORY,
+        owner: provider.owner,
+      });
     if (suffix === "/commits/main") return { sha: provider.main };
     if (suffix === "/pulls/7") return structuredClone(provider.pull);
     if (suffix.startsWith("/git/ref/heads/"))
       return { object: { sha: provider.pull.head.sha } };
+    if (suffix.startsWith("/issues/7/comments?")) {
+      const page = Number(suffix.match(/&page=(\d+)$/)[1]);
+      return structuredClone(
+        provider.comments.slice((page - 1) * 100, page * 100),
+      );
+    }
+    if (suffix.startsWith("/issues/comments/"))
+      return structuredClone(
+        provider.comments.find(
+          (comment) => comment.id === Number(suffix.split("/").at(-1)),
+        ),
+      );
     throw new Error("unexpected fixture API: " + path);
   };
   const options = {
@@ -224,6 +254,22 @@ function fixture(
     state,
     lock,
     journalPath,
+    approve: (request) => {
+      const time = new Date().toISOString();
+      provider.comments = [
+        {
+          id: 31,
+          body: `APPROVED_TASK_GENERATION:${ID}:${generationDigest(request)}:${request.nonce}:${main}`,
+          user: structuredClone(provider.owner),
+          author_association: "OWNER",
+          performed_via_github_app: null,
+          created_at: time,
+          updated_at: time,
+          issue_url: `https://api.github.com/repos/${GENERATION_REPOSITORY}/issues/7`,
+          html_url: `https://github.com/${GENERATION_REPOSITORY}/pull/7#issuecomment-31`,
+        },
+      ];
+    },
     capture: () => captureGeneration(options, { api }),
     prepare: (request) => prepareGeneration(options, request, { api }),
     prove: (nonce) => proveGeneration(options, nonce, { api }),
@@ -235,6 +281,13 @@ test("history recovery executes final proof after metadata commit", async (t) =>
   const capture = await f.capture();
   assert.equal(capture.mode, "HISTORY");
   const request = generationRequest(capture);
+  assert.equal(request.authority, "CANONICAL_CLAIM_AND_TASK_HISTORY");
+  for (const field of [
+    "missingHistoryAcknowledged",
+    "noOtherWritersAttested",
+    "historyNotRetroactivelyRestored",
+  ])
+    assert.equal(Object.hasOwn(request, field), false);
   const prepared = await f.prepare(request);
   assert.equal(prepared.state, "PREPARED_REQUIRES_FINAL_PROOF");
   assertExists(join(prepared.directory, "final-proof.json"), false);
@@ -254,23 +307,21 @@ test("history recovery executes final proof after metadata commit", async (t) =>
   await assert.rejects(f.prove(request.nonce), /FINAL_PROOF_EXISTS/);
 });
 
-for (const missing of ["all", "context"])
-  test(`missing ${missing} history cannot issue or execute a generation request`, async (t) => {
-    const { f, request } = await authorized(t);
-    if (missing === "all") rmSync(f.state, { recursive: true });
-    else rmSync(join(f.state, ID + ".context-pack.json"));
-    await assert.rejects(f.capture(), /HISTORY_REQUIRED/);
-    assert.throws(
-      () => generationRequest({ mode: "MISSING" }),
-      /HISTORY_REQUIRED/,
-    );
-    await assert.rejects(
-      f.prepare({ ...request, mode: "MISSING" }),
-      /HISTORY_REQUIRED/,
-    );
-    assertExists(join(f.state, "generations"), false);
-    assertExists(f.lock, false);
-  });
+test("partial history cannot issue or execute a generation request", async (t) => {
+  const { f, request } = await authorized(t);
+  rmSync(join(f.state, ID + ".context-pack.json"));
+  await assert.rejects(f.capture(), /HISTORY_REQUIRED/);
+  assert.throws(
+    () => generationRequest({ mode: "UNKNOWN" }),
+    /HISTORY_REQUIRED/,
+  );
+  await assert.rejects(
+    f.prepare({ ...request, mode: "MISSING" }),
+    /HISTORY_REQUIRED/,
+  );
+  assertExists(join(f.state, "generations"), false);
+  assertExists(f.lock, false);
+});
 
 test("closed acquisition cannot authorize continuation", async (t) => {
   const f = fixture(t);
@@ -280,6 +331,315 @@ test("closed acquisition cannot authorize continuation", async (t) => {
   await assert.rejects(f.capture(), /PR_NOT_OPEN/);
   assertExists(join(f.state, "generations"), false);
 });
+
+for (const keepRegistry of [false, true])
+  test(`MISSING proofs preserve absent history and existing registry=${keepRegistry}`, async (t) => {
+    const { f, request } = await missingRequest(t, { keepRegistry });
+    const before = (await f.capture()).files;
+    for (const field of [
+      "missingHistoryAcknowledged",
+      "noOtherWritersAttested",
+      "historyNotRetroactivelyRestored",
+    ])
+      assert.equal(request[field], true);
+    await assert.rejects(f.prepare(request), /OWNER_DECISION_REQUIRED/);
+    assertExists(f.lock, false);
+    assertExists(join(f.state, "generations"), false);
+    f.approve(request);
+    const prepared = await f.prepare(request);
+    const intent = readJson(join(prepared.directory, "intent.json"));
+    assert.deepEqual(intent.files, before);
+    assert.equal(intent.ownerDecision.user.id, 19);
+    assert.equal(intent.request.authority, "OWNER_ATTESTED_NO_OTHER_WRITERS");
+    const head = f.commit();
+    f.provider.comments[0].pin = null;
+    const result = await f.prove(request.nonce);
+    assert.equal(result.state, "FINAL_PROVEN");
+    assert.equal(result.candidateSha, head);
+    assert.equal(result.remoteProofAccepted, false);
+    const final = readJson(join(prepared.directory, "final-proof.json"));
+    assert.equal(final.localProof.candidateSha, head);
+    assert.equal(final.requestDigest, generationDigest(request));
+    for (const file of before) {
+      const path = join(f.state, file.name);
+      if (file.content === null) assertExists(path, false);
+      else assert.equal(readText(path), file.content);
+    }
+    assertExists(f.lock, false);
+  });
+
+for (const [name, content, expected] of [
+  [ID + ".task.json", "null", /HISTORY_REQUIRED/],
+  [ID + ".context-pack.json", "null", /HISTORY_REQUIRED/],
+  [ID + ".handoff.json", "null", /HISTORY_REQUIRED/],
+  [ID + ".handoff.json", "{}", /HISTORY_REQUIRED/],
+  [ID + ".task.json", "{", SyntaxError],
+  ["capability-leases.json", "null", /LEASE_REGISTRY/],
+  ["capability-leases.json", "{}", /LEASE_REGISTRY/],
+  ["capability-leases.json", "{", SyntaxError],
+])
+  test(`MISSING rejects existing ${name} containing ${content}`, async (t) => {
+    const { f, request } = await missingRequest(t);
+    f.write(".git/morro-control/" + name, content);
+    await assert.rejects(f.capture(), expected);
+    await assert.rejects(f.prepare(request), expected);
+    assert.equal(readText(join(f.state, name)), content);
+    assertExists(f.lock, false);
+    assertExists(join(f.state, "generations"), false);
+  });
+
+test("MISSING rejects an active registry and dangling history symlinks", async (t) => {
+  const { f, request } = await missingRequest(t);
+  const active = buildTaskStart({
+    changeSet: f.manifest,
+    owner: OWNER,
+    identity: fixtureIdentity(f),
+  });
+  f.write(
+    ".git/morro-control/capability-leases.json",
+    encode(active.leaseRegistry),
+  );
+  await assert.rejects(f.prepare(request), /ACTIVE_PREDECESSOR_LEASE/);
+  rmSync(join(f.state, "capability-leases.json"));
+  symlinkSync(
+    join(f.root, ".git/nonexistent"),
+    join(f.state, ID + ".task.json"),
+  );
+  await assert.rejects(f.prepare(request), /REGULAR_FILE_REQUIRED/);
+  rmSync(f.state, { recursive: true });
+  symlinkSync(join(f.root, ".git/nonexistent"), f.state);
+  await assert.rejects(f.prepare(request), /STATE_DIRECTORY/);
+  assertExists(f.lock, false);
+  assertExists(join(f.root, ".git/nonexistent"), false);
+});
+
+for (const [name, path, value, expected] of [
+  ["wrong owner id", "user.id", 20, /OWNER_COMMENT_IDENTITY/],
+  ["wrong login", "user.login", "other", /OWNER_COMMENT_IDENTITY/],
+  ["bot", "user.type", "Bot", /OWNER_COMMENT_IDENTITY/],
+  ["association", "author_association", "MEMBER", /OWNER_COMMENT_IDENTITY/],
+  ["app", "performed_via_github_app", { id: 1 }, /OWNER_COMMENT_IDENTITY/],
+  ["edited", "updated_at", "2026-01-01T00:00:00Z", /OWNER_COMMENT_EDITED/],
+  ["invalid comment id", "id", 0, /OWNER_COMMENT_EDITED/],
+  [
+    "wrong issue",
+    "issue_url",
+    "https://api.github.com/repos/other/repo/issues/7",
+    /OWNER_COMMENT_TARGET/,
+  ],
+  [
+    "wrong PR",
+    "html_url",
+    `https://github.com/${GENERATION_REPOSITORY}/pull/8#issuecomment-31`,
+    /OWNER_COMMENT_TARGET/,
+  ],
+  [
+    "wrong comment target",
+    "html_url",
+    `https://github.com/${GENERATION_REPOSITORY}/pull/7#issuecomment-32`,
+    /OWNER_COMMENT_TARGET/,
+  ],
+])
+  test("MISSING owner consent rejects " + name, async (t) => {
+    const { f, request } = await missingRequest(t);
+    f.approve(request);
+    setPath(f.provider.comments[0], path, value);
+    await assert.rejects(f.prepare(request), expected);
+    assertExists(f.lock, false);
+    assertExists(f.state, false);
+    assert.equal(f.git("status", "--porcelain"), "");
+  });
+
+test("MISSING owner consent binds acknowledgements, time and positive owner id", async (t) => {
+  const { f, request } = await missingRequest(t);
+  f.approve(request);
+  for (const field of [
+    "missingHistoryAcknowledged",
+    "noOtherWritersAttested",
+    "historyNotRetroactivelyRestored",
+  ])
+    await assert.rejects(
+      f.prepare({ ...request, [field]: false }),
+      /REQUEST_CHANGED/,
+    );
+  await assert.rejects(
+    f.prepare({ ...request, nonce: "a".repeat(32) }),
+    /OWNER_DECISION_REQUIRED/,
+  );
+  await assert.rejects(
+    verifyGenerationOwner(request, {
+      api: f.api,
+      clock: () => Date.parse(request.expiresAt),
+    }),
+    /REQUEST_EXPIRED/,
+  );
+  f.provider.owner.id = 0;
+  await assert.rejects(f.prepare(request), /REPOSITORY_OWNER/);
+  f.provider.owner.id = 19;
+  for (const date of [
+    "2026-01-01T00:00:00Z",
+    new Date(Date.now() + 60000).toISOString(),
+  ]) {
+    f.provider.comments[0].created_at = date;
+    f.provider.comments[0].updated_at = date;
+    await assert.rejects(f.prepare(request), /OWNER_COMMENT_EXPIRED/);
+  }
+  assertExists(f.lock, false);
+  assertExists(f.state, false);
+});
+
+test("owner pagination reads later duplicates and revocations; only null/missing pin normalizes", async (t) => {
+  const { f, request } = await missingRequest(t);
+  f.approve(request);
+  const approval = f.provider.comments[0];
+  const filler = Array.from({ length: 100 }, (_, index) => ({
+    id: 1000 + index,
+    body: "unrelated",
+  }));
+  f.provider.comments = [...filler, approval];
+  let lists = 0;
+  const api = async (path) => {
+    const result = await f.api(path);
+    if (path.includes("/comments?")) {
+      for (const comment of result) if (++lists % 2) comment.pin = null;
+    } else if (path.endsWith("/issues/comments/31")) result.pin = null;
+    return result;
+  };
+  assert.equal((await verifyGenerationOwner(request, { api })).id, 31);
+  for (const revoked of [false, true]) {
+    f.provider.comments = [
+      approval,
+      ...filler.slice(0, 99),
+      {
+        ...approval,
+        id: 32,
+        html_url: approval.html_url.replace("31", "32"),
+        body: revoked
+          ? approval.body.replace("APPROVED_", "REVOKED_")
+          : approval.body,
+      },
+    ];
+    await assert.rejects(
+      f.prepare(request),
+      revoked ? /OWNER_REVOKED/ : /OWNER_DECISION_REQUIRED/,
+    );
+  }
+  await assert.rejects(
+    verifyGenerationOwner(request, {
+      api: async (path) =>
+        path.includes("/comments?") ? structuredClone(filler) : f.api(path),
+    }),
+    /COMMENT_PAGINATION_LIMIT/,
+  );
+  assertExists(f.lock, false);
+  assertExists(f.state, false);
+});
+
+for (const drift of ["body", "pin", "deleted", "second-list"])
+  test(`owner ${drift} drift fails repeated readback before writes`, async (t) => {
+    const { f, request } = await missingRequest(t);
+    f.approve(request);
+    let reads = 0;
+    const api = async (path) => {
+      const result = await f.api(path);
+      if (path.endsWith("/issues/comments/31")) {
+        if (drift === "deleted") return null;
+        if (drift === "body") result.body += " altered";
+        if (drift === "pin") result.pin = true;
+      }
+      if (
+        path.includes("/comments?") &&
+        ++reads === 2 &&
+        drift === "second-list"
+      )
+        result[0].body += " altered";
+      return result;
+    };
+    await assert.rejects(
+      prepareGeneration(f.options, request, { api }),
+      /OWNER_COMMENT_CHANGED|OWNER_DECISION_REQUIRED/,
+    );
+    assertExists(f.lock, false);
+    assertExists(f.state, false);
+  });
+
+for (const phase of ["prepare", "prove"])
+  for (const stage of ["before-reservation", "before-proof", "after-proof"])
+    test(`MISSING ${phase} revalidates owner ${stage}`, async (t) => {
+      const { f, request } = await missingRequest(t);
+      f.approve(request);
+      if (phase === "prove") {
+        await f.prepare(request);
+        f.commit();
+      }
+      let ownerReads = 0;
+      const revokeAt =
+        ["before-reservation", "before-proof", "after-proof"].indexOf(stage) +
+        1;
+      const api = async (path) => {
+        if (
+          path === "repos/" + GENERATION_REPOSITORY &&
+          ++ownerReads === revokeAt
+        )
+          f.provider.comments[0].body = f.provider.comments[0].body.replace(
+            "APPROVED_",
+            "REVOKED_",
+          );
+        return f.api(path);
+      };
+      await assert.rejects(
+        phase === "prepare"
+          ? prepareGeneration(f.options, request, { api })
+          : proveGeneration(f.options, request.nonce, { api }),
+        /OWNER_REVOKED/,
+      );
+      assertExists(f.lock, stage !== "before-reservation");
+      assertExists(f.journalPath(request.nonce, "final-proof.json"), false);
+      if (phase === "prepare") {
+        assertExists(f.journalPath(request.nonce, "prepared.json"), false);
+        assertExists(
+          f.journalPath(request.nonce, "preliminary-proof.json"),
+          stage === "after-proof",
+        );
+      }
+      assert.equal(f.git("status", "--porcelain"), "");
+    });
+
+for (const phase of ["prepare", "prove"])
+  test(`MISSING ${phase} preserves history appearing during terminal owner readback`, async (t) => {
+    const { f, request } = await missingRequest(t);
+    f.approve(request);
+    if (phase === "prove") {
+      await f.prepare(request);
+      f.commit();
+    }
+    const before = [RP, EP, MP].map((path) => readText(join(f.root, path)));
+    const appeared = join(f.state, ID + ".task.json");
+    let ownerReads = 0;
+    const api = async (path) => {
+      if (path === "repos/" + GENERATION_REPOSITORY) ownerReads++;
+      const result = await f.api(path);
+      if (ownerReads === 3 && path.endsWith("/issues/comments/31"))
+        writeFileSync(appeared, "null\n", { flag: "wx" });
+      return result;
+    };
+    await assert.rejects(
+      phase === "prepare"
+        ? prepareGeneration(f.options, request, { api })
+        : proveGeneration(f.options, request.nonce, { api }),
+      /SOURCE_HISTORY_CHANGED/,
+    );
+    assert.equal(readText(appeared), "null\n");
+    assert.deepEqual(
+      [RP, EP, MP].map((path) => readText(join(f.root, path))),
+      before,
+    );
+    assertExists(f.journalPath(request.nonce, "final-proof.json"), false);
+    if (phase === "prepare")
+      assertExists(f.journalPath(request.nonce, "prepared.json"), false);
+    assertExists(f.lock, true);
+    assert.equal(f.git("status", "--porcelain"), "");
+  });
 
 for (const mode of [false, true, "restarted", "early-proof", "early-submit"])
   test(`complete ${mode || "expired STARTED"} history survives reanchor and final proof`, async (t) => {
@@ -529,47 +889,51 @@ test("proof cannot redirect preliminary evidence through a symlink", async (t) =
   assert.equal(f.git("status", "--porcelain"), "");
 });
 
-for (const phase of ["prepare", "prove"])
-  test(`${phase} rejects candidate movement during terminal formatting`, async (t) => {
-    const { f, request } = await authorized(t);
-    if (phase === "prove") {
-      await f.prepare(request);
-      f.commit();
-    }
-    const before = [RP, EP, MP].map((path) => readText(join(f.root, path)));
-    let scheduled = false;
-    const clock = () => {
-      const stack = new Error().stack;
-      // Commit after terminal identity is checked, before the awaited projection completes.
-      if (
-        !scheduled &&
-        /at (finalFence|terminalCapture) /.test(stack.split("\n")[2]) &&
-        stack.includes("at terminalCapture ")
-      ) {
-        scheduled = true;
-        queueMicrotask(() => {
-          f.write("tooling/product.mjs", "export const product = 2;\n");
-          f.commit();
-        });
+for (const mode of ["HISTORY", "MISSING"])
+  for (const phase of ["prepare", "prove"])
+    test(`${mode} ${phase} rejects candidate movement during terminal formatting`, async (t) => {
+      const { f, request } =
+        mode === "MISSING" ? await missingRequest(t) : await authorized(t);
+      if (mode === "MISSING") f.approve(request);
+      if (phase === "prove") {
+        await f.prepare(request);
+        f.commit();
       }
-      return Date.now();
-    };
-    await assert.rejects(
-      phase === "prepare"
-        ? prepareGeneration(f.options, request, { api: f.api, clock })
-        : proveGeneration(f.options, request.nonce, { api: f.api, clock }),
-      /FINAL_CANDIDATE_MOVED/,
-    );
-    assert.equal(scheduled, true);
-    assert.deepEqual(
-      [RP, EP, MP].map((path) => readText(join(f.root, path))),
-      before,
-    );
-    const receipt = phase === "prepare" ? "prepared.json" : "final-proof.json";
-    assertExists(f.journalPath(request.nonce, receipt), false);
-    assertExists(f.lock, true);
-    assert.equal(f.git("status", "--porcelain"), "");
-  });
+      const before = [RP, EP, MP].map((path) => readText(join(f.root, path)));
+      let scheduled = false;
+      const clock = () => {
+        const stack = new Error().stack;
+        // Commit after terminal identity is checked, before the awaited projection completes.
+        if (
+          !scheduled &&
+          /at (finalFence|terminalCapture) /.test(stack.split("\n")[2]) &&
+          stack.includes("at terminalCapture ")
+        ) {
+          scheduled = true;
+          queueMicrotask(() => {
+            f.write("tooling/product.mjs", "export const product = 2;\n");
+            f.commit();
+          });
+        }
+        return Date.now();
+      };
+      await assert.rejects(
+        phase === "prepare"
+          ? prepareGeneration(f.options, request, { api: f.api, clock })
+          : proveGeneration(f.options, request.nonce, { api: f.api, clock }),
+        /FINAL_CANDIDATE_MOVED/,
+      );
+      assert.equal(scheduled, true);
+      assert.deepEqual(
+        [RP, EP, MP].map((path) => readText(join(f.root, path))),
+        before,
+      );
+      const receipt =
+        phase === "prepare" ? "prepared.json" : "final-proof.json";
+      assertExists(f.journalPath(request.nonce, receipt), false);
+      assertExists(f.lock, true);
+      assert.equal(f.git("status", "--porcelain"), "");
+    });
 
 for (const movedAt of [3, 4])
   test(`final lock rejects candidate movement at main read ${movedAt} before executing proof`, async (t) => {

@@ -88,7 +88,7 @@ function stateDirectory(root) {
     resolve(root, git(root, "rev-parse", "--git-dir")),
   );
   const state = join(parent, "morro-control");
-  if (existsSync(state))
+  if (lstatSync(state, { throwIfNoEntry: false }))
     check(
       lstatSync(state).isDirectory() && !lstatSync(state).isSymbolicLink(),
       "STATE_DIRECTORY",
@@ -104,7 +104,9 @@ function sourceFiles(root, id) {
     "capability-leases.json",
   ].map((name) => {
     const path = join(directory, name);
-    const content = existsSync(path) ? regular(path) : null;
+    const content = lstatSync(path, { throwIfNoEntry: false })
+      ? regular(path)
+      : null;
     return { name, content, sha256: content === null ? null : hash(content) };
   });
 }
@@ -121,7 +123,9 @@ function sourceMode(root, manifest, files, executor, now) {
     f.content === null ? null : JSON.parse(f.content),
   );
   const [task, contextPack, handoff, leases] = values;
-  if (leases) noActiveLeases(leases, now);
+  if (files[3].content !== null) noActiveLeases(leases, now);
+  if (files.slice(0, 3).every((file) => file.content === null))
+    return "MISSING";
   if (task && contextPack && leases) {
     const historical = JSON.parse(
       at(root, task.candidateSha, ".morro/changesets/" + manifest.id + ".json"),
@@ -296,7 +300,7 @@ export async function captureGeneration(
 }
 
 export function generationRequest(capture, nonce = randomUUID()) {
-  check(capture.mode === "HISTORY", "HISTORY_REQUIRED");
+  check(["HISTORY", "MISSING"].includes(capture.mode), "HISTORY_REQUIRED");
   return {
     schemaVersion: 1,
     kind: "TDP_TASK_GENERATION_REQUEST",
@@ -313,7 +317,17 @@ export function generationRequest(capture, nonce = randomUUID()) {
     workspace: capture.workspace,
     mode: capture.mode,
     history: capture.files.map(({ name, sha256 }) => ({ name, sha256 })),
-    authority: "CANONICAL_CLAIM_AND_TASK_HISTORY",
+    authority:
+      capture.mode === "MISSING"
+        ? "OWNER_ATTESTED_NO_OTHER_WRITERS"
+        : "CANONICAL_CLAIM_AND_TASK_HISTORY",
+    ...(capture.mode === "MISSING"
+      ? {
+          missingHistoryAcknowledged: true,
+          noOtherWritersAttested: true,
+          historyNotRetroactivelyRestored: true,
+        }
+      : {}),
     nonce,
     issuedAt: new Date(capture.now).toISOString(),
     expiresAt: new Date(
@@ -343,6 +357,109 @@ function validateRequest(request, capture) {
     },
     "REQUEST_CHANGED",
   );
+}
+const normalizeOwnerDecision = (value) => ({
+  ...value,
+  pin: value?.pin ?? null,
+});
+export async function verifyGenerationOwner(
+  request,
+  { api = githubApi, clock = Date.now } = {},
+) {
+  check(
+    request.mode === "MISSING" &&
+      request.authority === "OWNER_ATTESTED_NO_OTHER_WRITERS" &&
+      request.missingHistoryAcknowledged === true &&
+      request.noOtherWritersAttested === true &&
+      request.historyNotRetroactivelyRestored === true,
+    "OWNER_ATTESTATION_REQUIRED",
+  );
+  check(
+    Date.parse(request.issuedAt) <= clock() &&
+      clock() < Date.parse(request.expiresAt),
+    "REQUEST_EXPIRED",
+  );
+  const remote = "repos/" + GENERATION_REPOSITORY;
+  const repo = await api(remote);
+  check(
+    repo.full_name === GENERATION_REPOSITORY &&
+      repo.owner?.type === "User" &&
+      Number.isSafeInteger(repo.owner.id) &&
+      repo.owner.id > 0 &&
+      repo.owner.login === GENERATION_REPOSITORY.split("/")[0],
+    "REPOSITORY_OWNER",
+  );
+  const suffix = `${request.claimId}:${generationDigest(request)}:${request.nonce}:${request.mainSha}`;
+  const approval = "APPROVED_TASK_GENERATION:" + suffix;
+  const revocation = "REVOKED_TASK_GENERATION:" + suffix;
+  async function readDecision() {
+    const found = [];
+    for (let page = 1; page <= 10; page++) {
+      const comments = await api(
+        `${remote}/issues/${request.prNumber}/comments?per_page=100&page=${page}`,
+      );
+      check(Array.isArray(comments) && comments.length <= 100, "COMMENT_PAGE");
+      for (const comment of comments) {
+        if (![approval, revocation].includes(comment.body)) continue;
+        check(
+          comment.user?.id === repo.owner.id &&
+            comment.user.login === repo.owner.login &&
+            comment.user.type === "User" &&
+            comment.author_association === "OWNER" &&
+            comment.performed_via_github_app === null,
+          "OWNER_COMMENT_IDENTITY",
+        );
+        check(comment.body !== revocation, "OWNER_REVOKED");
+        check(
+          Number.isSafeInteger(comment.id) &&
+            comment.id > 0 &&
+            comment.created_at === comment.updated_at,
+          "OWNER_COMMENT_EDITED",
+        );
+        check(
+          comment.issue_url ===
+            `https://api.github.com/${remote}/issues/${request.prNumber}` &&
+            comment.html_url ===
+              `https://github.com/${GENERATION_REPOSITORY}/pull/${request.prNumber}#issuecomment-${comment.id}`,
+          "OWNER_COMMENT_TARGET",
+        );
+        const created = Date.parse(comment.created_at);
+        check(
+          created >= Date.parse(request.issuedAt) &&
+            created <= clock() &&
+            clock() - created <= 1800000,
+          "OWNER_COMMENT_EXPIRED",
+        );
+        found.push(comment);
+      }
+      if (comments.length < 100) {
+        check(found.length === 1, "OWNER_DECISION_REQUIRED");
+        return found[0];
+      }
+    }
+    throw new Error("GENERATION_COMMENT_PAGINATION_LIMIT");
+  }
+  const first = normalizeOwnerDecision(await readDecision());
+  same(
+    normalizeOwnerDecision(await api(`${remote}/issues/comments/${first.id}`)),
+    first,
+    "OWNER_COMMENT_CHANGED",
+  );
+  same(
+    normalizeOwnerDecision(await readDecision()),
+    first,
+    "OWNER_COMMENT_CHANGED",
+  );
+  return first;
+}
+async function preserveOwnerDecision(request, decision, dependencies) {
+  if (request.mode === "MISSING")
+    same(
+      await verifyGenerationOwner(request, dependencies),
+      normalizeOwnerDecision(decision),
+      "OWNER_COMMENT_CHANGED",
+    );
+  else same(decision, null, "JOURNAL_AUTHORITY");
 }
 function durable(path, content, exclusive = true) {
   const temporary = exclusive ? path : path + ".tmp-" + randomUUID();
@@ -434,7 +551,7 @@ async function terminalCapture(
   const { clock } = dependencies;
   const current = await captureGeneration(options, dependencies);
   sameCapture(current, capture);
-  same(decision, null, "OWNER_DECISION_UNSUPPORTED");
+  await preserveOwnerDecision(request, decision, dependencies);
   finalFence(capture, request, clock);
   return current;
 }
@@ -601,8 +718,10 @@ async function validateJournal(capture, nonce, intent, prepared, preliminary) {
     },
   };
   validateRequest(request, original);
-  same(request.mode, "HISTORY", "HISTORY_REQUIRED");
-  same(intent.ownerDecision, null, "JOURNAL_AUTHORITY");
+  if (request.mode === "HISTORY")
+    same(intent.ownerDecision, null, "JOURNAL_AUTHORITY");
+  else
+    check(Number.isSafeInteger(intent.ownerDecision?.id), "JOURNAL_AUTHORITY");
   const preimages = Object.fromEntries(
     [RP, EP, capture.mp].map((p) => [
       p,
@@ -639,14 +758,18 @@ export async function prepareGeneration(options, request, dependencies = {}) {
     clock = dependencies.clock ?? Date.now;
   const capture = await captureGeneration(options, { api, clock });
   validateRequest(request, capture);
-  check(capture.mode === "HISTORY", "HISTORY_REQUIRED");
-  const ownerDecision = null;
+  const ownerDecision =
+    capture.mode === "MISSING"
+      ? await verifyGenerationOwner(request, { api, clock })
+      : null;
   const paths = generationPaths(capture, request);
   const { directory } = paths;
   check(!existsSync(directory), "NONCE_ALREADY_USED");
   return withGenerationLock(paths.lock, async () => {
     const recaptured = await captureGeneration(options, { api, clock });
     validateRequest(request, recaptured);
+    await preserveOwnerDecision(request, ownerDecision, { api, clock });
+    finalFence(capture, request, clock);
     const preimages = Object.fromEntries(
       [RP, EP, capture.mp].map((p) => [p, regular(join(capture.workspace, p))]),
     );
@@ -746,10 +869,11 @@ export async function proveGeneration(options, nonce, dependencies = {}) {
   verifyFiles(capture.workspace, prepared.after, "PREPARED_METADATA_CHANGED");
   // Material changes after the preliminary proof are allowed only inside the
   // existing claim, and are tested again here. No preliminary result is reused.
+  await preserveOwnerDecision(request, intent.ownerDecision, { api, clock });
   const paths = generationPaths(capture, request);
   check(!existsSync(join(directory, "final-proof.json")), "FINAL_PROOF_EXISTS");
   return withGenerationLock(paths.lock, async () => {
-    same(intent.ownerDecision, null, "JOURNAL_AUTHORITY");
+    await preserveOwnerDecision(request, intent.ownerDecision, { api, clock });
     const recaptured = await captureGeneration(options, { api, clock });
     sameCapture(recaptured, capture);
     preserveJournal(directory, journal);
