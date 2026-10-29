@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TASK-GENERATION-MISSING-20261028",
   "objective": "recover-absent-task-history-with-exact-owner-attestation-and-no-active-writers",
-  "baseSha": "af949838410832f98df1ac95bc4892b2fab54d2c",
+  "baseSha": "1f81c567d55efd9b3f98bcad2fc5b5c1d6395cb1",
   "branch": "chore/task-generation-missing-20261028",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
