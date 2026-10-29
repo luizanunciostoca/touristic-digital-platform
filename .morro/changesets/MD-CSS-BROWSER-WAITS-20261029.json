@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CSS-BROWSER-WAITS-20261029",
+  "objective": "prove-css-browser-greeting-under-strict-csp-and-settled-first-access",
+  "baseSha": "86809ef67421f924ebcc96f13cefcff29bd91fa3",
+  "branch": "fix/css-browser-waits-20261029",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
+      ".github/workflows/home-first-run-browser-regression.yml",
+      ".morro/changesets/MD-CSS-BROWSER-WAITS-20261029.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 60
+    },
+    "commands": [
+      {
+        "id": "browser-workflow-governance",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/ci-scheduler-governance.test.mjs"
+        ],
+        "timeoutSeconds": 60
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

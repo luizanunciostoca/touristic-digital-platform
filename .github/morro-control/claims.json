@@ -169,6 +169,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-29T07:00:00.000Z"
+    },
+    "MD-CSS-BROWSER-WAITS-20261029": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/css-browser-waits-20261029",
+      "baseSha": "86809ef67421f924ebcc96f13cefcff29bd91fa3",
+      "paths": [
+        ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
+        ".github/workflows/home-first-run-browser-regression.yml",
+        ".morro/changesets/MD-CSS-BROWSER-WAITS-20261029.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-29T07:00:00.000Z"
     }
   }
 }
