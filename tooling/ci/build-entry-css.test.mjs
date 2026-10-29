@@ -52,6 +52,8 @@ test("entry styles preserve location visibility, map labels and rail touch targe
         if (
           rule.selector.includes(".md-current-location-marker") ||
           rule.selector.includes(".morro-explore-marker-label") ||
+          rule.selector.includes(".md-applied-map-filters") ||
+          rule.selector.includes(".mapboxgl-popup") ||
           (rule.selector.trim().endsWith(".md-context-rail-back") &&
             rule.nodes.some((node) => node.prop === "min-height"))
         ) {

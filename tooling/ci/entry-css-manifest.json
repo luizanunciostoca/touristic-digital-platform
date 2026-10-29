@@ -43,7 +43,7 @@
       "file": "apps/morro-digital-platform/public/explore-locations.css",
       "sha256": "d729fa32b44a09a6f0d9dcd2223821b18c94ce379f019b5d05e61d3b0795d650",
       "ruleCount": 192,
-      "keep": "132-133,186-188",
+      "keep": "17,132-133,186-189,191",
       "hide": "190"
     },
     {
@@ -92,7 +92,7 @@
       "file": "apps/morro-digital-platform/public/onboarding-v2.css",
       "sha256": "0d48768ab91e07325573792e3ec7c4fecae4d8a9df095ba73ee99ad79db16206",
       "ruleCount": 55,
-      "keep": "0",
+      "keep": "",
       "hide": "5"
     },
     {
