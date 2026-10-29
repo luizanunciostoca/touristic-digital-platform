@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-ARTIFACT-RECOVERY-R3-20261029",
   "objective": "resume-preserved-css-r2-candidate-with-fresh-authority-and-explicit-missing-history-review",
-  "baseSha": "5ddadd9e1cce9714c625349e2755e0fb823324a7",
-  "branch": "fix/css-artifact-recovery-r3-20261029",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "b37dcfbe8f4a7ad4fdff032069dce8f1dd19ed50",
+  "branch": "chore/retire-css-r3-20261029",
+  "state": "MERGED",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
