@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-BLUEPRINT-OWNERSHIP-20261029",
   "objective": "map-exact-staging-blueprint-path-to-ci-release-without-prefix-expansion",
-  "baseSha": "d8c75db719a9f93e51356d5917d054ed47cd59b4",
+  "baseSha": "3d37fd4a58fc7648c294e21b93b6c1e44efa3064",
   "branch": "fix/staging-blueprint-ownership-20261029",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
