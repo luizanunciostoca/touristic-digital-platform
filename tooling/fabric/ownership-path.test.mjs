@@ -40,7 +40,7 @@ test("Control Center keyboard ownership is exact and preserves auth authority", 
     for (const alias of [
       file + ".backup",
       file + "/nested.js",
-      file.replace(/\.(js|mjs|ts)$/u, "-other.$1"),
+      file.replace(/\.(js|mjs|cjs|ts)$/u, "-other.$1"),
     ]) {
       assert.deepEqual(owners(alias, canonical), [], alias);
       assert.throws(
@@ -80,13 +80,15 @@ test("Control Center keyboard ownership is exact and preserves auth authority", 
 });
 
 const controlCenterRoutingPaths = [
+  "apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs",
+  "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs",
   "apps/control-center/public/control-center-home-overview-v1.js",
   "apps/control-center/public/control-center-shell-v1.js",
   "apps/control-center/public/control-center-route.js",
   "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
 ];
 
-test("Control Center routing ownership is exact and preserves auth authority", () => {
+test("Control Center Home and routing ownership is exact and preserves auth authority", () => {
   const canonical = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
   const owners = (file, registry) =>
     registry.domains
@@ -104,7 +106,7 @@ test("Control Center routing ownership is exact and preserves auth authority", (
     for (const alias of [
       file + ".backup",
       file + "/nested.js",
-      file.replace(/\.(js|mjs|ts)$/u, "-other.$1"),
+      file.replace(/\.(js|mjs|cjs|ts)$/u, "-other.$1"),
     ]) {
       assert.deepEqual(owners(alias, canonical), [], alias);
       assert.throws(
