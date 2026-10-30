@@ -509,17 +509,19 @@ export function buildHomeModelV1({
 
   const globalScope = !selectedDestination;
   const businessesMetric =
-    globalScope && Number.isFinite(Number(dashboard.summary?.businesses))
+    globalScope &&
+    dashboard.summary?.businesses != null &&
+    Number.isFinite(Number(dashboard.summary.businesses))
       ? {
           ...metricNumber(dashboard.summary.businesses, "READY"),
-          hint: "Total global · Identity membership owner",
+          hint: "Total global · Com usuários vinculados",
         }
       : {
           value: "—",
           state: "unavailable",
           hint: selectedDestination
             ? "Sem agregado autoritativo por destino"
-            : "Identity owner indisponível",
+            : "Contagem de empresas com usuários indisponível",
         };
 
   const affiliateMetric =
@@ -598,7 +600,11 @@ export function buildHomeModelV1({
       ? { scope: "destination", destinationId: selectedDestination }
       : { scope: "global", destinationId: null },
     metrics: [
-      { key: "businesses", label: "Empresas", ...businessesMetric },
+      {
+        key: "businesses",
+        label: "Empresas",
+        ...businessesMetric,
+      },
       { key: "affiliates", label: "Afiliados", ...affiliateMetric },
       { key: "reservations", label: "Reservas Hoje", ...reservationsMetric },
       { key: "revenue", label: "Receita Hoje", ...revenueMetric },
@@ -658,6 +664,12 @@ function metricMarkup(metric) {
     escapeHtml(metric.key) +
     '" data-state="' +
     escapeHtml(metric.state) +
+    '" aria-label="' +
+    escapeHtml(
+      metric.key === "businesses"
+        ? "Empresas com usuários vinculados"
+        : metric.label,
+    ) +
     '">' +
     '<div class="home-kpi__icon">' +
     iconSvg(metric.key) +

@@ -32,6 +32,57 @@ const groups = [
   "Plataforma",
 ];
 
+describe("Home business KPI semantics", () => {
+  const source = readFileSync(
+    new URL(
+      "../../../control-center/public/control-center-home-overview-v1.js",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const build = runInNewContext(
+    source.replaceAll("export ", "") + "\nbuildHomeModelV1;",
+    {},
+  ) as (input: object) => {
+    metrics: Array<{
+      key: string;
+      label: string;
+      value: string;
+      state: string;
+      hint: string;
+    }>;
+  };
+  it("identifies linked-user businesses and keeps the authoritative total", () => {
+    const metric = build({
+      dashboard: { summary: { businesses: 2 }, businesses: Array(15).fill({}) },
+    }).metrics[0];
+    expect(metric?.label).toBe("Empresas");
+    expect(metric?.value).toBe("2");
+    expect(metric?.hint).toBe("Total global · Com usuários vinculados");
+  });
+  it.each([undefined, null])(
+    "keeps missing totals unavailable (%s)",
+    (businesses) => {
+      expect(
+        build({ dashboard: { summary: { businesses } } }).metrics[0],
+      ).toMatchObject({ value: "—", state: "unavailable" });
+    },
+  );
+  it("preserves a genuine zero and does not present global totals as destination totals", () => {
+    expect(
+      build({ dashboard: { summary: { businesses: 0 } } }).metrics[0]?.value,
+    ).toBe("0");
+    expect(
+      build({
+        dashboard: { summary: { businesses: 2 } },
+        destinations: [{ id: "a" }],
+        destinationAvailable: true,
+        scope: { scope: "destination", destinationId: "a" },
+      }).metrics[0],
+    ).toMatchObject({ value: "—", state: "unavailable" });
+  });
+});
+
 const items = [
   "Visão Global",
   "Visão Geral",

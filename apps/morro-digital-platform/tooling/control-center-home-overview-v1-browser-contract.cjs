@@ -231,6 +231,24 @@ async function login(page) {
       throw new Error("KPI labels diverged: " + JSON.stringify(kpiLabels));
     evidence.kpis = kpiLabels;
 
+    const businessKpi = page.locator('[data-home-kpi="businesses"]');
+    if (
+      (await businessKpi.locator(".home-kpi__value").textContent()).trim() !==
+      "123.456.789"
+    )
+      throw new Error("Linked-user business total was not preserved");
+    if (
+      !(await businessKpi.innerText()).includes(
+        "Total global · Com usuários vinculados",
+      )
+    )
+      throw new Error("Business KPI did not explain its linked-user scope");
+    if (
+      (await businessKpi.getAttribute("aria-label")) !==
+      "Empresas com usuários vinculados"
+    )
+      throw new Error("Business KPI accessible name did not explain its scope");
+
     const affiliateKpi = page.locator('[data-home-kpi="affiliates"]');
     if (
       (await affiliateKpi.locator(".home-kpi__value").textContent()).trim() !==
@@ -370,6 +388,28 @@ async function login(page) {
       scopedIds,
       globalBusinessSuppressed: true,
     };
+
+    await page.locator("#global-scope").click();
+    evidence.businessAvailability = [];
+    for (const scenario of [
+      { name: "missing", value: undefined, expected: "—" },
+      { name: "null", value: null, expected: "—" },
+      { name: "zero", value: 0, expected: "0" },
+    ]) {
+      dashboardFixture.summary.businesses = scenario.value;
+      await page.reload({ waitUntil: "networkidle" });
+      await page.locator("[data-home-overview-v1]").waitFor();
+      const value = (
+        await page
+          .locator('[data-home-kpi="businesses"] .home-kpi__value')
+          .textContent()
+      ).trim();
+      if (value !== scenario.expected)
+        throw new Error(
+          "Business availability diverged for " + scenario.name + ": " + value,
+        );
+      evidence.businessAvailability.push({ scenario: scenario.name, value });
+    }
 
     if (pageErrors.length)
       throw new Error("Browser page errors: " + JSON.stringify(pageErrors));
