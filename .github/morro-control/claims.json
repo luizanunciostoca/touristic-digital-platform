@@ -110,6 +110,25 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-CC-CATALOG-WP04-BROWSER-20261030": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/cc-wp04-catalog-browser-20261030",
+      "baseSha": "4f0b20ff858e4f914042c6b3aed27d12789ceb48",
+      "paths": [
+        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+        "apps/control-center/public/control-center-home-overview-v1.js",
+        "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
+        ".morro/changesets/MD-CC-CATALOG-WP04-BROWSER-20261030.json",
+        "apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs",
+        "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs"
+      ],
+      "domains": ["auth"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }

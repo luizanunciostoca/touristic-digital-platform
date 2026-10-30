@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CC-CATALOG-WP04-BROWSER-20261030",
+  "objective": "complete-preserved-wp04-catalog-counts-and-business-kpi-browser-contracts",
+  "baseSha": "4f0b20ff858e4f914042c6b3aed27d12789ceb48",
+  "branch": "fix/cc-wp04-catalog-browser-20261030",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+      "apps/control-center/public/control-center-home-overview-v1.js",
+      "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
+      ".morro/changesets/MD-CC-CATALOG-WP04-BROWSER-20261030.json",
+      "apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs",
+      "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-invariants",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
