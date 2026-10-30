@@ -35,7 +35,7 @@ describe("Control Center Business CMS contract", () => {
       expect(panels[index]).toContain(`id="${panelId}"`);
       expect(panels[index]).toContain(`aria-labelledby="${id}"`);
       expect(panels[index]).toContain('tabindex="0"');
-      expect(panels[index].includes(" hidden")).toBe(index !== 0);
+      expect(panels[index]?.includes(" hidden")).toBe(index !== 0);
     });
   });
 
@@ -99,12 +99,12 @@ describe("Control Center Business CMS contract", () => {
     key("ArrowRight", "overview");
     key("End", "location");
     key("Home", "overview");
-    buttons[1].focus();
-    buttons[1].listeners.get("click")?.({ key: "", preventDefault: () => {} });
+    buttons[1]?.focus();
+    buttons[1]?.listeners.get("click")?.({ key: "", preventDefault: () => {} });
     key("ArrowRight", "location");
     key("Home", "overview");
     let prevented = false;
-    buttons[0].listeners.get("keydown")?.({
+    buttons[0]?.listeners.get("keydown")?.({
       key: "Tab",
       preventDefault: () => {
         prevented = true;
