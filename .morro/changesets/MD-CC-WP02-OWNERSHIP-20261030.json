@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CC-WP02-OWNERSHIP-20261030",
   "objective": "admit-exact-control-center-shell-and-routing-tests-for-wp02",
-  "baseSha": "d1b26683be885e89c584209c04db67baec31c5a7",
+  "baseSha": "763e5e9dc942e0efb7cb1547b1966e88649c6811",
   "branch": "chore/wp02-shell-ownership-20261030",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

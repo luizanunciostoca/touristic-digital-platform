@@ -79,6 +79,67 @@ test("Control Center keyboard ownership is exact and preserves auth authority", 
   }
 });
 
+const controlCenterRoutingPaths = [
+  "apps/control-center/public/control-center-shell-v1.js",
+  "apps/control-center/public/control-center-route.js",
+  "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
+];
+
+test("Control Center routing ownership is exact and preserves auth authority", () => {
+  const canonical = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+  const owners = (file, registry) =>
+    registry.domains
+      .filter((domain) =>
+        domain.pathPrefixes.some((prefix) =>
+          prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix,
+        ),
+      )
+      .map((domain) => domain.id);
+  for (const file of controlCenterRoutingPaths) {
+    assert.deepEqual(owners(file, canonical), ["auth"], file);
+    assert.deepEqual(assertOwnershipCoverage([file], canonical), {
+      covered: 1,
+    });
+    for (const alias of [
+      file + ".backup",
+      file + "/nested.js",
+      file.replace(/\.(js|mjs|ts)$/u, "-other.$1"),
+    ]) {
+      assert.deepEqual(owners(alias, canonical), [], alias);
+      assert.throws(
+        () => assertOwnershipCoverage([alias], canonical),
+        /FAST_GATE_OWNERSHIP_UNCOVERED/u,
+      );
+    }
+  }
+  assert.deepEqual(
+    owners("apps/control-center/public/control-center.js", canonical),
+    ["auth"],
+  );
+  assert.deepEqual(
+    canonical.domains.find((domain) => domain.id === "auth").contracts,
+    ["platform-authz"],
+  );
+  assert.equal(
+    JSON.parse(readFileSync(".morro/risk-policy.json", "utf8"))
+      .semanticRiskFloor["platform-authz"],
+    "critical",
+  );
+  const before = structuredClone(canonical);
+  before.domains.find((domain) => domain.id === "auth").pathPrefixes =
+    before.domains
+      .find((domain) => domain.id === "auth")
+      .pathPrefixes.filter((path) => !controlCenterRoutingPaths.includes(path));
+  for (const file of execFileSync("git", ["ls-files", "-z"], {
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean)) {
+    if (!controlCenterRoutingPaths.includes(file))
+      assert.deepEqual(owners(file, canonical), owners(file, before), file);
+  }
+});
+
 const directory = "tooling/ci/";
 const ownership = {
   domains: [{ id: "ci-release", pathPrefixes: [exact, directory] }],
