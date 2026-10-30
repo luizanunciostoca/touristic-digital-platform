@@ -96,21 +96,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T23:59:59.000Z"
     },
-    "MD-STAGING-BLUEPRINT-OWNERSHIP-20261029": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-blueprint-ownership-20261029",
-      "baseSha": "3d37fd4a58fc7648c294e21b93b6c1e44efa3064",
-      "paths": [
-        ".morro/ownership.json",
-        "tooling/fabric/ownership-path.test.mjs",
-        ".morro/changesets/MD-STAGING-BLUEPRINT-OWNERSHIP-20261029.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-31T23:00:00.000Z"
-    },
     "MD-OCI-READINESS-COMPATIBILITY-20261030": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
