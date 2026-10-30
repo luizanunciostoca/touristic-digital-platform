@@ -157,7 +157,11 @@
         "apps/morro-digital-platform/tooling/destination-public-templates.test.mjs",
         "apps/morro-digital-platform/tooling/destination-request-resolver.mjs",
         "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs",
-        "apps/control-center/public/control-center.js"
+        "apps/control-center/public/control-center.js",
+        "apps/control-center/public/control-center-business-cms.js",
+        "apps/morro-digital-platform/src/ux/control-center-business-cms-contract.test.ts",
+        "apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs",
+        "apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs"
       ],
       "contracts": ["platform-authz"]
     },

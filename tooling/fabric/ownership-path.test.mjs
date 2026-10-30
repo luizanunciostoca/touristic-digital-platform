@@ -15,6 +15,70 @@ import { buildChangeEnvelope } from "../mdctl/change-envelope.mjs";
 import { assertOwnershipCoverage } from "../ci/local-fast-gate.mjs";
 
 const exact = "packages/design-system/package.json";
+const controlCenterKeyboardPaths = [
+  "apps/control-center/public/control-center-business-cms.js",
+  "apps/morro-digital-platform/src/ux/control-center-business-cms-contract.test.ts",
+  "apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs",
+  "apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs",
+];
+
+test("Control Center keyboard ownership is exact and preserves auth authority", () => {
+  const canonical = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+  const owners = (file, registry) =>
+    registry.domains
+      .filter((domain) =>
+        domain.pathPrefixes.some((prefix) =>
+          prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix,
+        ),
+      )
+      .map((domain) => domain.id);
+  for (const file of controlCenterKeyboardPaths) {
+    assert.deepEqual(owners(file, canonical), ["auth"], file);
+    assert.deepEqual(assertOwnershipCoverage([file], canonical), {
+      covered: 1,
+    });
+    for (const alias of [
+      file + ".backup",
+      file + "/nested.js",
+      file.replace(/\.(js|mjs|ts)$/u, "-other.$1"),
+    ]) {
+      assert.deepEqual(owners(alias, canonical), [], alias);
+      assert.throws(
+        () => assertOwnershipCoverage([alias], canonical),
+        /FAST_GATE_OWNERSHIP_UNCOVERED/u,
+      );
+    }
+  }
+  assert.deepEqual(
+    owners("apps/control-center/public/control-center.js", canonical),
+    ["auth"],
+  );
+  assert.deepEqual(
+    canonical.domains.find((domain) => domain.id === "auth").contracts,
+    ["platform-authz"],
+  );
+  assert.equal(
+    JSON.parse(readFileSync(".morro/risk-policy.json", "utf8"))
+      .semanticRiskFloor["platform-authz"],
+    "critical",
+  );
+  const before = structuredClone(canonical);
+  before.domains.find((domain) => domain.id === "auth").pathPrefixes =
+    before.domains
+      .find((domain) => domain.id === "auth")
+      .pathPrefixes.filter(
+        (path) => !controlCenterKeyboardPaths.includes(path),
+      );
+  for (const file of execFileSync("git", ["ls-files", "-z"], {
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean)) {
+    if (!controlCenterKeyboardPaths.includes(file))
+      assert.deepEqual(owners(file, canonical), owners(file, before), file);
+  }
+});
+
 const directory = "tooling/ci/";
 const ownership = {
   domains: [{ id: "ci-release", pathPrefixes: [exact, directory] }],
