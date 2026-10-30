@@ -638,3 +638,36 @@ test("staging Blueprint has exact ci-release ownership without aliases", () => {
     );
   }
 });
+
+test("session recovery paths belong only to auth and do not claim adjacent files", () => {
+  const registry = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+  const paths = [
+    "packages/auth-browser/src/index.ts",
+    "packages/auth-browser/src/index.test.ts",
+    "packages/auth-browser/src/crm-auth-transport.test.ts",
+    "apps/morro-digital-platform/src/affiliate-portal-entry.ts",
+    "apps/morro-digital-platform/src/affiliate-portal-client.ts",
+    "apps/morro-digital-platform/src/affiliate-portal-client.test.ts",
+    "apps/morro-digital-platform/src/business-login-entry.ts",
+    "apps/morro-digital-platform/src/business-login-entry.test.ts",
+    "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+    "apps/admin-crm/public/trials.js",
+    "apps/admin-crm/public/referrals.js",
+  ];
+  for (const path of paths) {
+    const owners = registry.domains.filter((d) =>
+      d.pathPrefixes.some((p) =>
+        p.endsWith("/") ? path.startsWith(p) : p === path,
+      ),
+    );
+    assert.deepEqual(
+      owners.map((d) => d.id),
+      ["auth"],
+      path,
+    );
+    assert.throws(
+      () => assertOwnershipCoverage([path + ".bak"], registry),
+      /FAST_GATE_OWNERSHIP_UNCOVERED/,
+    );
+  }
+});
