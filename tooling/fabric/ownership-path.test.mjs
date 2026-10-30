@@ -484,3 +484,28 @@ test("semantic explore analytics has narrow map ownership", () => {
       assert.throws(() => assertOwnershipCoverage([path + suffix], current));
   }
 });
+
+test("staging Blueprint has exact ci-release ownership without aliases", () => {
+  const canonical = JSON.parse(
+    readFileSync(
+      new URL("../../.morro/ownership.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  assert.deepEqual(
+    assertOwnershipCoverage(["render.staging.yaml"], canonical),
+    { covered: 1 },
+  );
+  const domain = canonical.domains.find((entry) => entry.id === "ci-release");
+  assert.ok(domain.pathPrefixes.includes("render.staging.yaml"));
+  for (const alias of [
+    "render.staging.yaml.backup",
+    "render.staging.yaml/child",
+    "render.staging.yamlx",
+  ]) {
+    assert.throws(
+      () => assertOwnershipCoverage([alias], canonical),
+      /FAST_GATE_OWNERSHIP_UNCOVERED/,
+    );
+  }
+});

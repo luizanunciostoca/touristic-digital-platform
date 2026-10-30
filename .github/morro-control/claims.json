@@ -119,7 +119,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-blueprint-ownership-20261029",
-      "baseSha": "d8c75db719a9f93e51356d5917d054ed47cd59b4",
+      "baseSha": "3d37fd4a58fc7648c294e21b93b6c1e44efa3064",
       "paths": [
         ".morro/ownership.json",
         "tooling/fabric/ownership-path.test.mjs",
