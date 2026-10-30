@@ -129,6 +129,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-OCI-READINESS-COMPATIBILITY-20261030": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/oci-readiness-compatibility-20261030",
+      "baseSha": "bfe2d0fc0fa52c31bd15a30659d3e8bc37ed04d5",
+      "paths": [
+        "tooling/quality/check-release-readiness.mjs",
+        "tooling/ci/staging-readiness-runtime.test.mjs",
+        ".morro/changesets/MD-OCI-READINESS-COMPATIBILITY-20261030.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }
