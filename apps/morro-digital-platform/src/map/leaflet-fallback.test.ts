@@ -50,7 +50,14 @@ it("preserves coordinate order, navigation and cleanup when WebGL is unavailable
   expect(nativeMap.setView).toHaveBeenLastCalledWith([-13.39, -38.92], 14, {
     animate: false,
   });
-  map.easeTo?.({ center: [-38.93, -13.4], zoom: 16, duration: 500 });
+  const navigationMap = map as typeof map & {
+    easeTo(input: {
+      center: [number, number];
+      zoom: number;
+      duration: number;
+    }): void;
+  };
+  navigationMap.easeTo({ center: [-38.93, -13.4], zoom: 16, duration: 500 });
   expect(nativeMap.setView).toHaveBeenLastCalledWith([-13.4, -38.93], 16, {
     animate: true,
     duration: 0.5,
