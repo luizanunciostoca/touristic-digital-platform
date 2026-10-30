@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CC-WP04-BROWSER-OWNERSHIP-20261030",
   "objective": "admit-exact-home-and-visual-browser-contract-ownership",
-  "baseSha": "20c6d7734c110679f16bac1fb890f568a8a3b9e2",
-  "branch": "chore/cc-wp04-browser-ownership-20261030",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "c80e6ebfa09b14f289fcff37a78116bbe75ab015",
+  "branch": "chore/retire-wp04-browser-ownership-20261030",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
