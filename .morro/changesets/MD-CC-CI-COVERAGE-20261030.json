@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CC-CI-COVERAGE-20261030",
   "objective": "prove-control-center-suite-coverage-and-scope-browser-navigation-locators",
-  "baseSha": "3c71e45187d2eb8df101911d73493d55c3a18ba1",
-  "branch": "fix/cc-ci-coverage-20261030",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "2b8cc612d5d761ef3edf21edaee2958acff94b39",
+  "branch": "chore/retire-cc-ci-20261030",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
