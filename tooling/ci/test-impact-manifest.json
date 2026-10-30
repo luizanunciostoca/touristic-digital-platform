@@ -842,6 +842,20 @@
       "needsDatabase": true,
       "needsDependencyAudit": false,
       "needsFullSecurity": true
+    },
+    "leaflet-map-fallback": {
+      "paths": [
+        "apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts",
+        "apps/morro-digital-platform/src/map/leaflet-fallback.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["quality.yml", "home-discover-manual-conformance.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
     }
   }
 }
