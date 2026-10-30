@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-WP05-SESSION-RECOVERY-20261030",
+  "objective": "distinguish-session-expiry-from-transient-failure-and-restore-safe-affiliate-portal-entry",
+  "baseSha": "5af3e1f7d8e0817c257922ac72cbe7b1c1e3601b",
+  "branch": "fix/wp05-session-recovery-20261030",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "packages/auth-browser/src/index.ts",
+      "packages/auth-browser/src/index.test.ts",
+      "packages/auth-browser/src/crm-auth-transport.test.ts",
+      "apps/morro-digital-platform/src/affiliate-portal-entry.ts",
+      "apps/morro-digital-platform/src/affiliate-portal-client.ts",
+      "apps/morro-digital-platform/src/affiliate-portal-client.test.ts",
+      "apps/morro-digital-platform/src/business-login-entry.ts",
+      "apps/morro-digital-platform/src/business-login-entry.test.ts",
+      "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+      "apps/admin-crm/public/trials.js",
+      "apps/admin-crm/public/referrals.js",
+      ".morro/changesets/MD-WP05-SESSION-RECOVERY-20261030.json"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-invariants",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
