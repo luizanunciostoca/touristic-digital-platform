@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CC-WP03-OWNERSHIP-20261030",
   "objective": "admit-exact-control-center-home-renderer-ownership",
-  "baseSha": "1a99bd4a4082d71897dce7612ffd7ad07c77c226",
+  "baseSha": "746bfaaaa899c4244838cdf017cfa3b56d1176c3",
   "branch": "chore/cc-wp03-home-ownership-20261030",
   "state": "IMPLEMENTING",
   "risk": "high",
