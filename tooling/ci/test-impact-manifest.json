@@ -310,7 +310,7 @@
       ],
       "risk": "HIGH",
       "dependsOn": ["auth", "business", "security"],
-      "suites": [],
+      "suites": ["control-center-browser-contract.yml"],
       "needsBrowser": true,
       "needsVisual": true,
       "needsDatabase": true,

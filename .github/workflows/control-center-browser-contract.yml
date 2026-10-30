@@ -1,54 +1,14 @@
 name: Control Center Browser Contract
 
 on:
+  workflow_call:
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
-    paths:
-      - ".github/actions/ci-bootstrap/action.yml"
-      - ".github/workflows/control-center-browser-contract.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/src/business-login-entry.ts"
-      - "apps/morro-digital-platform/tooling/admin-*.mjs"
-      - "apps/morro-digital-platform/tooling/auth-api.mjs"
-      - "apps/morro-digital-platform/tooling/business-api.mjs"
-      - "apps/morro-digital-platform/tooling/crm-api.mjs"
-      - "apps/morro-digital-platform/tooling/dev-server.mjs"
-      - "packages/auth/**"
-      - "packages/auth-browser/**"
-      - "packages/crm/**"
-      - "services/analytics/**"
-      - "services/auth/**"
-      - "services/crm/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/actions/ci-bootstrap/action.yml"
-      - ".github/workflows/control-center-browser-contract.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/src/business-login-entry.ts"
-      - "apps/morro-digital-platform/tooling/admin-*.mjs"
-      - "apps/morro-digital-platform/tooling/auth-api.mjs"
-      - "apps/morro-digital-platform/tooling/business-api.mjs"
-      - "apps/morro-digital-platform/tooling/crm-api.mjs"
-      - "apps/morro-digital-platform/tooling/dev-server.mjs"
-      - "packages/auth/**"
-      - "packages/auth-browser/**"
-      - "packages/crm/**"
-      - "services/analytics/**"
-      - "services/auth/**"
-      - "services/crm/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: control-center-browser-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: suite-control-center-browser-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -374,7 +334,7 @@ jobs:
               evidence.negativeSecurity.push('forged-effective-user-header-rejected');
 
               await page.locator('[data-view="businesses"]').click();
-              await page.locator('a[href="#businesses:toca-do-morcego"]').click();
+              await page.locator('#content a[href="#businesses:toca-do-morcego"]').click();
               const supportEntity = page.locator('[data-entity-support-context]');
               await supportEntity.waitFor();
               const supportEntityText = await supportEntity.textContent();

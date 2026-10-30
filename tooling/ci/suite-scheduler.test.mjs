@@ -24,6 +24,7 @@ function completeReport(overrides = {}) {
   };
 }
 const expectedManagedSuites = [
+  "control-center-browser-contract.yml",
   "payments-operational-ledger-contract.yml",
   "payments-persistence-integration.yml",
   "payments-sandbox-provider-contract.yml",
@@ -72,6 +73,10 @@ test("every migrated trigger path still selects its original suite", () => {
         nonRuntime: false,
         failClosedReason: null,
       });
+      if (analyzeFiles([file]).classificationBlocked) {
+        assert.deepEqual(selectSuites(report), [], file);
+        continue;
+      }
       assert.ok(
         selectSuites(report).includes(suite.workflow),
         `${suite.workflow}: ${path}`,
@@ -186,7 +191,7 @@ test("Business and Control Center fail closed until central or legacy coverage i
     ],
     [
       "apps/control-center/public/control-center-business-cms.js",
-      "control-center-catalog-drafts.yml",
+      "control-center-browser-contract.yml",
     ],
   ]) {
     const report = analyzeFiles([file]);
@@ -230,6 +235,7 @@ test("known critical changes stay deep while unclassified changes block", () => 
   assert.equal(auth.needsDatabase, false);
   assert.equal(auth.qualityProfile, "BUGFIX_FAST");
   assert.deepEqual(selectSuites(auth), [
+    "control-center-browser-contract.yml",
     "payments-operational-ledger-contract.yml",
   ]);
 
@@ -256,14 +262,9 @@ test("unmigrated runtime coverage fails closed without unrelated fan-out", () =>
     "apps/morro-digital-platform/src/business-location-discovery-adapter.test.ts",
     "apps/morro-digital-platform/src/business-location-discovery-adapter.ts",
     "apps/morro-digital-platform/src/business-login-entry.test.ts",
-    "apps/morro-digital-platform/src/ux/control-center-entity360-dashboard-contract.test.ts",
     "apps/morro-digital-platform/tooling/business-api-catalog.invariants.mjs",
     "apps/morro-digital-platform/tooling/business-api-media.invariants.mjs",
     "apps/morro-digital-platform/tooling/business-api.test.mjs",
-    "apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs",
-    "apps/morro-digital-platform/tooling/control-center-commerce-browser-contract.mjs",
-    "apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs",
-    "apps/morro-digital-platform/tooling/control-center-users-browser-contract.mjs",
   ]) {
     assert.throws(
       () => selectSuites(analyzeFiles([file])),
@@ -359,6 +360,7 @@ test("scheduler reclassifies tampered file lists before narrowing coverage", () 
   const auth = analyzeFiles(["docs/overview.md"]);
   auth.files = ["packages/auth/src/authorization.ts"];
   assert.deepEqual(selectSuites(auth), [
+    "control-center-browser-contract.yml",
     "payments-operational-ledger-contract.yml",
   ]);
 
@@ -532,7 +534,7 @@ test("broad Security Scanning is asynchronous to pull-request bugfixes", () => {
 test("critical fan-out never masks an uncovered runtime file in either order", () => {
   for (const uncovered of [
     "apps/morro-digital-platform/src/business-location-discovery-adapter.ts",
-    "apps/control-center/public/control-center-business-cms.js",
+    "apps/morro-digital-platform/tooling/business-api-catalog.invariants.mjs",
   ]) {
     for (const critical of [
       "pnpm-lock.yaml",
@@ -617,4 +619,43 @@ test("critical candidates with proven or nonrequired coverage retain full fan-ou
     report.needsFullRegression = false;
     assert.deepEqual(selectSuites(report), all, files.join(", "));
   }
+});
+
+test("Control Center runtime and acceptance tests require the browser suite", () => {
+  for (const file of [
+    "apps/morro-digital-platform/src/ux/control-center-entity360-dashboard-contract.test.ts",
+    "apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs",
+    "apps/morro-digital-platform/tooling/control-center-commerce-browser-contract.mjs",
+    "apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs",
+    "apps/morro-digital-platform/tooling/control-center-users-browser-contract.mjs",
+    "apps/control-center/public/control-center-business-cms.js",
+    "apps/control-center/public/control-center.js",
+    "apps/morro-digital-platform/src/ux/control-center-business-cms-contract.test.ts",
+    "apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs",
+  ]) {
+    const selected = selectSuites(analyzeFiles([file]));
+    assert.ok(selected.includes("control-center-browser-contract.yml"), file);
+    const needs = results(selected);
+    needs["suite-control-center-browser-contract"].result = "failure";
+    assert.throws(() => verifySuiteResults(selected, needs));
+    needs["suite-control-center-browser-contract"].result = "skipped";
+    assert.throws(() => verifySuiteResults(selected, needs));
+  }
+});
+
+test("business support navigation targets content rather than hidden search links", () => {
+  const workflow = readFileSync(
+    ".github/workflows/control-center-browser-contract.yml",
+    "utf8",
+  );
+  assert.ok(
+    workflow.includes(
+      "page.locator('#content a[href=\"#businesses:toca-do-morcego\"]')",
+    ),
+  );
+  assert.ok(
+    !workflow.includes(
+      "page.locator('a[href=\"#businesses:toca-do-morcego\"]')",
+    ),
+  );
 });
