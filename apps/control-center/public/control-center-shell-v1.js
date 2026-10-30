@@ -1,4 +1,5 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import { parseControlCenterHash } from "./control-center-route.js";
 
 const app = document.querySelector("#app");
 const nav = document.querySelector("#main-nav");
@@ -168,12 +169,6 @@ const groups = [
         canonical: true,
       },
       {
-        key: "integrations",
-        label: "Integrações",
-        view: "settings",
-        icon: "link",
-      },
-      {
         key: "settings",
         label: "Configurações",
         view: "settings",
@@ -228,8 +223,7 @@ function icon(name) {
 }
 
 function routeFromHash() {
-  const raw = (globalThis.location.hash || "#overview").slice(1);
-  return raw.split(":", 1)[0] || "overview";
+  return parseControlCenterHash(globalThis.location.hash).view;
 }
 
 function selectedItem() {

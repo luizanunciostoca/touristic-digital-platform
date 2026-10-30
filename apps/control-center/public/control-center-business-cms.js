@@ -169,6 +169,7 @@ function filterMarkup(model, escapeHtml) {
         </label>
         <div class="business-cms-toolbar-actions">
           <button class="secondary-button" type="submit">Aplicar filtros</button>
+          <a class="secondary-button" href="#businesses">Limpar filtros</a>
           <button class="primary-button" type="button" data-business-cms-new>
             + Nova empresa
           </button>
@@ -218,7 +219,7 @@ function wizardMarkup(model, escapeHtml) {
             <small>CREATE BUSINESS WIZARD</small>
             <h2>Nova empresa</h2>
           </div>
-          <button class="secondary-button" value="cancel">Fechar</button>
+          <button class="secondary-button" type="submit" value="cancel" formnovalidate>Fechar</button>
         </div>
         <ol class="business-cms-steps" aria-label="Etapas do cadastro">
           <li>Identidade</li>
@@ -277,7 +278,7 @@ function wizardMarkup(model, escapeHtml) {
           os contratos das waves proprietárias.
         </p>
         <div class="business-cms-dialog-actions">
-          <button class="secondary-button" value="cancel">Cancelar</button>
+          <button class="secondary-button" type="submit" value="cancel" formnovalidate>Cancelar</button>
           <button class="primary-button" type="submit" value="default">
             Criar draft
           </button>

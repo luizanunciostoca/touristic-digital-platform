@@ -175,6 +175,254 @@ async function proveKeyboardNavigation(page) {
   }
 }
 
+async function proveBusinessNavigation(page) {
+  const listRoute = /\/api\/admin\/v1\/businesses\/cms(?:\?.*)?$/u;
+  const records = [
+    {
+      businessId: "wp02-one",
+      name: "Sambass A:B?C&D",
+      destinationId: "morro",
+      categoryId: "restaurants",
+      publicationState: "published",
+      locationStatus: "confirmed",
+    },
+    {
+      businessId: "wp02-two",
+      name: "Outra empresa",
+      destinationId: "itacare",
+      categoryId: "shops",
+      publicationState: "draft",
+      locationStatus: "missing",
+    },
+  ];
+  const requests = [];
+  let posts = 0;
+  await page.route(listRoute, async (route) => {
+    if (route.request().method() !== "GET") {
+      posts++;
+      await route.fulfill({ json: {} });
+      return;
+    }
+    const filters = Object.fromEntries(
+      new URL(route.request().url()).searchParams,
+    );
+    requests.push(filters);
+    const businesses = records.filter((row) =>
+      Object.entries(filters).every(
+        ([key, value]) =>
+          !value ||
+          (key === "query"
+            ? row.name.toLowerCase().includes(value.toLowerCase())
+            : row[key] === value),
+      ),
+    );
+    await route.fulfill({
+      json: {
+        filters,
+        businesses,
+        destinations: [
+          { id: "morro", name: "Morro" },
+          { id: "itacare", name: "Itacaré" },
+        ],
+        categories: [
+          { id: "restaurants", name: "Restaurantes" },
+          { id: "shops", name: "Lojas" },
+        ],
+      },
+    });
+  });
+  const base = `${origin}/apps/control-center/public/index.html`;
+  const ready = async (filters = {}) => {
+    await page.waitForFunction((filters) => {
+      const form = document.querySelector("#business-cms-filter-form");
+      return (
+        document.querySelector(
+          '#content[data-rendered-view="businesses"][aria-busy="false"]',
+        ) &&
+        form &&
+        [
+          "query",
+          "destinationId",
+          "categoryId",
+          "publicationState",
+          "locationStatus",
+        ].every(
+          (key) => form.elements.namedItem(key).value === (filters[key] ?? ""),
+        )
+      );
+    }, filters);
+    assert.equal(
+      await page
+        .locator('#main-nav [data-view="businesses"][aria-current="page"]')
+        .count(),
+      1,
+    );
+    for (const [key, value] of Object.entries(filters))
+      assert.equal(requests.at(-1)[key], value);
+    const expected = records.filter((row) =>
+      Object.entries(filters).every(
+        ([key, value]) =>
+          !value ||
+          (key === "query"
+            ? row.name.toLowerCase().includes(value.toLowerCase())
+            : row[key] === value),
+      ),
+    );
+    const names = await page
+      .locator('#content a[href^="#businesses:"] strong')
+      .allTextContents();
+    assert.deepEqual(
+      names,
+      expected.map((row) => row.name),
+    );
+  };
+  try {
+    await page.goto(`${base}#businesses`);
+    await ready();
+    const cases = [
+      { query: "Sambass" },
+      { categoryId: "restaurants" },
+      { destinationId: "morro" },
+      { publicationState: "published" },
+      { locationStatus: "confirmed" },
+      {
+        query: "Sambass A:B?C&D",
+        categoryId: "restaurants",
+        destinationId: "morro",
+        publicationState: "published",
+        locationStatus: "confirmed",
+      },
+    ];
+    for (const filters of cases) {
+      const form = page.locator("#business-cms-filter-form");
+      await form.locator('[name="query"]').fill(filters.query ?? "");
+      for (const key of [
+        "categoryId",
+        "destinationId",
+        "publicationState",
+        "locationStatus",
+      ])
+        await form.locator(`[name="${key}"]`).selectOption(filters[key] ?? "");
+      const response = page.waitForResponse(
+        (r) => listRoute.test(r.url()) && r.request().method() === "GET",
+      );
+      await form.getByRole("button", { name: "Aplicar filtros" }).click();
+      await response;
+      await ready(filters);
+      assert.equal(new URL(page.url()).hash.split("?")[0], "#businesses");
+    }
+    const combined = cases.at(-1);
+    await page.reload();
+    await ready(combined);
+    await page.goto(`${base}#businesses?query=Sambass`);
+    await ready({ query: "Sambass" });
+    await page.goBack();
+    await ready(combined);
+    await page.goForward();
+    await ready({ query: "Sambass" });
+    await page.getByRole("link", { name: "Limpar filtros" }).click();
+    await ready();
+    assert.equal(new URL(page.url()).hash, "#businesses");
+
+    const invoker = page.getByRole("button", { name: /Nova empresa/u });
+    const dialog = page.locator("#business-cms-wizard");
+    const form = page.locator("#business-cms-create-form");
+    const focusedInvoker = async () =>
+      assert.equal(
+        await invoker.evaluate((node) => node === document.activeElement),
+        true,
+      );
+    for (const state of ["empty", "partial", "invalid", "valid"]) {
+      for (const label of ["Fechar", "Cancelar"]) {
+        await invoker.click();
+        await form.evaluate((node) => {
+          node.reset();
+          node.elements.namedItem("name").setCustomValidity("");
+        });
+        if (state !== "empty")
+          await form.locator('[name="name"]').fill("Empresa cancelada");
+        if (state === "valid" || state === "invalid") {
+          await form.locator('[name="categoryId"]').selectOption("restaurants");
+          await form.locator('[name="destinationId"]').selectOption("morro");
+        }
+        if (state === "invalid")
+          await form
+            .locator('[name="name"]')
+            .evaluate((node) =>
+              node.setCustomValidity("Dados inválidos de teste"),
+            );
+        await form.getByRole("button", { name: label, exact: true }).click();
+        await dialog.waitFor({ state: "hidden" });
+        await focusedInvoker();
+        assert.equal(posts, 0, `${label}: ${state} must not POST`);
+      }
+    }
+    await invoker.click();
+    await form.evaluate((node) => {
+      node.reset();
+      node.elements.namedItem("name").setCustomValidity("");
+    });
+    await form.getByRole("button", { name: "Criar draft" }).click();
+    assert.equal(await dialog.isVisible(), true);
+    assert.equal(await form.evaluate((node) => node.checkValidity()), false);
+    assert.equal(posts, 0);
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    await focusedInvoker();
+    assert.equal(posts, 0);
+    await invoker.click();
+    await form.locator('[name="name"]').fill("Draft válido isolado");
+    await form.locator('[name="categoryId"]').selectOption("restaurants");
+    await form.locator('[name="destinationId"]').selectOption("morro");
+    await form.getByRole("button", { name: "Criar draft" }).click();
+    await form.getByText("Draft criado.", { exact: true }).waitFor();
+    assert.equal(posts, 1, "valid creation still uses its POST contract");
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(
+      await page.locator('#main-nav [data-shell-key="integrations"]').count(),
+      0,
+    );
+    assert.equal(
+      await page
+        .locator("#main-nav")
+        .getByRole("button", { name: "Integrações", exact: true })
+        .count(),
+      0,
+    );
+    await page.locator('#main-nav [data-view="settings"]').click();
+    await page.locator("#control-center-settings-form").waitFor();
+    assert.equal(
+      await page
+        .locator('#main-nav [data-view="settings"][aria-current="page"]')
+        .count(),
+      1,
+    );
+    assert.ok(
+      (
+        await page.locator('#main-nav [data-view="settings"]').textContent()
+      ).includes("Configurações"),
+    );
+    await page
+      .getByText("estas preferências são locais a este navegador.", {
+        exact: false,
+      })
+      .waitFor();
+    return {
+      view: "business-filters-cancellation-navigation",
+      scope: "authenticated browser with isolated CMS responses",
+      filters: "PASS",
+      history: "PASS",
+      cancellationCases: 8,
+      cancellationPosts: 0,
+      validCreationPosts: 1,
+      settings: "PASS",
+    };
+  } finally {
+    await page.unroute(listRoute);
+  }
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true });
   const evidence = [];
@@ -221,6 +469,10 @@ async function main() {
 
     stage = "keyboard-acceptance";
     evidence.push(await proveKeyboardNavigation(page));
+    persistEvidence(evidence);
+
+    stage = "business-navigation-acceptance";
+    evidence.push(await proveBusinessNavigation(page));
     persistEvidence(evidence);
 
     stage = "nav-discovery";

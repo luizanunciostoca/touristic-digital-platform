@@ -180,3 +180,24 @@ describe("Control Center Business CMS contract", () => {
     expect(source).toContain("BUSINESS_ADMIN_ROUTE_NOT_ALLOWED");
   });
 });
+
+describe("Business creation cancellation", () => {
+  it("allows both cancellation submitters to bypass validation while Create keeps it", () => {
+    const markup: unknown = runInNewContext(
+      source.replace(/^export /gm, "") +
+        "\n wizardMarkup({destinations:[],categories:[]},String)",
+    );
+    if (typeof markup !== "string") throw new Error("CMS_MARKUP_REQUIRED");
+    const cancel = [...markup.matchAll(/<button[^>]*value="cancel"[^>]*>/g)];
+    expect(cancel).toHaveLength(2);
+    for (const [tag] of cancel) {
+      expect(tag).toContain('type="submit"');
+      expect(tag).toContain("formnovalidate");
+    }
+    const create = markup.match(/<button[^>]*value="default"[^>]*>/)?.[0];
+    expect(create).toContain('type="submit"');
+    expect(create).not.toContain("formnovalidate");
+    expect(markup).toContain('<form method="dialog"');
+    expect(markup).toContain('required name="name"');
+  });
+});

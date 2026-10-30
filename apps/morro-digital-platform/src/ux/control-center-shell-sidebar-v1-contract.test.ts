@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 
 const html = readFileSync(
@@ -50,16 +51,16 @@ const items = [
   "Suporte",
   "Auditoria",
   "Sistema",
-  "Integrações",
   "Configurações",
 ];
 
 describe("Control Center UX V1 shell contract", () => {
-  it("keeps the complete manual navigation hierarchy without fused items", () => {
+  it("keeps available navigation items without misleading aliases", () => {
     for (const group of groups) expect(shell).toContain(`label: "${group}"`);
     for (const item of items) expect(shell).toContain(`label: "${item}"`);
 
     expect(shell).not.toContain('label: "Produtos e Ofertas"');
+    expect(shell).not.toContain('key: "integrations"');
   });
 
   it("renders the complete primary topbar and removes operational SHA from prominence", () => {
@@ -155,4 +156,88 @@ describe("Control Center UX V1 shell contract", () => {
       expect(shell).toContain(`view: "${route}"`);
     }
   });
+});
+
+const routeSource = readFileSync(
+  new URL(
+    "../../../control-center/public/control-center-route.js",
+    import.meta.url,
+  ),
+  "utf8",
+).replace(/^export /gm, "");
+const dispatcher = readFileSync(
+  new URL("../../../control-center/public/control-center.js", import.meta.url),
+  "utf8",
+);
+const openHashSource = dispatcher.slice(
+  dispatcher.indexOf("function openHash("),
+  dispatcher.indexOf("\nlet searchTimer;"),
+);
+const shellRouteSource = shell.slice(
+  shell.indexOf("function routeFromHash("),
+  shell.indexOf("\nfunction selectedItem("),
+);
+
+describe("Control Center route consumers", () => {
+  it.each([
+    "query=Sambass",
+    "categoryId=restaurants",
+    "destinationId=morro",
+    "publicationState=published",
+    "locationStatus=confirmed",
+    "query=A%3AB%3FC%26D&destinationId=morro&categoryId=restaurants&publicationState=published",
+    "query=A:B?C",
+  ])(
+    "keeps filtered business routes in both content and sidebar: %s",
+    (query) => {
+      const hash = `#businesses?${query}`;
+      const renders: unknown[] = [];
+      const route: unknown = runInNewContext(
+        routeSource +
+          shellRouteSource +
+          openHashSource +
+          "\nopenHash(hash); routeFromHash();",
+        {
+          hash,
+          location: { hash },
+          readControlCenterPreferences: () => ({ defaultView: "overview" }),
+          pageCopy: { businesses: true, overview: true },
+          render: (view: string, detail: string | undefined) =>
+            renders.push({ view, detail }),
+        },
+      );
+      expect(route).toBe("businesses");
+      expect(renders).toEqual([{ view: "businesses", detail: undefined }]);
+      expect(
+        runInNewContext(routeSource + "\nparseControlCenterHash(hash).query", {
+          hash,
+        }),
+      ).toBe(query);
+    },
+  );
+
+  it.each([
+    [
+      "#businesses:encoded%3Aid?query=A:B",
+      "overview",
+      "businesses",
+      "encoded%3Aid",
+    ],
+    ["", "settings", "settings", undefined],
+    ["#unknown?query=x", "overview", "overview", undefined],
+    ["#businesses", "overview", "businesses", undefined],
+  ])(
+    "preserves details, defaults and unknown-route fallback: %s",
+    (hash, defaultView, view, detail) => {
+      const renders: unknown[] = [];
+      runInNewContext(routeSource + openHashSource + "\nopenHash(hash)", {
+        hash,
+        readControlCenterPreferences: () => ({ defaultView }),
+        pageCopy: { businesses: true, settings: true, overview: true },
+        render: (view: string, detail: string | undefined) =>
+          renders.push({ view, detail }),
+      });
+      expect(renders).toEqual([{ view, detail }]);
+    },
+  );
 });
