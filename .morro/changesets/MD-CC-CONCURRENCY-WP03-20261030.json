@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CC-CONCURRENCY-WP03-20261030",
+  "objective": "prevent-stale-search-and-module-rendering",
+  "baseSha": "87077513353185437dcf8f92094f446fefd8a48d",
+  "branch": "fix/cc-wp03-concurrency-20261030",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "apps/control-center/public/control-center.js",
+      "apps/control-center/public/control-center-business-cms.js",
+      "apps/control-center/public/control-center-home-overview-v1.js",
+      "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
+      "apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs",
+      ".morro/changesets/MD-CC-CONCURRENCY-WP03-20261030.json"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-invariants",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
