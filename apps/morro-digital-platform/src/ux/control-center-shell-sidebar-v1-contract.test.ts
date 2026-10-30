@@ -56,11 +56,9 @@ describe("Home business KPI semantics", () => {
     const metric = build({
       dashboard: { summary: { businesses: 2 }, businesses: Array(15).fill({}) },
     }).metrics[0];
-    expect(metric?.label).toBe("Empresas com usuários vinculados");
+    expect(metric?.label).toBe("Empresas");
     expect(metric?.value).toBe("2");
-    expect(metric?.hint).toBe(
-      "Total global de empresas com vínculo de usuário",
-    );
+    expect(metric?.hint).toBe("Total global · Com usuários vinculados");
   });
   it.each([undefined, null])(
     "keeps missing totals unavailable (%s)",

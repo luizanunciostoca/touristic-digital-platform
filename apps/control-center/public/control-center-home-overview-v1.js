@@ -514,7 +514,7 @@ export function buildHomeModelV1({
     Number.isFinite(Number(dashboard.summary.businesses))
       ? {
           ...metricNumber(dashboard.summary.businesses, "READY"),
-          hint: "Total global de empresas com vínculo de usuário",
+          hint: "Total global · Com usuários vinculados",
         }
       : {
           value: "—",
@@ -602,7 +602,7 @@ export function buildHomeModelV1({
     metrics: [
       {
         key: "businesses",
-        label: "Empresas com usuários vinculados",
+        label: "Empresas",
         ...businessesMetric,
       },
       { key: "affiliates", label: "Afiliados", ...affiliateMetric },
@@ -664,6 +664,12 @@ function metricMarkup(metric) {
     escapeHtml(metric.key) +
     '" data-state="' +
     escapeHtml(metric.state) +
+    '" aria-label="' +
+    escapeHtml(
+      metric.key === "businesses"
+        ? "Empresas com usuários vinculados"
+        : metric.label,
+    ) +
     '">' +
     '<div class="home-kpi__icon">' +
     iconSvg(metric.key) +

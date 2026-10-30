@@ -26,7 +26,7 @@ const viewports = [
   { width: 390, height: 844, label: "390x844" },
 ];
 const expectedKpis = [
-  "Empresas com usuários vinculados",
+  "Empresas",
   "Afiliados",
   "Reservas Hoje",
   "Receita Hoje",

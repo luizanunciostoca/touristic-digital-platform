@@ -221,7 +221,7 @@ async function login(page) {
       .locator("[data-home-kpi] .home-kpi__label")
       .allTextContents();
     const expectedKpis = [
-      "Empresas com usuários vinculados",
+      "Empresas",
       "Afiliados",
       "Reservas Hoje",
       "Receita Hoje",
@@ -239,10 +239,15 @@ async function login(page) {
       throw new Error("Linked-user business total was not preserved");
     if (
       !(await businessKpi.innerText()).includes(
-        "Total global de empresas com vínculo de usuário",
+        "Total global · Com usuários vinculados",
       )
     )
       throw new Error("Business KPI did not explain its linked-user scope");
+    if (
+      (await businessKpi.getAttribute("aria-label")) !==
+      "Empresas com usuários vinculados"
+    )
+      throw new Error("Business KPI accessible name did not explain its scope");
 
     const affiliateKpi = page.locator('[data-home-kpi="affiliates"]');
     if (
