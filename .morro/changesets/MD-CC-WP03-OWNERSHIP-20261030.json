@@ -4,7 +4,7 @@
   "objective": "admit-exact-control-center-home-renderer-ownership",
   "baseSha": "746bfaaaa899c4244838cdf017cfa3b56d1176c3",
   "branch": "chore/cc-wp03-home-ownership-20261030",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
