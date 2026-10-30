@@ -175,6 +175,225 @@ async function proveKeyboardNavigation(page) {
   }
 }
 
+async function proveConcurrency(page) {
+  const patterns = [];
+  const install = async (pattern, handler) => {
+    patterns.push(pattern);
+    await page.route(pattern, handler);
+  };
+  const hold = async (pattern) => {
+    let accept;
+    const seen = new Promise((resolve) => {
+      accept = resolve;
+    });
+    await install(pattern, (route) => accept(route));
+    return async () => {
+      let timer;
+      try {
+        return await Promise.race([
+          seen,
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error(`Request not observed: ${pattern}`)),
+              15000,
+            );
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+  };
+  const go = async (hash) => {
+    await page.evaluate((value) => {
+      location.hash = value;
+    }, hash);
+  };
+  const ready = async (view) => {
+    await page
+      .locator(`#content[data-rendered-view="${view}"][aria-busy="false"]`)
+      .waitFor();
+  };
+  const settle = async (route, response) => {
+    const done = page.waitForResponse((r) => r.url() === route.request().url());
+    await route.fulfill(response);
+    await (await done).finished();
+    // Give the fulfilled fetch's JSON/DOM continuations an event-loop turn.
+    await page.waitForTimeout(150);
+  };
+  try {
+    await go("#settings");
+    await ready("settings");
+    const search = page.getByRole("searchbox", { name: "Busca universal" });
+    const oldSearch = await hold("**/api/admin/v1/search?q=wp03-old");
+    await search.fill("wp03-old");
+    const old = await oldSearch();
+    await install("**/api/admin/v1/search?q=wp03-current", (route) =>
+      route.fulfill({
+        json: {
+          results: [{ title: "WP03 CURRENT", type: "page", href: "#settings" }],
+        },
+      }),
+    );
+    await search.fill("wp03-current");
+    await page.getByRole("link", { name: "WP03 CURRENT page" }).waitFor();
+    await settle(old, {
+      json: {
+        results: [{ title: "WP03 STALE", type: "page", href: "#audit" }],
+      },
+    });
+    assert.equal(
+      await page.getByRole("link", { name: "WP03 CURRENT page" }).count(),
+      1,
+    );
+    assert.equal(
+      await page.getByText("WP03 STALE", { exact: true }).count(),
+      0,
+    );
+    for (const [query, dismiss, status] of [
+      ["wp03-clear", "clear", 200],
+      ["wp03-escape", "escape", 200],
+      ["wp03-error", "new", 500],
+    ]) {
+      const pending = await hold(`**/api/admin/v1/search?q=${query}`);
+      await search.fill(query);
+      const route = await pending();
+      if (dismiss === "clear") await search.fill("");
+      else if (dismiss === "escape") await page.keyboard.press("Escape");
+      else {
+        await search.fill("wp03-current");
+        await page.getByRole("link", { name: "WP03 CURRENT page" }).waitFor();
+      }
+      await settle(route, {
+        status,
+        json:
+          status === 200
+            ? { results: [{ title: "WP03 STALE", type: "page" }] }
+            : { error: "OLD ERROR" },
+      });
+      assert.equal(
+        await page.locator("#search-results").isVisible(),
+        dismiss === "new",
+      );
+    }
+    await search.fill("");
+    const auditPending = await hold("**/api/admin/v1/audit?limit=100");
+    await go("#audit");
+    const audit = await auditPending();
+    await go("#settings");
+    await ready("settings");
+    await settle(audit, {
+      json: { entries: [], durability: "WP03 OLD AUDIT" },
+    });
+    await ready("settings");
+    assert.equal(
+      await page.locator("#page-title").innerText(),
+      "Configurações",
+    );
+    assert.equal(
+      await page.getByText("WP03 OLD AUDIT", { exact: false }).count(),
+      0,
+    );
+    await page.unroute("**/api/admin/v1/audit?limit=100");
+    const staleError = await hold("**/api/admin/v1/audit?limit=100");
+    const systemPending = await hold("**/api/admin/v1/system");
+    await go("#audit");
+    const failing = await staleError();
+    await go("#system");
+    const system = await systemPending();
+    await settle(failing, {
+      status: 500,
+      json: { error: "WP03 STALE MODULE ERROR" },
+    });
+    assert.equal(
+      await page.locator("#content").getAttribute("aria-busy"),
+      "true",
+    );
+    assert.equal(
+      await page.locator("#content").getAttribute("data-rendered-view"),
+      null,
+    );
+    assert.equal(await page.locator("#page-title").innerText(), "Sistema");
+    await settle(system, {
+      status: 500,
+      json: { error: "WP03 CURRENT MODULE ERROR" },
+    });
+    await ready("system");
+    assert.match(
+      await page.locator("#content").innerText(),
+      /WP03 CURRENT MODULE ERROR/,
+    );
+    assert.doesNotMatch(await page.locator("#content").innerText(), /STALE/);
+    await page.unroute("**/api/admin/v1/audit?limit=100");
+    let firstAudit;
+    let captureFirst;
+    const firstSeen = new Promise((resolve) => {
+      captureFirst = resolve;
+    });
+    await install("**/api/admin/v1/audit?limit=100", (route) => {
+      if (!firstAudit) {
+        firstAudit = route;
+        captureFirst(route);
+        return;
+      }
+      return route.fulfill({
+        json: { entries: [], durability: "WP03 NEW AUDIT" },
+      });
+    });
+    await go("#audit?round=first");
+    const sameOld = await firstSeen;
+    await go("#audit?round=second");
+    await ready("audit");
+    await settle(sameOld, {
+      json: { entries: [], durability: "WP03 STALE AUDIT" },
+    });
+    assert.match(await page.locator("#content").innerText(), /WP03 NEW AUDIT/);
+    assert.doesNotMatch(
+      await page.locator("#content").innerText(),
+      /WP03 STALE AUDIT/,
+    );
+    const homePending = await hold("**/api/admin/v1/audit?limit=20");
+    await go("#overview");
+    const home = await homePending();
+    await go("#settings");
+    await ready("settings");
+    await settle(home, { json: { entries: [] } });
+    await ready("settings");
+    assert.equal(
+      await page.locator("#page-title").innerText(),
+      "Configurações",
+    );
+    const cmsPending = await hold("**/api/admin/v1/businesses/wp03-stale/cms");
+    await go("#businesses:wp03-stale");
+    const cms = await cmsPending();
+    await go("#settings");
+    await ready("settings");
+    await settle(cms, {
+      status: 503,
+      json: { error: "PLACE_PLATFORM_UNAVAILABLE" },
+    });
+    await ready("settings");
+    assert.equal(
+      await page.locator("#page-title").innerText(),
+      "Configurações",
+    );
+    assert.doesNotMatch(
+      await page.locator("#content").innerText(),
+      /Modo compatibilidade|WP03 STALE/,
+    );
+    return {
+      route: "async-generation-acceptance",
+      violations: [],
+      search: "out-of-order success, stale error, clear and Escape",
+      render:
+        "success/error/finally, repeated route, overview heading and CMS fallback",
+      transport: "responses released after navigation without abort",
+    };
+  } finally {
+    for (const pattern of new Set(patterns)) await page.unroute(pattern);
+  }
+}
+
 async function proveBusinessNavigation(page) {
   const listRoute = /\/api\/admin\/v1\/businesses\/cms(?:\?.*)?$/u;
   const records = [
@@ -485,6 +704,7 @@ async function main() {
 
     stage = "business-navigation-acceptance";
     evidence.push(await proveBusinessNavigation(page));
+    evidence.push(await proveConcurrency(page));
     persistEvidence(evidence);
 
     stage = "nav-discovery";
