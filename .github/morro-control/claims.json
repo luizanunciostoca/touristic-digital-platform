@@ -96,21 +96,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-27T23:59:59.000Z"
     },
-    "MD-TRUSTED-CI-COVERAGE-20261028": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/acquire-trusted-ci-coverage-20261028",
-      "baseSha": "2f8d10dfcfc737fbc74a990b07dcdfd8dce68a33",
-      "paths": [
-        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-        "tooling/control-state/trust-root-reconciliation.test.mjs",
-        ".morro/changesets/MD-TRUSTED-CI-COVERAGE-20261028.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-29T07:00:00.000Z"
-    },
     "MD-STAGING-OCI-BLUEPRINT-RECONCILE-20261029": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
@@ -124,6 +109,21 @@
         "tooling/ci/staging-oci-deployment-evidence.mjs",
         "tooling/ci/staging-oci-deployment-evidence.test.mjs",
         ".morro/changesets/MD-STAGING-OCI-BLUEPRINT-RECONCILE-20261029.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-STAGING-BLUEPRINT-OWNERSHIP-20261029": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-blueprint-ownership-20261029",
+      "baseSha": "3d37fd4a58fc7648c294e21b93b6c1e44efa3064",
+      "paths": [
+        ".morro/ownership.json",
+        "tooling/fabric/ownership-path.test.mjs",
+        ".morro/changesets/MD-STAGING-BLUEPRINT-OWNERSHIP-20261029.json"
       ],
       "domains": ["ci-release"],
       "risk": "P0",

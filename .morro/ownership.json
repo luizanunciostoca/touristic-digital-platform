@@ -204,6 +204,7 @@
         "tooling/control-state/",
         ".gitignore",
         "Dockerfile",
+        "render.staging.yaml",
         "package.json",
         "pnpm-lock.yaml",
         "packages/design-system/package.json",

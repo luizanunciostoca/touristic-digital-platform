@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-BLUEPRINT-OWNERSHIP-20261029",
+  "objective": "map-exact-staging-blueprint-path-to-ci-release-without-prefix-expansion",
+  "baseSha": "3d37fd4a58fc7648c294e21b93b6c1e44efa3064",
+  "branch": "fix/staging-blueprint-ownership-20261029",
+  "state": "LOCAL_PROVEN",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/ownership.json",
+      "tooling/fabric/ownership-path.test.mjs",
+      ".morro/changesets/MD-STAGING-BLUEPRINT-OWNERSHIP-20261029.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "ownership-path",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 120
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
