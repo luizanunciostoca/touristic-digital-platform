@@ -115,7 +115,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/cc-wp04-catalog-counts-20261030",
-      "baseSha": "b1d02bd4afbc002776a3d9a2434cfdfe1ed2c91f",
+      "baseSha": "44735c16dc7636b4a5143bececa5899d917a32a8",
       "paths": [
         "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
         "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",

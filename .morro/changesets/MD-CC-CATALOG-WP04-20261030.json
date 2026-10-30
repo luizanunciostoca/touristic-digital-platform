@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CC-CATALOG-WP04-20261030",
   "objective": "accurate-catalog-counts-and-business-kpi-semantics",
-  "baseSha": "b1d02bd4afbc002776a3d9a2434cfdfe1ed2c91f",
+  "baseSha": "44735c16dc7636b4a5143bececa5899d917a32a8",
   "branch": "fix/cc-wp04-catalog-counts-20261030",
   "state": "IMPLEMENTING",
   "risk": "critical",

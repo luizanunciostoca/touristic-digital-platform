@@ -1013,7 +1013,11 @@ export function createPlacePlatformRuntime({
       `SELECT b.id AS business_id,
               COALESCE(JSON_UNQUOTE(JSON_EXTRACT(p.editable_place_json, '$.name')), b.display_name) AS display_name,
               p.destination_id, p.place_id, p.category_id,
-              p.publication_state, p.editable_place_json
+              p.publication_state, p.editable_place_json,
+              (SELECT COUNT(*) FROM catalog_products cp
+                WHERE cp.business_id = b.id AND cp.place_id = p.place_id) AS product_count,
+              (SELECT COUNT(*) FROM catalog_offers co
+                WHERE co.business_id = b.id AND co.place_id = p.place_id) AS offer_count
          FROM business_entities b
          LEFT JOIN business_places p ON p.business_id = b.id
         WHERE ${clauses.join(" AND ")}
@@ -1032,8 +1036,8 @@ export function createPlacePlatformRuntime({
         placeFromRow(row, false)?.location?.latitude != null
           ? "confirmed"
           : "missing",
-      productCount: 0,
-      offerCount: 0,
+      productCount: Number(row.product_count),
+      offerCount: Number(row.offer_count),
     }));
     return Object.freeze({
       businesses: Object.freeze(businesses),
