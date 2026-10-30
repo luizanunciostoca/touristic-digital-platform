@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CC-CI-COVERAGE-20261030",
+  "objective": "prove-control-center-suite-coverage-and-scope-browser-navigation-locators",
+  "baseSha": "52d44df8faecccfc3330b4e18b392dc755bc0ddb",
+  "branch": "fix/cc-ci-coverage-20261030",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/control-center-browser-contract.yml",
+      ".github/workflows/quality.yml",
+      "tooling/ci/scheduled-suites.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/suite-scheduler.test.mjs",
+      "tooling/ci/impact-analyzer-exact-path.test.mjs",
+      ".morro/changesets/MD-CC-CI-COVERAGE-20261030.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ci-suite-coverage",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/suite-scheduler.test.mjs",
+          "tooling/ci/impact-analyzer-exact-path.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
