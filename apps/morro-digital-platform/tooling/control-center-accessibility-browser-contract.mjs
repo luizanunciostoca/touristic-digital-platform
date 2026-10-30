@@ -233,24 +233,37 @@ async function proveBusinessNavigation(page) {
   });
   const base = `${origin}/apps/control-center/public/index.html`;
   const ready = async (filters = {}) => {
-    await page.waitForFunction((filters) => {
-      const form = document.querySelector("#business-cms-filter-form");
-      return (
-        document.querySelector(
-          '#content[data-rendered-view="businesses"][aria-busy="false"]',
-        ) &&
-        form &&
-        [
-          "query",
-          "destinationId",
-          "categoryId",
-          "publicationState",
-          "locationStatus",
-        ].every(
-          (key) => form.elements.namedItem(key).value === (filters[key] ?? ""),
-        )
+    const keys = [
+      "query",
+      "destinationId",
+      "categoryId",
+      "publicationState",
+      "locationStatus",
+    ];
+    const deadline = Date.now() + 15000;
+    let matched = false;
+    while (Date.now() < deadline) {
+      await page
+        .locator('#content[data-rendered-view="businesses"][aria-busy="false"]')
+        .waitFor({ state: "attached", timeout: 15000 });
+      const values = await Promise.all(
+        keys.map((key) =>
+          page
+            .locator(`#business-cms-filter-form [name="${key}"]`)
+            .inputValue(),
+        ),
       );
-    }, filters);
+      if (keys.every((key, index) => values[index] === (filters[key] ?? ""))) {
+        matched = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    assert.equal(
+      matched,
+      true,
+      "rendered filters must match the URL without unsafe-eval",
+    );
     assert.equal(
       await page
         .locator('#main-nav [data-view="businesses"][aria-current="page"]')
@@ -409,6 +422,7 @@ async function proveBusinessNavigation(page) {
     return {
       view: "business-filters-cancellation-navigation",
       scope: "authenticated browser with isolated CMS responses",
+      violations: [],
       filters: "PASS",
       history: "PASS",
       cancellationCases: 8,
