@@ -728,6 +728,7 @@ function bindList(root, ctx, model) {
   root
     .querySelector("#business-cms-create-form")
     ?.addEventListener("submit", async (event) => {
+      if (ctx.isCurrent?.() === false) return;
       if (event.submitter?.value === "cancel") return;
       event.preventDefault();
       const result = root.querySelector("#business-cms-create-result");
@@ -740,6 +741,7 @@ function bindList(root, ctx, model) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+        if (ctx.isCurrent?.() === false) return;
         const businessId =
           response.businessId ?? response.data?.businessId ?? response.data?.id;
         result.textContent = "Draft criado.";
@@ -747,6 +749,7 @@ function bindList(root, ctx, model) {
           globalThis.location.hash = `businesses:${encodeURIComponent(businessId)}`;
         }
       } catch (error) {
+        if (ctx.isCurrent?.() === false) return;
         result.textContent =
           error.body?.error ?? error.message ?? "Falha ao criar empresa.";
       }
@@ -791,6 +794,7 @@ function bindDetail(root, ctx, detail) {
       );
     });
   locationForm?.addEventListener("submit", async (event) => {
+    if (ctx.isCurrent?.() === false) return;
     event.preventDefault();
     try {
       const body = Object.fromEntries(new FormData(locationForm));
@@ -800,11 +804,14 @@ function bindDetail(root, ctx, detail) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (ctx.isCurrent?.() === false) return;
       await renderBusinessCms(ctx, detail.businessId);
+      if (ctx.isCurrent?.() === false) return;
       ctx.content.querySelector('[data-business-cms-tab="location"]')?.click();
       ctx.content.querySelector("#business-cms-location-result").textContent =
         "Localização salva como revisão editável.";
     } catch (error) {
+      if (ctx.isCurrent?.() === false) return;
       locationResult.textContent =
         error.body?.error ?? error.message ?? "Falha ao salvar localização.";
     }
@@ -813,6 +820,7 @@ function bindDetail(root, ctx, detail) {
   root
     .querySelector("#business-cms-profile-form")
     ?.addEventListener("submit", async (event) => {
+      if (ctx.isCurrent?.() === false) return;
       event.preventDefault();
       const result = root.querySelector("#business-cms-profile-result");
 
@@ -824,11 +832,14 @@ function bindDetail(root, ctx, detail) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+        if (ctx.isCurrent?.() === false) return;
         await renderBusinessCms(ctx, detail.businessId);
+        if (ctx.isCurrent?.() === false) return;
         ctx.content.querySelector('[data-business-cms-tab="profile"]')?.click();
         ctx.content.querySelector("#business-cms-profile-result").textContent =
           "Perfil salvo como revisão editável.";
       } catch (error) {
+        if (ctx.isCurrent?.() === false) return;
         result.textContent =
           error.body?.error ?? error.message ?? "Falha ao salvar perfil.";
       }
@@ -837,13 +848,16 @@ function bindDetail(root, ctx, detail) {
   const mediaResult = root.querySelector("#business-cms-media-result");
   const mediaForm = root.querySelector("#business-cms-media-form");
   mediaForm?.addEventListener("submit", async (event) => {
+    if (ctx.isCurrent?.() === false) return;
     event.preventDefault();
     const file = mediaForm.elements.file?.files?.[0];
     if (!file) return;
     try {
       mediaResult.textContent = "Preparando imagem…";
       const dimensions = await imageDimensions(file);
+      if (ctx.isCurrent?.() === false) return;
       const dataBase64 = await fileAsBase64(file);
+      if (ctx.isCurrent?.() === false) return;
       const body = {
         fileName: file.name,
         mimeType: file.type,
@@ -860,11 +874,14 @@ function bindDetail(root, ctx, detail) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (ctx.isCurrent?.() === false) return;
       await renderBusinessCms(ctx, detail.businessId);
+      if (ctx.isCurrent?.() === false) return;
       ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
       ctx.content.querySelector("#business-cms-media-result").textContent =
         "Imagem salva na revisão editável.";
     } catch (error) {
+      if (ctx.isCurrent?.() === false) return;
       mediaResult.textContent =
         error.body?.error ?? error.message ?? "Falha ao enviar imagem.";
     }
@@ -882,11 +899,14 @@ function bindDetail(root, ctx, detail) {
           body: JSON.stringify(body),
         },
       );
+      if (ctx.isCurrent?.() === false) return;
       await renderBusinessCms(ctx, detail.businessId);
+      if (ctx.isCurrent?.() === false) return;
       ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
       const next = ctx.content.querySelector("#business-cms-media-result");
       if (next) next.textContent = successMessage;
     } catch (error) {
+      if (ctx.isCurrent?.() === false) return;
       if (result)
         result.textContent =
           error.body?.error ?? error.message ?? "Falha ao salvar mídia.";
@@ -926,6 +946,7 @@ function bindDetail(root, ctx, detail) {
   }
   for (const button of root.querySelectorAll("[data-media-delete]")) {
     button.addEventListener("click", async () => {
+      if (ctx.isCurrent?.() === false) return;
       const result = root.querySelector("#business-cms-media-result");
       try {
         if (result) result.textContent = "Excluindo mídia…";
@@ -936,9 +957,12 @@ function bindDetail(root, ctx, detail) {
           ),
           { method: "DELETE" },
         );
+        if (ctx.isCurrent?.() === false) return;
         await renderBusinessCms(ctx, detail.businessId);
+        if (ctx.isCurrent?.() === false) return;
         ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
       } catch (error) {
+        if (ctx.isCurrent?.() === false) return;
         if (result)
           result.textContent =
             error.body?.error ?? error.message ?? "Falha ao excluir mídia.";
@@ -947,6 +971,7 @@ function bindDetail(root, ctx, detail) {
   }
   for (const button of root.querySelectorAll("[data-media-move]")) {
     button.addEventListener("click", async () => {
+      if (ctx.isCurrent?.() === false) return;
       const direction = button.dataset.mediaMove;
       if (!direction) return;
       const ids = safeArray(detail.media?.assets).map((entry) =>
@@ -964,9 +989,12 @@ function bindDetail(root, ctx, detail) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ orderedMediaIds: ids }),
         });
+        if (ctx.isCurrent?.() === false) return;
         await renderBusinessCms(ctx, detail.businessId);
+        if (ctx.isCurrent?.() === false) return;
         ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
       } catch (error) {
+        if (ctx.isCurrent?.() === false) return;
         if (result)
           result.textContent =
             error.body?.error ?? error.message ?? "Falha ao reordenar mídia.";
@@ -987,6 +1015,7 @@ function bindDetail(root, ctx, detail) {
       delete form.dataset.catalogEntryId;
     });
     form.addEventListener("submit", async (event) => {
+      if (ctx.isCurrent?.() === false) return;
       event.preventDefault();
       const result = root.querySelector("#business-cms-catalog-result");
       const kind = form.dataset.businessCatalogKind;
@@ -1018,11 +1047,14 @@ function bindDetail(root, ctx, detail) {
             body: JSON.stringify(body),
           },
         );
+        if (ctx.isCurrent?.() === false) return;
         await renderBusinessCms(ctx, detail.businessId);
+        if (ctx.isCurrent?.() === false) return;
         ctx.content.querySelector('[data-business-cms-tab="catalog"]')?.click();
         ctx.content.querySelector("#business-cms-catalog-result").textContent =
           "Catálogo salvo como revisão editável; publique para alterar o público.";
       } catch (error) {
+        if (ctx.isCurrent?.() === false) return;
         result.textContent =
           error.body?.error ?? error.message ?? "Falha ao salvar catálogo.";
       }
@@ -1069,6 +1101,7 @@ function bindDetail(root, ctx, detail) {
 
   for (const button of root.querySelectorAll("[data-business-publication]")) {
     button.addEventListener("click", async () => {
+      if (ctx.isCurrent?.() === false) return;
       const result = root.querySelector("#business-cms-publication-result");
 
       try {
@@ -1081,11 +1114,14 @@ function bindDetail(root, ctx, detail) {
             expectedRevision: detail.publication.editableRevision,
           }),
         });
+        if (ctx.isCurrent?.() === false) return;
         await renderBusinessCms(ctx, detail.businessId);
+        if (ctx.isCurrent?.() === false) return;
         ctx.content
           .querySelector('[data-business-cms-tab="publication"]')
           ?.click();
       } catch (error) {
+        if (ctx.isCurrent?.() === false) return;
         result.textContent =
           error.body?.error ?? error.message ?? "Publicação bloqueada.";
       }
@@ -1098,10 +1134,12 @@ export async function renderBusinessCms(
   businessId,
   { legacyRender } = {},
 ) {
+  if (ctx.isCurrent?.() === false) return;
   const canMutate = ctx.actorHasCapability("business.update");
 
   if (businessCmsRuntimeUnavailable && legacyRender) {
     await legacyRender(businessId);
+    if (ctx.isCurrent?.() === false) return;
     return false;
   }
 
@@ -1111,16 +1149,19 @@ export async function renderBusinessCms(
 
     try {
       const model = await ctx.api(`${businessCmsContract.list}${query}`);
+      if (ctx.isCurrent?.() === false) return;
       businessCmsRuntimeUnavailable = false;
       ctx.content.innerHTML = listMarkup(model, ctx.escapeHtml, canMutate);
       bindList(ctx.content, ctx, model);
       return true;
     } catch (error) {
+      if (ctx.isCurrent?.() === false) return;
       if (isCmsContractUnavailable(error) && legacyRender) {
         if (error?.body?.error === "PLACE_PLATFORM_UNAVAILABLE") {
           businessCmsRuntimeUnavailable = true;
         }
         await legacyRender();
+        if (ctx.isCurrent?.() === false) return;
         const callout = document.createElement("div");
         callout.className = "callout";
         callout.innerHTML =
@@ -1134,6 +1175,7 @@ export async function renderBusinessCms(
 
   try {
     const detail = await ctx.api(businessCmsContract.detail(businessId));
+    if (ctx.isCurrent?.() === false) return;
     businessCmsRuntimeUnavailable = false;
     ctx.content.innerHTML =
       (ctx.supportEntityContext?.() ?? "") +
@@ -1141,11 +1183,13 @@ export async function renderBusinessCms(
     bindDetail(ctx.content, ctx, detail);
     return true;
   } catch (error) {
+    if (ctx.isCurrent?.() === false) return;
     if (isCmsContractUnavailable(error) && legacyRender) {
       if (error?.body?.error === "PLACE_PLATFORM_UNAVAILABLE") {
         businessCmsRuntimeUnavailable = true;
       }
       await legacyRender(businessId);
+      if (ctx.isCurrent?.() === false) return;
       const callout = document.createElement("div");
       callout.className = "callout";
       callout.innerHTML =

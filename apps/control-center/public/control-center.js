@@ -513,23 +513,35 @@ function dashboardAggregateState(status, fallback = "partial") {
   return fallback;
 }
 
+let renderGeneration = 0;
+
+function captureRenderGuard() {
+  const generation = renderGeneration;
+  return () => generation === renderGeneration;
+}
+
 async function renderOverview() {
+  const isCurrent = captureRenderGuard();
   await renderHomeOverviewV1({
     dashboard: state.dashboard,
     adminSession: state.adminSession,
+    isCurrent,
     api,
     content,
   });
+  if (!isCurrent()) return;
 }
 
 globalThis.addEventListener("md:destination-context-changed", () => {
-  if (state.view === "overview") void renderOverview();
+  if (state.view === "overview") void render("overview");
 });
 
 async function renderUsers(userId) {
+  const isCurrent = captureRenderGuard();
   const data = await api(
     userId ? `/users/${encodeURIComponent(userId)}` : "/users",
   );
+  if (!isCurrent()) return;
   const users = userId ? [data.user] : (data.users ?? []);
   const roleLabel = (role) =>
     ({
@@ -613,6 +625,7 @@ async function renderUsers(userId) {
   const sessionData = await api(
     `/users/${encodeURIComponent(userId)}/sessions`,
   );
+  if (!isCurrent()) return;
   const now = Math.floor(Date.now() / 1000);
   const sessions = sessionData.sessions ?? [];
 
@@ -620,6 +633,7 @@ async function renderUsers(userId) {
     "/audit?limit=250",
     "entries",
   );
+  if (!isCurrent()) return;
   const userAuditEntries = canonicalEntityAudit(userAuditResult.data, {
     kind: "user",
     id: userId,
@@ -889,6 +903,7 @@ async function renderUsers(userId) {
   document
     .querySelector("#user-status-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const values = new FormData(form);
@@ -909,6 +924,7 @@ async function renderUsers(userId) {
             password: String(values.get("password") || ""),
           }),
         });
+        if (!isCurrent()) return;
         await api(`/users/${encodeURIComponent(userId)}/${operation}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -917,12 +933,15 @@ async function renderUsers(userId) {
             confirmation,
           }),
         });
+        if (!isCurrent()) return;
         result.textContent =
           operation === "block"
             ? "Conta bloqueada e sessões ativas revogadas."
             : "Conta reativada.";
         await renderUsers(userId);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         result.textContent =
           error.body?.error ||
           error.message ||
@@ -933,6 +952,7 @@ async function renderUsers(userId) {
   document
     .querySelector("#user-role-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const values = new FormData(form);
@@ -952,6 +972,7 @@ async function renderUsers(userId) {
             password: String(values.get("password") || ""),
           }),
         });
+        if (!isCurrent()) return;
         await api(`/users/${encodeURIComponent(userId)}/role`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -961,9 +982,12 @@ async function renderUsers(userId) {
             confirmation: "ALTERAR PERFIL",
           }),
         });
+        if (!isCurrent()) return;
         result.textContent = "Perfil alterado e sessões ativas revogadas.";
         await renderUsers(userId);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         result.textContent =
           error.body?.error || error.message || "Falha ao alterar perfil.";
       }
@@ -971,6 +995,7 @@ async function renderUsers(userId) {
 
   content.querySelectorAll("[data-revoke-session]").forEach((button) =>
     button.addEventListener("click", async () => {
+      if (!isCurrent()) return;
       const password = document.querySelector(
         "#session-step-up-password",
       )?.value;
@@ -994,6 +1019,7 @@ async function renderUsers(userId) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ password }),
         });
+        if (!isCurrent()) return;
         await api(
           `/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(
             button.dataset.revokeSession,
@@ -1004,10 +1030,13 @@ async function renderUsers(userId) {
             body: JSON.stringify({ reason, confirmation }),
           },
         );
+        if (!isCurrent()) return;
         status.textContent = "Sessão revogada com sucesso.";
         await renderUsers(userId);
+        if (!isCurrent()) return;
         content.querySelector('[data-entity-tab="activity"]')?.click();
       } catch (error) {
+        if (!isCurrent()) return;
         button.disabled = false;
         status.textContent =
           error.body?.error || error.message || "Falha ao revogar sessão.";
@@ -1109,11 +1138,14 @@ function destinationEditor(destination = {}) {
 }
 
 async function renderDestinations(destinationId) {
+  const isCurrent = captureRenderGuard();
   const list = await api("/destinations");
+  if (!isCurrent()) return;
   const destinations = list.destinations ?? [];
   const selected = destinationId
     ? (await api(`/destinations/${encodeURIComponent(destinationId)}`)).data
     : null;
+  if (!isCurrent()) return;
 
   content.innerHTML = `
     <div class="callout">
@@ -1159,6 +1191,7 @@ async function renderDestinations(destinationId) {
   document
     .querySelector("#destination-editor")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const result = form.querySelector("#destination-editor-result");
@@ -1175,6 +1208,7 @@ async function renderDestinations(destinationId) {
         await destinationStepUp(
           String(new FormData(form).get("password") ?? ""),
         );
+        if (!isCurrent()) return;
         await api(
           selected
             ? `/destinations/${encodeURIComponent(id)}`
@@ -1185,11 +1219,14 @@ async function renderDestinations(destinationId) {
             body: JSON.stringify({ destination, reason }),
           },
         );
+        if (!isCurrent()) return;
         result.textContent = selected
           ? "Configuração atualizada com sucesso."
           : "Destino criado com sucesso.";
         await renderDestinations(id);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         submit.disabled = false;
         result.textContent =
           error.body?.error || error.message || "Falha ao atualizar destino.";
@@ -1198,7 +1235,9 @@ async function renderDestinations(destinationId) {
 }
 
 async function renderBusinessesLegacy(businessId) {
+  const isCurrent = captureRenderGuard();
   const data = await api("/businesses");
+  if (!isCurrent()) return;
   if (businessId) {
     const business = data.businesses.find((entry) => entry.id === businessId);
     if (!business) throw new Error("BUSINESS_NOT_FOUND");
@@ -1221,6 +1260,7 @@ async function renderBusinessesLegacy(businessId) {
           .then((value) => ({ ...value, available: true }))
           .catch((error) => ({ entries: [], available: false, error })),
       ]);
+    if (!isCurrent()) return;
 
     const profile = profileResult.profile ?? null;
     const products = Array.isArray(productsResult.data)
@@ -1259,6 +1299,7 @@ async function renderBusinessesLegacy(businessId) {
         ),
       ),
     ]);
+    if (!isCurrent()) return;
     const relatedBusinessEntityIds = [
       ...products.map(({ offer }) => offer?.id),
       ...reservations.map(({ reservation }) => reservation?.id),
@@ -1507,6 +1548,7 @@ async function renderBusinessesLegacy(businessId) {
 }
 
 async function renderBusinesses(businessId) {
+  const isCurrent = captureRenderGuard();
   return renderBusinessCms(
     {
       api,
@@ -1514,6 +1556,7 @@ async function renderBusinesses(businessId) {
       escapeHtml,
       actorHasCapability,
       supportEntityContext,
+      isCurrent,
     },
     businessId,
     {
@@ -1524,8 +1567,10 @@ async function renderBusinesses(businessId) {
 }
 
 async function renderAffiliates(affiliateId) {
+  const isCurrent = captureRenderGuard();
   if (!affiliateId) {
     const response = await api("/affiliates?limit=100");
+    if (!isCurrent()) return;
     const affiliates = response.data ?? [];
     if (affiliates.length === 0) {
       content.innerHTML = `
@@ -1590,6 +1635,7 @@ async function renderAffiliates(affiliateId) {
     document
       .querySelector("#affiliate-search-form")
       ?.addEventListener("submit", async (event) => {
+        if (!isCurrent()) return;
         event.preventDefault();
         const query = document
           .querySelector("#affiliate-search-query")
@@ -1606,6 +1652,7 @@ async function renderAffiliates(affiliateId) {
           const result = await api(
             `/affiliates?limit=100&query=${encodeURIComponent(query || "")}`,
           );
+          if (!isCurrent()) return;
           const rows = result.data ?? [];
           if (rows.length === 0) {
             body.innerHTML = "";
@@ -1632,6 +1679,7 @@ async function renderAffiliates(affiliateId) {
               .join("") ||
             '<tr><td colspan="5" class="empty">Nenhum afiliado encontrado.</td></tr>';
         } catch (error) {
+          if (!isCurrent()) return;
           tableWrap.hidden = false;
           emptyState.hidden = true;
           body.innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(
@@ -1643,10 +1691,12 @@ async function renderAffiliates(affiliateId) {
   }
 
   const response = await api(`/affiliates/${encodeURIComponent(affiliateId)}`);
+  if (!isCurrent()) return;
   const detail = response.data;
   const affiliate = detail.affiliate;
   const memberships = detail.memberships ?? [];
   const auditResult = await readOwnerProjection("/audit?limit=250", "entries");
+  if (!isCurrent()) return;
   const affiliateMembershipEntityIds = memberships.map(
     (membership) => `${affiliateId}:${membership.programId}`,
   );
@@ -1915,6 +1965,7 @@ async function renderAffiliates(affiliateId) {
   document
     .querySelector("#affiliate-membership-action-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const status = document.querySelector("#affiliate-action-status");
       try {
@@ -1948,6 +1999,7 @@ async function renderAffiliates(affiliateId) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ password }),
         });
+        if (!isCurrent()) return;
         status.textContent = "Executando ação governada…";
         await api(
           `/affiliates/${encodeURIComponent(
@@ -1959,16 +2011,20 @@ async function renderAffiliates(affiliateId) {
             body: JSON.stringify({ reason, confirmation }),
           },
         );
+        if (!isCurrent()) return;
         status.textContent = "Participação atualizada.";
         await renderAffiliates(affiliateId);
+        if (!isCurrent()) return;
         content.querySelector('[data-entity-tab="relationships"]')?.click();
       } catch (error) {
+        if (!isCurrent()) return;
         status.textContent = error.body?.error || error.message;
       }
     });
 }
 
 async function renderCrm(leadId) {
+  const isCurrent = captureRenderGuard();
   const canManage =
     actorHasCapability("crm.manage") && !Boolean(state.adminSession?.support);
   const [list, selectedPayload] = await Promise.all([
@@ -1979,6 +2035,7 @@ async function renderCrm(leadId) {
         )
       : Promise.resolve({ data: null }),
   ]);
+  if (!isCurrent()) return;
   const leads = Array.isArray(list.data) ? list.data : [];
   const selected = selectedPayload?.data ?? null;
 
@@ -2145,6 +2202,7 @@ async function renderCrm(leadId) {
   document
     .querySelector("#crm-create-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const result = form.querySelector("#crm-create-result");
@@ -2157,13 +2215,16 @@ async function renderCrm(leadId) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payloadFrom(form)),
         });
+        if (!isCurrent()) return;
         result.textContent = "Lead criado.";
         const id = created?.data?.id;
         globalThis.location.hash = id
           ? `#crm:${encodeURIComponent(id)}`
           : "#crm";
         if (!id) await renderCrm();
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         submit.disabled = false;
         result.textContent = error.body?.error || error.message;
       }
@@ -2172,6 +2233,7 @@ async function renderCrm(leadId) {
   document
     .querySelector("#crm-edit-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const result = form.querySelector("#crm-edit-result");
@@ -2184,10 +2246,13 @@ async function renderCrm(leadId) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payloadFrom(form)),
         });
+        if (!isCurrent()) return;
         await renderCrm(String(selected.id));
+        if (!isCurrent()) return;
         const refreshedResult = document.querySelector("#crm-edit-result");
         if (refreshedResult) refreshedResult.textContent = "Lead atualizado.";
       } catch (error) {
+        if (!isCurrent()) return;
         submit.disabled = false;
         result.textContent = error.body?.error || error.message;
       }
@@ -2196,6 +2261,7 @@ async function renderCrm(leadId) {
   document
     .querySelector("#crm-stage-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const result = form.querySelector("#crm-stage-result");
@@ -2210,10 +2276,13 @@ async function renderCrm(leadId) {
             stage: String(new FormData(form).get("stage") ?? ""),
           }),
         });
+        if (!isCurrent()) return;
         await renderCrm(String(selected.id));
+        if (!isCurrent()) return;
         const refreshedResult = document.querySelector("#crm-stage-result");
         if (refreshedResult) refreshedResult.textContent = "Etapa atualizada.";
       } catch (error) {
+        if (!isCurrent()) return;
         submit.disabled = false;
         result.textContent = error.body?.error || error.message;
       }
@@ -2221,6 +2290,7 @@ async function renderCrm(leadId) {
 }
 
 async function renderProducts(productId) {
+  const isCurrent = captureRenderGuard();
   const supportActive = Boolean(state.adminSession?.support);
   const canManage = actorHasCapability("ticketing.manage") && !supportActive;
 
@@ -2229,6 +2299,7 @@ async function renderProducts(productId) {
       api("/products?limit=100"),
       api("/businesses"),
     ]);
+    if (!isCurrent()) return;
     const products = Array.isArray(data.data) ? data.data : [];
     const businesses = businessesData.businesses ?? [];
     const businessOptions = businesses
@@ -2340,6 +2411,7 @@ async function renderProducts(productId) {
     document
       .querySelector("#product-create-form")
       ?.addEventListener("submit", async (event) => {
+        if (!isCurrent()) return;
         event.preventDefault();
         const form = event.currentTarget;
         const values = new FormData(form);
@@ -2365,6 +2437,7 @@ async function renderProducts(productId) {
               password: String(values.get("password") || ""),
             }),
           });
+          if (!isCurrent()) return;
           const requestKey = `cc_offer_${crypto.randomUUID().replaceAll("-", "_")}`;
           result.textContent = "Criando oferta…";
           const created = await api("/products/offers", {
@@ -2397,9 +2470,12 @@ async function renderProducts(productId) {
               confirmation: "CRIAR OFERTA",
             }),
           });
+          if (!isCurrent()) return;
           result.textContent = "Oferta criada com sucesso.";
           await renderProducts(created.data?.id);
+          if (!isCurrent()) return;
         } catch (error) {
+          if (!isCurrent()) return;
           result.textContent =
             error.body?.error || error.message || "Falha ao criar oferta.";
         }
@@ -2408,6 +2484,7 @@ async function renderProducts(productId) {
   }
 
   const data = await api(`/products/${encodeURIComponent(productId)}`);
+  if (!isCurrent()) return;
   const detail = data.data;
   const projection = detail.projection;
   const offer = projection.offer;
@@ -2469,6 +2546,7 @@ async function renderProducts(productId) {
   document
     .querySelector("#product-disable-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const values = new FormData(form);
@@ -2488,6 +2566,7 @@ async function renderProducts(productId) {
             password: String(values.get("password") || ""),
           }),
         });
+        if (!isCurrent()) return;
         result.textContent = "Desativando oferta…";
         await api(`/products/${encodeURIComponent(productId)}/disable`, {
           method: "POST",
@@ -2498,9 +2577,12 @@ async function renderProducts(productId) {
             confirmation: "DESATIVAR OFERTA",
           }),
         });
+        if (!isCurrent()) return;
         result.textContent = "Oferta desativada.";
         await renderProducts(productId);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         result.textContent =
           error.body?.error || error.message || "Falha ao desativar oferta.";
       }
@@ -2508,8 +2590,10 @@ async function renderProducts(productId) {
 }
 
 async function renderReservations(reservationId) {
+  const isCurrent = captureRenderGuard();
   if (!reservationId) {
     const data = await api("/reservations?limit=100");
+    if (!isCurrent()) return;
     const reservations = Array.isArray(data.data) ? data.data : [];
     if (reservations.length === 0) {
       content.innerHTML = `
@@ -2552,6 +2636,7 @@ async function renderReservations(reservationId) {
   }
 
   const data = await api(`/reservations/${encodeURIComponent(reservationId)}`);
+  if (!isCurrent()) return;
   const detail = data.data;
   const reservation = detail.reservation;
   const events = detail.events ?? [];
@@ -2634,6 +2719,7 @@ async function renderReservations(reservationId) {
   document
     .querySelector("#reservation-cancel-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const values = new FormData(form);
@@ -2653,6 +2739,7 @@ async function renderReservations(reservationId) {
             password: String(values.get("password") || ""),
           }),
         });
+        if (!isCurrent()) return;
         result.textContent = "Cancelando reserva pendente…";
         await api(`/reservations/${encodeURIComponent(reservationId)}/cancel`, {
           method: "POST",
@@ -2662,9 +2749,12 @@ async function renderReservations(reservationId) {
             confirmation: "CANCELAR RESERVA",
           }),
         });
+        if (!isCurrent()) return;
         result.textContent = "Hold cancelado com sucesso.";
         await renderReservations(reservationId);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         result.textContent =
           error.body?.error || error.message || "Falha ao cancelar hold.";
       }
@@ -2672,12 +2762,14 @@ async function renderReservations(reservationId) {
 }
 
 async function renderTicketing() {
+  const isCurrent = captureRenderGuard();
   const supportActive = Boolean(state.adminSession?.support);
   const canManage = actorHasCapability("ticketing.manage") && !supportActive;
   const data = await api("/ticketing/inventory").catch((error) => ({
     data: [],
     error,
   }));
+  if (!isCurrent()) return;
   const inventory = Array.isArray(data.data) ? data.data : [];
 
   content.innerHTML = `
@@ -2808,6 +2900,7 @@ async function renderTicketing() {
     </section>`;
 
   const stepUp = async (form) => {
+    if (!isCurrent()) return;
     const values = new FormData(form);
     await api("/step-up", {
       method: "POST",
@@ -2816,12 +2909,14 @@ async function renderTicketing() {
         password: String(values.get("password") || ""),
       }),
     });
+    if (!isCurrent()) return;
     return values;
   };
 
   document
     .querySelector("#ticketing-checkin-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const result = form.querySelector("#ticketing-checkin-result");
@@ -2835,6 +2930,7 @@ async function renderTicketing() {
       try {
         result.textContent = "Reautenticando…";
         const values = await stepUp(form);
+        if (!isCurrent()) return;
         const response = await api("/ticketing/operator/check-in", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2844,8 +2940,10 @@ async function renderTicketing() {
             confirmation: "VALIDAR CHECK-IN",
           }),
         });
+        if (!isCurrent()) return;
         result.textContent = `Check-in validado: ${response.data?.status ?? "OK"}.`;
       } catch (error) {
+        if (!isCurrent()) return;
         result.textContent =
           error.body?.error || error.message || "Falha ao validar check-in.";
       }
@@ -2854,6 +2952,7 @@ async function renderTicketing() {
   document
     .querySelector("#ticketing-device-provision-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const result = form.querySelector("#ticketing-device-provision-result");
@@ -2868,6 +2967,7 @@ async function renderTicketing() {
       try {
         result.textContent = "Reautenticando…";
         const values = await stepUp(form);
+        if (!isCurrent()) return;
         const response = await api("/ticketing/operator/offline-devices", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2879,6 +2979,7 @@ async function renderTicketing() {
             confirmation: "PROVISIONAR DISPOSITIVO",
           }),
         });
+        if (!isCurrent()) return;
         result.textContent =
           "Credencial provisionada. Armazene-a no dispositivo autorizado.";
         const wrap = form.querySelector("#ticketing-device-token-wrap");
@@ -2888,6 +2989,7 @@ async function renderTicketing() {
           wrap.hidden = false;
         }
       } catch (error) {
+        if (!isCurrent()) return;
         result.textContent =
           error.body?.error ||
           error.message ||
@@ -2898,6 +3000,7 @@ async function renderTicketing() {
   document
     .querySelector("#ticketing-device-revoke-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const form = event.currentTarget;
       const result = form.querySelector("#ticketing-device-revoke-result");
@@ -2912,6 +3015,7 @@ async function renderTicketing() {
       try {
         result.textContent = "Reautenticando…";
         const values = await stepUp(form);
+        if (!isCurrent()) return;
         const deviceId = String(values.get("deviceId") || "").trim();
         const response = await api(
           `/ticketing/operator/offline-devices/${encodeURIComponent(
@@ -2926,10 +3030,12 @@ async function renderTicketing() {
             }),
           },
         );
+        if (!isCurrent()) return;
         result.textContent = response.data?.revokedAt
           ? `Dispositivo revogado em ${response.data.revokedAt}.`
           : "Dispositivo já estava revogado.";
       } catch (error) {
+        if (!isCurrent()) return;
         result.textContent =
           error.body?.error || error.message || "Falha ao revogar dispositivo.";
       }
@@ -2957,6 +3063,7 @@ function createReconciliationRunId() {
 }
 
 async function renderOrders(orderId) {
+  const isCurrent = captureRenderGuard();
   if (!orderId) {
     content.innerHTML = `
       <section class="card section-card">
@@ -2987,6 +3094,7 @@ async function renderOrders(orderId) {
   }
 
   const data = await api(`/orders/${encodeURIComponent(orderId)}`);
+  if (!isCurrent()) return;
   const order = data.data;
   content.innerHTML = `
     <div class="callout">
@@ -3020,8 +3128,11 @@ async function renderOrders(orderId) {
 }
 
 async function renderFinancial(paymentId) {
+  const isCurrent = captureRenderGuard();
   if (!paymentId) {
-    state.adminSession = await api("/session");
+    const adminSession = await api("/session");
+    if (!isCurrent()) return;
+    state.adminSession = adminSession;
     applySupportBanner();
     const supportActive = Boolean(state.adminSession?.support);
     const periodEnd = new Date();
@@ -3035,6 +3146,7 @@ async function renderFinancial(paymentId) {
       : await api(
           `/financial/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
         ).catch((error) => ({ data: null, error }));
+    if (!isCurrent()) return;
     const summary = summaryResult.data ?? null;
     const paymentRows = summary?.payments ?? [];
     const reconciliationRows = summary?.reconciliation ?? [];
@@ -3168,6 +3280,7 @@ async function renderFinancial(paymentId) {
     document
       .querySelector("#ledger-lookup-form")
       ?.addEventListener("submit", async (event) => {
+        if (!isCurrent()) return;
         event.preventDefault();
         const key = document.querySelector("#ledger-lookup-key")?.value?.trim();
         const result = document.querySelector("#ledger-result");
@@ -3177,6 +3290,7 @@ async function renderFinancial(paymentId) {
           const response = await api(
             `/financial/ledger/${encodeURIComponent(key)}`,
           );
+          if (!isCurrent()) return;
           const ledger = response.data;
           result.innerHTML = `
             <div class="module-list">
@@ -3186,6 +3300,7 @@ async function renderFinancial(paymentId) {
               <div class="module-row"><span>Lançamentos</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
             </div>`;
         } catch (error) {
+          if (!isCurrent()) return;
           result.textContent = error.body?.error || error.message;
         }
       });
@@ -3198,6 +3313,7 @@ async function renderFinancial(paymentId) {
       `/financial/reconciliation/payments/${encodeURIComponent(paymentId)}/findings`,
     ).catch((error) => ({ data: { findings: [] }, error })),
   ]);
+  if (!isCurrent()) return;
   const payment = paymentResponse.data;
   const findings = findingsResponse.data?.findings ?? [];
 
@@ -3295,6 +3411,7 @@ async function renderFinancial(paymentId) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
     });
+    if (!isCurrent()) return;
   }
 
   function actionInputs(expectedConfirmation) {
@@ -3315,6 +3432,7 @@ async function renderFinancial(paymentId) {
     status.textContent = "Reautenticando…";
     try {
       await financialStepUp();
+      if (!isCurrent()) return;
       const input = actionInputs(
         action === "refund" ? "REFUNDAR" : "RECONCILIAR",
       );
@@ -3328,6 +3446,7 @@ async function renderFinancial(paymentId) {
             body: JSON.stringify(input),
           },
         );
+        if (!isCurrent()) return;
         status.textContent = `Refund aceito pelo domínio: ${result.data?.status ?? "OK"}.`;
       } else {
         const result = await api(
@@ -3341,10 +3460,13 @@ async function renderFinancial(paymentId) {
             }),
           },
         );
+        if (!isCurrent()) return;
         status.textContent = `Reconciliation concluída: ${result.data?.findingCount ?? 0} finding(s).`;
       }
       await renderFinancial(paymentId);
+      if (!isCurrent()) return;
     } catch (error) {
+      if (!isCurrent()) return;
       status.textContent = error.body?.error || error.message;
     }
   }
@@ -3358,11 +3480,13 @@ async function renderFinancial(paymentId) {
 
   content.querySelectorAll("[data-ack-finding]").forEach((button) =>
     button.addEventListener("click", async () => {
+      if (!isCurrent()) return;
       const status = document.querySelector("#financial-action-status");
       if (!status) return;
       try {
         const input = actionInputs("CONFIRMAR");
         await financialStepUp();
+        if (!isCurrent()) return;
         status.textContent = "Reconhecendo finding…";
         await api(
           `/financial/reconciliation/findings/${encodeURIComponent(
@@ -3374,9 +3498,12 @@ async function renderFinancial(paymentId) {
             body: JSON.stringify(input),
           },
         );
+        if (!isCurrent()) return;
         status.textContent = "Finding reconhecido.";
         await renderFinancial(paymentId);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         status.textContent = error.body?.error || error.message;
       }
     }),
@@ -3448,18 +3575,22 @@ function queueContentCreatePreset(preset) {
 }
 
 async function renderContent(contentId) {
+  const isCurrent = captureRenderGuard();
   const canManage = actorHasCapability("content.manage");
 
   if (!contentId) {
     const [data, destinationPayload] = await Promise.all([
       api("/content?limit=100"),
       api("/destinations").catch(async () => {
+        if (!isCurrent()) return;
         const system = await api("/system").catch(() => null);
+        if (!isCurrent()) return;
         return system?.destinationId
           ? { destinations: [{ id: system.destinationId }] }
           : null;
       }),
     ]);
+    if (!isCurrent()) return;
     const documents = data.data ?? [];
     const destinations = destinationPayload?.destinations ?? [];
     const destinationLabelById = new Map(
@@ -3691,6 +3822,7 @@ async function renderContent(contentId) {
     document
       .querySelector("#content-create-form")
       ?.addEventListener("submit", async (event) => {
+        if (!isCurrent()) return;
         event.preventDefault();
         const status = document.querySelector("#content-create-status");
         if (status) status.textContent = "Criando…";
@@ -3776,8 +3908,10 @@ async function renderContent(contentId) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
+          if (!isCurrent()) return;
           globalThis.location.hash = `#content:${encodeURIComponent(result.data.id)}`;
         } catch (error) {
+          if (!isCurrent()) return;
           if (status) status.textContent = error.body?.error || error.message;
         }
       });
@@ -3788,6 +3922,7 @@ async function renderContent(contentId) {
     api(`/content/${encodeURIComponent(contentId)}`),
     api("/content?limit=100").catch(() => null),
   ]);
+  if (!isCurrent()) return;
   const documentData = data.data;
   const currentMediaReference = String(
     contentField(documentData, "mediaReference") ?? "",
@@ -3982,6 +4117,7 @@ async function renderContent(contentId) {
   document
     .querySelector("#content-revise-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const status = document.querySelector("#content-revise-status");
       if (status) status.textContent = "Salvando…";
@@ -4006,8 +4142,11 @@ async function renderContent(contentId) {
               ?.value?.trim(),
           }),
         });
+        if (!isCurrent()) return;
         await renderContent(contentId);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         if (status) status.textContent = error.body?.error || error.message;
       }
     });
@@ -4015,6 +4154,7 @@ async function renderContent(contentId) {
   document
     .querySelector("#content-transition-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       const status = document.querySelector("#content-transition-message");
       if (status) status.textContent = "Aplicando…";
@@ -4040,8 +4180,11 @@ async function renderContent(contentId) {
               ?.value?.trim(),
           }),
         });
+        if (!isCurrent()) return;
         await renderContent(contentId);
+        if (!isCurrent()) return;
       } catch (error) {
+        if (!isCurrent()) return;
         if (status) status.textContent = error.body?.error || error.message;
       }
     });
@@ -4059,7 +4202,9 @@ function renderContractGap(view) {
 }
 
 async function renderAudit() {
+  const isCurrent = captureRenderGuard();
   const data = await api("/audit?limit=100");
+  if (!isCurrent()) return;
   content.innerHTML = `
     <div class="callout">
       <strong>Auditoria append-only:</strong>
@@ -4091,7 +4236,9 @@ async function renderAudit() {
 }
 
 async function renderSystem() {
+  const isCurrent = captureRenderGuard();
   const data = await api("/system");
+  if (!isCurrent()) return;
   const checks = data.health?.checks ?? [];
   content.innerHTML = `
     <div class="grid stats">
@@ -4213,7 +4360,9 @@ function renderSettings() {
 }
 
 async function renderSupport() {
+  const isCurrent = captureRenderGuard();
   const data = await api("/users");
+  if (!isCurrent()) return;
   const platformRoles = new Set([
     "PLATFORM_OWNER",
     "PLATFORM_ADMIN",
@@ -4257,6 +4406,7 @@ async function renderSupport() {
   document
     .querySelector("#support-form")
     ?.addEventListener("submit", async (event) => {
+      if (!isCurrent()) return;
       event.preventDefault();
       try {
         const result = await api("/support/session", {
@@ -4267,15 +4417,19 @@ async function renderSupport() {
             reason: document.querySelector("#support-reason").value,
           }),
         });
+        if (!isCurrent()) return;
         state.adminSession.support = result.support;
         applySupportBanner();
       } catch (error) {
+        if (!isCurrent()) return;
         globalThis.alert(error.body?.error || error.message);
       }
     });
 }
 
 async function render(view, detail) {
+  renderGeneration += 1;
+  const isCurrent = captureRenderGuard();
   state.view = view;
   renderNav();
   setHeading(view);
@@ -4302,15 +4456,18 @@ async function render(view, detail) {
     else if (view === "support") await renderSupport();
     else renderContractGap(view);
   } catch (error) {
+    if (!isCurrent()) return;
     content.innerHTML = `
       <section class="card empty">
         <strong>Não foi possível carregar este módulo</strong>
         <span>${escapeHtml(error.body?.error || error.message)}</span>
       </section>`;
   } finally {
-    installAdvancedDisclosures(content);
-    content.dataset.renderedView = view;
-    content.setAttribute("aria-busy", "false");
+    if (isCurrent()) {
+      installAdvancedDisclosures(content);
+      content.dataset.renderedView = view;
+      content.setAttribute("aria-busy", "false");
+    }
   }
 }
 
@@ -4326,14 +4483,24 @@ function applySupportBanner() {
 }
 
 function openHash(hash = globalThis.location.hash) {
+  invalidateSearch();
   const defaultView = readControlCenterPreferences().defaultView;
   const { view, detail } = parseControlCenterHash(hash, defaultView);
   void render(pageCopy[view] ? view : "overview", detail);
 }
 
 let searchTimer;
-searchInput.addEventListener("input", () => {
+let searchGeneration = 0;
+
+function invalidateSearch() {
+  searchGeneration += 1;
   clearTimeout(searchTimer);
+  searchResults.hidden = true;
+}
+
+searchInput.addEventListener("input", () => {
+  invalidateSearch();
+  const generation = searchGeneration;
   const query = searchInput.value.trim();
   if (query.length < 2) {
     searchResults.hidden = true;
@@ -4343,6 +4510,7 @@ searchInput.addEventListener("input", () => {
   searchTimer = setTimeout(async () => {
     try {
       const data = await api(`/search?q=${encodeURIComponent(query)}`);
+      if (generation !== searchGeneration) return;
       searchResults.innerHTML =
         data.results
           .map(
@@ -4358,6 +4526,7 @@ searchInput.addEventListener("input", () => {
           .join("") || '<div class="empty">Nenhum resultado encontrado.</div>';
       searchResults.hidden = false;
     } catch {
+      if (generation !== searchGeneration) return;
       searchResults.hidden = true;
     }
   }, 180);
@@ -4376,7 +4545,7 @@ searchResults.addEventListener("click", (event) => {
     return;
   event.preventDefault();
   globalThis.location.hash = item.getAttribute("href");
-  searchResults.hidden = true;
+  invalidateSearch();
   searchInput.value = "";
   searchInput.focus();
 });
@@ -4412,7 +4581,7 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "Escape") {
     if (searchResults.contains(document.activeElement)) searchInput.focus();
-    searchResults.hidden = true;
+    invalidateSearch();
   }
 });
 

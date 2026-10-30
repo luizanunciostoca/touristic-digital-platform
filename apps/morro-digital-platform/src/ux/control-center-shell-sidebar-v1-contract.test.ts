@@ -202,6 +202,7 @@ describe("Control Center route consumers", () => {
           openHashSource +
           "\nopenHash(hash); routeFromHash();",
         {
+          invalidateSearch() {},
           hash,
           location: { hash },
           readControlCenterPreferences: () => ({ defaultView: "overview" }),
@@ -235,6 +236,7 @@ describe("Control Center route consumers", () => {
     (hash, defaultView, view, detail) => {
       const renders: unknown[] = [];
       runInNewContext(routeSource + openHashSource + "\nopenHash(hash)", {
+        invalidateSearch() {},
         hash,
         readControlCenterPreferences: () => ({ defaultView }),
         pageCopy: { businesses: true, settings: true, overview: true },
@@ -244,4 +246,316 @@ describe("Control Center route consumers", () => {
       expect(renders).toEqual([{ view, detail }]);
     },
   );
+});
+
+function sourceFunction(source: string, name: string) {
+  const start = source.search(new RegExp(`(?:async )?function ${name}\\(`));
+  if (start < 0) throw new Error(`Missing function ${name}`);
+  return source.slice(start, source.indexOf("\n}\n", start) + 2);
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
+function searchHarness() {
+  type Response = { results: { title: string }[] };
+  const requests = new Map<string, ReturnType<typeof deferred<Response>>>();
+  let onInput = () => {};
+  let timer: (() => Promise<void>) | undefined;
+  const input = {
+    value: "",
+    addEventListener(_key: string, callback: () => void) {
+      onInput = callback;
+    },
+  };
+  const results = { hidden: true, innerHTML: "" };
+  const invalidate = runInNewContext(
+    dispatcher.slice(
+      dispatcher.indexOf("let searchTimer;"),
+      dispatcher.indexOf('searchResults.addEventListener("click"'),
+    ) + "\ninvalidateSearch;",
+    {
+      searchInput: input,
+      searchResults: results,
+      escapeHtml: String,
+      clearTimeout() {
+        timer = undefined;
+      },
+      setTimeout(callback: () => Promise<void>) {
+        timer = callback;
+      },
+      api(path: string) {
+        const request = deferred<Response>();
+        requests.set(path, request);
+        return request.promise;
+      },
+    },
+  ) as () => void;
+  return {
+    results,
+    invalidate,
+    input(value: string) {
+      input.value = value;
+      onInput();
+    },
+    start() {
+      if (!timer) throw new Error("No scheduled search");
+      const callback = timer;
+      timer = undefined;
+      return callback();
+    },
+    request(query: string) {
+      const request = requests.get(`/search?q=${query}`);
+      if (!request) throw new Error("No request");
+      return request;
+    },
+  };
+}
+
+describe("Control Center async generation isolation", () => {
+  it("obsolete overview cannot change headings after owner projections finish", async () => {
+    const source = readFileSync(
+      new URL(
+        "../../../control-center/public/control-center-home-overview-v1.js",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const response = deferred<Record<string, unknown>>();
+    let current = true;
+    let modelBuilt = false;
+    const render = runInNewContext(
+      sourceFunction(source, "renderHomeOverviewV1") +
+        "\nrenderHomeOverviewV1;",
+      {
+        buildHomeModelV1() {
+          modelBuilt = true;
+          throw new Error("Obsolete render reached model");
+        },
+      },
+    ) as (ctx: object) => Promise<void>;
+    const work = render({
+      api: () => response.promise,
+      isCurrent: () => current,
+      content: {},
+    });
+    current = false;
+    response.resolve({ data: [], destinations: [], entries: [] });
+    await work;
+    expect(modelBuilt).toBe(false);
+  });
+
+  it.each([false, true])(
+    "obsolete CMS response cannot mount content or start legacy fallback (reject=%s)",
+    async (reject) => {
+      const source = readFileSync(
+        new URL(
+          "../../../control-center/public/control-center-business-cms.js",
+          import.meta.url,
+        ),
+        "utf8",
+      );
+      const response = deferred<Record<string, unknown>>();
+      let current = true;
+      let legacyCalled = false;
+      const content = { innerHTML: "CURRENT" };
+      const render = runInNewContext(
+        "let businessCmsRuntimeUnavailable=false;\n" +
+          sourceFunction(source, "renderBusinessCms") +
+          "\nrenderBusinessCms;",
+        {
+          businessCmsContract: { detail: () => "/detail" },
+          isCmsContractUnavailable: () => true,
+          detailTabs: () => "STALE",
+          bindDetail() {},
+        },
+      ) as (ctx: object, id: string, options: object) => Promise<void>;
+      const work = render(
+        {
+          api: () => response.promise,
+          isCurrent: () => current,
+          content,
+          actorHasCapability: () => false,
+        },
+        "old",
+        {
+          legacyRender() {
+            legacyCalled = true;
+          },
+        },
+      );
+      current = false;
+      if (reject) response.reject(new Error("PLACE_PLATFORM_UNAVAILABLE"));
+      else response.resolve({ businessId: "old" });
+      await work;
+      expect(content.innerHTML).toBe("CURRENT");
+      expect(legacyCalled).toBe(false);
+    },
+  );
+
+  it("keeps newer search results when old success arrives last", async () => {
+    const h = searchHarness();
+    h.input("old");
+    const old = h.start();
+    h.input("new");
+    const current = h.start();
+    h.request("new").resolve({ results: [{ title: "CURRENT" }] });
+    await current;
+    h.request("old").resolve({ results: [{ title: "STALE" }] });
+    await old;
+    expect(h.results.innerHTML).toContain("CURRENT");
+    expect(h.results.innerHTML).not.toContain("STALE");
+    expect(h.results.hidden).toBe(false);
+  });
+  it("does not let old errors hide current results", async () => {
+    const h = searchHarness();
+    h.input("old");
+    const old = h.start();
+    h.input("new");
+    const current = h.start();
+    h.request("new").resolve({ results: [{ title: "CURRENT" }] });
+    await current;
+    h.request("old").reject(new Error("old failure"));
+    await old;
+    expect(h.results.hidden).toBe(false);
+  });
+  it.each(["", "x", "new"])(
+    "invalidates immediately when input changes to %j before debounce",
+    async (value) => {
+      const h = searchHarness();
+      h.input("old");
+      const old = h.start();
+      h.input(value);
+      h.request("old").resolve({ results: [{ title: "STALE" }] });
+      await old;
+      expect(h.results.hidden).toBe(true);
+      expect(h.results.innerHTML).not.toContain("STALE");
+    },
+  );
+  it("dismissal invalidates pending search even without transport abort", async () => {
+    const h = searchHarness();
+    h.input("old");
+    const old = h.start();
+    h.invalidate();
+    h.request("old").resolve({ results: [{ title: "STALE" }] });
+    await old;
+    expect(h.results.hidden).toBe(true);
+    expect(dispatcher).toMatch(
+      /if \(event.key === "Escape"\) \{[\s\S]*?invalidateSearch\(\)/,
+    );
+  });
+  it("does not confuse repeated query text with the same generation", async () => {
+    const h = searchHarness();
+    h.input("same");
+    const old = h.start();
+    const oldRequest = h.request("same");
+    h.input("");
+    h.input("same");
+    const current = h.start();
+    h.request("same").resolve({ results: [{ title: "CURRENT" }] });
+    await current;
+    oldRequest.resolve({ results: [{ title: "STALE" }] });
+    await old;
+    expect(h.results.innerHTML).toContain("CURRENT");
+  });
+
+  function renderHarness() {
+    const requests: ReturnType<typeof deferred<Record<string, unknown>>>[] = [];
+    const content = {
+      innerHTML: "",
+      dataset: {} as Record<string, string>,
+      busy: "",
+      setAttribute(_key: string, value: string) {
+        this.busy = value;
+      },
+    };
+    let heading = "";
+    const render = runInNewContext(
+      "let renderGeneration=0;\n" +
+        ["captureRenderGuard", "renderAudit", "renderSystem", "render"]
+          .map((name) => sourceFunction(dispatcher, name))
+          .join("\n") +
+        "\nrender;",
+      {
+        content,
+        state: {},
+        escapeHtml: String,
+        statusBadge: String,
+        renderNav() {},
+        setHeading(v: string) {
+          heading = v;
+        },
+        installAdvancedDisclosures() {},
+        document: {
+          querySelector() {
+            return null;
+          },
+        },
+        renderSettings() {
+          content.innerHTML = "SETTINGS";
+        },
+        api() {
+          const r = deferred<Record<string, unknown>>();
+          requests.push(r);
+          return r.promise;
+        },
+      },
+    ) as (view: string) => Promise<void>;
+    return { content, requests, render, heading: () => heading };
+  }
+  it.each([false, true])(
+    "ignores old module completion and errors (reject=%s)",
+    async (reject) => {
+      const h = renderHarness();
+      const old = h.render("audit");
+      await h.render("settings");
+      if (reject) h.requests[0].reject(new Error("STALE"));
+      else h.requests[0].resolve({ entries: [], durability: "STALE" });
+      await old;
+      expect(h.heading()).toBe("settings");
+      expect(h.content.innerHTML).toBe("SETTINGS");
+      expect(h.content.dataset.renderedView).toBe("settings");
+      expect(h.content.busy).toBe("false");
+    },
+  );
+  it("old finally cannot clear loading of a newer module", async () => {
+    const h = renderHarness();
+    const old = h.render("audit");
+    const current = h.render("system");
+    h.requests[0].resolve({ entries: [], durability: "STALE" });
+    await old;
+    expect(h.content.busy).toBe("true");
+    expect(h.content.dataset.renderedView).toBeUndefined();
+    expect(h.content.innerHTML).toContain("Carregando");
+    h.requests[1].resolve({ release: { sha: "CURRENT" } });
+    await current;
+    expect(h.content.innerHTML).toContain("CURRENT");
+    expect(h.content.dataset.renderedView).toBe("system");
+  });
+  it("isolates repeated navigation to the same module", async () => {
+    const h = renderHarness();
+    const old = h.render("audit");
+    const current = h.render("audit");
+    h.requests[1].resolve({ entries: [], durability: "CURRENT" });
+    await current;
+    h.requests[0].resolve({ entries: [], durability: "STALE" });
+    await old;
+    expect(h.content.innerHTML).toContain("CURRENT");
+    expect(h.content.innerHTML).not.toContain("STALE");
+  });
+  it("current errors remain visible", async () => {
+    const h = renderHarness();
+    const current = h.render("audit");
+    h.requests[0].reject(new Error("CURRENT FAILURE"));
+    await current;
+    expect(h.content.innerHTML).toContain("CURRENT FAILURE");
+    expect(h.content.busy).toBe("false");
+  });
 });
