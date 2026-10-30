@@ -100,7 +100,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-oci-blueprint-reconcile-20261029",
-      "baseSha": "046c1291193cc82151694f4eaae08156d51a7e7f",
+      "baseSha": "e04ca8317eb781e17e3777908a65ff0096aa149b",
       "paths": [
         "render.staging.yaml",
         "tooling/quality/check-render-staging-blueprint.mjs",
