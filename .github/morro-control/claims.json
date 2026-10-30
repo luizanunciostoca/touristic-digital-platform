@@ -115,7 +115,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/wp02-shell-ownership-20261030",
-      "baseSha": "d1b26683be885e89c584209c04db67baec31c5a7",
+      "baseSha": "763e5e9dc942e0efb7cb1547b1966e88649c6811",
       "paths": [
         ".morro/ownership.json",
         "tooling/fabric/ownership-path.test.mjs",
