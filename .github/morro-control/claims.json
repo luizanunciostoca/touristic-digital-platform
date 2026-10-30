@@ -115,7 +115,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/cc-wp03-concurrency-20261030",
-      "baseSha": "87077513353185437dcf8f92094f446fefd8a48d",
+      "baseSha": "1a99bd4a4082d71897dce7612ffd7ad07c77c226",
       "paths": [
         "apps/control-center/public/control-center.js",
         "apps/control-center/public/control-center-business-cms.js",

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CC-CONCURRENCY-WP03-20261030",
   "objective": "prevent-stale-search-and-module-rendering",
-  "baseSha": "87077513353185437dcf8f92094f446fefd8a48d",
+  "baseSha": "1a99bd4a4082d71897dce7612ffd7ad07c77c226",
   "branch": "fix/cc-wp03-concurrency-20261030",
   "state": "IMPLEMENTING",
   "risk": "critical",
