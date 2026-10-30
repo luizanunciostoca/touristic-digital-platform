@@ -7,6 +7,8 @@ function fixture({
   duplicate = false,
   publishedRow = null,
   publishedRows = [],
+  cmsRows = [],
+  cmsError = null,
 } = {}) {
   const executed = [];
   const transaction = { committed: false, rolledBack: false };
@@ -48,7 +50,10 @@ function fixture({
     if (sql.includes("WHERE place_id = ? AND published_revision IS NOT NULL")) {
       return [publishedRow ? [publishedRow] : []];
     }
-    if (sql.includes("FROM business_entities b")) return [[]];
+    if (sql.includes("FROM business_entities b")) {
+      if (cmsError) throw cmsError;
+      return [cmsRows];
+    }
     if (sql.includes("FROM business_place_revision_history")) return [[]];
     return [{ affectedRows: 1 }];
   });
@@ -266,6 +271,63 @@ describe("Business CMS persisted runtime invariants", () => {
       ),
     ).rejects.toThrow("INVALID_LOCATION_STATUS");
     expect(executed).toHaveLength(1);
+    await runtime.stop();
+  });
+
+  it("returns scoped catalog counts in one list query, including drafts and excluding menus", async () => {
+    const { runtime, executed } = fixture({
+      cmsRows: [
+        {
+          business_id: "business-a",
+          place_id: "place-a",
+          product_count: "2",
+          offer_count: "1",
+        },
+        {
+          business_id: "business-a",
+          place_id: "place-b",
+          product_count: 0,
+          offer_count: 0,
+        },
+        {
+          business_id: "business-b",
+          place_id: "place-c",
+          product_count: 4,
+          offer_count: 3,
+        },
+      ],
+    });
+    await runtime.start();
+    const result = await runtime.listCms(
+      new URL("http://localhost/?destinationId=destination-a"),
+    );
+    expect(
+      result.businesses.map(({ productCount, offerCount }) => [
+        productCount,
+        offerCount,
+      ]),
+    ).toEqual([
+      [2, 1],
+      [0, 0],
+      [4, 3],
+    ]);
+    expect(executed).toHaveLength(1);
+    const { sql, params } = executed[0];
+    expect(sql).toContain("cp.business_id = b.id AND cp.place_id = p.place_id");
+    expect(sql).toContain("co.business_id = b.id AND co.place_id = p.place_id");
+    expect(sql).toContain("p.destination_id = ?");
+    expect(params).toEqual(["destination-a"]);
+    expect(sql).not.toContain("catalog_menus");
+    expect(sql).not.toMatch(/(?:cp|co)\.status/);
+    await runtime.stop();
+  });
+
+  it("does not turn an unavailable catalog query into zero counts", async () => {
+    const { runtime } = fixture({ cmsError: new Error("CATALOG_UNAVAILABLE") });
+    await runtime.start();
+    await expect(runtime.listCms(new URL("http://localhost/"))).rejects.toThrow(
+      "CATALOG_UNAVAILABLE",
+    );
     await runtime.stop();
   });
 

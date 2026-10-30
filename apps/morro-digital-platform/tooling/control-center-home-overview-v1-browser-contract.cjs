@@ -221,7 +221,7 @@ async function login(page) {
       .locator("[data-home-kpi] .home-kpi__label")
       .allTextContents();
     const expectedKpis = [
-      "Empresas",
+      "Empresas com usuários vinculados",
       "Afiliados",
       "Reservas Hoje",
       "Receita Hoje",
@@ -230,6 +230,19 @@ async function login(page) {
     if (JSON.stringify(kpiLabels) !== JSON.stringify(expectedKpis))
       throw new Error("KPI labels diverged: " + JSON.stringify(kpiLabels));
     evidence.kpis = kpiLabels;
+
+    const businessKpi = page.locator('[data-home-kpi="businesses"]');
+    if (
+      (await businessKpi.locator(".home-kpi__value").textContent()).trim() !==
+      "123.456.789"
+    )
+      throw new Error("Linked-user business total was not preserved");
+    if (
+      !(await businessKpi.innerText()).includes(
+        "Total global de empresas com vínculo de usuário",
+      )
+    )
+      throw new Error("Business KPI did not explain its linked-user scope");
 
     const affiliateKpi = page.locator('[data-home-kpi="affiliates"]');
     if (
@@ -370,6 +383,28 @@ async function login(page) {
       scopedIds,
       globalBusinessSuppressed: true,
     };
+
+    await page.locator("#global-scope").click();
+    evidence.businessAvailability = [];
+    for (const scenario of [
+      { name: "missing", value: undefined, expected: "—" },
+      { name: "null", value: null, expected: "—" },
+      { name: "zero", value: 0, expected: "0" },
+    ]) {
+      dashboardFixture.summary.businesses = scenario.value;
+      await page.reload({ waitUntil: "networkidle" });
+      await page.locator("[data-home-overview-v1]").waitFor();
+      const value = (
+        await page
+          .locator('[data-home-kpi="businesses"] .home-kpi__value')
+          .textContent()
+      ).trim();
+      if (value !== scenario.expected)
+        throw new Error(
+          "Business availability diverged for " + scenario.name + ": " + value,
+        );
+      evidence.businessAvailability.push({ scenario: scenario.name, value });
+    }
 
     if (pageErrors.length)
       throw new Error("Browser page errors: " + JSON.stringify(pageErrors));
