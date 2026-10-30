@@ -1,3 +1,4 @@
+import { parseControlCenterHash } from "./control-center-route.js";
 import { createDashboardAuthClient } from "@touristic/auth-browser";
 import {
   crmLeadDetailStageLabels,
@@ -4326,8 +4327,7 @@ function applySupportBanner() {
 
 function openHash(hash = globalThis.location.hash) {
   const defaultView = readControlCenterPreferences().defaultView;
-  const raw = hash.replace(/^#/, "") || defaultView;
-  const [view, detail] = raw.split(":", 2);
+  const { view, detail } = parseControlCenterHash(hash, defaultView);
   void render(pageCopy[view] ? view : "overview", detail);
 }
 

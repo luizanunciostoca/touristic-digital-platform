@@ -1,4 +1,5 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import { parseControlCenterHash } from "./control-center-route.js";
 
 const app = document.querySelector("#app");
 const nav = document.querySelector("#main-nav");
@@ -170,8 +171,8 @@ const groups = [
       {
         key: "integrations",
         label: "Integrações",
-        view: "settings",
         icon: "link",
+        disabled: true,
       },
       {
         key: "settings",
@@ -228,8 +229,7 @@ function icon(name) {
 }
 
 function routeFromHash() {
-  const raw = (globalThis.location.hash || "#overview").slice(1);
-  return raw.split(":", 1)[0] || "overview";
+  return parseControlCenterHash(globalThis.location.hash).view;
 }
 
 function selectedItem() {
@@ -245,6 +245,9 @@ function selectedItem() {
 }
 
 function navButton(item) {
+  if (item.disabled) {
+    return `<button type="button" class="nav-item" data-shell-key="${item.key}" disabled aria-label="${item.label}" title="Visão de integrações indisponível"><span class="nav-icon">${icon(item.icon)}</span><span>${item.label} · Indisponível</span></button>`;
+  }
   const active = selectedItem().key === item.key;
   const coreRoute = item.canonical ? ' data-view="' + item.view + '"' : "";
   return (
@@ -458,7 +461,7 @@ nav?.addEventListener(
   "click",
   (event) => {
     const button = event.target.closest("[data-shell-key]");
-    if (!button) return;
+    if (!button || button.disabled) return;
     globalThis.sessionStorage.setItem(selectedNavKey, button.dataset.shellKey);
     syncActive();
     const view = button.dataset.shellView;

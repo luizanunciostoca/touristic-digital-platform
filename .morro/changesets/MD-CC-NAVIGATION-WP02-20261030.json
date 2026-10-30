@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CC-NAVIGATION-WP02-20261030",
   "objective": "restore-control-center-filter-routes-cancellation-and-honest-navigation",
-  "baseSha": "7b470ff49f51390a2df52cdb48e50f317814bebb",
+  "baseSha": "7c872ccc83168db435b0328b192968db53165adb",
   "branch": "fix/cc-wp02-navigation-20261030",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
