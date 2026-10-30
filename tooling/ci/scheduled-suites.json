@@ -4,6 +4,31 @@
   "description": "Managed CI suites. Path coverage preserves the union of original PR/push triggers. Known critical impact selects all managed suites; unclassified paths fail closed at classification without unrelated suite fan-out. Remaining workflows retain their own triggers during this compatibility migration.",
   "suites": [
     {
+      "workflow": "control-center-browser-contract.yml",
+      "jobId": "suite-control-center-browser-contract",
+      "paths": [
+        ".github/actions/ci-bootstrap/action.yml",
+        ".github/workflows/control-center-browser-contract.yml",
+        "apps/control-center/**",
+        "apps/morro-digital-platform/src/business-login-entry.ts",
+        "apps/morro-digital-platform/src/ux/control-center-*",
+        "apps/morro-digital-platform/tooling/admin-*.mjs",
+        "apps/morro-digital-platform/tooling/auth-api.mjs",
+        "apps/morro-digital-platform/tooling/business-api.mjs",
+        "apps/morro-digital-platform/tooling/control-center-*",
+        "apps/morro-digital-platform/tooling/crm-api.mjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "package.json",
+        "packages/auth-browser/**",
+        "packages/auth/**",
+        "packages/crm/**",
+        "pnpm-lock.yaml",
+        "services/analytics/**",
+        "services/auth/**",
+        "services/crm/**"
+      ]
+    },
+    {
       "workflow": "payments-operational-ledger-contract.yml",
       "jobId": "suite-payments-operational-ledger-contract",
       "paths": [

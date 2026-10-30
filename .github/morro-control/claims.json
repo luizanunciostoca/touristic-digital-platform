@@ -115,7 +115,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/control-center-keyboard-wp01-20261030",
-      "baseSha": "3c71e45187d2eb8df101911d73493d55c3a18ba1",
+      "baseSha": "a8b23a2e4616e39f59e729f4e91fb39892c4e193",
       "paths": [
         "apps/control-center/public/control-center.js",
         "apps/control-center/public/control-center-business-cms.js",
@@ -132,7 +132,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/cc-ci-coverage-20261030",
-      "baseSha": "52d44df8faecccfc3330b4e18b392dc755bc0ddb",
+      "baseSha": "3c71e45187d2eb8df101911d73493d55c3a18ba1",
       "paths": [
         ".github/workflows/control-center-browser-contract.yml",
         ".github/workflows/quality.yml",

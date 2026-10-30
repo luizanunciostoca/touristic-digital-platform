@@ -236,6 +236,11 @@ jobs:
           console.log(`Canonical MySQL matrix: ${passed}/${total} PASS`);
           NODE
 
+  suite-control-center-browser-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-browser-contract.yml')
+    uses: ./.github/workflows/control-center-browser-contract.yml
+
   suite-payments-operational-ledger-contract:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-operational-ledger-contract.yml')
@@ -267,6 +272,7 @@ jobs:
     needs:
       - impact
       - core-quality
+      - suite-control-center-browser-contract
       - suite-payments-operational-ledger-contract
       - suite-payments-persistence-integration
       - suite-payments-sandbox-provider-contract
