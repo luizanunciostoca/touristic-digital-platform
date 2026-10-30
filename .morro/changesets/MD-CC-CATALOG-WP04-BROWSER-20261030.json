@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CC-CATALOG-WP04-BROWSER-20261030",
   "objective": "complete-preserved-wp04-catalog-counts-and-business-kpi-browser-contracts",
-  "baseSha": "4f0b20ff858e4f914042c6b3aed27d12789ceb48",
+  "baseSha": "a23e32485d72b12264b20078608cca954cc2d174",
   "branch": "fix/cc-wp04-catalog-browser-20261030",
   "state": "IMPLEMENTING",
   "risk": "critical",
