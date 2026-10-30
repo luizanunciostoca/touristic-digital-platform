@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CC-CATALOG-WP04-BROWSER-20261030",
   "objective": "complete-preserved-wp04-catalog-counts-and-business-kpi-browser-contracts",
-  "baseSha": "a23e32485d72b12264b20078608cca954cc2d174",
-  "branch": "fix/cc-wp04-catalog-browser-20261030",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "54f027f0e017c48c42d895965e903024080d8f91",
+  "branch": "chore/retire-wp04-product-20261030",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
