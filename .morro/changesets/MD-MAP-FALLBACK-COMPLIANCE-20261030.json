@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-MAP-FALLBACK-COMPLIANCE-20261030",
   "objective": "restore-policy-compliant-leaflet-map-fallback-with-visible-attribution-and-origin-only-tile-referrer",
-  "baseSha": "580f6ee38bb39399522800b46b34a45b548c99ff",
+  "baseSha": "993f4863a2d06a1791cc75ff8e6b8bc3ed818396",
   "branch": "chore/acquire-map-fallback-20261030",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
