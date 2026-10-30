@@ -130,7 +130,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/wp05-session-recovery-20261030",
-      "baseSha": "5af3e1f7d8e0817c257922ac72cbe7b1c1e3601b",
+      "baseSha": "8950268a473a8647d1cbed1f8cdb4b5e95126daf",
       "paths": [
         "packages/auth-browser/src/index.ts",
         "packages/auth-browser/src/index.test.ts",
