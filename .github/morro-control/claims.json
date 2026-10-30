@@ -110,6 +110,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-WP05-SESSION-OWNERSHIP-20261030": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/wp05-session-ownership-20261030",
+      "baseSha": "2c16ce003d39805c049c433a3701fa4fe03d7685",
+      "paths": [
+        ".morro/ownership.json",
+        "tooling/fabric/ownership-path.test.mjs",
+        ".morro/changesets/MD-WP05-SESSION-OWNERSHIP-20261030.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }
