@@ -129,21 +129,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
-    },
-    "MD-MAP-FALLBACK-IMPACT-20261030": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/map-fallback-impact-20261030",
-      "baseSha": "ef9001b078d1fe8cfd3ea9c215d3989c3d6a9f3d",
-      "paths": [
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/impact-analyzer.test.mjs",
-        ".morro/changesets/MD-MAP-FALLBACK-IMPACT-20261030.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }
