@@ -127,6 +127,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-CC-WP04-BROWSER-OWNERSHIP-20261030": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/cc-wp04-browser-ownership-20261030",
+      "baseSha": "44735c16dc7636b4a5143bececa5899d917a32a8",
+      "paths": [
+        ".morro/ownership.json",
+        "tooling/fabric/ownership-path.test.mjs",
+        ".morro/changesets/MD-CC-WP04-BROWSER-OWNERSHIP-20261030.json"
+      ],
+      "domains": ["control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }
