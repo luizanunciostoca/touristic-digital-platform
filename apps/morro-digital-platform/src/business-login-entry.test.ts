@@ -36,3 +36,28 @@ describe("Business login return path", () => {
     ).toBe(canonicalDashboard);
   });
 });
+
+it("returns to the affiliate portal with its query and fragment only for the exact portal path", () => {
+  for (const path of [
+    "/affiliate-portal.html",
+    "/apps/morro-digital-platform/public/affiliate-portal.html",
+  ]) {
+    const destination = path + "?campaign=summer#links";
+    expect(
+      safeBusinessDashboardReturnPath(
+        "?return=" + encodeURIComponent(destination),
+      ),
+    ).toBe(destination);
+    for (const unsafe of [
+      path + ".other",
+      path + "/../escape",
+      "//evil.example" + path,
+    ]) {
+      expect(
+        safeBusinessDashboardReturnPath(
+          "?return=" + encodeURIComponent(unsafe),
+        ),
+      ).toBe(canonicalDashboard);
+    }
+  }
+});

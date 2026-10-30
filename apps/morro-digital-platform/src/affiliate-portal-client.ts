@@ -122,6 +122,10 @@ export function createAffiliatePortalClient(
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
+    if (response.status === 401) {
+      currentSession = null;
+      throw new Error("AUTH_REQUIRED");
+    }
     if (!response.ok) throw new Error(await readError(response));
     return (await response.json()) as AffiliatePortalProjection;
   }

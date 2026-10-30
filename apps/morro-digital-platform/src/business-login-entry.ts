@@ -1,4 +1,7 @@
-import { createDashboardAuthClient } from "@touristic/auth-browser";
+import {
+  createDashboardAuthClient,
+  isAffiliatePortalPath,
+} from "@touristic/auth-browser";
 
 const legacyDashboardPath = "/dashboard/index-v3-improved.html";
 const defaultDashboardPath =
@@ -11,7 +14,8 @@ export function safeBusinessDashboardReturnPath(search: string): string {
     value.startsWith("/dashboard/") ||
     value.startsWith("/apps/admin-crm/") ||
     value.startsWith("/apps/control-center/") ||
-    value.startsWith(defaultDashboardPath);
+    value.startsWith(defaultDashboardPath) ||
+    isAffiliatePortalPath(value.split(/[?#]/u, 1)[0] ?? "");
   if (
     !allowedInternalPath ||
     value.startsWith("//") ||

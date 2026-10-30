@@ -1,4 +1,7 @@
-import { createDashboardAuthClient } from "@touristic/auth-browser";
+import {
+  createDashboardAuthClient,
+  safeLoginUrl,
+} from "@touristic/auth-browser";
 import {
   createAffiliatePortalClient,
   type AffiliateConversionView,
@@ -229,15 +232,37 @@ byId("copy-referral").addEventListener("click", () => {
   })();
 });
 
-void portal
-  .bootstrap()
-  .then(({ session, projection }) => {
+async function startPortal(): Promise<void> {
+  const alert = byId("affiliate-alert");
+  alert.hidden = true;
+  const loading = byId("affiliate-loading");
+  loading.hidden = false;
+  try {
+    const { session, projection } = await portal.bootstrap();
     byId("affiliate-user").textContent = session.user.email;
     renderProjection(projection);
-    byId("affiliate-loading").hidden = true;
     byId("affiliate-content").hidden = false;
-  })
-  .catch((error: unknown) => {
-    byId("affiliate-loading").hidden = true;
-    showError(error instanceof Error ? error.message : "UNKNOWN_ERROR");
-  });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+    showError(code);
+    if (code === "AUTH_REQUIRED") {
+      alert.textContent = "Entre para acessar seu portal de afiliados. ";
+      const link = document.createElement("a");
+      link.href = safeLoginUrl(window.location);
+      link.textContent = "Entrar";
+      alert.append(link);
+    } else if (
+      code !== "AFFILIATES_RUNTIME_DISABLED" &&
+      code !== "AFFILIATE_NOT_FOUND"
+    ) {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.textContent = "Tentar novamente";
+      retry.addEventListener("click", () => void startPortal(), { once: true });
+      alert.append(" ", retry);
+    }
+  } finally {
+    loading.hidden = true;
+  }
+}
+void startPortal();
