@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-WP05-SESSION-IMPACT-20261030",
   "objective": "classify-wp05-session-and-portal-changes-for-authentication-and-browser-regression-proof",
-  "baseSha": "8950268a473a8647d1cbed1f8cdb4b5e95126daf",
+  "baseSha": "7b1d81ed60f57fe7ec20e629c7116a3309eadf3e",
   "branch": "chore/wp05-session-ci-impact-20261030",
   "state": "IMPLEMENTING",
   "risk": "high",
