@@ -169,6 +169,12 @@ const groups = [
         canonical: true,
       },
       {
+        key: "integrations",
+        label: "Integrações",
+        icon: "link",
+        disabled: true,
+      },
+      {
         key: "settings",
         label: "Configurações",
         view: "settings",
@@ -239,6 +245,9 @@ function selectedItem() {
 }
 
 function navButton(item) {
+  if (item.disabled) {
+    return `<button type="button" class="nav-item" data-shell-key="${item.key}" disabled aria-label="${item.label}" title="Visão de integrações indisponível"><span class="nav-icon">${icon(item.icon)}</span><span>${item.label} · Indisponível</span></button>`;
+  }
   const active = selectedItem().key === item.key;
   const coreRoute = item.canonical ? ' data-view="' + item.view + '"' : "";
   return (
@@ -452,7 +461,7 @@ nav?.addEventListener(
   "click",
   (event) => {
     const button = event.target.closest("[data-shell-key]");
-    if (!button) return;
+    if (!button || button.disabled) return;
     globalThis.sessionStorage.setItem(selectedNavKey, button.dataset.shellKey);
     syncActive();
     const view = button.dataset.shellView;

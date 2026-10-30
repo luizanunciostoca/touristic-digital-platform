@@ -379,17 +379,15 @@ async function proveBusinessNavigation(page) {
     assert.equal(posts, 1, "valid creation still uses its POST contract");
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
-    assert.equal(
-      await page.locator('#main-nav [data-shell-key="integrations"]').count(),
-      0,
-    );
-    assert.equal(
-      await page
-        .locator("#main-nav")
-        .getByRole("button", { name: "Integrações", exact: true })
-        .count(),
-      0,
-    );
+    const integrations = page
+      .locator("#main-nav")
+      .getByRole("button", { name: "Integrações", exact: true });
+    assert.equal(await integrations.isDisabled(), true);
+    assert.ok((await integrations.textContent()).includes("Indisponível"));
+    assert.equal(await integrations.getAttribute("data-shell-view"), null);
+    const beforeUnavailableClick = page.url();
+    await integrations.evaluate((node) => node.click());
+    assert.equal(page.url(), beforeUnavailableClick);
     await page.locator('#main-nav [data-view="settings"]').click();
     await page.locator("#control-center-settings-form").waitFor();
     assert.equal(

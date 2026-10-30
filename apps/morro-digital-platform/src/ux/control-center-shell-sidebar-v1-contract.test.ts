@@ -51,6 +51,7 @@ const items = [
   "Suporte",
   "Auditoria",
   "Sistema",
+  "Integrações",
   "Configurações",
 ];
 
@@ -60,7 +61,10 @@ describe("Control Center UX V1 shell contract", () => {
     for (const item of items) expect(shell).toContain(`label: "${item}"`);
 
     expect(shell).not.toContain('label: "Produtos e Ofertas"');
-    expect(shell).not.toContain('key: "integrations"');
+    const integration = shell.match(/\{\s*key: "integrations",[\s\S]*?\}/)?.[0];
+    expect(integration).toContain("disabled: true");
+    expect(integration).not.toContain("view:");
+    expect(shell).toContain("Indisponível");
   });
 
   it("renders the complete primary topbar and removes operational SHA from prominence", () => {
