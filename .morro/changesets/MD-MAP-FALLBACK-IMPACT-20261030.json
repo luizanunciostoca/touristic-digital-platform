@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-MAP-FALLBACK-IMPACT-20261030",
   "objective": "register-exact-leaflet-fallback-runtime-and-regression-test-in-base-controlled-ci-impact",
-  "baseSha": "ef9001b078d1fe8cfd3ea9c215d3989c3d6a9f3d",
-  "branch": "fix/map-fallback-impact-20261030",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "2a18d00f8fa2de1d753f4c43ae5c4006ea5004e2",
+  "branch": "chore/retire-map-impact-20261030",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
