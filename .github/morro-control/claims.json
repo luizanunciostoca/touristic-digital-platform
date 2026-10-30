@@ -110,6 +110,25 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-MAP-FALLBACK-COMPLIANCE-20261030": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/acquire-map-fallback-20261030",
+      "baseSha": "580f6ee38bb39399522800b46b34a45b548c99ff",
+      "paths": [
+        ".morro/ownership.json",
+        "tooling/fabric/ownership-path.test.mjs",
+        "apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts",
+        "apps/morro-digital-platform/src/map/leaflet-fallback.test.ts",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "tooling/quality/map-fallback-security.test.mjs",
+        ".morro/changesets/MD-MAP-FALLBACK-COMPLIANCE-20261030.json"
+      ],
+      "domains": ["map", "auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }
