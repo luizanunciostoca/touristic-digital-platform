@@ -164,7 +164,8 @@
         "apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs",
         "apps/control-center/public/control-center-shell-v1.js",
         "apps/control-center/public/control-center-route.js",
-        "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts"
+        "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
+        "apps/control-center/public/control-center-home-overview-v1.js"
       ],
       "contracts": ["platform-authz"]
     },

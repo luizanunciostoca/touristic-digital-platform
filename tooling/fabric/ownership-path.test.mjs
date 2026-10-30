@@ -80,6 +80,7 @@ test("Control Center keyboard ownership is exact and preserves auth authority", 
 });
 
 const controlCenterRoutingPaths = [
+  "apps/control-center/public/control-center-home-overview-v1.js",
   "apps/control-center/public/control-center-shell-v1.js",
   "apps/control-center/public/control-center-route.js",
   "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
