@@ -190,6 +190,7 @@ for (const [path, owned] of cases) {
 test("assistant and text voice UX ownership uses exact map literals", () => {
   const canonical = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
   const paths = [
+    "apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts",
     "apps/morro-digital-platform/src/browser-entry.ts",
     "apps/morro-digital-platform/src/assistant/assistant-ui-state.ts",
     "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",

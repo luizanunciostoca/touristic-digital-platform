@@ -5,6 +5,7 @@ import type {
 } from "@touristic/geospatial";
 
 interface LeafletMapLike {
+  readonly attributionControl: { setPosition(position: "topright"): unknown };
   setView(center: [number, number], zoom?: number, options?: object): this;
   remove(): void;
 }
@@ -93,12 +94,18 @@ export function createLeafletCompatibilitySdk(
       this.nativeMap = leaflet
         .map(options.container, {
           zoomControl: false,
-          attributionControl: false,
+          attributionControl: true,
         })
         .setView(toLeafletCoordinates(initialCenter), initialZoom);
 
+      // Keep the licence visible above the assistant's bottom sheet on mobile.
+      this.nativeMap.attributionControl.setPosition("topright");
+
       leaflet
-        .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          // Identify this site to OSM without sending paths or query parameters.
+          // This is tile-specific; the application's no-referrer policy stays intact.
+          referrerPolicy: "strict-origin",
           attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         })
