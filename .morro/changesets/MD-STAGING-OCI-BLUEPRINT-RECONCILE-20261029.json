@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-OCI-BLUEPRINT-RECONCILE-20261029",
   "objective": "reconcile-staging-image-blueprint-and-exact-provider-deployment-evidence",
-  "baseSha": "e04ca8317eb781e17e3777908a65ff0096aa149b",
-  "branch": "fix/staging-oci-blueprint-reconcile-20261029",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "4d028bd262ab042833afd4695a1cf8d1aa510293",
+  "branch": "chore/retire-oci-reconciliation-20261030",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
