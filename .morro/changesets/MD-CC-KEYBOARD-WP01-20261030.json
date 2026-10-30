@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CC-KEYBOARD-WP01-20261030",
   "objective": "restore-control-center-search-and-business-tabs-keyboard-navigation",
-  "baseSha": "a0bd665565f651d5ce1f8068f48ef60303f19088",
+  "baseSha": "52d44df8faecccfc3330b4e18b392dc755bc0ddb",
   "branch": "fix/control-center-keyboard-wp01-20261030",
   "state": "IMPLEMENTING",
   "risk": "critical",
