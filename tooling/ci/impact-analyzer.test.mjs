@@ -19,6 +19,34 @@ import {
   classifyQualityProfile,
 } from "./impact-analyzer.mjs";
 
+test("Leaflet fallback paths require quality and browser proof without admitting siblings", () => {
+  const paths = [
+    "apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts",
+    "apps/morro-digital-platform/src/map/leaflet-fallback.test.ts",
+  ];
+  for (const path of paths) {
+    const result = analyzeFiles([path]);
+    assert.equal(result.classificationBlocked, false);
+    assert.deepEqual(result.unknownFiles, []);
+    assert.deepEqual(result.domains, ["leaflet-map-fallback"]);
+    assert.equal(result.risk, "HIGH");
+    assert.equal(result.nonRuntime, false);
+    assert.equal(result.needsBrowser, true);
+    assert.equal(result.needsVisual, true);
+    assert.deepEqual([...result.suites].sort(), [
+      "home-discover-manual-conformance.yml",
+      "quality.yml",
+    ]);
+    for (const suite of result.suites)
+      assert.ok(existsSync(`.github/workflows/${suite}`));
+    for (const suffix of [".backup", "-old", "/child"]) {
+      const neighbor = analyzeFiles([path + suffix]);
+      assert.equal(neighbor.classificationBlocked, true);
+      assert.deepEqual(neighbor.unknownFiles, [path + suffix]);
+    }
+  }
+});
+
 test("exact performance paths select their real startup and asset proof", () => {
   const cases = [
     [
