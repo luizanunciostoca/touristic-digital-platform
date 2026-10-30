@@ -508,7 +508,17 @@ describe("Control Center async generation isolation", () => {
         },
       },
     ) as (view: string) => Promise<void>;
-    return { content, requests, render, heading: () => heading };
+    return {
+      content,
+      request(index: number) {
+        const request = requests[index];
+        if (!request)
+          throw new Error(`Render request ${index} was not observed`);
+        return request;
+      },
+      render,
+      heading: () => heading,
+    };
   }
   it.each([false, true])(
     "ignores old module completion and errors (reject=%s)",
@@ -516,8 +526,8 @@ describe("Control Center async generation isolation", () => {
       const h = renderHarness();
       const old = h.render("audit");
       await h.render("settings");
-      if (reject) h.requests[0].reject(new Error("STALE"));
-      else h.requests[0].resolve({ entries: [], durability: "STALE" });
+      if (reject) h.request(0).reject(new Error("STALE"));
+      else h.request(0).resolve({ entries: [], durability: "STALE" });
       await old;
       expect(h.heading()).toBe("settings");
       expect(h.content.innerHTML).toBe("SETTINGS");
@@ -529,12 +539,12 @@ describe("Control Center async generation isolation", () => {
     const h = renderHarness();
     const old = h.render("audit");
     const current = h.render("system");
-    h.requests[0].resolve({ entries: [], durability: "STALE" });
+    h.request(0).resolve({ entries: [], durability: "STALE" });
     await old;
     expect(h.content.busy).toBe("true");
     expect(h.content.dataset.renderedView).toBeUndefined();
     expect(h.content.innerHTML).toContain("Carregando");
-    h.requests[1].resolve({ release: { sha: "CURRENT" } });
+    h.request(1).resolve({ release: { sha: "CURRENT" } });
     await current;
     expect(h.content.innerHTML).toContain("CURRENT");
     expect(h.content.dataset.renderedView).toBe("system");
@@ -543,9 +553,9 @@ describe("Control Center async generation isolation", () => {
     const h = renderHarness();
     const old = h.render("audit");
     const current = h.render("audit");
-    h.requests[1].resolve({ entries: [], durability: "CURRENT" });
+    h.request(1).resolve({ entries: [], durability: "CURRENT" });
     await current;
-    h.requests[0].resolve({ entries: [], durability: "STALE" });
+    h.request(0).resolve({ entries: [], durability: "STALE" });
     await old;
     expect(h.content.innerHTML).toContain("CURRENT");
     expect(h.content.innerHTML).not.toContain("STALE");
@@ -553,7 +563,7 @@ describe("Control Center async generation isolation", () => {
   it("current errors remain visible", async () => {
     const h = renderHarness();
     const current = h.render("audit");
-    h.requests[0].reject(new Error("CURRENT FAILURE"));
+    h.request(0).reject(new Error("CURRENT FAILURE"));
     await current;
     expect(h.content.innerHTML).toContain("CURRENT FAILURE");
     expect(h.content.busy).toBe("false");
