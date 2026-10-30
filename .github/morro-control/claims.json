@@ -134,7 +134,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/oci-readiness-compatibility-20261030",
-      "baseSha": "bfe2d0fc0fa52c31bd15a30659d3e8bc37ed04d5",
+      "baseSha": "624c556130079732c32d7c498cb7683161a8ac66",
       "paths": [
         "tooling/quality/check-release-readiness.mjs",
         "tooling/ci/staging-readiness-runtime.test.mjs",
