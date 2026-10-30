@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { existsSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
@@ -12,6 +13,166 @@ const evidencePath = "/tmp/control-center-accessibility-evidence.json";
 
 function persistEvidence(evidence) {
   writeFileSync(evidencePath, JSON.stringify(evidence, null, 2));
+}
+
+async function proveKeyboardNavigation(page) {
+  // Isolate UI behavior without creating records or changing server authority.
+  const searchRoute = "**/api/admin/v1/search?*";
+  const cmsRoute = "**/api/admin/v1/businesses/keyboard-fixture/cms";
+  await page.route(searchRoute, (route) =>
+    route.fulfill({
+      json: {
+        results: [
+          {
+            title: "Empresa teclado",
+            type: "business",
+            href: "#businesses:keyboard-fixture",
+          },
+          { title: "Visão geral teclado", type: "page", href: "#overview" },
+        ],
+      },
+    }),
+  );
+  await page.route(cmsRoute, (route) =>
+    route.fulfill({
+      json: {
+        businessId: "keyboard-fixture",
+        profile: { name: "Empresa teclado" },
+        publication: { state: "draft" },
+      },
+    }),
+  );
+  const search = page.getByRole("searchbox", { name: "Busca universal" });
+  const links = page.locator("#search-results a.search-result");
+  const focused = async (locator) =>
+    assert.equal(
+      await locator.evaluate((node) => node === document.activeElement),
+      true,
+    );
+  const focusVisible = async (locator) =>
+    assert.equal(
+      await locator.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return (
+          node.matches(":focus-visible") &&
+          style.outlineStyle !== "none" &&
+          parseFloat(style.outlineWidth) > 0
+        );
+      }),
+      true,
+    );
+  try {
+    await page.keyboard.press("Control+k");
+    await focused(search);
+    await search.fill("teclado");
+    await links.first().waitFor();
+    await page.keyboard.press("Tab");
+    await focused(page.getByRole("link", { name: "Empresa teclado business" }));
+    await focusVisible(links.first());
+    await page.keyboard.press("Enter");
+    await page.waitForURL((url) => url.hash === "#businesses:keyboard-fixture");
+    assert.equal(await search.inputValue(), "");
+    assert.equal(await page.locator("#search-results").isVisible(), false);
+    await focused(search);
+
+    const tabs = page
+      .getByRole("tablist", { name: "Administração da empresa" })
+      .getByRole("tab");
+    await tabs.first().waitFor();
+    assert.equal(await tabs.count(), 10);
+    const assertTab = async (index) => {
+      await focused(tabs.nth(index));
+      assert.deepEqual(
+        await tabs.evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            selected: node.getAttribute("aria-selected"),
+            tabIndex: node.tabIndex,
+            hidden: document.getElementById(node.getAttribute("aria-controls"))
+              ?.hidden,
+          })),
+        ),
+        Array.from({ length: 10 }, (_, i) => ({
+          selected: String(i === index),
+          tabIndex: i === index ? 0 : -1,
+          hidden: i !== index,
+        })),
+      );
+    };
+    assert.equal(
+      await tabs.evaluateAll((nodes) =>
+        nodes.every(
+          (node) =>
+            Boolean(node.id) &&
+            document
+              .getElementById(node.getAttribute("aria-controls"))
+              ?.getAttribute("aria-labelledby") === node.id,
+        ),
+      ),
+      true,
+    );
+    await tabs.first().focus();
+    await assertTab(0);
+    await page.keyboard.press("ArrowLeft");
+    await assertTab(9);
+    await page.keyboard.press("ArrowRight");
+    await assertTab(0);
+    for (let index = 1; index < 10; index++) {
+      await page.keyboard.press("ArrowRight");
+      await assertTab(index);
+    }
+    await page.keyboard.press("Home");
+    await assertTab(0);
+    await page.keyboard.press("End");
+    await assertTab(9);
+    await tabs.nth(1).click();
+    await assertTab(1);
+    await page.keyboard.press("ArrowRight");
+    await assertTab(2);
+    await focusVisible(tabs.nth(2));
+    await page.keyboard.press("Enter");
+    await assertTab(2);
+    await page.keyboard.press("Space");
+    await assertTab(2);
+    await page.keyboard.press("Tab");
+    await focused(
+      page.getByRole("tabpanel", { name: "Localização", exact: true }),
+    );
+    await page.keyboard.press("Shift+Tab");
+    await assertTab(2);
+
+    await page.keyboard.press("Meta+k");
+    await focused(search);
+    await search.fill("teclado");
+    await links.first().waitFor();
+    await page.keyboard.press("ArrowUp");
+    await focused(links.last());
+    await page.keyboard.press("ArrowDown");
+    await focused(links.first());
+    await page.keyboard.press("End");
+    await focused(links.last());
+    await page.keyboard.press("Home");
+    await focused(links.first());
+    await page.keyboard.press("Escape");
+    await focused(search);
+    assert.equal(await page.locator("#search-results").isVisible(), false);
+    await search.fill("teclado novamente");
+    await links.first().waitFor();
+    await page.keyboard.press("ArrowDown");
+    await focused(links.first());
+    await links.last().click();
+    await page.waitForURL((url) => url.hash === "#overview");
+    assert.equal(await search.inputValue(), "");
+    assert.equal(await page.locator("#search-results").isVisible(), false);
+    return {
+      view: "keyboard-search-and-cms-tabs",
+      violations: [],
+      tabCount: 10,
+      keyboardAcceptance: "PASS",
+    };
+  } finally {
+    await page.unroute(searchRoute);
+    await page.unroute(cmsRoute);
+  }
 }
 
 async function main() {
@@ -57,6 +218,10 @@ async function main() {
     await page.waitForFunction(() => Boolean(globalThis.axe), null, {
       timeout: 10_000,
     });
+
+    stage = "keyboard-acceptance";
+    evidence.push(await proveKeyboardNavigation(page));
+    persistEvidence(evidence);
 
     stage = "nav-discovery";
     const views = await page

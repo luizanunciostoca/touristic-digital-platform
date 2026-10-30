@@ -4347,13 +4347,13 @@ searchInput.addEventListener("input", () => {
         data.results
           .map(
             (result) =>
-              `<div class="search-result" data-href="${escapeHtml(result.href ?? "")}">
+              `<a class="search-result" href="#${escapeHtml(String(result.href || "overview").replace(/^#/, ""))}">
                 <span>
                   <strong>${escapeHtml(result.title)}</strong><br>
                   <small>${escapeHtml(result.type)} · ${escapeHtml(result.context ?? result.domain ?? "")}</small>
                 </span>
                 <span aria-hidden="true">↗</span>
-              </div>`,
+              </a>`,
           )
           .join("") || '<div class="empty">Nenhum resultado encontrado.</div>';
       searchResults.hidden = false;
@@ -4364,11 +4364,45 @@ searchInput.addEventListener("input", () => {
 });
 
 searchResults.addEventListener("click", (event) => {
-  const item = event.target.closest("[data-href]");
-  if (!item) return;
-  globalThis.location.hash = item.dataset.href || "#overview";
+  const item = event.target.closest("a.search-result[href]");
+  if (
+    !item ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  )
+    return;
+  event.preventDefault();
+  globalThis.location.hash = item.getAttribute("href");
   searchResults.hidden = true;
   searchInput.value = "";
+  searchInput.focus();
+});
+
+searchInput.addEventListener("keydown", (event) => {
+  if (searchResults.hidden || !["ArrowDown", "ArrowUp"].includes(event.key))
+    return;
+  const links = [...searchResults.querySelectorAll("a.search-result[href]")];
+  if (!links.length) return;
+  event.preventDefault();
+  links[event.key === "ArrowDown" ? 0 : links.length - 1].focus();
+});
+
+searchResults.addEventListener("keydown", (event) => {
+  const links = [...searchResults.querySelectorAll("a.search-result[href]")];
+  const index = links.indexOf(event.target.closest("a.search-result[href]"));
+  if (index < 0) return;
+  let next;
+  if (event.key === "ArrowDown") next = (index + 1) % links.length;
+  else if (event.key === "ArrowUp")
+    next = (index - 1 + links.length) % links.length;
+  else if (event.key === "Home") next = 0;
+  else if (event.key === "End") next = links.length - 1;
+  else return;
+  event.preventDefault();
+  links[next].focus();
 });
 
 document.addEventListener("keydown", (event) => {
@@ -4376,7 +4410,10 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     searchInput.focus();
   }
-  if (event.key === "Escape") searchResults.hidden = true;
+  if (event.key === "Escape") {
+    if (searchResults.contains(document.activeElement)) searchInput.focus();
+    searchResults.hidden = true;
+  }
 });
 
 nav.addEventListener("click", (event) => {

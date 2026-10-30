@@ -651,14 +651,14 @@ function detailTabs(detail, escapeHtml, canMutate) {
   const buttons = panels
     .map(
       ([id, label], index) =>
-        `<button type="button" class="secondary-button" role="tab" data-business-cms-tab="${id}" aria-selected="${index === 0 ? "true" : "false"}">${label}</button>`,
+        `<button type="button" class="secondary-button" role="tab" id="business-cms-tab-${id}" data-business-cms-tab="${id}" aria-controls="business-cms-panel-${id}" aria-selected="${index === 0 ? "true" : "false"}" tabindex="${index === 0 ? 0 : -1}">${label}</button>`,
     )
     .join("");
 
   const bodies = panels
     .map(
       ([id, , html], index) =>
-        `<div role="tabpanel" data-business-cms-panel="${id}" ${index === 0 ? "" : "hidden"}>${html}</div>`,
+        `<div role="tabpanel" id="business-cms-panel-${id}" data-business-cms-panel="${id}" aria-labelledby="business-cms-tab-${id}" tabindex="0" ${index === 0 ? "" : "hidden"}>${html}</div>`,
     )
     .join("");
 
@@ -680,17 +680,32 @@ function detailTabs(detail, escapeHtml, canMutate) {
 function bindTabs(root) {
   const buttons = [...root.querySelectorAll("[data-business-cms-tab]")];
 
+  const activate = (button) => {
+    for (const candidate of buttons) {
+      const selected = candidate === button;
+      candidate.setAttribute("aria-selected", selected ? "true" : "false");
+      candidate.tabIndex = selected ? 0 : -1;
+      const panel = root.querySelector(
+        `[data-business-cms-panel="${candidate.dataset.businessCmsTab}"]`,
+      );
+      if (panel) panel.hidden = !selected;
+    }
+  };
+
   for (const button of buttons) {
-    button.addEventListener("click", () => {
-      for (const candidate of buttons) {
-        const selected = candidate === button;
-        candidate.setAttribute("aria-selected", selected ? "true" : "false");
-        candidate.tabIndex = selected ? 0 : -1;
-        const panel = root.querySelector(
-          `[data-business-cms-panel="${candidate.dataset.businessCmsTab}"]`,
-        );
-        if (panel) panel.hidden = !selected;
-      }
+    button.addEventListener("click", () => activate(button));
+    button.addEventListener("keydown", (event) => {
+      const index = buttons.indexOf(button);
+      let next;
+      if (event.key === "ArrowRight") next = (index + 1) % buttons.length;
+      else if (event.key === "ArrowLeft")
+        next = (index - 1 + buttons.length) % buttons.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = buttons.length - 1;
+      else return;
+      event.preventDefault();
+      activate(buttons[next]);
+      buttons[next].focus();
     });
   }
 }
