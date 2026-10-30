@@ -199,18 +199,40 @@ requireText(
 );
 requireText(staging, "staging blueprint", "name: morro-digital-v2-staging");
 requireText(staging, "staging blueprint", "runtime: docker");
-requireText(staging, "staging blueprint", "runtime: node");
-requireText(staging, "staging blueprint", "branch: main");
-requireText(
+const stagingWeb = serviceBlock(
   staging,
+  "morro-digital-v2-staging",
   "staging blueprint",
-  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/staging-predeploy.mjs",
 );
-requireText(
-  staging,
-  "staging blueprint",
-  "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
-);
+const stagingRuntimes = [...stagingWeb.matchAll(/^    runtime: (\S+)\s*$/gmu)];
+if (stagingRuntimes.length !== 1) fail("staging web runtime must be unique");
+const stagingRuntime = stagingRuntimes[0][1];
+if (!["node", "image"].includes(stagingRuntime))
+  fail("staging web runtime must be node or image");
+const stagingNode = stagingRuntime === "image" ? "/nodejs/bin/node" : "node";
+if (stagingRuntime === "image") {
+  if (
+    !/^    image:\n      url: ghcr\.io\/luizanunciostoca\/morro-digital-v2@sha256:[a-f0-9]{64}\s*$/mu.test(
+      stagingWeb,
+    )
+  )
+    fail("staging web requires an immutable OCI image digest");
+  if (/^    (repo|branch|buildCommand|startCommand):/mu.test(stagingWeb))
+    fail("staging image must not declare source-build directives");
+} else {
+  requireText(stagingWeb, "staging web", "branch: main");
+}
+for (const [directive, script] of [
+  ["preDeployCommand", "staging-predeploy.mjs"],
+  [
+    stagingRuntime === "image" ? "dockerCommand" : "startCommand",
+    "dev-server.mjs",
+  ],
+]) {
+  const expected = `    ${directive}: ${stagingNode} tooling/render/with-staging-mysql-env.mjs ${stagingNode} apps/morro-digital-platform/tooling/${script}`;
+  if (!stagingWeb.split(/\r?\n/u).includes(expected))
+    fail(`staging web requires exact ${directive} with MySQL wrapper`);
+}
 for (const marker of [
   '"MORRO-STAGING-PREDEPLOY"',
   '"payments-migrate"',
