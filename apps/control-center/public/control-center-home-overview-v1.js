@@ -870,6 +870,7 @@ function bindDestinationRows(content) {
 export async function renderHomeOverviewV1({
   dashboard = {},
   adminSession = {},
+  isCurrent = () => true,
   api,
   content,
 }) {
@@ -893,6 +894,8 @@ export async function renderHomeOverviewV1({
       }))
       .catch(() => ({ available: false, data: [] })),
   ]);
+
+  if (!isCurrent()) return;
 
   const model = buildHomeModelV1({
     dashboard,
