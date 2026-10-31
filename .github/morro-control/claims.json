@@ -164,6 +164,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-WP05-SCHEDULER-COVERAGE-20261030": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/wp05-scheduler-coverage-20261030",
+      "baseSha": "f362528123e5372888557b94a5f3a57519d1dade",
+      "paths": [
+        "tooling/ci/scheduled-suites.json",
+        "tooling/ci/suite-scheduler.test.mjs",
+        "tooling/ci/local-fast-gate.mjs",
+        "tooling/ci/local-fast-gate.test.mjs",
+        ".morro/changesets/MD-WP05-SCHEDULER-COVERAGE-20261030.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-31T23:00:00.000Z"
     }
   }
 }
