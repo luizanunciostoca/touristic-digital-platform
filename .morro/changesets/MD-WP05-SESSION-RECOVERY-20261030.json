@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-WP05-SESSION-RECOVERY-20261030",
   "objective": "distinguish-session-expiry-from-transient-failure-and-restore-safe-affiliate-portal-entry",
-  "baseSha": "8950268a473a8647d1cbed1f8cdb4b5e95126daf",
+  "baseSha": "5af3e1f7d8e0817c257922ac72cbe7b1c1e3601b",
   "branch": "fix/wp05-session-recovery-20261030",
   "state": "IMPLEMENTING",
   "risk": "critical",
