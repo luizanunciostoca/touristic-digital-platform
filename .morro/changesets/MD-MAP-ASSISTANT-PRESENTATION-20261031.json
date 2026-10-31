@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-MAP-ASSISTANT-PRESENTATION-20261031",
+  "objective": "align-map-controls-before-deferred-css-and-present-one-assistant-message-without-criteria-chrome",
+  "baseSha": "2a0ca8c6b6996d57e6d4703aaa2fb375addf1248",
+  "branch": "fix/map-assistant-contract-20261031",
+  "state": "IMPLEMENTING",
+  "risk": "medium",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      "apps/morro-digital-platform/src/layouts/app-shell.ts",
+      "apps/morro-digital-platform/src/map/discover-map-controls.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs",
+      ".morro/changesets/MD-MAP-ASSISTANT-PRESENTATION-20261031.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "map-entry-css-contract",
+        "argv": ["node", "--test", "tooling/ci/build-entry-css.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
