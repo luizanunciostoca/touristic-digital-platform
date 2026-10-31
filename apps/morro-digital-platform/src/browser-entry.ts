@@ -107,7 +107,6 @@ const privacyPreferences = installBrowserAnalyticsConsentPreferences({
 });
 
 const application = bootstrapMorroDigitalApplication(document);
-installDiscoverLayersGroup(document);
 
 const initialDiscoverLocations = Object.freeze(
   DISCOVER_POI_CATEGORIES.flatMap((category) =>
@@ -544,12 +543,17 @@ function discoverCameraPadding(): {
 }
 
 function installMapLayerToggle(map: MapboxGlMapLike): () => void {
-  return installDiscoverLayer({
+  const cleanupGroup = installDiscoverLayersGroup(document);
+  const cleanupLayer = installDiscoverLayer({
     document,
     map,
     standardStyle: DISCOVER_DEFAULT_MAP_STYLE,
     satelliteStyle: DISCOVER_SATELLITE_MAP_STYLE,
   });
+  return () => {
+    cleanupLayer();
+    cleanupGroup();
+  };
 }
 function installDiscoverRecenterControl(
   map: MapboxGlMapLike,
