@@ -575,7 +575,19 @@ async function verifyAppliedMapFilters(page, evidence) {
 }
 
 async function verifyDeferredAssistantPresentation(context) {
-  const page = await context.newPage();
+  // A previously visited page may have installed a worker that bypasses page routes.
+  const isolatedContext = await context.browser().newContext({
+    viewport: { width: 390, height: 844 },
+    serviceWorkers: "block",
+    geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+    permissions: ["geolocation"],
+  });
+  await isolatedContext.addInitScript(() => {
+    localStorage.setItem("morro-digital-onboarded", "1");
+    localStorage.setItem("voice-enabled", "false");
+    localStorage.setItem("morro-analytics-consent-v1", "denied");
+  });
+  const page = await isolatedContext.newPage();
   try {
     let blockedFeatureRequests = 0;
     await page.route("**/dist/entry-css/features.css*", (route) => {
@@ -594,6 +606,25 @@ async function verifyDeferredAssistantPresentation(context) {
       timeout: 30000,
     });
     await waitForReady(page);
+    const styleFailure = await page.evaluate(async () => {
+      const { ensureFeatureStyles } = await import(
+        new URL(
+          "/apps/morro-digital-platform/dist/map/feature-styles.js",
+          location.origin,
+        ).href
+      );
+      try {
+        await ensureFeatureStyles(document);
+        return null;
+      } catch (error) {
+        return error.message;
+      }
+    });
+    assert(
+      styleFailure === "FEATURE_STYLES_UNAVAILABLE",
+      "the real feature loader must observe the blocked stylesheet",
+    );
+
     await page
       .locator('#assistant-category-rail [data-assistant-category="beaches"]')
       .click();
@@ -663,7 +694,7 @@ async function verifyDeferredAssistantPresentation(context) {
     );
     return { featureCss: "blocked", controls, visibleAssistantMessages: 1 };
   } finally {
-    await page.close();
+    await isolatedContext.close();
   }
 }
 
