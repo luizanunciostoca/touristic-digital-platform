@@ -40,6 +40,7 @@ export interface BrowserLocationPort {
   readonly origin: string;
   readonly pathname: string;
   readonly search: string;
+  readonly hash?: string;
   readonly replace: (url: string) => void;
 }
 
@@ -87,12 +88,20 @@ function isLoginRequest(input: RequestInfo | URL, origin: string): boolean {
   return requestUrl(input, origin)?.pathname === "/api/dashboard/auth/login";
 }
 
-function safeLoginUrl(location: BrowserLocationPort): string {
-  const current = `${location.pathname}${location.search}`;
+export function isAffiliatePortalPath(pathname: string): boolean {
+  return (
+    pathname === "/affiliate-portal.html" ||
+    pathname === "/apps/morro-digital-platform/public/affiliate-portal.html"
+  );
+}
+
+export function safeLoginUrl(location: BrowserLocationPort): string {
+  const current = `${location.pathname}${location.search}${location.hash ?? ""}`;
   const returnPath =
     current.startsWith("/dashboard/") ||
     current.startsWith("/apps/admin-crm/") ||
     current.startsWith("/apps/control-center/") ||
+    isAffiliatePortalPath(location.pathname) ||
     current === "/tickets.html"
       ? current
       : "/dashboard/index-v3-improved.html";
@@ -171,7 +180,8 @@ export function createDashboardAuthClient(
       cache: "no-store",
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error("AUTH_REQUIRED");
+        if (response.status === 401) throw new Error("AUTH_REQUIRED");
+        if (!response.ok) throw new Error(`SESSION_HTTP_${response.status}`);
         const data = (await response.json()) as DashboardSessionResponse;
         csrfToken = typeof data.csrfToken === "string" ? data.csrfToken : "";
         if (csrfToken) storage.setItem(csrfStorageKey, csrfToken);

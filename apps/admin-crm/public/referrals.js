@@ -238,8 +238,12 @@ async function start() {
       window.location.replace("/dashboard/login.html?return=" + encodeURIComponent(current));
       return;
     }
-    const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-    status.textContent = `Falha ao carregar registros (${message}).`;
+    sessionStatus.textContent = "Não foi possível verificar a sessão.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Tentar novamente";
+    retry.addEventListener("click", () => void start(), { once: true });
+    status.replaceChildren(retry);
   }
 }
 

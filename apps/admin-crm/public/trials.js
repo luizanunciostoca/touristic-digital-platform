@@ -234,8 +234,12 @@ async function start() {
       window.location.replace("/dashboard/login.html?return=" + encodeURIComponent(current));
       return;
     }
-    const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-    trialsStatus.textContent = `Não foi possível carregar trials (${message}).`;
+    sessionStatus.textContent = "Não foi possível verificar a sessão.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Tentar novamente";
+    retry.addEventListener("click", () => void start(), { once: true });
+    trialsStatus.replaceChildren(retry);
   }
 }
 

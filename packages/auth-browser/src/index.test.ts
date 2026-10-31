@@ -227,3 +227,25 @@ describe("M48 browser auth adapter", () => {
     expect(location.replace).toHaveBeenCalledWith("/dashboard/login.html");
   });
 });
+
+it.each([401, 403, 429, 500, 503])(
+  "retries session lookup after HTTP %i without navigating",
+  async (status) => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status }))
+      .mockResolvedValueOnce(sessionResponse());
+    const location = locationFixture();
+    const client = createDashboardAuthClient({
+      fetchFn,
+      location: location.port,
+      storage: storageFixture().port,
+    });
+    await expect(client.getSession()).rejects.toThrow(
+      status === 401 ? "AUTH_REQUIRED" : "SESSION_HTTP_" + status,
+    );
+    expect(location.replace).not.toHaveBeenCalled();
+    expect((await client.getSession())?.authenticated).toBe(true);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  },
+);
