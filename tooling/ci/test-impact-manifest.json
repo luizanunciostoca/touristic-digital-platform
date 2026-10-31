@@ -11,7 +11,14 @@
         "apps/morro-digital-platform/src/assistant/assistant-message-dom",
         "apps/morro-digital-platform/src/assistant/browser-assistant-runtime",
         "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
-        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts"
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts",
+        "packages/assistant/src/intent-engine.ts",
+        "packages/assistant/src/intent-engine.more-info-i18n.test.ts",
+        "packages/assistant/src/dialog-controller.test.ts",
+        "packages/assistant/src/dialog-controller.ts",
+        "packages/assistant/src/dialog-controller.presentation-language.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts"
       ],
       "risk": "MEDIUM",
       "dependsOn": [
@@ -72,7 +79,8 @@
         "apps/morro-digital-platform/src/payments-",
         "apps/morro-digital-platform/tooling/payments-",
         "apps/morro-digital-platform/tooling/ticketing-api.mjs",
-        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
+        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs",
+        "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs"
       ],
       "risk": "CRITICAL",
       "dependsOn": ["assistant-conversation", "commerce", "security"],
@@ -249,7 +257,9 @@
         "apps/morro-digital-platform/src/affiliate-portal-client.ts",
         "apps/morro-digital-platform/src/affiliate-portal-client.test.ts",
         "apps/morro-digital-platform/src/affiliate-portal-entry.ts",
-        "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs"
+        "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+        ".github/workflows/auth-login-browser-contract.yml",
+        "apps/admin-crm/public/referrals.js"
       ],
       "risk": "CRITICAL",
       "dependsOn": ["auth"],
@@ -269,7 +279,9 @@
         "packages/auth/",
         "services/auth/",
         "apps/morro-digital-platform/tooling/admin-api.mjs",
-        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs",
+        "apps/morro-digital-platform/tooling/auth-api.mjs",
+        "apps/morro-digital-platform/tooling/auth-api-logout.test.mjs"
       ],
       "risk": "HIGH",
       "dependsOn": ["security"],
@@ -463,7 +475,9 @@
       "paths": [
         "apps/morro-digital-platform/src/assistant/assistant-ui-state.ts",
         "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
-        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts"
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
+        "apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts",
+        "apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts"
       ],
       "risk": "HIGH",
       "dependsOn": [],
@@ -583,7 +597,11 @@
         "apps/morro-digital-platform/src/map/explore-v1-i18n.ts",
         "apps/morro-digital-platform/src/map/explore-v1-i18n.test.ts",
         "apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts",
-        "apps/morro-digital-platform/src/map/explore-locations-v1-flow.test.ts"
+        "apps/morro-digital-platform/src/map/explore-locations-v1-flow.test.ts",
+        "apps/morro-digital-platform/src/map/three-dimensional-map-control.ts",
+        "apps/morro-digital-platform/src/map/three-dimensional-map-control.test.ts",
+        "apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts",
+        "apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts"
       ],
       "risk": "HIGH",
       "dependsOn": [],
@@ -602,7 +620,11 @@
         "apps/morro-digital-platform/src/weather/weather-i18n.test.ts",
         "apps/morro-digital-platform/src/weather/weather-forecast-modal.ts",
         "apps/morro-digital-platform/tooling/weather-v1-i18n-browser-parity.mjs",
-        ".github/workflows/weather-v1-i18n-browser-parity.yml"
+        ".github/workflows/weather-v1-i18n-browser-parity.yml",
+        "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts"
       ],
       "risk": "HIGH",
       "dependsOn": [],
@@ -874,6 +896,42 @@
       "risk": "HIGH",
       "dependsOn": [],
       "suites": ["quality.yml", "home-discover-manual-conformance.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "public-tour-catalog": {
+      "paths": [
+        "apps/morro-digital-platform/src/config/tour-catalog.ts",
+        "apps/morro-digital-platform/src/config/tour-catalog.test.ts",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop1_terceira_praia.jpg",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop2_garapua.jpg",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop3_morere.jpg",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop4_cueira_boipeba.jpg",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop5_rio_inferno.jpg",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop6_ostras.jpg",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop7_cairu.jpg",
+        "apps/morro-digital-platform/public/images/tours/volta_ilha_stop8_por_do_sol.jpg",
+        "apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop1_fonte_grande.jpg",
+        "apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop2_porto_cima.jpg",
+        "apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop3_ponta_pedra.jpg",
+        "apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop4_paredao_argila.jpg",
+        "apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop5_gamboa.jpg",
+        "apps/morro-digital-platform/public/images/tours/quadriciclo_stop1_base.jpg",
+        "apps/morro-digital-platform/public/images/tours/quadriciclo_stop2_quarta_quinta_praia.jpg",
+        "apps/morro-digital-platform/public/images/tours/quadriciclo_stop3_mata_atlantica.jpg",
+        "apps/morro-digital-platform/public/images/tours/quadriciclo_stop4_mirante_zimbo.jpg",
+        "apps/morro-digital-platform/public/images/tours/quadriciclo_stop5_garapua.jpg"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [
+        "map-tour-browser-regression.yml",
+        "v1-tour-responsive-browser-regression.yml",
+        "home-discover-manual-conformance.yml"
+      ],
       "needsBrowser": true,
       "needsVisual": true,
       "needsDatabase": false,
