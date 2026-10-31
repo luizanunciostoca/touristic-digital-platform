@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RETIREMENT-CLI-AUTH-20261031",
   "objective": "support-authenticated-read-only-github-cli-for-canonical-claim-retirement-without-exporting-credentials",
-  "baseSha": "df6d4b712899b17dd93c08dbe6d1e8482ca067bf",
-  "branch": "chore/claim-retirement-cli-auth-20261031",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "7e58226fb6c3dab11e0acccbbee03c664056203f",
+  "branch": "chore/retire-retirement-auth-20261031",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
