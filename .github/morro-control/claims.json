@@ -125,6 +125,23 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T11:59:00.000Z"
+    },
+    "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/journey-audit-coverage-admission-20261031",
+      "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+      "paths": [
+        ".morro/ownership.json",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/journey-audit-admission.test.mjs",
+        ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+        ".github/workflows/auth-login-browser-contract.yml"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-01T23:00:00.000Z"
     }
   }
 }

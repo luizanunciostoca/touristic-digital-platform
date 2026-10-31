@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "objective": "register-exact-audit-followup-coverage-and-wire-existing-session-recovery-browser-proof-without-product-or-policy-engine-changes",
+  "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+  "branch": "chore/journey-audit-coverage-admission-20261031",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/ownership.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/journey-audit-admission.test.mjs",
+      ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      ".github/workflows/auth-login-browser-contract.yml"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": [
+      "TDP-CONTROL-PLANE-V3.2",
+      "platform-authz",
+      "ticket-fulfillment"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "exact-coverage-and-sensitive-boundaries",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/journey-audit-admission.test.mjs",
+          "tooling/ci/impact-analyzer-exact-path.test.mjs",
+          "tooling/fabric/ordinary-pr-policy.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
