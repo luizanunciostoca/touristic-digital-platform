@@ -423,7 +423,7 @@ async function assertPureDiscover(page, viewport) {
   return state;
 }
 
-async function verifyAppliedMapFilters(page) {
+async function verifyAppliedMapFilters(page, evidence) {
   const applied = await page.evaluate(async () => {
     const { getMorroDigitalApplication } = await import(
       new URL(
@@ -437,29 +437,16 @@ async function verifyAppliedMapFilters(page) {
     });
   });
   assert(applied, "category filter must commit to the real map");
-  const projection = page.locator(".md-applied-map-filters");
   assert(
-    await projection.isVisible(),
-    "applied category must be visible even in map-only mode",
+    (await page.locator(".md-applied-map-filters").count()) === 0,
+    "applied criteria must not create a second assistant surface",
+  );
+  const categoryCriteria = JSON.parse(
+    await page.locator("#map").getAttribute("data-explore-criteria"),
   );
   assert(
-    (await projection.textContent()).includes("1"),
-    "count represents one criterion, not beach marker quantity",
-  );
-  const criterionChrome = await projection.evaluate((element) => {
-    const clear = element.querySelector("button").getBoundingClientRect();
-    return {
-      inDock: element.closest("#unified-assistant-dock") !== null,
-      width: clear.width,
-      height: clear.height,
-    };
-  });
-  assert(
-    criterionChrome.inDock &&
-      criterionChrome.width >= 48 &&
-      criterionChrome.height >= 48,
-    "Criteria must use the canonical dock and retain a reachable clear action",
-    criterionChrome,
+    categoryCriteria.length === 1,
+    "the map must retain the category criterion without visible filter chrome",
   );
   const pointerDeadline = Date.now() + 30000;
   const selectableBeach = await page.evaluateHandle(async (deadline) => {
@@ -539,9 +526,13 @@ async function verifyAppliedMapFilters(page) {
     await explore.execute({ type: "open_category", category: "restaurants" });
     await explore.execute({ type: "apply_option", value: "vegetariano" });
   });
-  await page
-    .locator('.md-applied-map-filters[data-criteria-count="2"]')
-    .waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const map = document.getElementById("map");
+    return (
+      map?.dataset.exploreState === "ready" &&
+      JSON.parse(map.dataset.exploreCriteria || "[]").length === 2
+    );
+  });
   const committed = await page
     .locator("#map")
     .getAttribute("data-explore-criteria");
@@ -552,12 +543,159 @@ async function verifyAppliedMapFilters(page) {
     ),
     "count must include the actually applied fine filter",
   );
-  await projection.locator("button").click();
-  await projection.waitFor({ state: "hidden" });
+  assert(
+    (await page.locator(".md-applied-map-filters").count()) === 0,
+    "fine filters must not restore the removed criteria chrome",
+  );
+  await page.evaluate(async () => {
+    const { getMorroDigitalApplication } = await import(
+      new URL(
+        "/apps/morro-digital-platform/dist/main.js",
+        window.location.origin,
+      ).href
+    );
+    await getMorroDigitalApplication(document).exploreLocations.execute({
+      type: "show_all_locations",
+    });
+  });
+  assert(
+    JSON.parse(await page.locator("#map").getAttribute("data-explore-criteria"))
+      .length === 0,
+    "the canonical show-all command must clear the applied criteria",
+  );
   assert(
     (await page.locator("#map").getAttribute("data-explore-state")) === "ready",
     "clear must be provider-confirmed before zero",
   );
+  const viewport = page.viewportSize();
+  if (viewport?.width === 390 && viewport.height === 844) {
+    evidence.deferredAssistantPresentation =
+      await verifyDeferredAssistantPresentation(page.context());
+  }
+}
+
+async function verifyDeferredAssistantPresentation(context) {
+  // A previously visited page may have installed a worker that bypasses page routes.
+  const isolatedContext = await context.browser().newContext({
+    viewport: { width: 390, height: 844 },
+    serviceWorkers: "block",
+    geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+    permissions: ["geolocation"],
+  });
+  await isolatedContext.addInitScript(() => {
+    localStorage.setItem("morro-digital-onboarded", "1");
+    localStorage.setItem("voice-enabled", "false");
+    localStorage.setItem("morro-analytics-consent-v1", "denied");
+  });
+  const page = await isolatedContext.newPage();
+  try {
+    let blockedFeatureRequests = 0;
+    await page.route("**/dist/entry-css/features.css*", (route) => {
+      blockedFeatureRequests += 1;
+      return route.abort();
+    });
+    await page.route("**/api/weather", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(weather),
+      }),
+    );
+    await page.goto(BASE_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
+    await waitForReady(page);
+    const styleFailure = await page.evaluate(async () => {
+      const { ensureFeatureStyles } = await import(
+        new URL(
+          "/apps/morro-digital-platform/dist/map/feature-styles.js",
+          location.origin,
+        ).href
+      );
+      try {
+        await ensureFeatureStyles(document);
+        return null;
+      } catch (error) {
+        return error.message;
+      }
+    });
+    assert(
+      styleFailure === "FEATURE_STYLES_UNAVAILABLE",
+      "the real feature loader must observe the blocked stylesheet",
+    );
+
+    await page
+      .locator('#assistant-category-rail [data-assistant-category="beaches"]')
+      .click();
+    await page
+      .locator("#assistant-category-results")
+      .waitFor({ state: "attached" });
+    assert(
+      blockedFeatureRequests > 0,
+      "the deferred stylesheet failure must actually be exercised",
+    );
+    assert(
+      !(await page.locator("#assistant-dialog-status").isVisible()),
+      "assistant status must remain visually hidden",
+    );
+    assert(
+      !(await page.locator("#assistant-category-results").isVisible()),
+      "source options must remain hidden without feature CSS",
+    );
+    assert(
+      (await page.locator(".md-applied-map-filters").count()) === 0,
+      "criteria chrome must remain absent",
+    );
+    assert(
+      (await page
+        .locator("#assistant-messages .messages-area > .message:visible")
+        .count()) === 1,
+      "only one assistant message may be visible",
+    );
+    assert(
+      (await page.locator("#assistant-category-rail button:visible").count()) >
+        0,
+      "primary contextual actions must remain reachable",
+    );
+    const controls = await page
+      .locator("#globe-map-control button")
+      .evaluateAll((elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            id: element.id,
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          };
+        }),
+      );
+    assert(
+      controls.length === 4 &&
+        controls.every(
+          (control) =>
+            control.x === controls[0].x &&
+            control.width >= 48 &&
+            control.height >= 48,
+        ),
+      "all four map controls must align before feature CSS loads",
+      controls,
+    );
+    assert(
+      controls.every(
+        (control, index) =>
+          index === 0 ||
+          control.y >= controls[index - 1].y + controls[index - 1].height,
+      ),
+      "map controls must not overlap",
+      controls,
+    );
+    return { featureCss: "blocked", controls, visibleAssistantMessages: 1 };
+  } finally {
+    await isolatedContext.close();
+  }
 }
 
 async function verifyManualNavigation(page) {
@@ -1600,7 +1738,7 @@ try {
         await verifyVariants(page, viewport, evidence);
       }
 
-      await verifyAppliedMapFilters(page);
+      await verifyAppliedMapFilters(page, evidence);
       assert(pageErrors.length === 0, "Browser page errors", pageErrors);
       evidence.viewports.push({ viewport, state, pageErrors });
       await context.close();

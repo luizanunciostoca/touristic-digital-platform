@@ -279,6 +279,8 @@ export function installDiscoverLayersGroup(document: Document): () => void {
     return () => {};
   const group = document.createElement("div");
   group.className = "md-discover-layers";
+  // Reparenting must preserve the control stack before deferred feature CSS loads.
+  group.style.display = "contents";
   group.setAttribute("role", "group");
   const anchors = buttons.map((button) => {
     const anchor = document.createComment("discover-layer-control");

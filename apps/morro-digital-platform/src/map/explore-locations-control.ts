@@ -1,4 +1,3 @@
-import { getAppliedMapFilterCopy } from "./explore-v1-i18n.js";
 import { groupProjectedMarkers } from "./explore-marker-grouping.js";
 import {
   getAssistantMainMenu,
@@ -987,41 +986,6 @@ export function installExploreLocationsControl({
     );
   };
 
-  const appliedFilters = document.createElement("div");
-  appliedFilters.className = "md-applied-map-filters";
-  appliedFilters.hidden = true;
-  const appliedLabel = document.createElement("span");
-  appliedLabel.setAttribute("role", "status");
-  const clearApplied = document.createElement("button");
-  clearApplied.type = "button";
-  appliedFilters.append(appliedLabel, clearApplied);
-  const filterDock = document.getElementById("unified-assistant-dock");
-  const filterRail = document.getElementById("assistant-category-rail");
-  if (filterDock && filterRail?.parentElement === filterDock)
-    filterDock.insertBefore(appliedFilters, filterRail);
-  else (filterDock ?? document.body).prepend(appliedFilters);
-  const renderAppliedFilters = (): void => {
-    const state = document.getElementById("map")?.dataset;
-    const copy = getAppliedMapFilterCopy(currentLocale());
-    const summary = appliedMapFilterSummary(state ?? {});
-    const confirmed = summary.phase === "ready";
-    appliedFilters.hidden = confirmed && summary.count === 0;
-    if (confirmed) appliedFilters.dataset.criteriaCount = String(summary.count);
-    else delete appliedFilters.dataset.criteriaCount;
-    appliedLabel.textContent =
-      summary.phase === "loading"
-        ? copy.pending
-        : !confirmed
-          ? copy.error
-          : `${copy.applied}: ${summary.count}`;
-    clearApplied.textContent = copy.clear;
-    clearApplied.disabled = state?.exploreState === "loading";
-  };
-  const clearAppliedFilters = (): void => {
-    void renderMapOnlyLocations(morroV1SearchCatalog);
-  };
-  clearApplied.addEventListener("click", clearAppliedFilters);
-
   const updateMapState = (
     count: number,
     category?: string,
@@ -1052,7 +1016,6 @@ export function installExploreLocationsControl({
         "data-explore-criteria",
         JSON.stringify(datasetCriteria),
       );
-    renderAppliedFilters();
   };
 
   const renderLocationsOnMap = async (
@@ -1361,6 +1324,8 @@ export function installExploreLocationsControl({
     const container = document.createElement("div");
     container.id = ASSISTANT_FLOW_RESULTS_ID;
     container.className = "assistant-options assistant-category-results";
+    // The contextual rail owns these actions; never paint its source as a second row.
+    container.hidden = activeStage === "filters" || activeStage === "places";
     container.dataset.category = activeCategory?.value ?? "";
     container.dataset.stage = activeStage;
     container.setAttribute("role", "group");
@@ -2710,17 +2675,6 @@ export function installExploreLocationsControl({
   restoreCategoryRail();
 
   const MutationObserverCtor = document.defaultView?.MutationObserver;
-  const filterLocaleObserver = new MutationObserver(renderAppliedFilters);
-  const filterMapElement = document.getElementById("map");
-  if (filterMapElement)
-    filterLocaleObserver.observe(filterMapElement, {
-      attributes: true,
-      attributeFilter: ["data-explore-state", "data-explore-criteria"],
-    });
-  filterLocaleObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["lang"],
-  });
   const localeObserver = MutationObserverCtor
     ? new MutationObserverCtor((records) => {
         if (!records.some((record) => record.attributeName === "lang")) return;
@@ -3024,9 +2978,6 @@ export function installExploreLocationsControl({
       detachNativeMap?.();
       nativeMap = undefined;
       interactionGeneration += 1;
-      filterLocaleObserver.disconnect();
-      clearApplied.removeEventListener("click", clearAppliedFilters);
-      appliedFilters.remove();
       localeObserver?.disconnect();
       clearExploreRuntimeStatus();
       document.removeEventListener("keydown", onKeyDown);
