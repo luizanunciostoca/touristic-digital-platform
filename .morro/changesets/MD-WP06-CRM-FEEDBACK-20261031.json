@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-WP06-CRM-FEEDBACK-20261031",
+  "objective": "preserve-confirmed-crm-referral-mutations-when-refresh-fails-and-retry-only-reads",
+  "baseSha": "45961562b8fb2c5e8496fc0fffeb4fb29a40e646",
+  "branch": "fix/wp06-crm-feedback-20261031",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "apps/admin-crm/public/referrals.js",
+      "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+      ".morro/changesets/MD-WP06-CRM-FEEDBACK-20261031.json"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-invariants",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
