@@ -115,7 +115,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/minimatch-security-20261031",
-      "baseSha": "0b0d54663503d32d9cc3b6c0ad462c65509c6614",
+      "baseSha": "07a69950c189ad0a226cefb3faee63a3f4cb9d20",
       "paths": [
         ".morro/changesets/MD-MINIMATCH-SECURITY-20261031.json",
         "package.json",
