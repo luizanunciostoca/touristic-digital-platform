@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-MINIMATCH-SECURITY-20261031",
+  "objective": "remove-minimatch-glob-amplification-advisory-with-compatible-locked-dependencies-and-unchanged-audit-gate",
+  "baseSha": "0b0d54663503d32d9cc3b6c0ad462c65509c6614",
+  "branch": "fix/minimatch-security-20261031",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-MINIMATCH-SECURITY-20261031.json",
+      "package.json",
+      "pnpm-lock.yaml",
+      "tooling/quality/dependency-security-remediation.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "format",
+    "secrets",
+    "dependency-audit",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "dependency-security-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/dependency-security-remediation.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "dependency-audit"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
