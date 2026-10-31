@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-MINIMATCH-SECURITY-20261031",
   "objective": "remove-minimatch-glob-amplification-advisory-with-compatible-locked-dependencies-and-unchanged-audit-gate",
-  "baseSha": "07a69950c189ad0a226cefb3faee63a3f4cb9d20",
-  "branch": "fix/minimatch-security-20261031",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "8ce40d031809312da8abce468377990d970d807d",
+  "branch": "chore/retire-minimatch-security-20261031",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
