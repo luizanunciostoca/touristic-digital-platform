@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-MAP-ASSISTANT-PRESENTATION-20261031",
   "objective": "align-map-controls-before-deferred-css-and-present-one-assistant-message-without-criteria-chrome",
-  "baseSha": "2a0ca8c6b6996d57e6d4703aaa2fb375addf1248",
+  "baseSha": "09a060a423c54fa444f259265a446fa733864846",
   "branch": "fix/map-assistant-contract-20261031",
   "state": "IMPLEMENTING",
   "risk": "medium",
