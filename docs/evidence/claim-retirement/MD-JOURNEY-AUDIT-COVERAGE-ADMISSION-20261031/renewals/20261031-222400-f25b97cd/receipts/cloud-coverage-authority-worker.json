@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "writer": {
+    "writerId": "cloud-coverage-authority-worker",
+    "executorIdentity": "CHATGPT-PRO-CONTROL",
+    "controllerIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root/autoridade_e_codigo",
+    "jobId": null,
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "commandIds": [
+      "exact-coverage-and-sensitive-boundaries"
+    ]
+  },
+  "receipt": {
+    "writerId": "cloud-coverage-authority-worker",
+    "requestedAt": "2026-10-31T22:21:36.000Z",
+    "acknowledgedAt": "2026-10-31T22:22:24.000Z",
+    "drainedAt": "2026-10-31T22:22:24.000Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  }
+}

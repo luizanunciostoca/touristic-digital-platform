@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 1,
+  "reason": "VOLUNTARY",
+  "requestedReason": "VOLUNTARY",
+  "decisionNonce": "audit-coverage-voluntary-20261031-b8eb61a4-67bc-4e3c-b45e-9ac300dc8a3d",
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "canonicalOwner": "CHATGPT-PRO-CONTROL",
+  "executorIdentity": "CHATGPT-PRO-CONTROL",
+  "controllerIdentity": "CHATGPT-PRO-CONTROL",
+  "exactBaseSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "canonicalClaimDigest": "4d4b0748ae7209892eaa924d17ddc3e2d3ebff7dbee2e42c4a46cd651b5801e0",
+  "retirementBranch": "chore/retire-audit-coverage-20261031-181814-99ba1a8b",
+  "preservedMaterialState": "IMPLEMENTING",
+  "expectedPaths": [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+    ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+  ],
+  "transitionKind": "SINGLETON_RETIRE_NO_ACQUIRE",
+  "writerInventory": [
+    {
+      "writerId": "cloud-coverage-authority-worker",
+      "executorIdentity": "CHATGPT-PRO-CONTROL",
+      "controllerIdentity": "CHATGPT-PRO-CONTROL",
+      "sessionId": "/root/autoridade_e_codigo",
+      "jobId": null,
+      "branch": "chore/journey-audit-coverage-admission-20261031",
+      "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+      "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+      "commandIds": [
+        "exact-coverage-and-sensitive-boundaries"
+      ]
+    }
+  ],
+  "writerInventoryDigest": "f8a9d900a8b4e50272b3287c6cda70811a490187f06c14cc87ef922391693bae",
+  "stopAckReceipts": [
+    {
+      "writerId": "cloud-coverage-authority-worker",
+      "requestedAt": "2026-10-31T18:12:43.000Z",
+      "acknowledgedAt": "2026-10-31T18:13:35.000Z",
+      "drainedAt": "2026-10-31T18:13:35.000Z",
+      "terminalState": "STOPPED",
+      "pendingCommands": 0,
+      "pendingChildren": 0,
+      "receiptRef": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f",
+      "receiptSha256": "e97c9f9849e5aa7356cdb8644536a6c080e1197edd64531ad4a30f1bf4a3db29"
+    }
+  ],
+  "stopAckReceiptsDigest": "7d8c44762ddaa70e9d59234956e879214bacb7fe00cf230b4ec8a3d2e0bb086a",
+  "wipInventory": [
+    {
+      "path": ".github/workflows/auth-login-browser-contract.yml",
+      "modeGit": "100644",
+      "status": "tracked",
+      "blobSha": "5433db46895e94385a9f3713e29f1f961ff1070a",
+      "sha256": "04e451a248fd3ac1e8602d26449ba49a421c25bcdc3a975004d0ada64209df40",
+      "bytes": 10718,
+      "backupIndex": 0
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "modeGit": "100644",
+      "status": "tracked",
+      "blobSha": "079f27045544fe6b77b956c4687d67fe2d84b2a8",
+      "sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+      "bytes": 2234,
+      "backupIndex": 0
+    },
+    {
+      "path": ".morro/ownership.json",
+      "modeGit": "100644",
+      "status": "tracked",
+      "blobSha": "dae399acf8982d3643719fe9af4b3722bebf78ea",
+      "sha256": "82404b46e333c1d4db7128d2d0c90b1c6e739e0e12e9d98ac689fdb8d6b7846a",
+      "bytes": 14012,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/README.md",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "c0120574c08e8428864f2aa1ab1e4e23f533a984",
+      "sha256": "9011877bc4131244bbe25c72f2bc368a261cf9815631c0d46ef6ab17def880e8",
+      "bytes": 595,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/journey-audit-admission.test.mjs",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "e6e011c1f9ba9a1dd7308906bfce697e56d573a6",
+      "sha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+      "bytes": 20674,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/test-impact-manifest.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "909e39ea78328a3ce96d7cf16b87cca7e09d3e9b",
+      "sha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+      "bytes": 35770,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/coverage-impact-correction.proposed.patch",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "ec04ef95b7888b9b7fbe0f1c79fc87bc7c27e778",
+      "sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+      "bytes": 4850,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposal-no-git-environment-failure.log",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "3a558bb29828c91ae922330b7cb283a724a31fd4",
+      "sha256": "c720c55d3e7aa3fe2dac914fa8273496606e30c6df8cf09fb4411d3123960cb9",
+      "bytes": 30053,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposed-green.log",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "30a837dfd46bf1e24580c8de6c7ccdc51f6f3cb7",
+      "sha256": "ade556d48a9e681379ba4cd889d5dfaa260813718e197c5184c557d160c0478f",
+      "bytes": 28952,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-red.log",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "89d620c410033fcd3cfa6eacc43d2d7d8dda9692",
+      "sha256": "03f66bbbaf0933aeeb3b6fa04ec0caa16841baa486b7fa72191d566175bdb192",
+      "bytes": 12772,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-proposal-dependency-install.log",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "fd67f39c4b5a8ffcbae1d04faff941584a338679",
+      "sha256": "26f4a0232845c38350fc4e7702844ef203f44d62767c48462cb07fb2ea2a7e26",
+      "bytes": 1439,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposal-missing-dependencies-failure.log",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "6c9aaea86d1a1751c497c8c040c163be5234b1b1",
+      "sha256": "55f9979017bfe757b5fa8d09134c25ea8117150cf48c047efabbba97ce92c4fa",
+      "bytes": 108682,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposed-green.log",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "d10b60213b5459321d583c23e7f510d8d58abb2b",
+      "sha256": "51e3efbe1d28811dfb1feacf0874113d8dc18bd96777d06296cc2896fd5e17a5",
+      "bytes": 115575,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/proof-summary.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "1db132457d29fe130ae5e5fcf640fd757b16336c",
+      "sha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+      "bytes": 6753,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "54a87f626846cae1f931ad8401ff282b5ab751cb",
+      "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "bytes": 1927,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "b7305a1e0b1004516f9f27d521d6e4eacb4d76bf",
+      "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "bytes": 997,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "c394b359f52107355ef6c482ca88233579dfd980",
+      "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "bytes": 2106,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/capability-leases.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "37700a5f091ae2b7ef823fdc4f0306b96620a83e",
+      "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "bytes": 1546,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/source-history-manifest.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "4ce581f2435474b1a5edf99dc9401750af73412c",
+      "sha256": "c4916a6d17478d936a5b9bedf6eeabbfb07d3403978da461e6d3bdac8e666460",
+      "bytes": 2435,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-author-stop-observation.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "49c4ad043fa195921eb6f3d6127214ea57fb1369",
+      "sha256": "4fe10a9d64defadec652b2cbc7f4c34a355db4b29673a14c64afea65002bb32f",
+      "bytes": 6980,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-local-inventory.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "7be5eadcec5e3c4f51e4774154e0b005e8bd1ab5",
+      "sha256": "5408099d8b44c3033de5cd22ff53cc135b65d2af22946dfd8146a62427d8c69e",
+      "bytes": 923,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-comments.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "6203c9bd4b563baebeac77017bd505653de61a53",
+      "sha256": "63ca94b9442902276509806533f38ca43501704cc5c294936aa9f045d34d3b6a",
+      "bytes": 6996,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-issue.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "bace0b457e7562d59bf06e4961a79dba25b8e4a2",
+      "sha256": "6de352e3e7b05cf6c6523d5ec47bab1dd254e38b334881ed6b44b1571a686dc8",
+      "bytes": 3416,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-request.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "52332c692b0d6b8f87eff99d4cc5a3e221f9b221",
+      "sha256": "d1b9eeb809bad5bcc390f5c23d380e344446e185101ae2fc07eb51aebc7bb36e",
+      "bytes": 2044,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/preservation-manifest.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "e33b19e46f223a30f8364232849af2fd0434f2b6",
+      "sha256": "cfb985b3dfec32163c6822e034aabdd8c5a9ea689de9f14b00a1a97dc33a0d6a",
+      "bytes": 14535,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/provenance/writer-controller-transport.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "5a6cf6029ba25d0df0d9ec319b10bea4a6923bd0",
+      "sha256": "f5b5b61e64934d1605c2552cfcb5da44e7dbe94134a9d481e8d14d1e0550ef2c",
+      "bytes": 2371,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/receipts/cloud-coverage-authority-worker.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f",
+      "sha256": "e97c9f9849e5aa7356cdb8644536a6c080e1197edd64531ad4a30f1bf4a3db29",
+      "bytes": 809,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "8c69bbfc448e893e7fa6a7b22a9d6d462cedb1f0",
+      "sha256": "0dc05d4f2c43b94ed20499b240b417f49aae6f8258061bd1ddb46e405576fdc9",
+      "bytes": 2473,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.md",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "bd37620296edfcaf8fdbf9f9b2fb3f640311be60",
+      "sha256": "064e98748052d3d9f8d0277464c58b3068cb508717d2d6d608536b16b43811a9",
+      "bytes": 1388,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "511fc4978e05f3c9c27045d4ff577af990336622",
+      "sha256": "ffeb14591b77cc2a3aaa4f80b1d41dab210686773a9556e60f196f8fb660022d",
+      "bytes": 15721,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.md",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "da5348e1224a3b031f43f169f95a013fef7171d4",
+      "sha256": "63d9211b7bb75e45f9ba4c76cbfa52155a2fcf2795ec7558bee03870dd21fec1",
+      "bytes": 6611,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-comments.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "007efad325b835d08534b5ce3dd200dd6ee87e44",
+      "sha256": "587ce9c82465afbdfe242f58002bf1c96997f1b532e595776fc647b286bfdf10",
+      "bytes": 8719,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-request.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "d7b7e86d555126b4dc4003e90503fcc1210f0475",
+      "sha256": "14c718e20d8a034c8f89e8466217ae94a4dd277eb9666d45465e433688b57006",
+      "bytes": 786,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-job.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "ea87f5f6eee31ddec1e1f4fe30c25b07ac52cc3a",
+      "sha256": "79acb295f385d3e8ab0fe47ce718e184d927f65c1a1c6e442f42bf2866779a1a",
+      "bytes": 8155,
+      "backupIndex": 0
+    },
+    {
+      "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-request.json",
+      "modeGit": "100644",
+      "status": "untracked",
+      "blobSha": "cbedcb72cd212d04cee8e1534822d3fb96e51da4",
+      "sha256": "a40d2a0c10e9de1eba19602ef468f3a0cca0d61c62254cb76cd390ae13869725",
+      "bytes": 8516,
+      "backupIndex": 0
+    },
+    {
+      "path": "tooling/ci/journey-audit-admission.test.mjs",
+      "modeGit": "100644",
+      "status": "tracked",
+      "blobSha": "68b2c64f5e8dee4be06465e8364d2716bd185d4f",
+      "sha256": "7a84a6f63968f3cddbc33a174b2371f77ea03597b0ac9404bc6e940f659bce3a",
+      "bytes": 18377,
+      "backupIndex": 0
+    },
+    {
+      "path": "tooling/ci/test-impact-manifest.json",
+      "modeGit": "100644",
+      "status": "tracked",
+      "blobSha": "765b863d8accdc4873b348ac0c9bc29cde15a37c",
+      "sha256": "080ac6a5efa913693ec78ab2182d1c1a6199f52735a38e9ffc461f37666e591e",
+      "bytes": 35460,
+      "backupIndex": 0
+    }
+  ],
+  "wipInventoryDigest": "ab60aae8b23ec94cd25fc52db69ce3cce4cba364bc14cb759b6ec6e5dcabbb54",
+  "backupRefs": [
+    {
+      "repository": "luizanunciostoca/touristic-digital-platform",
+      "ref": "refs/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+      "commitSha": "23870e2376903139188a04118a306542ffbf68aa",
+      "treeSha": "b6202ab6febd6cc4ef4495eee5cbbfc3cb52b21e",
+      "writerId": "cloud-coverage-authority-worker"
+    }
+  ],
+  "snapshotAt": "2026-10-31T18:23:13.000Z",
+  "anchorAcquisitionPr": 1336,
+  "holdWritersStoppedUntilCanonicalRelease": true,
+  "completionClaimed": false,
+  "authorityModel": "OWNER_ATTESTED_CLOSED_WRITER_INVENTORY"
+}

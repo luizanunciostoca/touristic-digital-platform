@@ -1,0 +1,145 @@
+{
+  "kind": "READ_ONLY_RENEWAL_CENSUS_BEFORE_ACK",
+  "observedAt": "2026-10-31T22:22:00.202102+00:00",
+  "task": {
+    "schemaVersion": 1,
+    "kind": "TDP_TASK_STATE",
+    "taskId": "task-MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+    "owner": "CHATGPT-PRO-CONTROL",
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+    "state": "SUBMITTED",
+    "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "contextPackDigest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5",
+    "leaseIds": [
+      "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+      "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+      "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270"
+    ],
+    "startedAt": "2026-10-31T17:17:37.630Z",
+    "testedAt": "2026-10-31T17:19:20.140Z",
+    "submittedAt": "2026-10-31T17:29:03.392Z",
+    "localProof": {
+      "schemaVersion": 1,
+      "kind": "TDP_TASK_LOCAL_PROOF",
+      "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+      "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+      "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+      "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+      "contextPackDigest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5",
+      "commandEvidence": [
+        {
+          "id": "exact-coverage-and-sensitive-boundaries",
+          "status": "PASS",
+          "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+          "timeoutSeconds": 300,
+          "outputDigest": "sha256:6a589c7c3921940994cfb3ad38135b1292a17ebbec5b019defcc757938106757"
+        }
+      ],
+      "requiredRemoteEvidence": [
+        "automated-independent-proof",
+        "exact-head-identity"
+      ],
+      "completedAt": "2026-10-31T17:19:20.140Z",
+      "digest": "sha256:fdcba672bda396fd9279ceb6907c86ff0cd996f8972af86054961d292388a170"
+    },
+    "handoffDigest": "sha256:5bdff5060537f9c35df8588981d79eee3304d70df6caef0e5d52dac73b4cebb7"
+  },
+  "leases": [
+    {
+      "leaseId": "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+      "capability": "github:read",
+      "state": "RELEASED"
+    },
+    {
+      "leaseId": "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+      "capability": "workspace:write:claimed-paths",
+      "state": "RELEASED"
+    },
+    {
+      "leaseId": "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270",
+      "capability": "evidence:write:task-local",
+      "state": "RELEASED"
+    }
+  ],
+  "history": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "bytes": 2106,
+      "currentSha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "currentBytes": 2106,
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "bytes": 1927,
+      "currentSha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "currentBytes": 1927,
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "bytes": 997,
+      "currentSha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "currentBytes": 997,
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/capability-leases.json",
+      "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "bytes": 1546,
+      "currentSha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "currentBytes": 1546,
+      "unchanged": true
+    }
+  ],
+  "proposal": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/coverage-impact-correction.proposed.patch",
+      "sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+      "bytes": 4850,
+      "currentSha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/proof-summary.json",
+      "sha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+      "bytes": 6753,
+      "currentSha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/after/tooling/ci/journey-audit-admission.test.mjs",
+      "sha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+      "bytes": 20674,
+      "currentSha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/after/tooling/ci/test-impact-manifest.json",
+      "sha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+      "bytes": 35770,
+      "currentSha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+      "unchanged": true
+    }
+  ],
+  "processCensus": {
+    "roots": [
+      "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+      "/tmp/tdp-coverage-impact-correction-git-fc089a1f"
+    ],
+    "matchingProcesses": [],
+    "unreadableProcessCount": 10,
+    "excludedInspectorAndAncestors": true,
+    "argumentsOrEnvironmentCollected": false
+  },
+  "childAgentCount": 0,
+  "childAgentObservation": "collaboration.list_agents returned only /root/autoridade_e_codigo",
+  "ownPendingMaterialCommands": 0
+}

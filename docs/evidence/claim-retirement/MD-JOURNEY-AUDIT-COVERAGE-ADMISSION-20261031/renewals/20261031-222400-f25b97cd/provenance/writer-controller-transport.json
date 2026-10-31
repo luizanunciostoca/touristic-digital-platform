@@ -1,0 +1,89 @@
+{
+  "kind": "ARCHIVAL_RENEWAL_WITH_CONTINUOUS_MATERIAL_STOP",
+  "preparedAt": "2026-10-31T22:24:00.000Z",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "materialWriter": {
+    "writerId": "cloud-coverage-authority-worker",
+    "executorIdentity": "CHATGPT-PRO-CONTROL",
+    "controllerIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root/autoridade_e_codigo",
+    "jobId": null,
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "commandIds": [
+      "exact-coverage-and-sensitive-boundaries"
+    ]
+  },
+  "controller": {
+    "logicalIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root"
+  },
+  "controllerObservation": {
+    "sourcePath": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-voluntary-renewal-controller-inventory.json",
+    "independentMaterialWriters": 0,
+    "controllerMaterialWip": false
+  },
+  "nativeChannels": [
+    {
+      "issue": 3453,
+      "role": "immutable candidate transport",
+      "status": "COMPLETED"
+    },
+    {
+      "issue": 3454,
+      "role": "read-only readiness",
+      "status": "COMPLETED"
+    },
+    {
+      "issue": 3455,
+      "role": "read-only older inventory",
+      "status": "COMPLETED"
+    },
+    {
+      "issue": 3456,
+      "role": "archive-only publication",
+      "status": "COMPLETED",
+      "endedAt": "2026-10-31T18:37:17Z"
+    },
+    {
+      "issue": 3457,
+      "role": "read-only renewed inventory",
+      "status": "COMPLETED",
+      "endedAt": "2026-10-31T22:20:19Z"
+    }
+  ],
+  "nativeSessionNotAssignedToCloudWriter": true,
+  "historyUse": "Four genuine task/history files remain byte-identically preserved in the parent archive; they are archival copies only and are not operational state installed on another executor.",
+  "writerContinuallyStopped": true,
+  "oldStopPreserved": {
+    "requestedAt": "2026-10-31T18:12:43.000Z",
+    "acknowledgedAt": "2026-10-31T18:13:35.000Z",
+    "drainedAt": "2026-10-31T18:13:35.000Z"
+  },
+  "currentStop": {
+    "writerId": "cloud-coverage-authority-worker",
+    "requestedAt": "2026-10-31T22:21:36.000Z",
+    "acknowledgedAt": "2026-10-31T22:22:24.000Z",
+    "drainedAt": "2026-10-31T22:22:24.000Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  },
+  "previousRequestExpiredAt": "2026-10-31T19:13:35.000Z",
+  "previousRequestMustNotBeReused": true,
+  "lineage": {
+    "writerHead": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "previousArchive": "23870e2376903139188a04118a306542ffbf68aa",
+    "newArchiveParent": "23870e2376903139188a04118a306542ffbf68aa",
+    "allowedContract": "Backup may be a descendant of writer HEAD; no task restart or new material authority follows."
+  },
+  "limits": [
+    "One material writer is declared from observed facts. Controller, exact-byte transport and read-only channels remain distinct.",
+    "Visible-process inventories are bounded observations, not a personal owner attestation of global completeness.",
+    "No material source edit, task/claim transition, retirement, publication or personal consent occurs in this preparation.",
+    "Remote readback of the new archive is pending; owner attestation is missing."
+  ],
+  "remoteReadback": "PENDING",
+  "ownerAttestation": "MISSING"
+}

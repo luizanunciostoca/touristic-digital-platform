@@ -1,0 +1,24 @@
+{
+  "issue": 3457,
+  "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3457",
+  "result_comment_id": 6549902922,
+  "request_sha256": "23da9016809c8b4e145c0a354933f5e4f91d0ecf372ea0a94fd44c8986145954",
+  "exit_code": 0,
+  "started_at": "2026-10-31T22:20:12Z",
+  "ended_at": "2026-10-31T22:20:19Z",
+  "inventory": {
+    "kind": "NATIVE_BARE_PUBLICATION_CHANNEL_INVENTORY",
+    "observedAt": "2026-10-31T22:20:16.823168+00:00",
+    "branch": "refs/heads/chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "matchingMaterialWorktrees": [],
+    "processesInMatchingMaterialWorktrees": [],
+    "processInventoryLimit": "Read-only PID/comm/cwd of worktrees for this exact branch; does not attest global absence of all possible external writers.",
+    "bareStorePresent": true
+  },
+  "main_sha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "pr1337_state": "open",
+  "pr1337_draft": true,
+  "source_comments_sha256": "c1c5484d73ec871dd5862bc96b57afe63d16360e21830bbb70a38c93b22d8b58"
+}

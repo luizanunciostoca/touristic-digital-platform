@@ -1,0 +1,41 @@
+{
+  "observedAt": "2026-10-31T22:21:06.132396+00:00",
+  "kind": "CONTROLLER_BOUNDED_WRITER_INVENTORY_RENEWAL",
+  "claim_id": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "controller": "/root",
+  "material_writer": "/root/autoridade_e_codigo",
+  "independent_material_writers_started_by_controller": 0,
+  "controller_material_wip": false,
+  "native_material_writer": false,
+  "native_channels": [
+    {
+      "issue": 3453,
+      "role": "immutable candidate transport",
+      "status": "COMPLETED"
+    },
+    {
+      "issue": 3454,
+      "role": "read-only readiness",
+      "status": "COMPLETED"
+    },
+    {
+      "issue": 3455,
+      "role": "read-only older inventory",
+      "status": "COMPLETED"
+    },
+    {
+      "issue": 3456,
+      "role": "archive-only publication",
+      "status": "COMPLETED",
+      "endedAt": "2026-10-31T18:37:17Z"
+    },
+    {
+      "issue": 3457,
+      "role": "read-only renewed inventory",
+      "status": "COMPLETED",
+      "endedAt": "2026-10-31T22:20:19Z"
+    }
+  ],
+  "other_current_agent_work": "Report/workbook renewal and read-only D09 diagnosis outside material workspace; no coverage product writes or task lifecycle operations.",
+  "limits": "Only writers and jobs controlled/observed in this session are covered; personal owner attestation remains required for completeness beyond observed channels."
+}

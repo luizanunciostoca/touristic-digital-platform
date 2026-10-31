@@ -1,0 +1,146 @@
+{
+  "kind": "FROZEN_LOCAL_ARCHIVE_AND_PURE_SCHEMA_VALIDATION",
+  "finalizedAt": "2026-10-31T18:23:13.000Z",
+  "packetDirectory": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b",
+  "bareClone": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/preserved.git",
+  "backup": {
+    "repository": "luizanunciostoca/touristic-digital-platform",
+    "ref": "refs/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+    "commitSha": "23870e2376903139188a04118a306542ffbf68aa",
+    "treeSha": "b6202ab6febd6cc4ef4495eee5cbbfc3cb52b21e",
+    "writerId": "cloud-coverage-authority-worker"
+  },
+  "bundle": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/coverage-stopped-writer-compact.bundle",
+    "sha256": "715763b7756f7b3b9a497bb91d6979e87985060110f7c62c09aa7e5cf7bcd3c5",
+    "bytes": 81883,
+    "prerequisiteSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "localVerificationOutput": "The bundle contains this ref:\n23870e2376903139188a04118a306542ffbf68aa refs/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b\nThe bundle requires this ref:\nfc089a1fcef27e3c39f3c3d27faf4f69b088436b \nThe bundle uses this hash algorithm: sha1\n",
+    "replacesFirstPackagingOnly": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/coverage-stopped-writer.bundle"
+  },
+  "request": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/voluntary-release-request.json",
+    "canonicalSha256": "023a155ff3da80b622f0e7628365d4944cc54c5192083fae78957a5c6d4bcf4d",
+    "fileSha256": "f5df76e08b27353d16291b08de0937675e780908775851dbf65046641c76fcbe",
+    "bytes": 17547,
+    "snapshotAt": "2026-10-31T18:23:13.000Z",
+    "decisionNonce": "audit-coverage-voluntary-20261031-b8eb61a4-67bc-4e3c-b45e-9ac300dc8a3d",
+    "retirementBranch": "chore/retire-audit-coverage-20261031-181814-99ba1a8b"
+  },
+  "receipt": {
+    "pathInBackup": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/receipts/cloud-coverage-authority-worker.json",
+    "blobSha": "3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f",
+    "sha256": "e97c9f9849e5aa7356cdb8644536a6c080e1197edd64531ad4a30f1bf4a3db29",
+    "requestedAt": "2026-10-31T18:12:43.000Z",
+    "acknowledgedAt": "2026-10-31T18:13:35.000Z",
+    "drainedAt": "2026-10-31T18:13:35.000Z"
+  },
+  "wipEntries": 37,
+  "archiveFiles": 32,
+  "ownedBlobsPreserved": [
+    {
+      "path": ".morro/ownership.json",
+      "blobSha": "dae399acf8982d3643719fe9af4b3722bebf78ea",
+      "sha256": "82404b46e333c1d4db7128d2d0c90b1c6e739e0e12e9d98ac689fdb8d6b7846a",
+      "bytes": 14012
+    },
+    {
+      "path": "tooling/ci/test-impact-manifest.json",
+      "blobSha": "765b863d8accdc4873b348ac0c9bc29cde15a37c",
+      "sha256": "080ac6a5efa913693ec78ab2182d1c1a6199f52735a38e9ffc461f37666e591e",
+      "bytes": 35460
+    },
+    {
+      "path": "tooling/ci/journey-audit-admission.test.mjs",
+      "blobSha": "68b2c64f5e8dee4be06465e8364d2716bd185d4f",
+      "sha256": "7a84a6f63968f3cddbc33a174b2371f77ea03597b0ac9404bc6e940f659bce3a",
+      "bytes": 18377
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "blobSha": "079f27045544fe6b77b956c4687d67fe2d84b2a8",
+      "sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+      "bytes": 2234
+    },
+    {
+      "path": ".github/workflows/auth-login-browser-contract.yml",
+      "blobSha": "5433db46895e94385a9f3713e29f1f961ff1070a",
+      "sha256": "04e451a248fd3ac1e8602d26449ba49a421c25bcdc3a975004d0ada64209df40",
+      "bytes": 10718
+    }
+  ],
+  "localChecks": {
+    "singleExactParent": true,
+    "allFiveOwnedBlobsUnchanged": true,
+    "onlyArchivePathsAdded": true,
+    "sourceWorkspaceStillCleanAndUnchanged": true,
+    "allSourceCopiesStillMatch": true,
+    "completeWipInventory": true,
+    "allWipBlobsAndHashesVerified": true,
+    "exactClosedReceiptVerified": true,
+    "pureSchema": "PASS",
+    "shellSyntaxOnly": "PASS",
+    "canonicalPolicyFilesUnchanged": true
+  },
+  "validatorSourceReadback": [
+    {
+      "path": "tooling/fabric/claim-retirement-proof.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "7b0829145f765bfeb98ca47a50633d6834520ef93dd179ce45b3e44fe186d991",
+      "byteIdentical": true
+    },
+    {
+      "path": "tooling/mdctl/changeset-v2.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "e0dca84e2b406152712aeadc060e810be4b24fcd9f1596f7a22bd467d4ef9d3d",
+      "byteIdentical": true
+    },
+    {
+      "path": "tooling/fabric/claim-guard.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "f07b5ad6168d4bd1c6a7bd7649492c8680a3870493e2dd073955100f9f448195",
+      "byteIdentical": true
+    },
+    {
+      "path": "tooling/mdctl/event-ledger.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "cc6e30de529c7280adff6b3590186bb885e3d05972ab1f7b547ea3a814fdf482",
+      "byteIdentical": true
+    }
+  ],
+  "pureValidationClockBasis": "Observed UTC time from clock.curr_time after archive creation; no simulated provider or remote authority.",
+  "freshness": {
+    "drainedAtMustBeNoOlderThanSeconds": 3600,
+    "snapshotAtMustBeNoOlderThanSeconds": 3600,
+    "earliestLocalFreshnessDeadlineExclusive": "2026-10-31T19:13:35.000Z",
+    "ownerConsentMaxAgeSeconds": 1800,
+    "note": "If the ACK or snapshot becomes stale, do not edit historical timestamps. Obtain a new factual stop observation and rebuild request/receipt/backup identities as required."
+  },
+  "publication": {
+    "guardedScript": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/publish-backup-guarded.sh",
+    "transportDownloadScript": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/fetch-transport-blob.sh",
+    "transportBlobReadback": "NOT_PUBLISHED",
+    "requiredGuards": [
+      "exact bundle hash/size",
+      "single parent fc089",
+      "current main d979",
+      "source ref fc089",
+      "backup ref absent with force-with-lease expected absence",
+      "remote backup ref readback"
+    ],
+    "publicationExecuted": false
+  },
+  "remote_readback": "PENDING",
+  "owner_attestation": "MISSING",
+  "ownerMarkerCandidateNotRequested": "APPROVED_VOLUNTARY_RELEASE:MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031:023a155ff3da80b622f0e7628365d4944cc54c5192083fae78957a5c6d4bcf4d:audit-coverage-voluntary-20261031-b8eb61a4-67bc-4e3c-b45e-9ac300dc8a3d:d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "readyForOwnerRequest": false,
+  "readyForRetirement": false,
+  "limitations": [
+    "Only local object preservation and pure request schema validation were performed.",
+    "No canonical task, claim, retirement, history migration, product edit or publication was performed.",
+    "The full canonical remote evidence collector has not run; backup refs/receipt blobs are not yet read back remotely.",
+    "The owner has not posted the personal consent required by the protocol.",
+    "The author remains STOPPED. These archive writes do not restart material implementation.",
+    "The first 93,877-byte bundle is retained only as superseded packaging of the same objects. Publish only the final 81,883-byte compact bundle."
+  ]
+}

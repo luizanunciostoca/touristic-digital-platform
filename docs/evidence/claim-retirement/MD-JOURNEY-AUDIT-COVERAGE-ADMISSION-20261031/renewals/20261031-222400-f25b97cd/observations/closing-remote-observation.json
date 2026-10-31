@@ -1,0 +1,315 @@
+{
+  "kind": "READ_ONLY_CANONICAL_RENEWAL_OBSERVATIONS",
+  "clockAfterRead": "2026-10-31 22:22:24 UTC",
+  "readOnly": true,
+  "records": {
+    "main": {
+      "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/main",
+      "body": {
+        "ref": "refs/heads/main",
+        "node_id": "REF_kwDOT_Qyfa9yZWZzL2hlYWRzL21haW4",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/main",
+        "object": {
+          "sha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+          "type": "commit",
+          "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/d979b9813c1ab40b96dee64616b9f7d08a7c0d07"
+        }
+      }
+    },
+    "source": {
+      "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/chore/journey-audit-coverage-admission-20261031",
+      "body": {
+        "ref": "refs/heads/chore/journey-audit-coverage-admission-20261031",
+        "node_id": "REF_kwDOT_QyfdoAOnJlZnMvaGVhZHMvY2hvcmUvam91cm5leS1hdWRpdC1jb3ZlcmFnZS1hZG1pc3Npb24tMjAyNjEwMzE",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/chore/journey-audit-coverage-admission-20261031",
+        "object": {
+          "sha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+          "type": "commit",
+          "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/fc089a1fcef27e3c39f3c3d27faf4f69b088436b"
+        }
+      }
+    },
+    "previous_backup": {
+      "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+      "body": {
+        "ref": "refs/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+        "node_id": "REF_kwDOT_QyfdoAQnJlZnMvaGVhZHMvYXJjaGl2ZS9hdWRpdC1jb3ZlcmFnZS1zdG9wcGVkLTIwMjYxMDMxLTE4MTgxNC05OWJhMWE4Yg",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+        "object": {
+          "sha": "23870e2376903139188a04118a306542ffbf68aa",
+          "type": "commit",
+          "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/23870e2376903139188a04118a306542ffbf68aa"
+        }
+      }
+    },
+    "claims": {
+      "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/contents/.github/morro-control/claims.json?ref=d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "body": {
+        "schemaVersion": 1,
+        "registryAuthority": "ORCHESTRATOR",
+        "claims": {
+          "MD-COMMON-PR-COMPATIBILITY-MIGRATION-20261024": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "chore/acquire-common-pr-compatibility-migration-20261024",
+            "baseSha": "3b0f78e5b0ab3de15e8b845335a61083912363b4",
+            "paths": [
+              ".github/workflows/morro-agent-profiles-trusted.yml",
+              "tooling/control-state/mdctl-merge-gate.test.mjs",
+              "tooling/mdctl/merge-gate.mjs",
+              "tooling/mdctl/scheduler-live.mjs",
+              "tooling/quality/independent-proof-trusted.mjs",
+              ".morro/changesets/MD-COMMON-PR-COMPATIBILITY-MIGRATION-20261024.json"
+            ],
+            "domains": [
+              "ci-release"
+            ],
+            "risk": "P1",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-10-25T04:59:59.000Z"
+          },
+          "MD-MYSQL-LIBBROTLI-SECURITY-20261027": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "chore/acquire-mysql-libbrotli-20261027",
+            "baseSha": "f992054fc12876a20ca4668dc45558b1bd4b4225",
+            "paths": [
+              ".morro/changesets/MD-MYSQL-LIBBROTLI-SECURITY-20261027.json",
+              "tooling/render/mysql-staging/Dockerfile",
+              "tooling/render/mysql-production/Dockerfile",
+              "tooling/render/mysql-production-dr/Dockerfile",
+              "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
+            ],
+            "domains": [
+              "ci-release"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-10-27T14:00:00.000Z"
+          },
+          "MD-HOME-CSS-RECOVERY-CONTRACT-20261027": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "chore/prepare-composition-recovery-contract-20261027",
+            "baseSha": "c4d51119e09ac0586fca5d0147ee97dc47527762",
+            "paths": [
+              "tooling/mdctl/task-reanchor.mjs",
+              "tooling/control-state/mdctl-task-reanchor.test.mjs",
+              ".morro/changesets/MD-HOME-CSS-RECOVERY-CONTRACT-20261027.json"
+            ],
+            "domains": [
+              "control-plane"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-10-27T15:00:00.000Z"
+          },
+          "MD-CSS-ENTRY-ORDER-GRANT-R2-20261027": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "chore/p2-grant-r2-acquisition-20261027",
+            "baseSha": "c7adda0fab09af4d638c4fefbe3bd0f07c523e97",
+            "paths": [
+              ".morro/task-corrections/MD-CSS-ENTRY-ORDER-CORRECTION-R2-20261027.json",
+              ".morro/changesets/MD-CSS-ENTRY-ORDER-GRANT-R2-20261027.json"
+            ],
+            "domains": [
+              "control-plane"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-10-27T15:00:00.000Z"
+          },
+          "MD-CLOUD-EXECUTION-COMPATIBILITY-20261027": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "chore/cloud-execution-compatibility-20261027",
+            "baseSha": "bac7b4221a1c35df98b96c774d2955158343790c",
+            "paths": [
+              "tooling/failure-learning/executor-preflight.mjs",
+              "tooling/failure-learning/executor-preflight.test.mjs",
+              ".morro/changesets/MD-CLOUD-EXECUTION-COMPATIBILITY-20261027.json"
+            ],
+            "domains": [
+              "control-plane"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-10-27T18:00:00.000Z"
+          },
+          "MD-CSS-RECOVERY-FIXTURES-20261027": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "fix/css-recovery-fixtures-20261027",
+            "baseSha": "e78a868b4e9de6ae2c63b2688099088acab99d86",
+            "paths": [
+              "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
+              "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
+              ".morro/changesets/MD-CSS-RECOVERY-FIXTURES-20261027.json"
+            ],
+            "domains": [
+              "map",
+              "ci-release"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-10-27T23:59:59.000Z"
+          },
+          "MD-OCI-READINESS-COMPATIBILITY-20261030": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "fix/oci-readiness-compatibility-20261030",
+            "baseSha": "624c556130079732c32d7c498cb7683161a8ac66",
+            "paths": [
+              "tooling/quality/check-release-readiness.mjs",
+              "tooling/ci/staging-readiness-runtime.test.mjs",
+              ".morro/changesets/MD-OCI-READINESS-COMPATIBILITY-20261030.json"
+            ],
+            "domains": [
+              "ci-release"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-10-31T23:00:00.000Z"
+          },
+          "MD-WP06-CRM-FEEDBACK-20261031": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "fix/wp06-crm-feedback-20261031",
+            "baseSha": "45961562b8fb2c5e8496fc0fffeb4fb29a40e646",
+            "paths": [
+              "apps/admin-crm/public/referrals.js",
+              "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+              ".morro/changesets/MD-WP06-CRM-FEEDBACK-20261031.json"
+            ],
+            "domains": [
+              "auth"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-11-02T11:59:00.000Z"
+          },
+          "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031": {
+            "owner": "CHATGPT-PRO-CONTROL",
+            "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+            "branch": "chore/journey-audit-coverage-admission-20261031",
+            "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+            "paths": [
+              ".morro/ownership.json",
+              "tooling/ci/test-impact-manifest.json",
+              "tooling/ci/journey-audit-admission.test.mjs",
+              ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+              ".github/workflows/auth-login-browser-contract.yml"
+            ],
+            "domains": [
+              "ci-release"
+            ],
+            "risk": "P0",
+            "status": "IMPLEMENTING",
+            "expiresAt": "2026-11-01T23:00:00.000Z"
+          }
+        }
+      }
+    },
+    "manifest": {
+      "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/contents/.morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json?ref=d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "body": {
+        "schemaVersion": 2,
+        "id": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "objective": "register-exact-audit-followup-coverage-and-wire-existing-session-recovery-browser-proof-without-product-or-policy-engine-changes",
+        "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+        "branch": "chore/journey-audit-coverage-admission-20261031",
+        "state": "IMPLEMENTING",
+        "risk": "critical",
+        "scope": "PLATFORM",
+        "owns": {
+          "paths": [
+            ".morro/ownership.json",
+            "tooling/ci/test-impact-manifest.json",
+            "tooling/ci/journey-audit-admission.test.mjs",
+            ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+            ".github/workflows/auth-login-browser-contract.yml"
+          ],
+          "contracts": []
+        },
+        "reads": {
+          "contracts": [
+            "TDP-CONTROL-PLANE-V3.2",
+            "platform-authz",
+            "ticket-fulfillment"
+          ]
+        },
+        "produces": {
+          "events": [],
+          "routes": []
+        },
+        "database": {
+          "tables": []
+        },
+        "auth": {
+          "capabilities": []
+        },
+        "dependencies": [],
+        "requiredEvidence": [
+          "format",
+          "secrets",
+          "lint",
+          "typecheck",
+          "affected-tests",
+          "build",
+          "integration",
+          "automated-independent-proof",
+          "exact-head-identity",
+          "owner-scope-resolution",
+          "full-quality",
+          "domain-invariants",
+          "exact-head-release-gates"
+        ],
+        "requiredCapabilities": [
+          "github:read",
+          "workspace:write:claimed-paths",
+          "evidence:write:task-local"
+        ],
+        "contextPack": {
+          "maxBytes": 65536,
+          "include": [
+            "changeset",
+            "git-identity",
+            "ownership",
+            "contracts",
+            "dependencies",
+            "proof-plan"
+          ]
+        },
+        "proof": {
+          "budget": {
+            "maxCommands": 2,
+            "maxSeconds": 600
+          },
+          "commands": [
+            {
+              "id": "exact-coverage-and-sensitive-boundaries",
+              "argv": [
+                "node",
+                "--test",
+                "tooling/ci/journey-audit-admission.test.mjs",
+                "tooling/ci/impact-analyzer-exact-path.test.mjs",
+                "tooling/fabric/ordinary-pr-policy.test.mjs"
+              ],
+              "timeoutSeconds": 300
+            }
+          ],
+          "requiredRemoteEvidence": [
+            "automated-independent-proof",
+            "exact-head-identity"
+          ]
+        },
+        "stopAt": "REMOTE_PROVEN"
+      }
+    },
+    "owner_comments": {
+      "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/issues/1336/comments?per_page=100&page=1",
+      "body": []
+    }
+  }
+}

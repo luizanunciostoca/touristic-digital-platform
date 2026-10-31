@@ -1,0 +1,83 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "comments": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3457#issuecomment-6549895980",
+        "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: 23da9016809c8b4e145c0a354933f5e4f91d0ecf372ea0a94fd44c8986145954",
+        "user": {
+          "login": "github-actions[bot]",
+          "name": "github-actions[bot]",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+          "id": 41898282
+        },
+        "id": 6549895980,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: 23da9016809c8b4e145c0a354933f5e4f91d0ecf372ea0a94fd44c8986145954</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3457#issuecomment-6549901359",
+        "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3457 at 2026-10-31T22:20:09Z.",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6549901359,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6140422515\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3457\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3457/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3457\">#3457</a> at 2026-10-31T22:20:09Z.</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3457#issuecomment-6549902922",
+        "body": "MORRO_AGENT_RESULT_V3\n\n- id: inventory-audit-coverage-renewal-20261031-2219\n- target: termux\n- exit_code: 0\n- started_at: 2026-10-31T22:20:12Z\n- ended_at: 2026-10-31T22:20:19Z\n- duration_seconds: 7\n- request_sha256: 23da9016809c8b4e145c0a354933f5e4f91d0ecf372ea0a94fd44c8986145954\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"inventory-audit-coverage-renewal-20261031-2219\",\"target\":\"termux\",\"started_at\":\"2026-10-31T22:20:12Z\",\"ended_at\":\"2026-10-31T22:20:19Z\",\"duration_seconds\":7,\"exit_code\":0,\"request_sha256\":\"23da9016809c8b4e145c0a354933f5e4f91d0ecf372ea0a94fd44c8986145954\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\n{\n  \"kind\": \"NATIVE_BARE_PUBLICATION_CHANNEL_INVENTORY\",\n  \"observedAt\": \"2026-10-31T22:20:16.823168+00:00\",\n  \"branch\": \"refs/heads/chore/journey-audit-coverage-admission-20261031\",\n  \"headSha\": \"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\n  \"treeSha\": \"bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04\",\n  \"matchingMaterialWorktrees\": [],\n  \"processesInMatchingMaterialWorktrees\": [],\n  \"processInventoryLimit\": \"Read-only PID/comm/cwd of worktrees for this exact branch; does not attest global absence of all possible external writers.\",\n  \"bareStorePresent\": true\n}\n{\"base\":\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\"draft\":true,\"head\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"number\":1337,\"state\":\"open\"}\nd979b9813c1ab40b96dee64616b9f7d08a7c0d07\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3457/\n",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6549902922,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: inventory-audit-coverage-renewal-20261031-2219</li>\n<li>target: termux</li>\n<li>exit_code: 0</li>\n<li>started_at: 2026-10-31T22:20:12Z</li>\n<li>ended_at: 2026-10-31T22:20:19Z</li>\n<li>duration_seconds: 7</li>\n<li>request_sha256: 23da9016809c8b4e145c0a354933f5e4f91d0ecf372ea0a94fd44c8986145954</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"inventory-audit-coverage-renewal-20261031-2219\",\"target\":\"termux\",\"started_at\":\"2026-10-31T22:20:12Z\",\"ended_at\":\"2026-10-31T22:20:19Z\",\"duration_seconds\":7,\"exit_code\":0,\"request_sha256\":\"23da9016809c8b4e145c0a354933f5e4f91d0ecf372ea0a94fd44c8986145954\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text<br>\n{<br>\n\"kind\": \"NATIVE_BARE_PUBLICATION_CHANNEL_INVENTORY\",<br>\n\"observedAt\": \"2026-10-31T22:20:16.823168+00:00\",<br>\n\"branch\": \"refs/heads/chore/journey-audit-coverage-admission-20261031\",<br>\n\"headSha\": \"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",<br>\n\"treeSha\": \"bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04\",<br>\n\"matchingMaterialWorktrees\": [],<br>\n\"processesInMatchingMaterialWorktrees\": [],<br>\n\"processInventoryLimit\": \"Read-only PID/comm/cwd of worktrees for this exact branch; does not attest global absence of all possible external writers.\",<br>\n\"bareStorePresent\": true<br>\n}<br>\n{\"base\":\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\"draft\":true,\"head\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"number\":1337,\"state\":\"open\"}<br>\nd979b9813c1ab40b96dee64616b9f7d08a7c0d07<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3457/</p>"
+      }
+    ],
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3457",
+    "title": "luizanunciostoca/morro-termux-control Issue #3457 comments",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3457",
+    "display_title": "luizanunciostoca/morro-termux-control Issue #3457 comments"
+  },
+  "isError": false
+}
