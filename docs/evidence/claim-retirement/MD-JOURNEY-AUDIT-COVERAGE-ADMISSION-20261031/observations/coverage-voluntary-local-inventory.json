@@ -1,0 +1,12 @@
+{
+  "kind": "LOCAL_MATERIAL_WRITER_INVENTORY_OBSERVATION",
+  "observedAt": "2026-10-31T18:12:46.175666+00:00",
+  "workspace": "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+  "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+  "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+  "worktreeStatus": "",
+  "processesWithCwdInMaterialOrProposalWorkspace": [],
+  "sourceWorktrees": "worktree /workspace/scratch/f024a80a7385/tdp-coverage-admission\nHEAD fc089a1fcef27e3c39f3c3d27faf4f69b088436b\nbranch refs/heads/chore/journey-audit-coverage-admission-20261031\n\n",
+  "externalProposalPatchSha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+  "limits": "Process observation covers PID/comm/cwd, not a global attestation about unknown independent writers. Root acts as controller/reviewer and exact-object publication coordinator; root has not edited coverage product material."
+}

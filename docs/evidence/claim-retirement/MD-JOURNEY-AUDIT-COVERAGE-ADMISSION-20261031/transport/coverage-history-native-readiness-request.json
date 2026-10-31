@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "confirm": "EXECUTE",
+  "id": "readiness-audit-history-20261031",
+  "target": "termux",
+  "cwd": "~",
+  "timeout_seconds": 90,
+  "command": "set -euo pipefail\ncommand -v git\ncommand -v gh\ncommand -v node\ncommand -v pnpm\ngit --version\ngh --version\nnode --version\npnpm --version\ngh api repos/luizanunciostoca/touristic-digital-platform/commits/main --jq .sha\ngh api repos/luizanunciostoca/touristic-digital-platform/pulls/1337 --jq '{number,state,draft,head:.head.sha,base:.base.sha}'\ntest -d \"$HOME/repos/touristic-digital-platform.git\"\ngit --git-dir=\"$HOME/repos/touristic-digital-platform.git\" worktree list --porcelain | awk '/^worktree /{path=$0} /^branch refs\\/heads\\/chore\\/journey-audit-coverage-admission-20261031$/{print path;print}'\n"
+}

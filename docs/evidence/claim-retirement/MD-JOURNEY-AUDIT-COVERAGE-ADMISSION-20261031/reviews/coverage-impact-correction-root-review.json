@@ -1,0 +1,57 @@
+{
+  "reviewed_at": "2026-10-31T18:03:42.790931+00:00",
+  "reviewer": "/root",
+  "source_head": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+  "patch_sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+  "prospective_tree": "0e93d20ea015f49288f7cbe95966658b13b0b384",
+  "scope": [
+    "tooling/ci/test-impact-manifest.json",
+    "tooling/ci/journey-audit-admission.test.mjs"
+  ],
+  "disposition": "APPROVED_AS_EXTERNAL_PROPOSAL_ONLY",
+  "findings": [],
+  "evidence_hashes_verified": [
+    "remediation/plans/coverage-impact-correction/coverage-impact-correction.proposed.patch",
+    "remediation/evidence/coverage-material-impact-red.log",
+    "remediation/evidence/coverage-material-impact-proposal-no-git-environment-failure.log",
+    "remediation/evidence/coverage-material-root-ci-proposal-missing-dependencies-failure.log",
+    "remediation/evidence/coverage-material-proposal-dependency-install.log",
+    "remediation/evidence/coverage-material-impact-proposed-green.log",
+    "remediation/evidence/coverage-material-root-ci-proposed-green.log"
+  ],
+  "preserved_validators_verified": [
+    {
+      "path": "tooling/ci/impact-analyzer.mjs",
+      "sha256": "98c752da897d915843461b81bb6c2fab9aa2cf266c30064aab7da8fa1773e2b6",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/ci/impact-analyzer.test.mjs",
+      "sha256": "448eb612e2ee548e8aabb43dc1b788c8ed9fe12519f93076ec0db589657e2500",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/fabric/ordinary-pr-policy.mjs",
+      "sha256": "6b4883ec2f599b1a15419d9163e25643d98cdadb6952c22fabe07baec13cc81d",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": ".morro/risk-policy.json",
+      "sha256": "bda77cabf5ae951d38e7dc72462d46bb36b768f93ae14a3bbded08c6324ee7ac",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/mdctl/task-generation.mjs",
+      "sha256": "b6edcc0bd076d048a35eb5591dcef082384a5f07e0d1e08edfd6197ace6419ad",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/mdctl/task-lifecycle.mjs",
+      "sha256": "ce13a478416d658993515203a4ee857b9d2695b4fc174fadba690d2ce3bb66f5",
+      "byte_identical_to_main": true
+    }
+  ],
+  "tests_rerun_by_reviewer": false,
+  "author_proof": "114/114 focused and 503/503 exact Core selection; overlapping, not additive",
+  "authority": "Material update remains blocked; this review does not create write authority or certify a PR head."
+}

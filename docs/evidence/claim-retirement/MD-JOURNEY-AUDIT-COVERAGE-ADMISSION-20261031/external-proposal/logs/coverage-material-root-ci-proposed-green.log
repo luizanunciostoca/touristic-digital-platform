@@ -1,0 +1,3034 @@
+TAP version 13
+# Subtest: local API reexports the identical task-proof validator
+ok 1 - local API reexports the identical task-proof validator
+  ---
+  duration_ms: 1.458292
+  type: 'test'
+  ...
+# Subtest: real remote and local CLI agree on consumer selection for checker
+ok 2 - real remote and local CLI agree on consumer selection for checker
+  ---
+  duration_ms: 1035.350977
+  type: 'test'
+  ...
+# Subtest: real remote and local CLI agree on consumer selection for delete
+ok 3 - real remote and local CLI agree on consumer selection for delete
+  ---
+  duration_ms: 774.567705
+  type: 'test'
+  ...
+# Subtest: real remote and local CLI agree on consumer selection for two
+ok 4 - real remote and local CLI agree on consumer selection for two
+  ---
+  duration_ms: 689.228702
+  type: 'test'
+  ...
+# Subtest: normal workspace impact preserves the original Git-only argv
+ok 5 - normal workspace impact preserves the original Git-only argv
+  ---
+  duration_ms: 193.045252
+  type: 'test'
+  ...
+# Subtest: remote affected CLI cannot rescue unknown as AFFECTED
+ok 6 - remote affected CLI cannot rescue unknown as AFFECTED
+  ---
+  duration_ms: 162.840333
+  type: 'test'
+  ...
+# Subtest: remote affected CLI cannot rescue nonruntime as AFFECTED
+ok 7 - remote affected CLI cannot rescue nonruntime as AFFECTED
+  ---
+  duration_ms: 170.002932
+  type: 'test'
+  ...
+# Subtest: remote affected CLI cannot rescue deep as AFFECTED
+ok 8 - remote affected CLI cannot rescue deep as AFFECTED
+  ---
+  duration_ms: 238.496894
+  type: 'test'
+  ...
+# Subtest: wrong consumer package name at the exact candidate HEAD fails closed
+ok 9 - wrong consumer package name at the exact candidate HEAD fails closed
+  ---
+  duration_ms: 367.448473
+  type: 'test'
+  ...
+# Subtest: dirty package name cannot be used instead of the exact candidate blob
+ok 10 - dirty package name cannot be used instead of the exact candidate blob
+  ---
+  duration_ms: 178.568421
+  type: 'test'
+  ...
+# Subtest: stale base is rejected by both actual entrypoints
+ok 11 - stale base is rejected by both actual entrypoints
+  ---
+  duration_ms: 174.012506
+  type: 'test'
+  ...
+# Subtest: main push uses its real before/after interval when remote main is already HEAD
+ok 12 - main push uses its real before/after interval when remote main is already HEAD
+  ---
+  duration_ms: 258.779025
+  type: 'test'
+  ...
+# Subtest: local certify ignores inherited main-push identity with complete task graph
+ok 13 - local certify ignores inherited main-push identity with complete task graph
+  ---
+  duration_ms: 394.048602
+  type: 'test'
+  ...
+# Subtest: local certify ignores inherited main-push identity with empty task graph
+ok 14 - local certify ignores inherited main-push identity with empty task graph
+  ---
+  duration_ms: 402.11881
+  type: 'test'
+  ...
+# Subtest: main push rejects mismatched event before before executing proof
+ok 15 - main push rejects mismatched event before before executing proof
+  ---
+  duration_ms: 102.005046
+  type: 'test'
+  ...
+# Subtest: main push rejects mismatched event after before executing proof
+ok 16 - main push rejects mismatched event after before executing proof
+  ---
+  duration_ms: 106.740973
+  type: 'test'
+  ...
+# Subtest: main push rejects mismatched event ref before executing proof
+ok 17 - main push rejects mismatched event ref before executing proof
+  ---
+  duration_ms: 99.404693
+  type: 'test'
+  ...
+# Subtest: main push rejects a GITHUB_SHA different from the checkout
+ok 18 - main push rejects a GITHUB_SHA different from the checkout
+  ---
+  duration_ms: 103.339651
+  type: 'test'
+  ...
+# Subtest: main push rejects missing event payload
+ok 19 - main push rejects missing event payload
+  ---
+  duration_ms: 96.283674
+  type: 'test'
+  ...
+# Subtest: main push rejects malformed event payload
+ok 20 - main push rejects malformed event payload
+  ---
+  duration_ms: 94.243417
+  type: 'test'
+  ...
+# Subtest: main push rejects remote main different from its exact HEAD
+ok 21 - main push rejects remote main different from its exact HEAD
+  ---
+  duration_ms: 97.104726
+  type: 'test'
+  ...
+# Subtest: pull_request on refs/pull/1/merge retains the remote-main-equals-base rule
+ok 22 - pull_request on refs/pull/1/merge retains the remote-main-equals-base rule
+  ---
+  duration_ms: 94.197314
+  type: 'test'
+  ...
+# Subtest: merge_group on refs/heads/gh-readonly-queue/main/fixture retains the remote-main-equals-base rule
+ok 23 - merge_group on refs/heads/gh-readonly-queue/main/fixture retains the remote-main-equals-base rule
+  ---
+  duration_ms: 94.202777
+  type: 'test'
+  ...
+# Subtest: workflow_dispatch on refs/heads/main retains the remote-main-equals-base rule
+ok 24 - workflow_dispatch on refs/heads/main retains the remote-main-equals-base rule
+  ---
+  duration_ms: 103.31255
+  type: 'test'
+  ...
+# Subtest: push on refs/heads/other retains the remote-main-equals-base rule
+ok 25 - push on refs/heads/other retains the remote-main-equals-base rule
+  ---
+  duration_ms: 89.220995
+  type: 'test'
+  ...
+# Subtest: remote CLI refuses caller selection override --filter=@touristic/other
+ok 26 - remote CLI refuses caller selection override --filter=@touristic/other
+  ---
+  duration_ms: 138.606394
+  type: 'test'
+  ...
+# Subtest: remote CLI refuses caller selection override --report=fabricated.json
+ok 27 - remote CLI refuses caller selection override --report=fabricated.json
+  ---
+  duration_ms: 126.612946
+  type: 'test'
+  ...
+# Subtest: remote CLI refuses caller selection override --head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ok 28 - remote CLI refuses caller selection override --head=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  ---
+  duration_ms: 115.266239
+  type: 'test'
+  ...
+# Subtest: real remote and local dispatch reject incomplete dry graph (0)
+ok 29 - real remote and local dispatch reject incomplete dry graph (0)
+  ---
+  duration_ms: 563.231305
+  type: 'test'
+  ...
+# Subtest: real remote and local dispatch reject incomplete dry graph (1)
+ok 30 - real remote and local dispatch reject incomplete dry graph (1)
+  ---
+  duration_ms: 547.189642
+  type: 'test'
+  ...
+# Subtest: real remote and local dispatch reject incomplete dry graph (3)
+ok 31 - real remote and local dispatch reject incomplete dry graph (3)
+  ---
+  duration_ms: 544.58008
+  type: 'test'
+  ...
+# Subtest: reverting only remote CLI guard dispatch reproduces false PASS on zero tasks
+ok 32 - reverting only remote CLI guard dispatch reproduces false PASS on zero tasks
+  ---
+  duration_ms: 347.185606
+  type: 'test'
+  ...
+# Subtest: both real entrypoints reject head identity mutation after proof
+ok 33 - both real entrypoints reject head identity mutation after proof
+  ---
+  duration_ms: 621.331892
+  type: 'test'
+  ...
+# Subtest: both real entrypoints reject dirty identity mutation after proof
+ok 34 - both real entrypoints reject dirty identity mutation after proof
+  ---
+  duration_ms: 611.40521
+  type: 'test'
+  ...
+# {"node":"v22.23.4","report":{"numTotalTestSuites":8,"numPassedTestSuites":8,"numFailedTestSuites":0,"numPendingTestSuites":0,"numTotalTests":25,"numPassedTests":25,"numFailedTests":0,"numPendingTests":0,"numTodoTests":0,"snapshot":{"added":0,"failure":false,"filesAdded":0,"filesRemoved":0,"filesRemovedList":[],"filesUnmatched":0,"filesUpdated":0,"matched":0,"total":0,"unchecked":0,"uncheckedKeysByFile":[],"unmatched":0,"updated":0,"didUpdate":false},"startTime":1793468882537,"success":true,"testResults":[{"assertionResults":[{"ancestorTitles":["browser analytics live locale"],"fullName":"browser analytics live locale emits the current locale after a language switch","status":"passed","title":"emits the current locale after a language switch","duration":8.763404999999977,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics live locale"],"fullName":"browser analytics live locale uses current locale for delayed session consent and honors denial and destroy","status":"passed","title":"uses current locale for delayed session consent and honors denial and destroy","duration":2.5563129999999887,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics live locale"],"fullName":"browser analytics live locale preserves the empty-language fallback and existing payload normalization","status":"passed","title":"preserves the empty-language fallback and existing payload normalization","duration":1.617576999999983,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics live locale"],"fullName":"browser analytics live locale resolves fresh context for commercial milestones without changing their attributes","status":"passed","title":"resolves fresh context for commercial milestones without changing their attributes","duration":1.5095289999999864,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics live locale"],"fullName":"browser analytics live locale contains context failures and recovers session and subsequent emissions","status":"passed","title":"contains context failures and recovers session and subsequent emissions","duration":0.9103230000000053,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics consent"],"fullName":"browser analytics consent defaults to unknown and persists only explicit decisions","status":"passed","title":"defaults to unknown and persists only explicit decisions","duration":0.3536320000000046,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics instrumentation"],"fullName":"browser analytics instrumentation never forwards raw search text","status":"passed","title":"never forwards raw search text","duration":1.0873239999999669,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics instrumentation"],"fullName":"browser analytics instrumentation never forwards Assistant message text","status":"passed","title":"never forwards Assistant message text","duration":0.4884010000000103,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics instrumentation"],"fullName":"browser analytics instrumentation deduplicates category/place views and tracks tour completion duration","status":"passed","title":"deduplicates category/place views and tracks tour completion duration","duration":2.0872810000000186,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics instrumentation"],"fullName":"browser analytics instrumentation maps commerce and transaction milestones without payment amounts","status":"passed","title":"maps commerce and transaction milestones without payment amounts","duration":1.0060950000000162,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics consent preferences"],"fullName":"browser analytics consent preferences commits granted/denied only after an explicit choice","status":"passed","title":"commits granted/denied only after an explicit choice","duration":1.309742999999969,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["browser analytics consent preferences"],"fullName":"browser analytics consent preferences localizes the end-user privacy choices without changing consent","status":"passed","title":"localizes the end-user privacy choices without changing consent","duration":0.2975890000000163,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5}","duration":0.43062500000002046,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":8}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":8}","duration":0.3627050000000054,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":0}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":0}","duration":0.20845800000000736,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5}","duration":0.6090189999999893,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":null}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":null}","duration":0.33191000000005033,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":null}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":null}","duration":0.1494809999999802,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":-1}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":-1}","duration":0.28071399999998903,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":1.5}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":1.5}","duration":0.12114900000000262,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["semantic explore analytics result counts"],"fullName":"semantic explore analytics result counts records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":\\"8\\"}","status":"passed","title":"records only authoritative semantic counts: {\\"markerCount\\":5,\\"locationCount\\":\\"8\\"}","duration":0.1461360000000127,"failureMessages":[],"meta":{},"tags":[]}],"startTime":1793468882904,"endTime":1793468882930.1462,"status":"passed","message":"","name":"/tmp/tdp-coverage-impact-correction-git-fc089a1f/apps/morro-digital-platform/src/analytics/browser-analytics.test.ts"},{"assertionResults":[{"ancestorTitles":["ticketing analytics funnel contract"],"fullName":"ticketing analytics funnel contract loads the canonical analytics package and browser bridge on Ticketing","status":"passed","title":"loads the canonical analytics package and browser bridge on Ticketing","duration":5.608658999999989,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["ticketing analytics funnel contract"],"fullName":"ticketing analytics funnel contract emits all five authoritative commerce milestones","status":"passed","title":"emits all five authoritative commerce milestones","duration":2.244733999999994,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["ticketing analytics funnel contract"],"fullName":"ticketing analytics funnel contract keeps PII and payment secrets outside analytics event detail blocks","status":"passed","title":"keeps PII and payment secrets outside analytics event detail blocks","duration":2.0350139999999897,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["ticketing analytics funnel contract"],"fullName":"ticketing analytics funnel contract stores only non-sensitive correlation context for ticket issuance","status":"passed","title":"stores only non-sensitive correlation context for ticket issuance","duration":0.7673020000000008,"failureMessages":[],"meta":{},"tags":[]}],"startTime":1793468883116,"endTime":1793468883126.7673,"status":"passed","message":"","name":"/tmp/tdp-coverage-impact-correction-git-fc089a1f/apps/morro-digital-platform/src/analytics/ticketing-analytics-contract.test.ts"}]},"files":["src/analytics/browser-analytics.test.ts","src/analytics/ticketing-analytics-contract.test.ts"],"passed":25,"failed":0,"skipped":0,"todo":0}
+# Subtest: analytics locale and ticketing suites execute without skipped tests
+ok 35 - analytics locale and ticketing suites execute without skipped tests
+  ---
+  duration_ms: 1172.975765
+  type: 'test'
+  ...
+# Subtest: entry styles preserve location visibility, map labels and rail touch targets
+ok 36 - entry styles preserve location visibility, map labels and rail touch targets
+  ---
+  duration_ms: 169.745005
+  type: 'test'
+  ...
+# Subtest: the real entry selection retains complete weather failure and loading rules
+ok 37 - the real entry selection retains complete weather failure and loading rules
+  ---
+  duration_ms: 42.35339
+  type: 'test'
+  ...
+# Subtest: coverage ranges reject malformed, overlapping, and stale indices
+ok 38 - coverage ranges reject malformed, overlapping, and stale indices
+  ---
+  duration_ms: 1.91046
+  type: 'test'
+  ...
+# Subtest: entry extraction preserves ordered conditional rules and only hidden-state declarations
+ok 39 - entry extraction preserves ordered conditional rules and only hidden-state declarations
+  ---
+  duration_ms: 2.851139
+  type: 'test'
+  ...
+# Subtest: bundled assets retain their original URL base and external URLs
+ok 40 - bundled assets retain their original URL base and external URLs
+  ---
+  duration_ms: 1.342141
+  type: 'test'
+  ...
+# Subtest: entry and full bundle are deterministic and retain the complete deferred cascade
+ok 41 - entry and full bundle are deterministic and retain the complete deferred cascade
+  ---
+  duration_ms: 419.687079
+  type: 'test'
+  ...
+# Subtest: changed sources, imports, invalid paths, and weakened budgets fail closed
+ok 42 - changed sources, imports, invalid paths, and weakened budgets fail closed
+  ---
+  duration_ms: 1.618809
+  type: 'test'
+  ...
+# Subtest: the 100 kB entry budget is enforced on generated bytes
+ok 43 - the 100 kB entry budget is enforced on generated bytes
+  ---
+  duration_ms: 44.598569
+  type: 'test'
+  ...
+# Subtest: release tag resolves first parent even when origin/main is the candidate
+ok 44 - release tag resolves first parent even when origin/main is the candidate
+  ---
+  duration_ms: 162.944587
+  type: 'test'
+  ...
+# Subtest: snapshot binds versioned reads to live main and paginates PRs
+ok 45 - snapshot binds versioned reads to live main and paginates PRs
+  ---
+  duration_ms: 6.791575
+  type: 'test'
+  ...
+# Subtest: moved main invalidates snapshot without concealing captured identity
+ok 46 - moved main invalidates snapshot without concealing captured identity
+  ---
+  duration_ms: 1.327839
+  type: 'test'
+  ...
+# Subtest: API errors become explicit unknown sources and never leak stderr
+ok 47 - API errors become explicit unknown sources and never leak stderr
+  ---
+  duration_ms: 3.812798
+  type: 'test'
+  ...
+# Subtest: invalid registry and failed main capture fail closed
+ok 48 - invalid registry and failed main capture fail closed
+  ---
+  duration_ms: 1.077511
+  type: 'test'
+  ...
+# Subtest: claims without PRs stay visible and are never implicitly removed
+ok 49 - claims without PRs stay visible and are never implicitly removed
+  ---
+  duration_ms: 0.98937
+  type: 'test'
+  ...
+# Subtest: fork PR with matching branch cannot satisfy canonical claim
+ok 50 - fork PR with matching branch cannot satisfy canonical claim
+  ---
+  duration_ms: 0.655828
+  type: 'test'
+  ...
+# Subtest: expired claims and manifest identity mismatch are blockers
+ok 51 - expired claims and manifest identity mismatch are blockers
+  ---
+  duration_ms: 0.80568
+  type: 'test'
+  ...
+# Subtest: HTTP200 readiness ready plus degraded commerce is not healthy
+ok 52 - HTTP200 readiness ready plus degraded commerce is not healthy
+  ---
+  duration_ms: 0.5625
+  type: 'test'
+  ...
+# Subtest: healthy runtime requires matching identities and explicit commerce checks
+ok 53 - healthy runtime requires matching identities and explicit commerce checks
+  ---
+  duration_ms: 1.014057
+  type: 'test'
+  ...
+# Subtest: runtime fetch sends no credentials, forbids redirects, and reads only health endpoints
+ok 54 - runtime fetch sends no credentials, forbids redirects, and reads only health endpoints
+  ---
+  duration_ms: 46.24534
+  type: 'test'
+  ...
+# Subtest: runtime configuration and unhealthy state remain separate blockers
+ok 55 - runtime configuration and unhealthy state remain separate blockers
+  ---
+  duration_ms: 1.304545
+  type: 'test'
+  ...
+# Subtest: healthy runtime drift compares against expected certified release
+ok 56 - healthy runtime drift compares against expected certified release
+  ---
+  duration_ms: 1.088897
+  type: 'test'
+  ...
+# Subtest: arguments reject credential URLs, non-HTTPS and shell-like repository values
+ok 57 - arguments reject credential URLs, non-HTTPS and shell-like repository values
+  ---
+  duration_ms: 0.768014
+  type: 'test'
+  ...
+# Subtest: summary exposes required bootstrap sections and never claims release proof
+ok 58 - summary exposes required bootstrap sections and never claims release proof
+  ---
+  duration_ms: 0.829104
+  type: 'test'
+  ...
+# Subtest: observed blockers produce concrete next investigations without granting dispatch
+ok 59 - observed blockers produce concrete next investigations without granting dispatch
+  ---
+  duration_ms: 0.673654
+  type: 'test'
+  ...
+# Subtest: malformed check names fail closed and cannot expose runtime diagnostics
+ok 60 - malformed check names fail closed and cannot expose runtime diagnostics
+  ---
+  duration_ms: 1.52441
+  type: 'test'
+  ...
+# Subtest: duplicate runtime check identifiers do not prove health
+ok 61 - duplicate runtime check identifiers do not prove health
+  ---
+  duration_ms: 0.133567
+  type: 'test'
+  ...
+# Subtest: requested Actions runs remain visible as active work
+ok 62 - requested Actions runs remain visible as active work
+  ---
+  duration_ms: 1.238818
+  type: 'test'
+  ...
+# Subtest: unavailable PR source is unknown rather than evidence that a claim has no PR
+ok 63 - unavailable PR source is unknown rather than evidence that a claim has no PR
+  ---
+  duration_ms: 0.711209
+  type: 'test'
+  ...
+# Subtest: declared ready with unproven dependencies is only a non-dispatchable candidate
+ok 64 - declared ready with unproven dependencies is only a non-dispatchable candidate
+  ---
+  duration_ms: 1.054647
+  type: 'test'
+  ...
+# Subtest: merged claim derives inactive observation with ancestry and no release inference
+ok 65 - merged claim derives inactive observation with ancestry and no release inference
+  ---
+  duration_ms: 1.89723
+  type: 'test'
+  ...
+# Subtest: closed PR mismatch, missing ancestry and unreadable evidence never retire claims
+ok 66 - closed PR mismatch, missing ancestry and unreadable evidence never retire claims
+  ---
+  duration_ms: 16.059584
+  type: 'test'
+  ...
+# Subtest: active PR and exact branch ref prevent historical merge from hiding new work
+ok 67 - active PR and exact branch ref prevent historical merge from hiding new work
+  ---
+  duration_ms: 0.99617
+  type: 'test'
+  ...
+# Subtest: success requires health and SQL; image, port, database and password handling preserved
+ok 68 - success requires health and SQL; image, port, database and password handling preserved
+  ---
+  duration_ms: 265.576756
+  type: 'test'
+  ...
+# Subtest: pull error preserves status and stage, diagnoses and cleans
+ok 69 - pull error preserves status and stage, diagnoses and cleans
+  ---
+  duration_ms: 241.116793
+  type: 'test'
+  ...
+# Subtest: pull-timeout: individual limit KILLs TERM-resistant process and cleans
+ok 70 - pull-timeout: individual limit KILLs TERM-resistant process and cleans
+  ---
+  duration_ms: 781.950668
+  type: 'test'
+  ...
+# Subtest: run-timeout: individual limit KILLs TERM-resistant process and cleans
+ok 71 - run-timeout: individual limit KILLs TERM-resistant process and cleans
+  ---
+  duration_ms: 796.784684
+  type: 'test'
+  ...
+# Subtest: inspect-timeout: individual limit KILLs TERM-resistant process and cleans
+ok 72 - inspect-timeout: individual limit KILLs TERM-resistant process and cleans
+  ---
+  duration_ms: 817.849429
+  type: 'test'
+  ...
+# Subtest: SQL individual timeout KILLs probe, then retries successfully before outer deadline
+ok 73 - SQL individual timeout KILLs probe, then retries successfully before outer deadline
+  ---
+  duration_ms: 863.891452
+  type: 'test'
+  ...
+# Subtest: sql-timeout-always: outer readiness expires, never reports ready, cleans
+ok 74 - sql-timeout-always: outer readiness expires, never reports ready, cleans
+  ---
+  duration_ms: 4209.951424
+  type: 'test'
+  ...
+# Subtest: wrong-sql: outer readiness expires, never reports ready, cleans
+ok 75 - wrong-sql: outer readiness expires, never reports ready, cleans
+  ---
+  duration_ms: 4173.266245
+  type: 'test'
+  ...
+# Subtest: starting transitions to verified SQL readiness
+ok 76 - starting transitions to verified SQL readiness
+  ---
+  duration_ms: 215.868274
+  type: 'test'
+  ...
+# Subtest: sql-transient transitions to verified SQL readiness
+ok 77 - sql-transient transitions to verified SQL readiness
+  ---
+  duration_ms: 237.634461
+  type: 'test'
+  ...
+# Subtest: unhealthy fails immediately
+ok 78 - unhealthy fails immediately
+  ---
+  duration_ms: 217.949139
+  type: 'test'
+  ...
+# Subtest: absent cleanup is idempotent
+ok 79 - absent cleanup is idempotent
+  ---
+  duration_ms: 31.976398
+  type: 'test'
+  ...
+# Subtest: listing-error cleanup propagates exact failure
+ok 80 - listing-error cleanup propagates exact failure
+  ---
+  duration_ms: 26.247752
+  type: 'test'
+  ...
+# Subtest: listing-timeout cleanup propagates exact failure
+ok 81 - listing-timeout cleanup propagates exact failure
+  ---
+  duration_ms: 609.595308
+  type: 'test'
+  ...
+# Subtest: rm-timeout cleanup propagates exact failure
+ok 82 - rm-timeout cleanup propagates exact failure
+  ---
+  duration_ms: 637.205176
+  type: 'test'
+  ...
+# Subtest: cleanup-fail cleanup propagates exact failure
+ok 83 - cleanup-fail cleanup propagates exact failure
+  ---
+  duration_ms: 61.24913
+  type: 'test'
+  ...
+# Subtest: trap-listing-error: cleanup failure remains visible in OR-list context
+ok 84 - trap-listing-error: cleanup failure remains visible in OR-list context
+  ---
+  duration_ms: 104.344596
+  type: 'test'
+  ...
+# Subtest: trap-listing-timeout: cleanup failure remains visible in OR-list context
+ok 85 - trap-listing-timeout: cleanup failure remains visible in OR-list context
+  ---
+  duration_ms: 699.152761
+  type: 'test'
+  ...
+# Subtest: trap-rm-timeout: cleanup failure remains visible in OR-list context
+ok 86 - trap-rm-timeout: cleanup failure remains visible in OR-list context
+  ---
+  duration_ms: 771.977322
+  type: 'test'
+  ...
+# Subtest: diagnostics KILL resistant log command within its own limit
+ok 87 - diagnostics KILL resistant log command within its own limit
+  ---
+  duration_ms: 634.449619
+  type: 'test'
+  ...
+# Subtest: inert raw text cannot supply a stylesheet and active inline CSS is unsupported
+ok 88 - inert raw text cannot supply a stylesheet and active inline CSS is unsupported
+  ---
+  duration_ms: 1.782832
+  type: 'test'
+  ...
+# Subtest: conditional, disabled and alternate links cannot prove an unconditional cascade
+ok 89 - conditional, disabled and alternate links cannot prove an unconditional cascade
+  ---
+  duration_ms: 0.502882
+  type: 'test'
+  ...
+# Subtest: only pinned vendors may precede local authority; no external override is ignored
+ok 90 - only pinned vendors may precede local authority; no external override is ignored
+  ---
+  duration_ms: 1.257927
+  type: 'test'
+  ...
+# Subtest: attribute-like text inside a value is not a stylesheet declaration
+ok 91 - attribute-like text inside a value is not a stylesheet declaration
+  ---
+  duration_ms: 0.322967
+  type: 'test'
+  ...
+# Subtest: direct stylesheet order remains authoritative before migration
+ok 92 - direct stylesheet order remains authoritative before migration
+  ---
+  duration_ms: 0.211712
+  type: 'test'
+  ...
+# Subtest: entry and feature bundles resolve to the exact declared source order
+ok 93 - entry and feature bundles resolve to the exact declared source order
+  ---
+  duration_ms: 0.339481
+  type: 'test'
+  ...
+# Subtest: comments, templates and data-href do not prove active stylesheet loading
+ok 94 - comments, templates and data-href do not prove active stylesheet loading
+  ---
+  duration_ms: 0.340874
+  type: 'test'
+  ...
+# Subtest: entry mode rejects missing, unknown and weakened manifests
+ok 95 - entry mode rejects missing, unknown and weakened manifests
+  ---
+  duration_ms: 0.313984
+  type: 'test'
+  ...
+# Subtest: mixed direct and bundled styles, absent intent paths and duplicate entries fail closed
+ok 96 - mixed direct and bundled styles, absent intent paths and duplicate entries fail closed
+  ---
+  duration_ms: 0.598824
+  type: 'test'
+  ...
+# Subtest: manifest paths and source identities must be unique, local and bound to hashes
+ok 97 - manifest paths and source identities must be unique, local and bound to hashes
+  ---
+  duration_ms: 0.793982
+  type: 'test'
+  ...
+# Subtest: CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts
+ok 98 - CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts
+  ---
+  duration_ms: 7.8044
+  type: 'test'
+  ...
+# Subtest: CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts
+ok 99 - CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts
+  ---
+  duration_ms: 0.791519
+  type: 'test'
+  ...
+# Subtest: CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts
+ok 100 - CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts
+  ---
+  duration_ms: 1.600272
+  type: 'test'
+  ...
+# Subtest: CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/css-cascade-contract.ts
+ok 101 - CSS cascade contract preserves complete runtime proof: apps/morro-digital-platform/src/ux/css-cascade-contract.ts
+  ---
+  duration_ms: 0.498416
+  type: 'test'
+  ...
+# Subtest: unrelated UX paths remain unmapped and fail closed
+ok 102 - unrelated UX paths remain unmapped and fail closed
+  ---
+  duration_ms: 11.803923
+  type: 'test'
+  ...
+# Subtest: mixed governance and CSS paths cannot downgrade browser proof
+ok 103 - mixed governance and CSS paths cannot downgrade browser proof
+  ---
+  duration_ms: 1.038513
+  type: 'test'
+  ...
+# Subtest: file-like literal rules are exact while directory and stem rules retain prefix semantics
+ok 104 - file-like literal rules are exact while directory and stem rules retain prefix semantics
+  ---
+  duration_ms: 5.181098
+  type: 'test'
+  ...
+# Subtest: ticketing financial API impact is CRITICAL and exact-path
+ok 105 - ticketing financial API impact is CRITICAL and exact-path
+  ---
+  duration_ms: 8.663648
+  type: 'test'
+  ...
+# Subtest: Itacare public UI exact paths retain critical runtime proof and reject near collisions
+ok 106 - Itacare public UI exact paths retain critical runtime proof and reject near collisions
+  ---
+  duration_ms: 36.698699
+  type: 'test'
+  ...
+# Subtest: Itacare app ownership is exact and preserves trusted server ownership
+ok 107 - Itacare app ownership is exact and preserves trusted server ownership
+  ---
+  duration_ms: 4.325104
+  type: 'test'
+  ...
+# Subtest: Control Center activation UI has exact auth ownership and retains the authorization floor
+ok 108 - Control Center activation UI has exact auth ownership and retains the authorization floor
+  ---
+  duration_ms: 1.536978
+  type: 'test'
+  ...
+# LEGACY_MARKER_PROOF_RECURRENT_PASS
+# LEGACY_MARKER_PROOF_NOT_RUN_IMPLEMENTATION_ABSENT
+# LEGACY_MARKER_PROOF_RECURRENT_PASS
+# Subtest: Leaflet fallback paths require quality and browser proof without admitting siblings
+ok 109 - Leaflet fallback paths require quality and browser proof without admitting siblings
+  ---
+  duration_ms: 5.078827
+  type: 'test'
+  ...
+# Subtest: exact performance paths select their real startup and asset proof
+ok 110 - exact performance paths select their real startup and asset proof
+  ---
+  duration_ms: 5.797182
+  type: 'test'
+  ...
+# Subtest: entry CSS compilation and guarded surfaces select real browser proofs
+ok 111 - entry CSS compilation and guarded surfaces select real browser proofs
+  ---
+  duration_ms: 6.916689
+  type: 'test'
+  ...
+# Subtest: documentation skips product regression without treating runnable docs as prose
+ok 112 - documentation skips product regression without treating runnable docs as prose
+  ---
+  duration_ms: 0.760884
+  type: 'test'
+  ...
+# Subtest: governance retains deterministic security validation without product browser regression
+ok 113 - governance retains deterministic security validation without product browser regression
+  ---
+  duration_ms: 0.618143
+  type: 'test'
+  ...
+# Subtest: financial authority is classified as critical payments
+ok 114 - financial authority is classified as critical payments
+  ---
+  duration_ms: 0.646534
+  type: 'test'
+  ...
+# Subtest: nested database migrations are not missed by directory glob matching
+ok 115 - nested database migrations are not missed by directory glob matching
+  ---
+  duration_ms: 2.340314
+  type: 'test'
+  ...
+# Subtest: staging legacy publication batch scripts select critical database and release proof
+ok 116 - staging legacy publication batch scripts select critical database and release proof
+  ---
+  duration_ms: 1.113454
+  type: 'test'
+  ...
+# Subtest: legacy staging verifier selects critical DB and recurrent marker proof
+ok 117 - legacy staging verifier selects critical DB and recurrent marker proof
+  ---
+  duration_ms: 154.059618
+  type: 'test'
+  ...
+# Subtest: legacy marker proof fixture rejects failed tests and historical deletion
+ok 118 - legacy marker proof fixture rejects failed tests and historical deletion
+  ---
+  duration_ms: 342.526336
+  type: 'test'
+  ...
+# Subtest: unknown paths block classification without broad suite fan-out
+ok 119 - unknown paths block classification without broad suite fan-out
+  ---
+  duration_ms: 1.225238
+  type: 'test'
+  ...
+# Subtest: unresolvable Git identities fail closed at the CLI boundary
+ok 120 - unresolvable Git identities fail closed at the CLI boundary
+  ---
+  duration_ms: 51.483822
+  type: 'test'
+  ...
+# Subtest: serialized claim transitions are classified separately from ordinary governance changes
+ok 121 - serialized claim transitions are classified separately from ordinary governance changes
+  ---
+  duration_ms: 1.067165
+  type: 'test'
+  ...
+# Subtest: control-plane and CI tooling stay non-runtime without product fan-out
+ok 122 - control-plane and CI tooling stay non-runtime without product fan-out
+  ---
+  duration_ms: 0.530322
+  type: 'test'
+  ...
+# Subtest: root gitignore is non-runtime CI tooling while unknown paths remain blocked
+ok 123 - root gitignore is non-runtime CI tooling while unknown paths remain blocked
+  ---
+  duration_ms: 0.360442
+  type: 'test'
+  ...
+# Subtest: package.json scripts do not impersonate dependency changes
+ok 124 - package.json scripts do not impersonate dependency changes
+  ---
+  duration_ms: 0.536362
+  type: 'test'
+  ...
+# Subtest: Failure Learning shared triggers require a matching Failure Learning claim
+ok 125 - Failure Learning shared triggers require a matching Failure Learning claim
+  ---
+  duration_ms: 0.218653
+  type: 'test'
+  ...
+# Subtest: runtime impact resolves explicit fast profiles while unknown changes block
+ok 126 - runtime impact resolves explicit fast profiles while unknown changes block
+  ---
+  duration_ms: 1.122186
+  type: 'test'
+  ...
+# Subtest: Wave 5 geospatial routing paths are classified fail-closed without broad fallback
+ok 127 - Wave 5 geospatial routing paths are classified fail-closed without broad fallback
+  ---
+  duration_ms: 1.375641
+  type: 'test'
+  ...
+# Subtest: Ticketing startup diagnostics require critical payments proof
+ok 128 - Ticketing startup diagnostics require critical payments proof
+  ---
+  duration_ms: 0.307243
+  type: 'test'
+  ...
+# Subtest: Ticketing startup mapping stays exact
+ok 129 - Ticketing startup mapping stays exact
+  ---
+  duration_ms: 0.332611
+  type: 'test'
+  ...
+# Subtest: CRM HTML and browser regression files are explicitly classified without bypassing fail-closed
+ok 130 - CRM HTML and browser regression files are explicitly classified without bypassing fail-closed
+  ---
+  duration_ms: 0.698762
+  type: 'test'
+  ...
+# Subtest: CRM persistence paths select database proof and staging infra selects critical proof
+ok 131 - CRM persistence paths select database proof and staging infra selects critical proof
+  ---
+  duration_ms: 0.952345
+  type: 'test'
+  ...
+# Subtest: HTML runtime server selects browser proof but nearby typo paths remain unknown
+ok 132 - HTML runtime server selects browser proof but nearby typo paths remain unknown
+  ---
+  duration_ms: 1.006586
+  type: 'test'
+  ...
+# Subtest: CRM impact paths have verified direct browser and auth workflow triggers
+ok 133 - CRM impact paths have verified direct browser and auth workflow triggers
+  ---
+  duration_ms: 3.043903
+  type: 'test'
+  ...
+# Subtest: CRM source classification is exact and does not claim untriggered browser tests
+ok 134 - CRM source classification is exact and does not claim untriggered browser tests
+  ---
+  duration_ms: 1.331395
+  type: 'test'
+  ...
+# Subtest: CRM HTML impact requires actual PR and push workflow path coverage
+ok 135 - CRM HTML impact requires actual PR and push workflow path coverage
+  ---
+  duration_ms: 6.786287
+  type: 'test'
+  ...
+# Subtest: STAGING CRM exact file-to-suite coverage and triggered real proof
+ok 136 - STAGING CRM exact file-to-suite coverage and triggered real proof
+  ---
+  duration_ms: 7.800794
+  type: 'test'
+  ...
+# Subtest: STAGING CRM historical deletion cannot be accepted as NOT_RUN
+ok 137 - STAGING CRM historical deletion cannot be accepted as NOT_RUN
+  ---
+  duration_ms: 75.261485
+  type: 'test'
+  ...
+# Subtest: administrative auth regression uses exact auth impact and preserves security
+ok 138 - administrative auth regression uses exact auth impact and preserves security
+  ---
+  duration_ms: 1.479013
+  type: 'test'
+  ...
+# Subtest: projected exact admin host mapping retains auth proof and rejects neighbors
+ok 139 - projected exact admin host mapping retains auth proof and rejects neighbors
+  ---
+  duration_ms: 9.860094
+  type: 'test'
+  ...
+# Subtest: browser entry retains routing browser proof with exact path matching
+ok 140 - browser entry retains routing browser proof with exact path matching
+  ---
+  duration_ms: 1.189236
+  type: 'test'
+  ...
+# Subtest: text and voice UX literals retain direct browser and visual coverage
+ok 141 - text and voice UX literals retain direct browser and visual coverage
+  ---
+  duration_ms: 1.983788
+  type: 'test'
+  ...
+# Subtest: assistant shell state literals select only directly triggered browser suites
+ok 142 - assistant shell state literals select only directly triggered browser suites
+  ---
+  duration_ms: 1.429811
+  type: 'test'
+  ...
+# Subtest: pending surface ux-manual-visual-authority keeps literal boundaries and proof requirements
+ok 143 - pending surface ux-manual-visual-authority keeps literal boundaries and proof requirements
+  ---
+  duration_ms: 2.318052
+  type: 'test'
+  ...
+# Subtest: pending surface manual-home-navigation keeps literal boundaries and proof requirements
+ok 144 - pending surface manual-home-navigation keeps literal boundaries and proof requirements
+  ---
+  duration_ms: 2.992077
+  type: 'test'
+  ...
+# Subtest: pending surface explore-marker-rendering keeps literal boundaries and proof requirements
+ok 145 - pending surface explore-marker-rendering keeps literal boundaries and proof requirements
+  ---
+  duration_ms: 10.456224
+  type: 'test'
+  ...
+# Subtest: pending surface explore-marker-contract keeps literal boundaries and proof requirements
+ok 146 - pending surface explore-marker-contract keeps literal boundaries and proof requirements
+  ---
+  duration_ms: 1.132752
+  type: 'test'
+  ...
+# Subtest: pending surface affiliate-runtime keeps literal boundaries and proof requirements
+ok 147 - pending surface affiliate-runtime keeps literal boundaries and proof requirements
+  ---
+  duration_ms: 2.826422
+  type: 'test'
+  ...
+# Subtest: pending surface wave-a-gesture-harness keeps literal boundaries and proof requirements
+ok 148 - pending surface wave-a-gesture-harness keeps literal boundaries and proof requirements
+  ---
+  duration_ms: 3.67563
+  type: 'test'
+  ...
+# Subtest: structural gesture selection does not waive browser proof or change existing security floors
+ok 149 - structural gesture selection does not waive browser proof or change existing security floors
+  ---
+  duration_ms: 1.291356
+  type: 'test'
+  ...
+# Subtest: confirmed UX literals retain browser/visual proof and reject sibling aliases
+ok 150 - confirmed UX literals retain browser/visual proof and reject sibling aliases
+  ---
+  duration_ms: 12.305445
+  type: 'test'
+  ...
+# Subtest: offline external script keeps exact PWA coverage and security floors
+ok 151 - offline external script keeps exact PWA coverage and security floors
+  ---
+  duration_ms: 0.80578
+  type: 'test'
+  ...
+# Subtest: menu command semantic consumer retains assistant proof floors
+ok 152 - menu command semantic consumer retains assistant proof floors
+  ---
+  duration_ms: 2.170173
+  type: 'test'
+  ...
+# Subtest: Place menu recovery contract test keeps exact visual proof
+ok 153 - Place menu recovery contract test keeps exact visual proof
+  ---
+  duration_ms: 0.580517
+  type: 'test'
+  ...
+# Subtest: semantic viewport and analytics have exact impact and retained proof floors
+ok 154 - semantic viewport and analytics have exact impact and retained proof floors
+  ---
+  duration_ms: 3.094478
+  type: 'test'
+  ...
+# Subtest: initial CSS exact runtime paths select required suites without broadening neighbors
+ok 155 - initial CSS exact runtime paths select required suites without broadening neighbors
+  ---
+  duration_ms: 8.741785
+  type: 'test'
+  ...
+# Subtest: constitution has exact governance classification with security preserved
+ok 156 - constitution has exact governance classification with security preserved
+  ---
+  duration_ms: 0.37934
+  type: 'test'
+  ...
+# Subtest: constitution mapping does not classify adjacent or unknown root paths
+ok 157 - constitution mapping does not classify adjacent or unknown root paths
+  ---
+  duration_ms: 0.903914
+  type: 'test'
+  ...
+# Subtest: constitution PR1240 complete diff remains governance high and fail-closed on unknown extras
+ok 158 - constitution PR1240 complete diff remains governance high and fail-closed on unknown extras
+  ---
+  duration_ms: 1.962348
+  type: 'test'
+  ...
+# Subtest: constitution does not downgrade production or financial changes
+ok 159 - constitution does not downgrade production or financial changes
+  ---
+  duration_ms: 0.676879
+  type: 'test'
+  ...
+# Subtest: exact Turbo CSS cache paths require full quality and the actual cache regression
+ok 160 - exact Turbo CSS cache paths require full quality and the actual cache regression
+  ---
+  duration_ms: 6.845581
+  type: 'test'
+  ...
+# Subtest: WP05 session and affiliate paths select auth and browser suites without claiming sibling files
+ok 161 - WP05 session and affiliate paths select auth and browser suites without claiming sibling files
+  ---
+  duration_ms: 3.543016
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: packages/assistant/src/intent-engine.ts
+ok 162 - exact canonical owner and ordinary boundary: packages/assistant/src/intent-engine.ts
+  ---
+  duration_ms: 3.419377
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: packages/assistant/src/intent-engine.more-info-i18n.test.ts
+ok 163 - exact canonical owner and ordinary boundary: packages/assistant/src/intent-engine.more-info-i18n.test.ts
+  ---
+  duration_ms: 0.52846
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: packages/assistant/src/dialog-controller.test.ts
+ok 164 - exact canonical owner and ordinary boundary: packages/assistant/src/dialog-controller.test.ts
+  ---
+  duration_ms: 0.310368
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: packages/assistant/src/dialog-controller.ts
+ok 165 - exact canonical owner and ordinary boundary: packages/assistant/src/dialog-controller.ts
+  ---
+  duration_ms: 2.185425
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: packages/assistant/src/dialog-controller.presentation-language.test.ts
+ok 166 - exact canonical owner and ordinary boundary: packages/assistant/src/dialog-controller.presentation-language.test.ts
+  ---
+  duration_ms: 0.240244
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+ok 167 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+  ---
+  duration_ms: 0.21682
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts
+ok 168 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts
+  ---
+  duration_ms: 0.303658
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts
+ok 169 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts
+  ---
+  duration_ms: 0.202268
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts
+ok 170 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts
+  ---
+  duration_ms: 0.450735
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/config/tour-catalog.ts
+ok 171 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/config/tour-catalog.ts
+  ---
+  duration_ms: 0.557803
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/config/tour-catalog.test.ts
+ok 172 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/config/tour-catalog.test.ts
+  ---
+  duration_ms: 0.523913
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
+ok 173 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
+  ---
+  duration_ms: 0.165485
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
+ok 174 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
+  ---
+  duration_ms: 0.14862
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/tooling/auth-api.mjs
+ok 175 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/tooling/auth-api.mjs
+  ---
+  duration_ms: 0.127448
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/tooling/auth-api-logout.test.mjs
+ok 176 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/tooling/auth-api-logout.test.mjs
+  ---
+  duration_ms: 3.362043
+  type: 'test'
+  ...
+# Subtest: exact canonical owner and ordinary boundary: apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs
+ok 177 - exact canonical owner and ordinary boundary: apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs
+  ---
+  duration_ms: 0.154708
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: packages/assistant/src/intent-engine.ts
+ok 178 - runtime impact and fail-closed aliases: packages/assistant/src/intent-engine.ts
+  ---
+  duration_ms: 2.906029
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: packages/assistant/src/intent-engine.more-info-i18n.test.ts
+ok 179 - runtime impact and fail-closed aliases: packages/assistant/src/intent-engine.more-info-i18n.test.ts
+  ---
+  duration_ms: 3.967877
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: packages/assistant/src/dialog-controller.test.ts
+ok 180 - runtime impact and fail-closed aliases: packages/assistant/src/dialog-controller.test.ts
+  ---
+  duration_ms: 1.388249
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: packages/assistant/src/dialog-controller.ts
+ok 181 - runtime impact and fail-closed aliases: packages/assistant/src/dialog-controller.ts
+  ---
+  duration_ms: 1.391414
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: packages/assistant/src/dialog-controller.presentation-language.test.ts
+ok 182 - runtime impact and fail-closed aliases: packages/assistant/src/dialog-controller.presentation-language.test.ts
+  ---
+  duration_ms: 1.110429
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+ok 183 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+  ---
+  duration_ms: 1.206781
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts
+ok 184 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts
+  ---
+  duration_ms: 1.049249
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts
+ok 185 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts
+  ---
+  duration_ms: 1.455458
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts
+ok 186 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts
+  ---
+  duration_ms: 0.549
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/config/tour-catalog.ts
+ok 187 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/config/tour-catalog.ts
+  ---
+  duration_ms: 0.695546
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/config/tour-catalog.test.ts
+ok 188 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/config/tour-catalog.test.ts
+  ---
+  duration_ms: 0.474301
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/map/three-dimensional-map-control.ts
+ok 189 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/map/three-dimensional-map-control.ts
+  ---
+  duration_ms: 0.651822
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/map/three-dimensional-map-control.test.ts
+ok 190 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/map/three-dimensional-map-control.test.ts
+  ---
+  duration_ms: 0.66428
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/tooling/auth-api.mjs
+ok 191 - runtime impact and fail-closed aliases: apps/morro-digital-platform/tooling/auth-api.mjs
+  ---
+  duration_ms: 0.573106
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/tooling/auth-api-logout.test.mjs
+ok 192 - runtime impact and fail-closed aliases: apps/morro-digital-platform/tooling/auth-api-logout.test.mjs
+  ---
+  duration_ms: 0.59636
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs
+ok 193 - runtime impact and fail-closed aliases: apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs
+  ---
+  duration_ms: 8.92223
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
+ok 194 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
+  ---
+  duration_ms: 0.762846
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
+ok 195 - runtime impact and fail-closed aliases: apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
+  ---
+  duration_ms: 0.510784
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop1_terceira_praia.jpg
+ok 196 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop1_terceira_praia.jpg
+  ---
+  duration_ms: 0.71843
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop2_garapua.jpg
+ok 197 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop2_garapua.jpg
+  ---
+  duration_ms: 1.01665
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop3_morere.jpg
+ok 198 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop3_morere.jpg
+  ---
+  duration_ms: 3.612002
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop4_cueira_boipeba.jpg
+ok 199 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop4_cueira_boipeba.jpg
+  ---
+  duration_ms: 0.586215
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop5_rio_inferno.jpg
+ok 200 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop5_rio_inferno.jpg
+  ---
+  duration_ms: 0.673705
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop6_ostras.jpg
+ok 201 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop6_ostras.jpg
+  ---
+  duration_ms: 4.353696
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop7_cairu.jpg
+ok 202 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop7_cairu.jpg
+  ---
+  duration_ms: 0.643049
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop8_por_do_sol.jpg
+ok 203 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/volta_ilha_stop8_por_do_sol.jpg
+  ---
+  duration_ms: 0.663519
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop1_fonte_grande.jpg
+ok 204 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop1_fonte_grande.jpg
+  ---
+  duration_ms: 0.629529
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop2_porto_cima.jpg
+ok 205 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop2_porto_cima.jpg
+  ---
+  duration_ms: 1.290665
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop3_ponta_pedra.jpg
+ok 206 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop3_ponta_pedra.jpg
+  ---
+  duration_ms: 1.886925
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop4_paredao_argila.jpg
+ok 207 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop4_paredao_argila.jpg
+  ---
+  duration_ms: 1.046074
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop5_gamboa.jpg
+ok 208 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop5_gamboa.jpg
+  ---
+  duration_ms: 0.672202
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop1_base.jpg
+ok 209 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop1_base.jpg
+  ---
+  duration_ms: 1.030541
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop2_quarta_quinta_praia.jpg
+ok 210 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop2_quarta_quinta_praia.jpg
+  ---
+  duration_ms: 0.673664
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop3_mata_atlantica.jpg
+ok 211 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop3_mata_atlantica.jpg
+  ---
+  duration_ms: 0.644951
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop4_mirante_zimbo.jpg
+ok 212 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop4_mirante_zimbo.jpg
+  ---
+  duration_ms: 1.066825
+  type: 'test'
+  ...
+# Subtest: runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop5_garapua.jpg
+ok 213 - runtime impact and fail-closed aliases: apps/morro-digital-platform/public/images/tours/quadriciclo_stop5_garapua.jpg
+  ---
+  duration_ms: 0.717399
+  type: 'test'
+  ...
+# Subtest: mixed public paths cannot hide critical ticketing or authorization ownership
+ok 214 - mixed public paths cannot hide critical ticketing or authorization ownership
+  ---
+  duration_ms: 0.534319
+  type: 'test'
+  ...
+# Subtest: unregistered assistant code and provider tooling remain outside ordinary admission
+ok 215 - unregistered assistant code and provider tooling remain outside ordinary admission
+  ---
+  duration_ms: 0.246594
+  type: 'test'
+  ...
+# Subtest: the amendment preserves the existing critical workflow impact floor
+ok 216 - the amendment preserves the existing critical workflow impact floor
+  ---
+  duration_ms: 0.613525
+  type: 'test'
+  ...
+# Subtest: session recovery workflow and auth fixture preserve their critical proof floor
+ok 217 - session recovery workflow and auth fixture preserve their critical proof floor
+  ---
+  duration_ms: 0.739912
+  type: 'test'
+  ...
+# Subtest: CRM referrals keeps its high risk and selects the session recovery proof
+ok 218 - CRM referrals keeps its high risk and selects the session recovery proof
+  ---
+  duration_ms: 0.501881
+  type: 'test'
+  ...
+# Subtest: the additional CRM session recovery selection matches only referrals
+ok 219 - the additional CRM session recovery selection matches only referrals
+  ---
+  duration_ms: 1.568666
+  type: 'test'
+  ...
+# Subtest: CRM referrals cannot lower auth or ticketing requirements in mixed changes
+ok 220 - CRM referrals cannot lower auth or ticketing requirements in mixed changes
+  ---
+  duration_ms: 1.123488
+  type: 'test'
+  ...
+# Subtest: public shell coverage cannot lower workflow or auth risk in a mixed change
+ok 221 - public shell coverage cannot lower workflow or auth risk in a mixed change
+  ---
+  duration_ms: 0.871877
+  type: 'test'
+  ...
+# Subtest: tour media coverage stays exact and cannot hide sensitive mixed changes
+ok 222 - tour media coverage stays exact and cannot hide sensitive mixed changes
+  ---
+  duration_ms: 1.255573
+  type: 'test'
+  ...
+# Subtest: retirement admits exactly one expired claim and cleans temporary worktree
+ok 223 - retirement admits exactly one expired claim and cleans temporary worktree
+  ---
+  duration_ms: 242.840581
+  type: 'test'
+  ...
+# Subtest: acquisition uses canonical acquisition proof instead of reanchor
+ok 224 - acquisition uses canonical acquisition proof instead of reanchor
+  ---
+  duration_ms: 190.908434
+  type: 'test'
+  ...
+# Subtest: retirement rejects extra file
+ok 225 - retirement rejects extra file
+  ---
+  duration_ms: 124.830316
+  type: 'test'
+  ...
+# Subtest: retirement rejects wrong branch
+ok 226 - retirement rejects wrong branch
+  ---
+  duration_ms: 143.346135
+  type: 'test'
+  ...
+# Subtest: retirement rejects registry metadata
+ok 227 - retirement rejects registry metadata
+  ---
+  duration_ms: 128.255779
+  type: 'test'
+  ...
+# Subtest: retirement rejects new claim
+ok 228 - retirement rejects new claim
+  ---
+  duration_ms: 139.095836
+  type: 'test'
+  ...
+# Subtest: retirement rejects missing event
+ok 229 - retirement rejects missing event
+  ---
+  duration_ms: 122.378732
+  type: 'test'
+  ...
+# Subtest: retirement rejects changed authority
+ok 230 - retirement rejects changed authority
+  ---
+  duration_ms: 170.812101
+  type: 'test'
+  ...
+# Subtest: retirement requires clean exact HEAD and complete file list
+ok 231 - retirement requires clean exact HEAD and complete file list
+  ---
+  duration_ms: 77.127328
+  type: 'test'
+  ...
+# Subtest: remote evidence failure is fail closed and temporary worktree is removed
+ok 232 - remote evidence failure is fail closed and temporary worktree is removed
+  ---
+  duration_ms: 155.598437
+  type: 'test'
+  ...
+# Subtest: retirement rejects external symlink input .morro/changesets/MD-FASTFIX-TEST.json
+ok 233 - retirement rejects external symlink input .morro/changesets/MD-FASTFIX-TEST.json
+  ---
+  duration_ms: 193.393921
+  type: 'test'
+  ...
+# Subtest: retirement rejects external symlink input .github/morro-control/claims.json
+ok 234 - retirement rejects external symlink input .github/morro-control/claims.json
+  ---
+  duration_ms: 144.747604
+  type: 'test'
+  ...
+# Subtest: retirement rejects external symlink input .github/morro-control/events.ndjson
+ok 235 - retirement rejects external symlink input .github/morro-control/events.ndjson
+  ---
+  duration_ms: 198.716094
+  type: 'test'
+  ...
+# Subtest: retirement rejects hidden worktree changes to .morro/changesets/MD-FASTFIX-TEST.json
+ok 236 - retirement rejects hidden worktree changes to .morro/changesets/MD-FASTFIX-TEST.json
+  ---
+  duration_ms: 107.174854
+  type: 'test'
+  ...
+# Subtest: retirement rejects hidden worktree changes to .github/morro-control/claims.json
+ok 237 - retirement rejects hidden worktree changes to .github/morro-control/claims.json
+  ---
+  duration_ms: 90.58305
+  type: 'test'
+  ...
+# Subtest: retirement rejects hidden worktree changes to .github/morro-control/events.ndjson
+ok 238 - retirement rejects hidden worktree changes to .github/morro-control/events.ndjson
+  ---
+  duration_ms: 107.051386
+  type: 'test'
+  ...
+# Subtest: acquisition rejects Git-unbound hidden input .morro/changesets/MD-FASTFIX-TEST.json
+ok 239 - acquisition rejects Git-unbound hidden input .morro/changesets/MD-FASTFIX-TEST.json
+  ---
+  duration_ms: 294.632753
+  type: 'test'
+  ...
+# Subtest: acquisition rejects symlink input .morro/changesets/MD-FASTFIX-TEST.json
+ok 240 - acquisition rejects symlink input .morro/changesets/MD-FASTFIX-TEST.json
+  ---
+  duration_ms: 206.766758
+  type: 'test'
+  ...
+# Subtest: acquisition rejects Git-unbound hidden input .github/morro-control/events.ndjson
+ok 241 - acquisition rejects Git-unbound hidden input .github/morro-control/events.ndjson
+  ---
+  duration_ms: 204.012501
+  type: 'test'
+  ...
+# Subtest: acquisition rejects symlink input .github/morro-control/events.ndjson
+ok 242 - acquisition rejects symlink input .github/morro-control/events.ndjson
+  ---
+  duration_ms: 221.996601
+  type: 'test'
+  ...
+# Subtest: acquisition rejects Git-unbound hidden input .morro/ownership.json
+ok 243 - acquisition rejects Git-unbound hidden input .morro/ownership.json
+  ---
+  duration_ms: 199.167955
+  type: 'test'
+  ...
+# Subtest: acquisition rejects symlink input .morro/ownership.json
+ok 244 - acquisition rejects symlink input .morro/ownership.json
+  ---
+  duration_ms: 197.098675
+  type: 'test'
+  ...
+# Subtest: worker rejects Git-unbound hidden input .morro/changesets/MD-FASTFIX-TEST.json
+ok 245 - worker rejects Git-unbound hidden input .morro/changesets/MD-FASTFIX-TEST.json
+  ---
+  duration_ms: 168.6708
+  type: 'test'
+  ...
+# Subtest: worker rejects symlink input .morro/changesets/MD-FASTFIX-TEST.json
+ok 246 - worker rejects symlink input .morro/changesets/MD-FASTFIX-TEST.json
+  ---
+  duration_ms: 179.137486
+  type: 'test'
+  ...
+# Subtest: worker rejects Git-unbound hidden input .github/morro-control/events.ndjson
+ok 247 - worker rejects Git-unbound hidden input .github/morro-control/events.ndjson
+  ---
+  duration_ms: 213.536853
+  type: 'test'
+  ...
+# Subtest: worker rejects symlink input .github/morro-control/events.ndjson
+ok 248 - worker rejects symlink input .github/morro-control/events.ndjson
+  ---
+  duration_ms: 203.319273
+  type: 'test'
+  ...
+# Subtest: worker rejects Git-unbound hidden input .morro/ownership.json
+ok 249 - worker rejects Git-unbound hidden input .morro/ownership.json
+  ---
+  duration_ms: 182.923506
+  type: 'test'
+  ...
+# Subtest: worker rejects symlink input .morro/ownership.json
+ok 250 - worker rejects symlink input .morro/ownership.json
+  ---
+  duration_ms: 175.913066
+  type: 'test'
+  ...
+# native /tmp/tdp-runtime-20261031/node-v22.23.4-linux-x64/bin/node -e process.stderr.write("banner\\n");process.stdout.write("{\\"tasks\\":[]}")
+# native /tmp/tdp-runtime-20261031/node-v22.23.4-linux-x64/bin/node -e process.stdout.write("{}");process.exit(1)
+# Subtest: affected proof derives requested kinds from unchanged canonical argv
+ok 251 - affected proof derives requested kinds from unchanged canonical argv
+  ---
+  duration_ms: 4.785904
+  type: 'test'
+  ...
+# Subtest: real empty accounting dry graph rejects despite exit-zero package selection
+ok 252 - real empty accounting dry graph rejects despite exit-zero package selection
+  ---
+  duration_ms: 0.275366
+  type: 'test'
+  ...
+# Subtest: affected graph cannot omit requested lint even with extra dependency kinds
+ok 253 - affected graph cannot omit requested lint even with extra dependency kinds
+  ---
+  duration_ms: 0.23022
+  type: 'test'
+  ...
+# Subtest: affected graph cannot omit requested typecheck even with extra dependency kinds
+ok 254 - affected graph cannot omit requested typecheck even with extra dependency kinds
+  ---
+  duration_ms: 0.220486
+  type: 'test'
+  ...
+# Subtest: affected graph cannot omit requested test even with extra dependency kinds
+ok 255 - affected graph cannot omit requested test even with extra dependency kinds
+  ---
+  duration_ms: 0.256138
+  type: 'test'
+  ...
+# Subtest: affected graph cannot omit requested build even with extra dependency kinds
+ok 256 - affected graph cannot omit requested build even with extra dependency kinds
+  ---
+  duration_ms: 0.238252
+  type: 'test'
+  ...
+# Subtest: only-build graph is not complete affected proof
+ok 257 - only-build graph is not complete affected proof
+  ---
+  duration_ms: 0.264089
+  type: 'test'
+  ...
+# Subtest: requested kinds can be distributed across packages without requiring each kind per package
+ok 258 - requested kinds can be distributed across packages without requiring each kind per package
+  ---
+  duration_ms: 0.175479
+  type: 'test'
+  ...
+# Subtest: affected graph rejects unsupported numeric schema
+ok 259 - affected graph rejects unsupported numeric schema
+  ---
+  duration_ms: 0.4272
+  type: 'test'
+  ...
+# Subtest: affected graph rejects absent schema
+ok 260 - affected graph rejects absent schema
+  ---
+  duration_ms: 0.446159
+  type: 'test'
+  ...
+# Subtest: affected graph rejects absent Turbo identity
+ok 261 - affected graph rejects absent Turbo identity
+  ---
+  duration_ms: 0.204231
+  type: 'test'
+  ...
+# Subtest: affected graph rejects non-array tasks
+ok 262 - affected graph rejects non-array tasks
+  ---
+  duration_ms: 0.229328
+  type: 'test'
+  ...
+# Subtest: affected graph rejects missing tasks
+ok 263 - affected graph rejects missing tasks
+  ---
+  duration_ms: 0.177452
+  type: 'test'
+  ...
+# Subtest: affected graph rejects null task
+ok 264 - affected graph rejects null task
+  ---
+  duration_ms: 0.188068
+  type: 'test'
+  ...
+# Subtest: affected graph rejects duplicate task identity
+ok 265 - affected graph rejects duplicate task identity
+  ---
+  duration_ms: 0.151925
+  type: 'test'
+  ...
+# Subtest: affected graph rejects inconsistent task identity
+ok 266 - affected graph rejects inconsistent task identity
+  ---
+  duration_ms: 0.229419
+  type: 'test'
+  ...
+# Subtest: affected graph rejects absent command
+ok 267 - affected graph rejects absent command
+  ---
+  duration_ms: 0.159585
+  type: 'test'
+  ...
+# Subtest: affected graph rejects whitespace command
+ok 268 - affected graph rejects whitespace command
+  ---
+  duration_ms: 0.137243
+  type: 'test'
+  ...
+# Subtest: affected graph rejects non-executable placeholder
+ok 269 - affected graph rejects non-executable placeholder
+  ---
+  duration_ms: 0.160957
+  type: 'test'
+  ...
+# Subtest: affected graph rejects malformed JSON rather than parsing stdout banners
+ok 270 - affected graph rejects malformed JSON rather than parsing stdout banners
+  ---
+  duration_ms: 0.231502
+  type: 'test'
+  ...
+# Subtest: AFFECTED mixed proof runs selected root tests before same-runtime dry and unchanged workspace argv
+ok 271 - AFFECTED mixed proof runs selected root tests before same-runtime dry and unchanged workspace argv
+  ---
+  duration_ms: 0.450705
+  type: 'test'
+  ...
+# Subtest: failure in root cannot produce successful affected proof
+ok 272 - failure in root cannot produce successful affected proof
+  ---
+  duration_ms: 0.129351
+  type: 'test'
+  ...
+# Subtest: failure in dry cannot produce successful affected proof
+ok 273 - failure in dry cannot produce successful affected proof
+  ---
+  duration_ms: 0.119787
+  type: 'test'
+  ...
+# Subtest: failure in workspace cannot produce successful affected proof
+ok 274 - failure in workspace cannot produce successful affected proof
+  ---
+  duration_ms: 0.209579
+  type: 'test'
+  ...
+# Subtest: invalid dry output stops before workspace: {"version":"1","turboVersion":"2.10.8","packages":["@touristic/core"],"tasks":[]}
+ok 275 - invalid dry output stops before workspace: {"version":"1","turboVersion":"2.10.8","packages":["@touristic/core"],"tasks":[]}
+  ---
+  duration_ms: 0.181989
+  type: 'test'
+  ...
+# Subtest: invalid dry output stops before workspace: {"version":"1","turboVersion":"2.10.8","packages":["@touristic/core"],"tasks":[{"taskId":"@touristic/core\#build","task":"build","package":"@touristic/core","command":"node -e 'process.exit(0)'","directory":"packages/core"}]}
+ok 276 - invalid dry output stops before workspace: {"version":"1","turboVersion":"2.10.8","packages":["@touristic/core"],"tasks":[{"taskId":"@touristic/core\#build","task":"build","package":"@touristic/core","command":"node -e 'process.exit(0)'","directory":"packages/core"}]}
+  ---
+  duration_ms: 0.130263
+  type: 'test'
+  ...
+# Subtest: invalid dry output stops before workspace: not-json
+ok 277 - invalid dry output stops before workspace: not-json
+  ---
+  duration_ms: 0.083674
+  type: 'test'
+  ...
+# Subtest: missing selected root tests cannot be rescued by workspace proof
+ok 278 - missing selected root tests cannot be rescued by workspace proof
+  ---
+  duration_ms: 0.147838
+  type: 'test'
+  ...
+# Subtest: runtime accounting mixed impact remains AFFECTED and selects actual tracked root CI tests
+ok 279 - runtime accounting mixed impact remains AFFECTED and selects actual tracked root CI tests
+  ---
+  duration_ms: 7.158295
+  type: 'test'
+  ...
+# Subtest: captured and inherited commands share safe native/fallback invocation mapping
+ok 280 - captured and inherited commands share safe native/fallback invocation mapping
+  ---
+  duration_ms: 0.240515
+  type: 'test'
+  ...
+# Subtest: actual captured process separates JSON stdout from stderr and rejects nonzero status
+ok 281 - actual captured process separates JSON stdout from stderr and rejects nonzero status
+  ---
+  duration_ms: 84.764341
+  type: 'test'
+  ...
+# Subtest: real --certify CLI rejects zero tasks; reverting its dispatch restores false certification
+ok 282 - real --certify CLI rejects zero tasks; reverting its dispatch restores false certification
+  ---
+  duration_ms: 730.058212
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory undefined
+ok 283 - affected graph rejects noncanonical directory undefined
+  ---
+  duration_ms: 0.317949
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory null
+ok 284 - affected graph rejects noncanonical directory null
+  ---
+  duration_ms: 0.123493
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory 42
+ok 285 - affected graph rejects noncanonical directory 42
+  ---
+  duration_ms: 0.11477
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "/packages/core"
+ok 286 - affected graph rejects noncanonical directory "/packages/core"
+  ---
+  duration_ms: 0.150282
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "../core"
+ok 287 - affected graph rejects noncanonical directory "../core"
+  ---
+  duration_ms: 0.20978
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "packages/../core"
+ok 288 - affected graph rejects noncanonical directory "packages/../core"
+  ---
+  duration_ms: 0.126817
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "./packages/core"
+ok 289 - affected graph rejects noncanonical directory "./packages/core"
+  ---
+  duration_ms: 0.195708
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "packages//core"
+ok 290 - affected graph rejects noncanonical directory "packages//core"
+  ---
+  duration_ms: 0.153617
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "packages/core/"
+ok 291 - affected graph rejects noncanonical directory "packages/core/"
+  ---
+  duration_ms: 0.270089
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "C:/core"
+ok 292 - affected graph rejects noncanonical directory "C:/core"
+  ---
+  duration_ms: 0.240976
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory "packages\\\\core"
+ok 293 - affected graph rejects noncanonical directory "packages\\\\core"
+  ---
+  duration_ms: 0.134949
+  type: 'test'
+  ...
+# Subtest: affected graph rejects noncanonical directory ""
+ok 294 - affected graph rejects noncanonical directory ""
+  ---
+  duration_ms: 0.215998
+  type: 'test'
+  ...
+# Subtest: canonical relative POSIX directories can contain spaces
+ok 295 - canonical relative POSIX directories can contain spaces
+  ---
+  duration_ms: 0.223189
+  type: 'test'
+  ...
+# Subtest: Turbo workspace-root package uses the empty directory, not an absolute or traversal path
+ok 296 - Turbo workspace-root package uses the empty directory, not an absolute or traversal path
+  ---
+  duration_ms: 0.395664
+  type: 'test'
+  ...
+# Subtest: classification block stops locally without full-everything fallback
+ok 297 - classification block stops locally without full-everything fallback
+  ---
+  duration_ms: 0.671091
+  type: 'test'
+  ...
+# Subtest: critical known impact uses deep proof
+ok 298 - critical known impact uses deep proof
+  ---
+  duration_ms: 0.362425
+  type: 'test'
+  ...
+# Subtest: proven non-runtime changes avoid runtime quality
+ok 299 - proven non-runtime changes avoid runtime quality
+  ---
+  duration_ms: 1.38852
+  type: 'test'
+  ...
+# Subtest: runtime fast profiles reuse exact-base Turbo affected quality
+ok 300 - runtime fast profiles reuse exact-base Turbo affected quality
+  ---
+  duration_ms: 1.722533
+  type: 'test'
+  ...
+# Subtest: fast gate rejects non-exact base identities
+ok 301 - fast gate rejects non-exact base identities
+  ---
+  duration_ms: 0.553407
+  type: 'test'
+  ...
+# Subtest: plan-only mode cannot bypass classification blocking
+ok 302 - plan-only mode cannot bypass classification blocking
+  ---
+  duration_ms: 0.16923
+  type: 'test'
+  ...
+# Subtest: deletion-only impact remains visible to the Fast Gate
+ok 303 - deletion-only impact remains visible to the Fast Gate
+  ---
+  duration_ms: 0.156521
+  type: 'test'
+  ...
+# Subtest: non-runtime control-plane and governance coverage includes canonical test trees
+ok 304 - non-runtime control-plane and governance coverage includes canonical test trees
+  ---
+  duration_ms: 6.461027
+  type: 'test'
+  ...
+# Subtest: local fast gate has no second workspace dependency graph
+ok 305 - local fast gate has no second workspace dependency graph
+  ---
+  duration_ms: 0.195599
+  type: 'test'
+  ...
+# Subtest: prepare includes dirty and untracked candidate paths before commit
+ok 306 - prepare includes dirty and untracked candidate paths before commit
+  ---
+  duration_ms: 0.124213
+  type: 'test'
+  ...
+# Subtest: canonical main selection rejects stale-only local refs
+ok 307 - canonical main selection rejects stale-only local refs
+  ---
+  duration_ms: 0.36588
+  type: 'test'
+  ...
+# Subtest: admission is distinct, exact-head, claim-aware and pre-proof
+ok 308 - admission is distinct, exact-head, claim-aware and pre-proof
+  ---
+  duration_ms: 0.158193
+  type: 'test'
+  ...
+# Subtest: canonical ownership binds Wave 5 paths to geospatial-routing
+ok 309 - canonical ownership binds Wave 5 paths to geospatial-routing
+  ---
+  duration_ms: 0.260655
+  type: 'test'
+  ...
+# Subtest: ownership admission fails closed for uncovered paths
+ok 310 - ownership admission fails closed for uncovered paths
+  ---
+  duration_ms: 0.700794
+  type: 'test'
+  ...
+# Subtest: prepare admission and certify modes are explicit and certification is clean
+ok 311 - prepare admission and certify modes are explicit and certification is clean
+  ---
+  duration_ms: 0.177172
+  type: 'test'
+  ...
+# Subtest: quality starts heavy work only after successful impact classification
+ok 312 - quality starts heavy work only after successful impact classification
+  ---
+  duration_ms: 0.187146
+  type: 'test'
+  ...
+# Subtest: certify uses executable workspace runtime fallback
+ok 313 - certify uses executable workspace runtime fallback
+  ---
+  duration_ms: 0.12223
+  type: 'test'
+  ...
+# Subtest: ticketing owns its exact existing app handler regression
+ok 314 - ticketing owns its exact existing app handler regression
+  ---
+  duration_ms: 0.349787
+  type: 'test'
+  ...
+# Subtest: ticketing handler ownership does not grant neighboring or nested paths
+ok 315 - ticketing handler ownership does not grant neighboring or nested paths
+  ---
+  duration_ms: 1.018273
+  type: 'test'
+  ...
+# Subtest: auth owns its exact existing app handler regression
+ok 316 - auth owns its exact existing app handler regression
+  ---
+  duration_ms: 0.173146
+  type: 'test'
+  ...
+# Subtest: auth handler ownership does not grant neighboring or nested paths
+ok 317 - auth handler ownership does not grant neighboring or nested paths
+  ---
+  duration_ms: 0.708366
+  type: 'test'
+  ...
+# Subtest: candidate identity survives main advancement and rejects missing, moved or unmerged refs
+ok 318 - candidate identity survives main advancement and rejects missing, moved or unmerged refs
+  ---
+  duration_ms: 529.266995
+  type: 'test'
+  ...
+# Subtest: the reviewed final runtime and release-digest gates are present
+ok 319 - the reviewed final runtime and release-digest gates are present
+  ---
+  duration_ms: 3.106426
+  type: 'test'
+  ...
+# Subtest: restoring the vulnerable full Debian runtime fails closed
+ok 320 - restoring the vulnerable full Debian runtime fails closed
+  ---
+  duration_ms: 2.302775
+  type: 'test'
+  ...
+# Subtest: removing immutable digest scans fails closed
+ok 321 - removing immutable digest scans fails closed
+  ---
+  duration_ms: 0.726142
+  type: 'test'
+  ...
+# Subtest: provenance must follow every security and runtime acceptance gate
+ok 322 - provenance must follow every security and runtime acceptance gate
+  ---
+  duration_ms: 0.216359
+  type: 'test'
+  ...
+# Subtest: exact-head candidate image scan requires an explicitly scoped owner dispatch
+ok 323 - exact-head candidate image scan requires an explicitly scoped owner dispatch
+  ---
+  duration_ms: 1.250676
+  type: 'test'
+  ...
+# Subtest: broad scanning must remain asynchronous to ordinary pull requests
+ok 324 - broad scanning must remain asynchronous to ordinary pull requests
+  ---
+  duration_ms: 1.365465
+  type: 'test'
+  ...
+# Subtest: consumer verifies one current-attempt artifact and exact successful run
+ok 325 - consumer verifies one current-attempt artifact and exact successful run
+  ---
+  duration_ms: 3.498715
+  type: 'test'
+  ...
+# Subtest: Node acceptance cannot authorize downstream dispatch
+ok 326 - Node acceptance cannot authorize downstream dispatch
+  ---
+  duration_ms: 1.512062
+  type: 'test'
+  ...
+# Subtest: wrong evidence run cannot authorize downstream dispatch
+ok 327 - wrong evidence run cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.448131
+  type: 'test'
+  ...
+# Subtest: wrong evidence attempt cannot authorize downstream dispatch
+ok 328 - wrong evidence attempt cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.316818
+  type: 'test'
+  ...
+# Subtest: old artifact attempt cannot authorize downstream dispatch
+ok 329 - old artifact attempt cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.418668
+  type: 'test'
+  ...
+# Subtest: expired artifact cannot authorize downstream dispatch
+ok 330 - expired artifact cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.280724
+  type: 'test'
+  ...
+# Subtest: different candidate cannot authorize downstream dispatch
+ok 331 - different candidate cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.603911
+  type: 'test'
+  ...
+# Subtest: wrong workflow cannot authorize downstream dispatch
+ok 332 - wrong workflow cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.35912
+  type: 'test'
+  ...
+# Subtest: duplicate artifact cannot authorize downstream dispatch
+ok 333 - duplicate artifact cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.601037
+  type: 'test'
+  ...
+# Subtest: incomplete artifact listing cannot authorize downstream dispatch
+ok 334 - incomplete artifact listing cannot authorize downstream dispatch
+  ---
+  duration_ms: 0.600717
+  type: 'test'
+  ...
+# Subtest: FRA revalidates fresh authenticated observation tied to current acceptance caller
+ok 335 - FRA revalidates fresh authenticated observation tied to current acceptance caller
+  ---
+  duration_ms: 4.827296
+  type: 'test'
+  ...
+# Subtest: FRA rejects historical same-SHA caller
+ok 336 - FRA rejects historical same-SHA caller
+  ---
+  duration_ms: 1.088517
+  type: 'test'
+  ...
+# Subtest: FRA rejects expired observation in retained artifact
+ok 337 - FRA rejects expired observation in retained artifact
+  ---
+  duration_ms: 0.918576
+  type: 'test'
+  ...
+# Subtest: FRA rejects revoked after child verification
+ok 338 - FRA rejects revoked after child verification
+  ---
+  duration_ms: 3.165833
+  type: 'test'
+  ...
+# Subtest: FRA rejects modified runtime in artifact
+ok 339 - FRA rejects modified runtime in artifact
+  ---
+  duration_ms: 1.220111
+  type: 'test'
+  ...
+# Subtest: FRA rejects wrong current attempt
+ok 340 - FRA rejects wrong current attempt
+  ---
+  duration_ms: 0.474821
+  type: 'test'
+  ...
+# Subtest: FRA rejects stale runtime with fresh provider
+ok 341 - FRA rejects stale runtime with fresh provider
+  ---
+  duration_ms: 2.060131
+  type: 'test'
+  ...
+# Subtest: FRA fails when receipt expires during authenticated readback
+ok 342 - FRA fails when receipt expires during authenticated readback
+  ---
+  duration_ms: 1.274441
+  type: 'test'
+  ...
+# Subtest: FRA reauthenticates barrier and rejects pre-lock provider evidence retained in an artifact
+ok 343 - FRA reauthenticates barrier and rejects pre-lock provider evidence retained in an artifact
+  ---
+  duration_ms: 0.881552
+  type: 'test'
+  ...
+# Subtest: post-lock continuation accepts fresh queries while retaining historical deployment timestamps
+ok 344 - post-lock continuation accepts fresh queries while retaining historical deployment timestamps
+  ---
+  duration_ms: 4.606651
+  type: 'test'
+  ...
+# Subtest: authenticated barrier rejects workflow-start timestamp masquerading as post-lock marker
+ok 345 - authenticated barrier rejects workflow-start timestamp masquerading as post-lock marker
+  ---
+  duration_ms: 0.800822
+  type: 'test'
+  ...
+# Subtest: authenticated barrier rejects other job
+ok 346 - authenticated barrier rejects other job
+  ---
+  duration_ms: 0.706093
+  type: 'test'
+  ...
+# Subtest: authenticated barrier rejects queued job
+ok 347 - authenticated barrier rejects queued job
+  ---
+  duration_ms: 1.06399
+  type: 'test'
+  ...
+# Subtest: authenticated barrier rejects wrong attempt
+ok 348 - authenticated barrier rejects wrong attempt
+  ---
+  duration_ms: 0.572826
+  type: 'test'
+  ...
+# Subtest: authenticated barrier rejects wrong artifact run
+ok 349 - authenticated barrier rejects wrong artifact run
+  ---
+  duration_ms: 0.336146
+  type: 'test'
+  ...
+# Subtest: authenticated barrier rejects wrong source
+ok 350 - authenticated barrier rejects wrong source
+  ---
+  duration_ms: 0.506427
+  type: 'test'
+  ...
+# Subtest: job attempt is authenticated through attempt-scoped membership when GET job omits run_attempt
+ok 351 - job attempt is authenticated through attempt-scoped membership when GET job omits run_attempt
+  ---
+  duration_ms: 0.332922
+  type: 'test'
+  ...
+# Subtest: job from another attempt cannot satisfy the marker
+ok 352 - job from another attempt cannot satisfy the marker
+  ---
+  duration_ms: 0.899387
+  type: 'test'
+  ...
+# Subtest: typed connector observation validates structure without manufacturing authority
+ok 353 - typed connector observation validates structure without manufacturing authority
+  ---
+  duration_ms: 4.1526
+  type: 'test'
+  ...
+# Subtest: missing provider ID fails closed
+ok 354 - missing provider ID fails closed
+  ---
+  duration_ms: 1.213682
+  type: 'test'
+  ...
+# Subtest: wrong provider commit fails closed
+ok 355 - wrong provider commit fails closed
+  ---
+  duration_ms: 0.641136
+  type: 'test'
+  ...
+# Subtest: provider not live fails closed
+ok 356 - provider not live fails closed
+  ---
+  duration_ms: 0.355885
+  type: 'test'
+  ...
+# Subtest: provider predates dispatch fails closed
+ok 357 - provider predates dispatch fails closed
+  ---
+  duration_ms: 0.579615
+  type: 'test'
+  ...
+# Subtest: configuration drift fails closed
+ok 358 - configuration drift fails closed
+  ---
+  duration_ms: 0.333553
+  type: 'test'
+  ...
+# Subtest: runtime unhealthy fails closed
+ok 359 - runtime unhealthy fails closed
+  ---
+  duration_ms: 0.436745
+  type: 'test'
+  ...
+# Subtest: runtime observed before live fails closed
+ok 360 - runtime observed before live fails closed
+  ---
+  duration_ms: 0.330659
+  type: 'test'
+  ...
+# Subtest: wrong caller fails closed
+ok 361 - wrong caller fails closed
+  ---
+  duration_ms: 0.727524
+  type: 'test'
+  ...
+# Subtest: wrong attempt fails closed
+ok 362 - wrong attempt fails closed
+  ---
+  duration_ms: 1.726799
+  type: 'test'
+  ...
+# Subtest: artifact attempt mismatch fails closed
+ok 363 - artifact attempt mismatch fails closed
+  ---
+  duration_ms: 0.394232
+  type: 'test'
+  ...
+# Subtest: artifact ID mismatch fails closed
+ok 364 - artifact ID mismatch fails closed
+  ---
+  duration_ms: 0.313393
+  type: 'test'
+  ...
+# Subtest: OCI mixed into Node fails closed
+ok 365 - OCI mixed into Node fails closed
+  ---
+  duration_ms: 0.313834
+  type: 'test'
+  ...
+# Subtest: production eligible Node fails closed
+ok 366 - production eligible Node fails closed
+  ---
+  duration_ms: 0.225202
+  type: 'test'
+  ...
+# Subtest: Pages eligible Node fails closed
+ok 367 - Pages eligible Node fails closed
+  ---
+  duration_ms: 0.212273
+  type: 'test'
+  ...
+# Subtest: false CI provider attestation fails closed
+ok 368 - false CI provider attestation fails closed
+  ---
+  duration_ms: 0.251111
+  type: 'test'
+  ...
+# Subtest: unknown external evidence fails closed
+ok 369 - unknown external evidence fails closed
+  ---
+  duration_ms: 0.624001
+  type: 'test'
+  ...
+# Subtest: external conflict fails closed
+ok 370 - external conflict fails closed
+  ---
+  duration_ms: 0.384017
+  type: 'test'
+  ...
+# Subtest: unverified external status fails closed
+ok 371 - unverified external status fails closed
+  ---
+  duration_ms: 0.239574
+  type: 'test'
+  ...
+# Subtest: wrong external producer fails closed
+ok 372 - wrong external producer fails closed
+  ---
+  duration_ms: 0.229339
+  type: 'test'
+  ...
+# Subtest: duplicate external item fails closed
+ok 373 - duplicate external item fails closed
+  ---
+  duration_ms: 0.378208
+  type: 'test'
+  ...
+# Subtest: stale external evidence fails closed
+ok 374 - stale external evidence fails closed
+  ---
+  duration_ms: 0.239033
+  type: 'test'
+  ...
+# Subtest: replayed reservation fails closed
+ok 375 - replayed reservation fails closed
+  ---
+  duration_ms: 0.331609
+  type: 'test'
+  ...
+# Subtest: ambiguous artifact fails closed
+ok 376 - ambiguous artifact fails closed
+  ---
+  duration_ms: 0.249328
+  type: 'test'
+  ...
+# Subtest: old same-SHA runtime fails closed
+ok 377 - old same-SHA runtime fails closed
+  ---
+  duration_ms: 0.312972
+  type: 'test'
+  ...
+# Subtest: Node rejected by production before dispatch
+ok 378 - Node rejected by production before dispatch
+  ---
+  duration_ms: 0.294244
+  type: 'test'
+  ...
+# Subtest: Node rejected by pages before dispatch
+ok 379 - Node rejected by pages before dispatch
+  ---
+  duration_ms: 0.193536
+  type: 'test'
+  ...
+# Subtest: Node rejected by oci before dispatch
+ok 380 - Node rejected by oci before dispatch
+  ---
+  duration_ms: 0.20356
+  type: 'test'
+  ...
+# Subtest: valid immutable OCI evidence remains eligible
+ok 381 - valid immutable OCI evidence remains eligible
+  ---
+  duration_ms: 0.154188
+  type: 'test'
+  ...
+# Subtest: intervening provider deployment fails current runtime acceptance
+ok 382 - intervening provider deployment fails current runtime acceptance
+  ---
+  duration_ms: 0.350157
+  type: 'test'
+  ...
+# Subtest: verify queued behind OCI rejects fresh-in-age provider observation made before its lock barrier
+ok 383 - verify queued behind OCI rejects fresh-in-age provider observation made before its lock barrier
+  ---
+  duration_ms: 0.309166
+  type: 'test'
+  ...
+# Subtest: verify queued behind OCI rejects runtime observation made before its lock barrier
+ok 384 - verify queued behind OCI rejects runtime observation made before its lock barrier
+  ---
+  duration_ms: 0.342475
+  type: 'test'
+  ...
+# Subtest: receipt observed before verifier lock barrier fails even if provider/runtime queries are later
+ok 385 - receipt observed before verifier lock barrier fails even if provider/runtime queries are later
+  ---
+  duration_ms: 0.249538
+  type: 'test'
+  ...
+# Subtest: staged policy stays disabled and cannot authorize production or Pages
+ok 386 - staged policy stays disabled and cannot authorize production or Pages
+  ---
+  duration_ms: 0.540879
+  type: 'test'
+  ...
+# Subtest: preflight accepts the fixed service with candidate-bound recovery evidence
+ok 387 - preflight accepts the fixed service with candidate-bound recovery evidence
+  ---
+  duration_ms: 0.989731
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed serviceId even with a matching fingerprint
+ok 388 - preflight rejects changed serviceId even with a matching fingerprint
+  ---
+  duration_ms: 0.331619
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed runtime even with a matching fingerprint
+ok 389 - preflight rejects changed runtime even with a matching fingerprint
+  ---
+  duration_ms: 0.249658
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed url even with a matching fingerprint
+ok 390 - preflight rejects changed url even with a matching fingerprint
+  ---
+  duration_ms: 0.273414
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed repository even with a matching fingerprint
+ok 391 - preflight rejects changed repository even with a matching fingerprint
+  ---
+  duration_ms: 0.379039
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed branch even with a matching fingerprint
+ok 392 - preflight rejects changed branch even with a matching fingerprint
+  ---
+  duration_ms: 0.217751
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed autoDeploy even with a matching fingerprint
+ok 393 - preflight rejects changed autoDeploy even with a matching fingerprint
+  ---
+  duration_ms: 0.247385
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed diskId even with a matching fingerprint
+ok 394 - preflight rejects changed diskId even with a matching fingerprint
+  ---
+  duration_ms: 0.188278
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed diskMountPath even with a matching fingerprint
+ok 395 - preflight rejects changed diskMountPath even with a matching fingerprint
+  ---
+  duration_ms: 0.403897
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed diskSizeGB even with a matching fingerprint
+ok 396 - preflight rejects changed diskSizeGB even with a matching fingerprint
+  ---
+  duration_ms: 0.274035
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed plan even with a matching fingerprint
+ok 397 - preflight rejects changed plan even with a matching fingerprint
+  ---
+  duration_ms: 0.172485
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed region even with a matching fingerprint
+ok 398 - preflight rejects changed region even with a matching fingerprint
+  ---
+  duration_ms: 0.138885
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed instances even with a matching fingerprint
+ok 399 - preflight rejects changed instances even with a matching fingerprint
+  ---
+  duration_ms: 0.145255
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed healthCheckPath even with a matching fingerprint
+ok 400 - preflight rejects changed healthCheckPath even with a matching fingerprint
+  ---
+  duration_ms: 0.136662
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed buildCommand even with a matching fingerprint
+ok 401 - preflight rejects changed buildCommand even with a matching fingerprint
+  ---
+  duration_ms: 0.125505
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed preDeployCommand even with a matching fingerprint
+ok 402 - preflight rejects changed preDeployCommand even with a matching fingerprint
+  ---
+  duration_ms: 0.191343
+  type: 'test'
+  ...
+# Subtest: preflight rejects changed startCommand even with a matching fingerprint
+ok 403 - preflight rejects changed startCommand even with a matching fingerprint
+  ---
+  duration_ms: 0.168109
+  type: 'test'
+  ...
+# Subtest: preflight rejects fingerprint mismatch
+ok 404 - preflight rejects fingerprint mismatch
+  ---
+  duration_ms: 0.191022
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery status
+ok 405 - preflight rejects missing or mismatched recovery status
+  ---
+  duration_ms: 0.240505
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery candidateSha
+ok 406 - preflight rejects missing or mismatched recovery candidateSha
+  ---
+  duration_ms: 0.148809
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery retainedBackup
+ok 407 - preflight rejects missing or mismatched recovery retainedBackup
+  ---
+  duration_ms: 0.317819
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery wrapperAndPredeployCovered
+ok 408 - preflight rejects missing or mismatched recovery wrapperAndPredeployCovered
+  ---
+  duration_ms: 0.988669
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery codeRollbackDoesNotUndoData
+ok 409 - preflight rejects missing or mismatched recovery codeRollbackDoesNotUndoData
+  ---
+  duration_ms: 0.188087
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery backupRef
+ok 410 - preflight rejects missing or mismatched recovery backupRef
+  ---
+  duration_ms: 0.12904
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery restoreRef
+ok 411 - preflight rejects missing or mismatched recovery restoreRef
+  ---
+  duration_ms: 0.10865
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery rollbackRef
+ok 412 - preflight rejects missing or mismatched recovery rollbackRef
+  ---
+  duration_ms: 0.213175
+  type: 'test'
+  ...
+# Subtest: preflight rejects missing or mismatched recovery mutationInventoryRef
+ok 413 - preflight rejects missing or mismatched recovery mutationInventoryRef
+  ---
+  duration_ms: 0.193536
+  type: 'test'
+  ...
+# Subtest: preflight requires previous deployment identity for rollback
+ok 414 - preflight requires previous deployment identity for rollback
+  ---
+  duration_ms: 0.27081
+  type: 'test'
+  ...
+# Subtest: preflight requires previous commit identity for rollback
+ok 415 - preflight requires previous commit identity for rollback
+  ---
+  duration_ms: 0.195759
+  type: 'test'
+  ...
+# Subtest: preflight requires previous runtime identity for rollback
+ok 416 - preflight requires previous runtime identity for rollback
+  ---
+  duration_ms: 0.175839
+  type: 'test'
+  ...
+# Subtest: reserve before one hook POST; subsequent calls cannot replay
+ok 417 - reserve before one hook POST; subsequent calls cannot replay
+  ---
+  duration_ms: 6.825796
+  type: 'test'
+  ...
+# Subtest: timeout after hook acceptance never produces a second POST
+ok 418 - timeout after hook acceptance never produces a second POST
+  ---
+  duration_ms: 1.265768
+  type: 'test'
+  ...
+# Subtest: missing provider ID remains reserved and requires reconciliation
+ok 419 - missing provider ID remains reserved and requires reconciliation
+  ---
+  duration_ms: 0.86032
+  type: 'test'
+  ...
+# Subtest: new run cannot reuse prior receipt
+ok 420 - new run cannot reuse prior receipt
+  ---
+  duration_ms: 0.619084
+  type: 'test'
+  ...
+# Subtest: JSON copying a verified receipt cannot manufacture dispatch authority
+ok 421 - JSON copying a verified receipt cannot manufacture dispatch authority
+  ---
+  duration_ms: 0.693573
+  type: 'test'
+  ...
+# Subtest: uncertain reservation outcome forbids hook POST
+ok 422 - uncertain reservation outcome forbids hook POST
+  ---
+  duration_ms: 0.533197
+  type: 'test'
+  ...
+# Subtest: disabled policy never reserves or sends a POST
+ok 423 - disabled policy never reserves or sends a POST
+  ---
+  duration_ms: 0.780082
+  type: 'test'
+  ...
+# Subtest: canonical hook rejects imageURL
+ok 424 - canonical hook rejects imageURL
+  ---
+  duration_ms: 1.085562
+  type: 'test'
+  ...
+# Subtest: canonical hook rejects duplicate key
+ok 425 - canonical hook rejects duplicate key
+  ---
+  duration_ms: 0.702387
+  type: 'test'
+  ...
+# Subtest: canonical hook rejects existing ref
+ok 426 - canonical hook rejects existing ref
+  ---
+  duration_ms: 0.940318
+  type: 'test'
+  ...
+# Subtest: canonical hook rejects unknown query
+ok 427 - canonical hook rejects unknown query
+  ---
+  duration_ms: 0.42005
+  type: 'test'
+  ...
+# Subtest: canonical hook rejects fragment
+ok 428 - canonical hook rejects fragment
+  ---
+  duration_ms: 0.283108
+  type: 'test'
+  ...
+# Subtest: canonical hook rejects missing key
+ok 429 - canonical hook rejects missing key
+  ---
+  duration_ms: 0.207617
+  type: 'test'
+  ...
+# Subtest: canonical hook rejects non-default port and constructs only key plus exact ref
+ok 430 - canonical hook rejects non-default port and constructs only key plus exact ref
+  ---
+  duration_ms: 0.644171
+  type: 'test'
+  ...
+# Subtest: authenticated comment transport does not claim CI queried Render
+ok 431 - authenticated comment transport does not claim CI queried Render
+  ---
+  duration_ms: 3.227124
+  type: 'test'
+  ...
+# Subtest: actor drift rejects receipt
+ok 432 - actor drift rejects receipt
+  ---
+  duration_ms: 1.004673
+  type: 'test'
+  ...
+# Subtest: app provenance drift rejects receipt
+ok 433 - app provenance drift rejects receipt
+  ---
+  duration_ms: 0.459608
+  type: 'test'
+  ...
+# Subtest: edited comment rejects receipt
+ok 434 - edited comment rejects receipt
+  ---
+  duration_ms: 0.771489
+  type: 'test'
+  ...
+# Subtest: raw bytes drift rejects receipt
+ok 435 - raw bytes drift rejects receipt
+  ---
+  duration_ms: 0.553036
+  type: 'test'
+  ...
+# Subtest: wrong tower rejects receipt
+ok 436 - wrong tower rejects receipt
+  ---
+  duration_ms: 0.433601
+  type: 'test'
+  ...
+# Subtest: request mismatch rejects receipt
+ok 437 - request mismatch rejects receipt
+  ---
+  duration_ms: 2.400504
+  type: 'test'
+  ...
+# Subtest: incomplete pagination rejects receipt
+ok 438 - incomplete pagination rejects receipt
+  ---
+  duration_ms: 0.838127
+  type: 'test'
+  ...
+# Subtest: duplicate grant rejects receipt
+ok 439 - duplicate grant rejects receipt
+  ---
+  duration_ms: 0.823005
+  type: 'test'
+  ...
+# Subtest: revocation rejects receipt
+ok 440 - revocation rejects receipt
+  ---
+  duration_ms: 0.986597
+  type: 'test'
+  ...
+# Subtest: reread drift rejects receipt
+ok 441 - reread drift rejects receipt
+  ---
+  duration_ms: 0.747854
+  type: 'test'
+  ...
+# Subtest: post observation can supersede a stale immutable observation of the same dispatch
+ok 442 - post observation can supersede a stale immutable observation of the same dispatch
+  ---
+  duration_ms: 2.283611
+  type: 'test'
+  ...
+# Subtest: post observation rejects forked supersession
+ok 443 - post observation rejects forked supersession
+  ---
+  duration_ms: 0.877605
+  type: 'test'
+  ...
+# Subtest: post observation rejects wrong verification caller
+ok 444 - post observation rejects wrong verification caller
+  ---
+  duration_ms: 1.027857
+  type: 'test'
+  ...
+# Subtest: post observation rejects stale post observation
+ok 445 - post observation rejects stale post observation
+  ---
+  duration_ms: 1.303825
+  type: 'test'
+  ...
+# Subtest: post observation rejects verification ID drift
+ok 446 - post observation rejects verification ID drift
+  ---
+  duration_ms: 0.520689
+  type: 'test'
+  ...
+# Subtest: supersession never makes an older receipt current again
+ok 447 - supersession never makes an older receipt current again
+  ---
+  duration_ms: 1.00209
+  type: 'test'
+  ...
+# Subtest: only original authenticated receipt retains private membership
+ok 448 - only original authenticated receipt retains private membership
+  ---
+  duration_ms: 0.573066
+  type: 'test'
+  ...
+# Subtest: authenticated receipt and nested payload cannot be mutated
+ok 449 - authenticated receipt and nested payload cannot be mutated
+  ---
+  duration_ms: 0.309527
+  type: 'test'
+  ...
+# Subtest: operational dispatch adapter reserves before its only POST and never writes provider configuration: accepted
+ok 450 - operational dispatch adapter reserves before its only POST and never writes provider configuration: accepted
+  ---
+  duration_ms: 224.941558
+  type: 'test'
+  ...
+# Subtest: operational dispatch adapter reserves before its only POST and never writes provider configuration: redirect
+ok 451 - operational dispatch adapter reserves before its only POST and never writes provider configuration: redirect
+  ---
+  duration_ms: 89.380205
+  type: 'test'
+  ...
+# Subtest: repository policy disables runtime before any network call
+ok 452 - repository policy disables runtime before any network call
+  ---
+  duration_ms: 0.682818
+  type: 'test'
+  ...
+# Subtest: thin CLI fails closed on an unknown command
+ok 453 - thin CLI fails closed on an unknown command
+  ---
+  duration_ms: 42.303274
+  type: 'test'
+  ...
+# Subtest: runtime success never attributes a replacement deployment to the original request
+ok 454 - runtime success never attributes a replacement deployment to the original request
+  ---
+  duration_ms: 1.384283
+  type: 'test'
+  ...
+# Subtest: legacy acceptance fields remain present without claiming provider binding
+ok 455 - legacy acceptance fields remain present without claiming provider binding
+  ---
+  duration_ms: 1.080335
+  type: 'test'
+  ...
+# Subtest: incomplete or mismatched proof stays unverified: {"RUNTIME_OUTCOME":"failure"}
+ok 456 - incomplete or mismatched proof stays unverified: {"RUNTIME_OUTCOME":"failure"}
+  ---
+  duration_ms: 0.185584
+  type: 'test'
+  ...
+# Subtest: incomplete or mismatched proof stays unverified: {"LIVE_IMAGE_RUN_ID":"456"}
+ok 457 - incomplete or mismatched proof stays unverified: {"LIVE_IMAGE_RUN_ID":"456"}
+  ---
+  duration_ms: 0.119376
+  type: 'test'
+  ...
+# Subtest: incomplete or mismatched proof stays unverified: {"LIVE_RELEASE_SHA":"cccccccccccccccccccccccccccccccccccccccc"}
+ok 458 - incomplete or mismatched proof stays unverified: {"LIVE_RELEASE_SHA":"cccccccccccccccccccccccccccccccccccccccc"}
+  ---
+  duration_ms: 0.126938
+  type: 'test'
+  ...
+# Subtest: incomplete or mismatched proof stays unverified: {}
+ok 459 - incomplete or mismatched proof stays unverified: {}
+  ---
+  duration_ms: 0.174297
+  type: 'test'
+  ...
+# Subtest: invalid receipt cannot inject extra evidence lines
+ok 460 - invalid receipt cannot inject extra evidence lines
+  ---
+  duration_ms: 0.144714
+  type: 'test'
+  ...
+# Subtest: readiness accepts current node staging and immutable OCI staging
+ok 461 - readiness accepts current node staging and immutable OCI staging
+  ---
+  duration_ms: 150.498083
+  type: 'test'
+  ...
+# Subtest: readiness rejects mutable image
+ok 462 - readiness rejects mutable image
+  ---
+  duration_ms: 67.156698
+  type: 'test'
+  ...
+# Subtest: readiness rejects bare Node
+ok 463 - readiness rejects bare Node
+  ---
+  duration_ms: 58.454816
+  type: 'test'
+  ...
+# Subtest: readiness rejects missing wrapper
+ok 464 - readiness rejects missing wrapper
+  ---
+  duration_ms: 50.172311
+  type: 'test'
+  ...
+# Subtest: readiness rejects source build
+ok 465 - readiness rejects source build
+  ---
+  duration_ms: 57.018662
+  type: 'test'
+  ...
+# Subtest: readiness rejects unsupported runtime
+ok 466 - readiness rejects unsupported runtime
+  ---
+  duration_ms: 43.76113
+  type: 'test'
+  ...
+# Subtest: WP05 login source, regression test and composed product have scheduled coverage
+ok 467 - WP05 login source, regression test and composed product have scheduled coverage
+  ---
+  duration_ms: 17.179396
+  type: 'test'
+  ...
+# Subtest: full WP05 regression cannot mask missing login test coverage
+ok 468 - full WP05 regression cannot mask missing login test coverage
+  ---
+  duration_ms: 2.653327
+  type: 'test'
+  ...
+# Subtest: managed suite registry is exact for this rollout
+ok 469 - managed suite registry is exact for this rollout
+  ---
+  duration_ms: 1.370483
+  type: 'test'
+  ...
+# Subtest: classification blocks avoid fan-out while critical changes select all managed suites
+ok 470 - classification blocks avoid fan-out while critical changes select all managed suites
+  ---
+  duration_ms: 3.995038
+  type: 'test'
+  ...
+# Subtest: isolated prose does not provision managed runtime suites
+ok 471 - isolated prose does not provision managed runtime suites
+  ---
+  duration_ms: 1.589566
+  type: 'test'
+  ...
+# Subtest: every migrated trigger path still selects its original suite
+ok 472 - every migrated trigger path still selects its original suite
+  ---
+  duration_ms: 35.722855
+  type: 'test'
+  ...
+# Subtest: explicit dependency selection is preserved even without a direct path match
+ok 473 - explicit dependency selection is preserved even without a direct path match
+  ---
+  duration_ms: 1.468457
+  type: 'test'
+  ...
+# Subtest: quality succeeds only when every selected suite and core actually succeeded
+ok 474 - quality succeeds only when every selected suite and core actually succeeded
+  ---
+  duration_ms: 0.570342
+  type: 'test'
+  ...
+# Subtest: unexpected execution, missing results and tampered suite identity fail closed
+ok 475 - unexpected execution, missing results and tampered suite identity fail closed
+  ---
+  duration_ms: 0.467971
+  type: 'test'
+  ...
+# Subtest: double-star directories include zero, one or many nested levels
+ok 476 - double-star directories include zero, one or many nested levels
+  ---
+  duration_ms: 0.481311
+  type: 'test'
+  ...
+# Subtest: malformed or unrecognized dependency suite output fails closed
+ok 477 - malformed or unrecognized dependency suite output fails closed
+  ---
+  duration_ms: 0.683489
+  type: 'test'
+  ...
+# Subtest: incomplete analyzer reports cannot narrow managed suite selection
+ok 478 - incomplete analyzer reports cannot narrow managed suite selection
+  ---
+  duration_ms: 0.402163
+  type: 'test'
+  ...
+# Subtest: Business and Control Center fail closed until central or legacy coverage is proven
+ok 479 - Business and Control Center fail closed until central or legacy coverage is proven
+  ---
+  duration_ms: 0.936142
+  type: 'test'
+  ...
+# Subtest: known critical changes stay deep while unclassified changes block
+ok 480 - known critical changes stay deep while unclassified changes block
+  ---
+  duration_ms: 2.362753
+  type: 'test'
+  ...
+# Subtest: workspace and observed-state tooling retain deterministic gates without browser fan-out
+ok 481 - workspace and observed-state tooling retain deterministic gates without browser fan-out
+  ---
+  duration_ms: 1.053435
+  type: 'test'
+  ...
+# Subtest: unmigrated runtime coverage fails closed without unrelated fan-out
+ok 482 - unmigrated runtime coverage fails closed without unrelated fan-out
+  ---
+  duration_ms: 6.676816
+  type: 'test'
+  ...
+# Subtest: release proof binds successful child results to exact source, tree, lockfile and artifact identity
+ok 483 - release proof binds successful child results to exact source, tree, lockfile and artifact identity
+  ---
+  duration_ms: 2.925358
+  type: 'test'
+  ...
+# Subtest: scheduler reclassifies tampered file lists before narrowing coverage
+ok 484 - scheduler reclassifies tampered file lists before narrowing coverage
+  ---
+  duration_ms: 2.432531
+  type: 'test'
+  ...
+# Subtest: script-only package changes preserve semantic fast-lane selection
+ok 485 - script-only package changes preserve semantic fast-lane selection
+  ---
+  duration_ms: 0.427
+  type: 'test'
+  ...
+# Subtest: dependency package changes still select full managed coverage
+ok 486 - dependency package changes still select full managed coverage
+  ---
+  duration_ms: 0.300444
+  type: 'test'
+  ...
+# Subtest: control-plane tooling does not select managed runtime suites
+ok 487 - control-plane tooling does not select managed runtime suites
+  ---
+  duration_ms: 1.262924
+  type: 'test'
+  ...
+# Subtest: affected quality uses exact-base Turbo dependents filter
+ok 488 - affected quality uses exact-base Turbo dependents filter
+  ---
+  duration_ms: 0.625784
+  type: 'test'
+  ...
+# Subtest: affected formatting excludes deleted paths
+ok 489 - affected formatting excludes deleted paths
+  ---
+  duration_ms: 0.1697
+  type: 'test'
+  ...
+# Subtest: Quality workflow uses affected fast profiles and conditional database
+ok 490 - Quality workflow uses affected fast profiles and conditional database
+  ---
+  duration_ms: 0.125435
+  type: 'test'
+  ...
+# Subtest: Quality selects one root CI authority and one scheduler guard per affected profile
+ok 491 - Quality selects one root CI authority and one scheduler guard per affected profile
+  ---
+  duration_ms: 43.36052
+  type: 'test'
+  ...
+# Subtest: broad Security Scanning is asynchronous to pull-request bugfixes
+ok 492 - broad Security Scanning is asynchronous to pull-request bugfixes
+  ---
+  duration_ms: 0.459438
+  type: 'test'
+  ...
+# Subtest: critical fan-out never masks an uncovered runtime file in either order
+ok 493 - critical fan-out never masks an uncovered runtime file in either order
+  ---
+  duration_ms: 15.807456
+  type: 'test'
+  ...
+# Subtest: a release-candidate flag never supplies missing per-file coverage
+ok 494 - a release-candidate flag never supplies missing per-file coverage
+  ---
+  duration_ms: 0.622019
+  type: 'test'
+  ...
+# Subtest: rediscovered critical impact does not stop checking later files
+ok 495 - rediscovered critical impact does not stop checking later files
+  ---
+  duration_ms: 0.959236
+  type: 'test'
+  ...
+# Subtest: critical fan-out does not conceal an unclassified file on recomputation
+ok 496 - critical fan-out does not conceal an unclassified file on recomputation
+  ---
+  duration_ms: 5.142596
+  type: 'test'
+  ...
+# Subtest: critical candidates with proven or nonrequired coverage retain full fan-out
+ok 497 - critical candidates with proven or nonrequired coverage retain full fan-out
+  ---
+  duration_ms: 5.130669
+  type: 'test'
+  ...
+# Subtest: Control Center runtime and acceptance tests require the browser suite
+ok 498 - Control Center runtime and acceptance tests require the browser suite
+  ---
+  duration_ms: 8.128569
+  type: 'test'
+  ...
+# Subtest: business support navigation targets content rather than hidden search links
+ok 499 - business support navigation targets content rather than hidden search links
+  ---
+  duration_ms: 0.199825
+  type: 'test'
+  ...
+# Subtest: payments-browser-checkout-contract.yml / pull_request routes the exact Ticketing startup test
+ok 500 - payments-browser-checkout-contract.yml / pull_request routes the exact Ticketing startup test
+  ---
+  duration_ms: 3.635978
+  type: 'test'
+  ...
+# Subtest: payments-browser-checkout-contract.yml / push routes the exact Ticketing startup test
+ok 501 - payments-browser-checkout-contract.yml / push routes the exact Ticketing startup test
+  ---
+  duration_ms: 0.402364
+  type: 'test'
+  ...
+# Subtest: commerce-browser-regression.yml / pull_request routes the exact Ticketing startup test
+ok 502 - commerce-browser-regression.yml / pull_request routes the exact Ticketing startup test
+  ---
+  duration_ms: 1.20605
+  type: 'test'
+  ...
+# Subtest: real Turbo cache restores entry CSS and invalidates generator and manifest independently
+ok 503 - real Turbo cache restores entry CSS and invalidates generator and manifest independently
+  ---
+  duration_ms: 2456.038545
+  type: 'test'
+  ...
+1..503
+# tests 503
+# suites 0
+# pass 503
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16533.6009

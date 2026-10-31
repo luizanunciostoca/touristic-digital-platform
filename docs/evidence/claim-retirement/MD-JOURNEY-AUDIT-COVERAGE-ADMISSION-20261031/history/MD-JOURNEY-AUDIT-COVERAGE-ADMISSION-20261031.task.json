@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "TDP_TASK_STATE",
+  "taskId": "task-MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+  "owner": "CHATGPT-PRO-CONTROL",
+  "branch": "chore/journey-audit-coverage-admission-20261031",
+  "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+  "state": "SUBMITTED",
+  "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+  "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+  "contextPackDigest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5",
+  "leaseIds": [
+    "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+    "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+    "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270"
+  ],
+  "startedAt": "2026-10-31T17:17:37.630Z",
+  "testedAt": "2026-10-31T17:19:20.140Z",
+  "submittedAt": "2026-10-31T17:29:03.392Z",
+  "localProof": {
+    "schemaVersion": 1,
+    "kind": "TDP_TASK_LOCAL_PROOF",
+    "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+    "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "contextPackDigest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5",
+    "commandEvidence": [
+      {
+        "id": "exact-coverage-and-sensitive-boundaries",
+        "status": "PASS",
+        "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+        "timeoutSeconds": 300,
+        "outputDigest": "sha256:6a589c7c3921940994cfb3ad38135b1292a17ebbec5b019defcc757938106757"
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ],
+    "completedAt": "2026-10-31T17:19:20.140Z",
+    "digest": "sha256:fdcba672bda396fd9279ceb6907c86ff0cd996f8972af86054961d292388a170"
+  },
+  "handoffDigest": "sha256:5bdff5060537f9c35df8588981d79eee3304d70df6caef0e5d52dac73b4cebb7"
+}

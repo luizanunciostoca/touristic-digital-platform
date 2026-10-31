@@ -1,0 +1,280 @@
+{
+  "kind": "READ_ONLY_VOLUNTARY_MULTI_WRITER_REPRESENTATION_REVIEW",
+  "reviewer": "/root/autoridade_e_codigo",
+  "canonical_policy_sha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "material_head": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+  "claim_id": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "claim_base_sha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+  "no_fresh_snapshot": true,
+  "no_nonce_or_owner_attestation": true,
+  "no_receipt_created": true,
+  "no_canonical_write": true,
+  "sources": [
+    {
+      "path": "tooling/fabric/claim-retirement-proof.mjs",
+      "base_sha256": "7b0829145f765bfeb98ca47a50633d6834520ef93dd179ce45b3e44fe186d991",
+      "candidate_sha256": "7b0829145f765bfeb98ca47a50633d6834520ef93dd179ce45b3e44fe186d991",
+      "identical": true,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/d979b9813c1ab40b96dee64616b9f7d08a7c0d07/tooling/fabric/claim-retirement-proof.mjs"
+    },
+    {
+      "path": "tooling/fabric/claim-retirement-proof.test.mjs",
+      "base_sha256": "0bbf530d68bb229b205ad643fa9efb74079e1ea602d1bbbe2431d123f22a2e7c",
+      "candidate_sha256": "0bbf530d68bb229b205ad643fa9efb74079e1ea602d1bbbe2431d123f22a2e7c",
+      "identical": true,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/d979b9813c1ab40b96dee64616b9f7d08a7c0d07/tooling/fabric/claim-retirement-proof.test.mjs"
+    },
+    {
+      "path": "tooling/mdctl/claim-lifecycle.mjs",
+      "base_sha256": "2b1253e1fec3ecd505a0f724aec7c1f73bbbcdd82a880b3d8b434ab4381b99ae",
+      "candidate_sha256": "2b1253e1fec3ecd505a0f724aec7c1f73bbbcdd82a880b3d8b434ab4381b99ae",
+      "identical": true,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/d979b9813c1ab40b96dee64616b9f7d08a7c0d07/tooling/mdctl/claim-lifecycle.mjs"
+    }
+  ],
+  "owned_delta_required_per_backup": [
+    {
+      "path": ".morro/ownership.json",
+      "claim_base_blob": "6fe8160c4e19801579422c0566bdd7940ed64677",
+      "writer_head_blob": "dae399acf8982d3643719fe9af4b3722bebf78ea"
+    },
+    {
+      "path": "tooling/ci/test-impact-manifest.json",
+      "claim_base_blob": "8a1f014d7eded84434e0415a12d9845cde0b2c7b",
+      "writer_head_blob": "765b863d8accdc4873b348ac0c9bc29cde15a37c"
+    },
+    {
+      "path": "tooling/ci/journey-audit-admission.test.mjs",
+      "claim_base_blob": null,
+      "writer_head_blob": "68b2c64f5e8dee4be06465e8364d2716bd185d4f"
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "claim_base_blob": null,
+      "writer_head_blob": "079f27045544fe6b77b956c4687d67fe2d84b2a8"
+    },
+    {
+      "path": ".github/workflows/auth-login-browser-contract.yml",
+      "claim_base_blob": "d2777c54dc8e8ac21e33cd2ac2623f1397e7643f",
+      "writer_head_blob": "5433db46895e94385a9f3713e29f1f961ff1070a"
+    }
+  ],
+  "hard_constraints": [
+    {
+      "source": "tooling/fabric/claim-retirement-proof.mjs",
+      "lines": "180–207",
+      "rule": "Each writer has one identity/session record; writer IDs are unique and the stop-ACK set must exactly match the writer set."
+    },
+    {
+      "source": "tooling/fabric/claim-retirement-proof.mjs",
+      "lines": "235–255",
+      "rule": "wipInventory.path is globally unique and each file selects one integer backupIndex."
+    },
+    {
+      "source": "tooling/fabric/claim-retirement-proof.mjs",
+      "lines": "264–290",
+      "rule": "Every backup identifies exactly one writerId; every writer must have at least one backup; backup refs are unique."
+    },
+    {
+      "source": "tooling/fabric/claim-retirement-proof.mjs",
+      "lines": "1022–1075",
+      "rule": "For every backup, all owned paths differing claim.baseSha→writer.headSha OR writer.headSha→backup.commitSha must occur among WIP entries assigned to that backupIndex."
+    },
+    {
+      "source": "tooling/fabric/claim-retirement-proof.mjs",
+      "lines": "1118–1157",
+      "rule": "A stop receipt must be present in its own writer backup and its exact JSON facts must equal the request."
+    }
+  ],
+  "multiple_writer_result": {
+    "verdict": "NO_VALID_ENCODING_FOR_TWO_DISTINCT_WRITERS_WITH_THIS_SHARED_OWNED_DELTA",
+    "proof": "Both writers at fc089 require each of the same five owned paths in their own backup. A WIP path can be listed once globally and points to only one backupIndex. At least one writer backup therefore lacks each shared path. This is a schema/coverage incompatibility, not missing owner consent.",
+    "expected_errors": [
+      "VOLUNTARY_DUPLICATE if WIP paths are duplicated",
+      "VOLUNTARY_WIP_PATH_OMITTED if shared paths are assigned to only one backup"
+    ],
+    "tested_here": false,
+    "alternatives_rejected": [
+      "Do not relabel a writer head as c33/main to erase its real delta.",
+      "Do not rename owned paths under an archive prefix to bypass path coverage.",
+      "Do not assign one backup to two writer IDs; the schema has a single writerId.",
+      "Do not fabricate a composite session/executor or suppress a genuine independent writer.",
+      "Do not change the validator or its tests inside this submitted claim.",
+      "Owner consent cannot override the structural rejection."
+    ]
+  },
+  "test_evidence": [
+    {
+      "source": "tooling/fabric/claim-retirement-proof.test.mjs",
+      "lines": "1926–1976",
+      "meaning": "Both delta legs remain mandatory, including reverted edits and deletion tombstones."
+    },
+    {
+      "source": "tooling/fabric/claim-retirement-proof.test.mjs",
+      "lines": "2209–2258",
+      "meaning": "The two-writer test is negative: receipt-2 is deliberately stored under backupIndex 0 and must be rejected. Its writer heads equal claim.baseSha, so it does not establish positive support for a shared material delta."
+    }
+  ],
+  "canonical_precedents": [
+    {
+      "line": 724,
+      "claim_id": "MD-STAGING-SECURITY-PATCH-20261022",
+      "writer_count": 1,
+      "identities": [
+        {
+          "writerId": "ct1072-security-implementation-2193",
+          "executorIdentity": "CT1072-STAGING-SECURITY-IMPLEMENTATION-9ae40a96ff98",
+          "controllerIdentity": "CT1072-INTEGRATOR-9ae40a96ff98",
+          "sessionId": "9ae40a96ff98",
+          "jobId": "2193"
+        }
+      ]
+    },
+    {
+      "line": 749,
+      "claim_id": "MD-HOME-ENTRY-CSS-RESUME-20261022",
+      "writer_count": 1,
+      "identities": [
+        {
+          "writerId": "CT1072-CSS-IMPLEMENTATION-3c87662f73e4",
+          "executorIdentity": "TERMUX-NATIVE-V3:f6ad52540f83610097732321",
+          "controllerIdentity": "CT1072-INTEGRATOR-3c87662f73e4-20261022",
+          "sessionId": "3c87662f73e4",
+          "jobId": null
+        }
+      ]
+    },
+    {
+      "line": 750,
+      "claim_id": "MD-HOME-CSS-CONTRACT-TRANSITION-20261022",
+      "writer_count": 1,
+      "identities": [
+        {
+          "writerId": "CT1072-CSS-CONTRACT-IMPLEMENTATION-3c87662f73e4",
+          "executorIdentity": "TERMUX-NATIVE-V3:f6ad52540f83610097732321",
+          "controllerIdentity": "CT1072-INTEGRATOR-3c87662f73e4-20261022",
+          "sessionId": "3c87662f73e4",
+          "jobId": null
+        }
+      ]
+    },
+    {
+      "line": 764,
+      "claim_id": "MD-STAGING-NODE-EXCEPTION-20261023",
+      "writer_count": 1,
+      "identities": [
+        {
+          "writerId": "CODEX-STAGING-NODE-9482F85B-20261023",
+          "executorIdentity": "CODEX-STAGING-NODE-9482F85B-20261023",
+          "controllerIdentity": "CT1072-DOT-INTEGRATOR-20261023",
+          "sessionId": "9482f85b-32d4-4600-bd11-daaea19d9033",
+          "jobId": null
+        }
+      ]
+    },
+    {
+      "line": 794,
+      "claim_id": "MD-STAGING-NODE-GOVERNANCE-20261023",
+      "writer_count": 1,
+      "identities": [
+        {
+          "writerId": "CODEX-STAGING-NODE-9482F85B-20261023",
+          "executorIdentity": "CODEX-STAGING-NODE-9482F85B-20261023",
+          "controllerIdentity": "CT1072-DOT-INTEGRATOR-20261023",
+          "sessionId": "9482f85b-32d4-4600-bd11-daaea19d9033",
+          "jobId": null
+        }
+      ]
+    },
+    {
+      "line": 983,
+      "claim_id": "MD-CC-CATALOG-WP04-20261030",
+      "writer_count": 1,
+      "identities": [
+        {
+          "writerId": "WP04-CLOUD-WRITER-8ef48dc6c150",
+          "executorIdentity": "CHATGPT-PRO-CONTROL",
+          "controllerIdentity": "CHATGPT-PRO-CONTROL",
+          "sessionId": "8ef48dc6c150",
+          "jobId": null
+        }
+      ]
+    }
+  ],
+  "precedent_limit": "All six observed canonical VOLUNTARY records have one writer. They distinguish writer executor/controller roles but do not authorize collapsing two actual material writers or prove a multi-writer success case.",
+  "observed_actor_roles": [
+    {
+      "actor": "/root/autoridade_e_codigo",
+      "role": "material author in one claimed workspace",
+      "basis": "Existing source-history-manifest and task records; source preserved at fc089, task SUBMITTED and leases RELEASED. This review does not issue a fresh stop receipt."
+    },
+    {
+      "actor": "/root",
+      "role": "controller, independent reviewer, publication coordinator",
+      "basis": "Parent instructions and published request provenance. No second material author checkout or additional edit is demonstrated by the inspected records; that absence is limited to the available records."
+    },
+    {
+      "actor": "NativeTermuxAgentV3 / issue3453",
+      "role": "transport of immutable candidate to a remote branch",
+      "basis": "Exact request uses bare object store plus bundle cache, then guarded push of fc089; it creates no material worktree, edits no source, and performs no task implementation.",
+      "job_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3453",
+      "result_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3453#issuecomment-6546770361",
+      "request_sha256": "e9623f89930289edc558cec622f683c1888678e03705c4ce8159c4a82c449eb1",
+      "ended_at": "2026-10-31T17:30:06Z",
+      "exit_code": 0,
+      "request_file": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-native-push-request.json",
+      "request_file_sha256": "a40d2a0c10e9de1eba19602ef468f3a0cca0d61c62254cb76cd390ae13869725",
+      "attestation_file": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-native-push-job.json",
+      "attestation_file_sha256": "79acb295f385d3e8ab0fe47ce718e184d927f65c1a1c6e442f42bf2866779a1a",
+      "command_lines_without_bundle": [
+        "set -euo pipefail",
+        "TDP_STORE=\"$HOME/repos/touristic-digital-platform.git\"",
+        "git --git-dir=\"$TDP_STORE\" fetch origin main",
+        "test \"$(git --git-dir=\"$TDP_STORE\" rev-parse FETCH_HEAD)\" = \"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\"",
+        "TDP_BUNDLE_PATH=\"$(mktemp \"$HOME/.cache/tdp-coverage-material.XXXXXX.bundle\")\"",
+        "test \"$(sha256sum \"$TDP_BUNDLE_PATH\" | cut -d ' ' -f 1)\" = \"760dacad1cc955fb401c8add75a0f1542311613e82897a7f787384692745b9dc\"",
+        "git --git-dir=\"$TDP_STORE\" bundle verify \"$TDP_BUNDLE_PATH\"",
+        "git --git-dir=\"$TDP_STORE\" fetch \"$TDP_BUNDLE_PATH\" HEAD",
+        "test \"$(git --git-dir=\"$TDP_STORE\" rev-parse FETCH_HEAD)\" = \"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\"",
+        "TDP_CURRENT_MAIN=\"$(git --git-dir=\"$TDP_STORE\" ls-remote origin refs/heads/main)\"",
+        "test \"${TDP_CURRENT_MAIN%%[[:space:]]*}\" = \"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\"",
+        "TDP_EXISTING_BRANCH=\"$(git --git-dir=\"$TDP_STORE\" ls-remote origin refs/heads/chore/journey-audit-coverage-admission-20261031)\"",
+        "test -z \"$TDP_EXISTING_BRANCH\"",
+        "git --git-dir=\"$TDP_STORE\" push --force-with-lease=refs/heads/chore/journey-audit-coverage-admission-20261031: origin fc089a1fcef27e3c39f3c3d27faf4f69b088436b:refs/heads/chore/journey-audit-coverage-admission-20261031",
+        "TDP_PUSHED_BRANCH=\"$(git --git-dir=\"$TDP_STORE\" ls-remote origin refs/heads/chore/journey-audit-coverage-admission-20261031)\"",
+        "test \"${TDP_PUSHED_BRANCH%%[[:space:]]*}\" = \"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\"",
+        "printf '%s\\n' \"$TDP_PUSHED_BRANCH\""
+      ]
+    }
+  ],
+  "recommended_representation": {
+    "decision": "ONE_MATERIAL_WRITER_IS_CONDITIONAL_ON_A_TRUE_CLOSED_INVENTORY; OTHERWISE_BLOCKED",
+    "interpretation": "The schema explicitly separates executor/controller roles and backs each material writer workspace. One actual author plus a completed immutable transport does not automatically establish two independent material writers. This is an inference from source structure and observed provenance, not an explicit policy definition of every possible transport actor.",
+    "conditional_record": {
+      "writerId": "retain the real material writer identity",
+      "sessionId": "/root/autoridade_e_codigo (do not label this the Native session)",
+      "executorIdentity": "retain the real canonical logical executor",
+      "controllerIdentity": "record the actual controller identity",
+      "jobId": "null for the cloud author unless a real author job exists; do not substitute 3453",
+      "commandIds": "only real commands attributed to this writer; transport commands remain separately attributed in provenance",
+      "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+      "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04"
+    },
+    "supporting_preserved_inventory": "Create, only when the parent authorizes closure, a separate hashed provenance artifact in the backup documenting controller, Native3453, terminal result, object store/cache locations, all branch publication channels and their stopped/drained state. This artifact supplements the formal writer record; it cannot be used to hide an independent material writer.",
+    "must_confirm_before_snapshot": [
+      "No second material worker, divergent worktree, independent owned edits or pending generation exists for this claim.",
+      "Every controller and publication channel that can resume this claim has no pending command/child and remains stopped for this claim until canonical release.",
+      "The source author acknowledges stopped/drained state with actual timestamps and actual observed commands.",
+      "All material, real history, external proposal, actual receipt and provenance are durably backed without changing the frozen five owned blobs.",
+      "The owner reviews the closed inventory and personally provides the exact consent required by the canonical VOLUNTARY mechanism."
+    ],
+    "if_two_writers_are_real": "Do not generate a knowingly impossible request or request a consent that hides the incompatibility. A separately admitted governance change or an already canonical transition supporting genuinely shared WIP is required; no such path has been demonstrated here. The current metadata-only VOLUNTARY lane cannot repair itself.",
+    "scope_of_stop": "Stop only writes/commands/children associated with the submitted coverage task. Read-only inspection and external authorized analysis may continue; being active in chat does not imply an active writer for this claim."
+  },
+  "limits": [
+    "No validator or product test executed. Conclusions about rejection are a direct reading of deterministic schema and coverage loops.",
+    "No fresh Native inventory, process census, stop acknowledgment, snapshot, nonce, backup ref or owner consent created.",
+    "The historical Native result proves job3453 finished; it does not prove a present global closed writer inventory.",
+    "No definitive permission to omit an actor is inferred from a passing schema; actual roles and the owner-attested closed universe must be truthful."
+  ]
+}

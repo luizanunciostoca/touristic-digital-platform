@@ -1,0 +1,41 @@
+{
+  "kind": "SOURCE_HISTORY_PRESERVATION_MANIFEST_NOT_RELOCATION",
+  "sourceWorkspace": "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+  "sourceCandidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+  "sourceTreeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+  "sourceState": "SUBMITTED",
+  "logicalOwner": "CHATGPT-PRO-CONTROL",
+  "files": [
+    {
+      "name": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "source": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "bytes": 2106,
+      "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "backupDestination": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json"
+    },
+    {
+      "name": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "source": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "bytes": 1927,
+      "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "backupDestination": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json"
+    },
+    {
+      "name": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "source": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "bytes": 997,
+      "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "backupDestination": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json"
+    },
+    {
+      "name": "capability-leases.json",
+      "source": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/capability-leases.json",
+      "bytes": 1546,
+      "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "backupDestination": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/capability-leases.json"
+    }
+  ],
+  "historical_bytes_modified": false,
+  "destination_request_created": false,
+  "migration_executed": false
+}

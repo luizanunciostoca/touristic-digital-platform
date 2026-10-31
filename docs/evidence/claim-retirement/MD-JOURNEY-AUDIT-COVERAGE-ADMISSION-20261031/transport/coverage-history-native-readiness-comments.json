@@ -1,0 +1,140 @@
+{
+  "comments": [
+    {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454#issuecomment-6546954721",
+      "body": "MORRO_JOB_PREFLIGHT_REJECTED_V3 — invalid JSON or protocol-v2 request schema.",
+      "user": {
+        "login": "github-actions[bot]",
+        "name": "github-actions[bot]",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+        "id": 41898282
+      },
+      "id": 6546954721,
+      "pull_request_review_id": null,
+      "in_reply_to_id": null,
+      "created_at": null,
+      "updated_at": null,
+      "review": null,
+      "side": null,
+      "line": null,
+      "start_line": null,
+      "path": null,
+      "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_REJECTED_V3 — invalid JSON or protocol-v2 request schema.</p>"
+    },
+    {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454#issuecomment-6546956021",
+      "body": "MORRO_AGENT_REJECTED_V2: invalid request schema or missing confirm=EXECUTE.",
+      "user": {
+        "login": "luizanunciostoca",
+        "name": "luizanunciostoca",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+        "id": 318748875
+      },
+      "id": 6546956021,
+      "pull_request_review_id": null,
+      "in_reply_to_id": null,
+      "created_at": null,
+      "updated_at": null,
+      "review": null,
+      "side": null,
+      "line": null,
+      "start_line": null,
+      "path": null,
+      "body_html": "<p dir=\"auto\">MORRO_AGENT_REJECTED_V2: invalid request schema or missing confirm=EXECUTE.</p>"
+    },
+    {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454#issuecomment-6546961204",
+      "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: 221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d",
+      "user": {
+        "login": "github-actions[bot]",
+        "name": "github-actions[bot]",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+        "id": 41898282
+      },
+      "id": 6546961204,
+      "pull_request_review_id": null,
+      "in_reply_to_id": null,
+      "created_at": null,
+      "updated_at": null,
+      "review": null,
+      "side": null,
+      "line": null,
+      "start_line": null,
+      "path": null,
+      "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: 221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d</p>"
+    },
+    {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454#issuecomment-6546962019",
+      "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: 221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d",
+      "user": {
+        "login": "github-actions[bot]",
+        "name": "github-actions[bot]",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+        "id": 41898282
+      },
+      "id": 6546962019,
+      "pull_request_review_id": null,
+      "in_reply_to_id": null,
+      "created_at": null,
+      "updated_at": null,
+      "review": null,
+      "side": null,
+      "line": null,
+      "start_line": null,
+      "path": null,
+      "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: 221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d</p>"
+    },
+    {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454#issuecomment-6546966592",
+      "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3454 at 2026-10-31T17:47:16Z.",
+      "user": {
+        "login": "luizanunciostoca",
+        "name": "luizanunciostoca",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+        "id": 318748875
+      },
+      "id": 6546966592,
+      "pull_request_review_id": null,
+      "in_reply_to_id": null,
+      "created_at": null,
+      "updated_at": null,
+      "review": null,
+      "side": null,
+      "line": null,
+      "start_line": null,
+      "path": null,
+      "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6137901887\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3454\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3454/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3454\">#3454</a> at 2026-10-31T17:47:16Z.</p>"
+    },
+    {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454#issuecomment-6546967743",
+      "body": "MORRO_AGENT_RESULT_V3\n\n- id: readiness-audit-history-20261031\n- target: termux\n- exit_code: 0\n- started_at: 2026-10-31T17:47:18Z\n- ended_at: 2026-10-31T17:47:21Z\n- duration_seconds: 3\n- request_sha256: 221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"readiness-audit-history-20261031\",\"target\":\"termux\",\"started_at\":\"2026-10-31T17:47:18Z\",\"ended_at\":\"2026-10-31T17:47:21Z\",\"duration_seconds\":3,\"exit_code\":0,\"request_sha256\":\"221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\n/data/data/com.termux/files/usr/bin/git\n/data/data/com.termux/files/usr/bin/gh\n/data/data/com.termux/files/usr/bin/node\n/data/data/com.termux/files/usr/bin/pnpm\ngit version 2.54.0\ngh version 2.95.0\nhttps://github.com/cli/cli/releases/tag/v2.95.0\nv24.17.0\n10.15.0\nd979b9813c1ab40b96dee64616b9f7d08a7c0d07\n{\"base\":\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\"draft\":true,\"head\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"number\":1337,\"state\":\"open\"}\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3454/\n",
+      "user": {
+        "login": "luizanunciostoca",
+        "name": "luizanunciostoca",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+        "id": 318748875
+      },
+      "id": 6546967743,
+      "pull_request_review_id": null,
+      "in_reply_to_id": null,
+      "created_at": null,
+      "updated_at": null,
+      "review": null,
+      "side": null,
+      "line": null,
+      "start_line": null,
+      "path": null,
+      "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: readiness-audit-history-20261031</li>\n<li>target: termux</li>\n<li>exit_code: 0</li>\n<li>started_at: 2026-10-31T17:47:18Z</li>\n<li>ended_at: 2026-10-31T17:47:21Z</li>\n<li>duration_seconds: 3</li>\n<li>request_sha256: 221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"readiness-audit-history-20261031\",\"target\":\"termux\",\"started_at\":\"2026-10-31T17:47:18Z\",\"ended_at\":\"2026-10-31T17:47:21Z\",\"duration_seconds\":3,\"exit_code\":0,\"request_sha256\":\"221552de61da6f9189138971e2082a28ae2e80a1ecd88be4304a0ed21fd41e1d\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text<br>\n/data/data/com.termux/files/usr/bin/git<br>\n/data/data/com.termux/files/usr/bin/gh<br>\n/data/data/com.termux/files/usr/bin/node<br>\n/data/data/com.termux/files/usr/bin/pnpm<br>\ngit version 2.54.0<br>\ngh version 2.95.0<br>\n<a href=\"https://github.com/cli/cli/releases/tag/v2.95.0\">https://github.com/cli/cli/releases/tag/v2.95.0</a><br>\nv24.17.0<br>\n10.15.0<br>\nd979b9813c1ab40b96dee64616b9f7d08a7c0d07<br>\n{\"base\":\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\"draft\":true,\"head\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"number\":1337,\"state\":\"open\"}<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3454/</p>"
+    }
+  ],
+  "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454",
+  "title": "luizanunciostoca/morro-termux-control Issue #3454 comments",
+  "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3454",
+  "display_title": "luizanunciostoca/morro-termux-control Issue #3454 comments"
+}

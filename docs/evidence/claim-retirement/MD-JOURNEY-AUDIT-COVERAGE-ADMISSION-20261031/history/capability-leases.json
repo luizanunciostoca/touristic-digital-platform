@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "authority": "TASK_LOCAL_PROJECTION",
+  "leases": {
+    "lease-1decc02c-8ee7-45c5-abfb-681623d49f33": {
+      "leaseId": "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+      "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+      "owner": "CHATGPT-PRO-CONTROL",
+      "capability": "github:read",
+      "scope": "PLATFORM",
+      "branch": "chore/journey-audit-coverage-admission-20261031",
+      "issuedAt": "2026-10-31T17:17:37.630Z",
+      "expiresAt": "2026-10-31T19:17:37.630Z",
+      "state": "RELEASED"
+    },
+    "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b": {
+      "leaseId": "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+      "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+      "owner": "CHATGPT-PRO-CONTROL",
+      "capability": "workspace:write:claimed-paths",
+      "scope": "PLATFORM",
+      "branch": "chore/journey-audit-coverage-admission-20261031",
+      "issuedAt": "2026-10-31T17:17:37.630Z",
+      "expiresAt": "2026-10-31T19:17:37.630Z",
+      "state": "RELEASED"
+    },
+    "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270": {
+      "leaseId": "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270",
+      "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+      "owner": "CHATGPT-PRO-CONTROL",
+      "capability": "evidence:write:task-local",
+      "scope": "PLATFORM",
+      "branch": "chore/journey-audit-coverage-admission-20261031",
+      "issuedAt": "2026-10-31T17:17:37.630Z",
+      "expiresAt": "2026-10-31T19:17:37.630Z",
+      "state": "RELEASED"
+    }
+  }
+}

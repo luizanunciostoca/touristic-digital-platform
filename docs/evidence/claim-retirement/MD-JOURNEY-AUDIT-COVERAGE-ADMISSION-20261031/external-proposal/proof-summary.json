@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "kind": "EXTERNAL_PROPOSED_MATERIAL_CORRECTION_NOT_APPLIED",
+  "createdAt": "2026-10-31T17:49:37.202605+00:00",
+  "main_sha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "published_source_sha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+  "published_source_tree": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+  "source_workspace": "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+  "proposal_workspace": "/tmp/tdp-coverage-impact-correction-git-fc089a1f",
+  "prospective_tree_sha": "0e93d20ea015f49288f7cbe95966658b13b0b384",
+  "prospective_tree_is_not_a_commit": true,
+  "scope": [
+    "tooling/ci/test-impact-manifest.json",
+    "tooling/ci/journey-audit-admission.test.mjs"
+  ],
+  "patch": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/coverage-impact-correction.proposed.patch",
+    "sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+    "bytes": 4850
+  },
+  "blobs": [
+    {
+      "path": "tooling/ci/test-impact-manifest.json",
+      "before_sha256": "080ac6a5efa913693ec78ab2182d1c1a6199f52735a38e9ffc461f37666e591e",
+      "after_sha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+      "after_bytes": 35770,
+      "after_git_blob": "909e39ea78328a3ce96d7cf16b87cca7e09d3e9b"
+    },
+    {
+      "path": "tooling/ci/journey-audit-admission.test.mjs",
+      "before_sha256": "7a84a6f63968f3cddbc33a174b2371f77ea03597b0ac9404bc6e940f659bce3a",
+      "after_sha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+      "after_bytes": 20674,
+      "after_git_blob": "e6e011c1f9ba9a1dd7308906bfce697e56d573a6"
+    }
+  ],
+  "proofs": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-impact-red.log",
+      "sha256": "03f66bbbaf0933aeeb3b6fa04ec0caa16841baa486b7fa72191d566175bdb192",
+      "bytes": 12772,
+      "kind": "BASELINE_RED_REAL_REGRESSION",
+      "counts": {
+        "tests": 53,
+        "pass": 52,
+        "fail": 1,
+        "skipped": 0
+      }
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-impact-proposal-no-git-environment-failure.log",
+      "sha256": "c720c55d3e7aa3fe2dac914fa8273496606e30c6df8cf09fb4411d3123960cb9",
+      "bytes": 30053,
+      "kind": "PROPOSAL_ENVIRONMENT_FAILURE_NO_GIT",
+      "counts": {
+        "tests": 114,
+        "pass": 113,
+        "fail": 1,
+        "skipped": 0
+      }
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-root-ci-proposal-missing-dependencies-failure.log",
+      "sha256": "55f9979017bfe757b5fa8d09134c25ea8117150cf48c047efabbba97ce92c4fa",
+      "bytes": 108682,
+      "kind": "PROPOSAL_ENVIRONMENT_FAILURE_MISSING_WORKSPACE_LINKS",
+      "counts": {
+        "tests": 496,
+        "pass": 494,
+        "fail": 2,
+        "skipped": 0
+      }
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-proposal-dependency-install.log",
+      "sha256": "26f4a0232845c38350fc4e7702844ef203f44d62767c48462cb07fb2ea2a7e26",
+      "bytes": 1439,
+      "kind": "ISOLATED_FROZEN_OFFLINE_DEPENDENCY_INSTALL",
+      "counts": {}
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-impact-proposed-green.log",
+      "sha256": "ade556d48a9e681379ba4cd889d5dfaa260813718e197c5184c557d160c0478f",
+      "bytes": 28952,
+      "kind": "PROPOSED_FOCUSED_GREEN",
+      "counts": {
+        "tests": 114,
+        "pass": 114,
+        "fail": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-material-root-ci-proposed-green.log",
+      "sha256": "51e3efbe1d28811dfb1feacf0874113d8dc18bd96777d06296cc2896fd5e17a5",
+      "bytes": 115575,
+      "kind": "PROPOSED_EXACT_CI_SELECTION_GREEN",
+      "counts": {
+        "tests": 503,
+        "pass": 503,
+        "fail": 0,
+        "skipped": 0
+      }
+    }
+  ],
+  "exact_ci_command": "node --test tooling/ci/*.test.mjs",
+  "runtime": {
+    "node": "22.23.4",
+    "pnpm": "10.15.0",
+    "dependencies": "isolated frozen offline install, 172 reused, zero downloaded",
+    "NODE_TEST_CONTEXT": "unset"
+  },
+  "unchanged_validators_and_existing_test": [
+    {
+      "path": "tooling/ci/impact-analyzer.mjs",
+      "sha256": "98c752da897d915843461b81bb6c2fab9aa2cf266c30064aab7da8fa1773e2b6",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/ci/impact-analyzer.test.mjs",
+      "sha256": "448eb612e2ee548e8aabb43dc1b788c8ed9fe12519f93076ec0db589657e2500",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/fabric/ordinary-pr-policy.mjs",
+      "sha256": "6b4883ec2f599b1a15419d9163e25643d98cdadb6952c22fabe07baec13cc81d",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": ".morro/risk-policy.json",
+      "sha256": "bda77cabf5ae951d38e7dc72462d46bb36b768f93ae14a3bbded08c6324ee7ac",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/mdctl/task-generation.mjs",
+      "sha256": "b6edcc0bd076d048a35eb5591dcef082384a5f07e0d1e08edfd6197ace6419ad",
+      "byte_identical_to_main": true
+    },
+    {
+      "path": "tooling/mdctl/task-lifecycle.mjs",
+      "sha256": "ce13a478416d658993515203a4ee857b9d2695b4fc174fadba690d2ce3bb66f5",
+      "byte_identical_to_main": true
+    }
+  ],
+  "source_worktree_clean": true,
+  "source_history": [
+    {
+      "name": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "bytes": 2106,
+      "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "regular": true
+    },
+    {
+      "name": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "bytes": 1927,
+      "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "regular": true
+    },
+    {
+      "name": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "bytes": 997,
+      "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "regular": true
+    },
+    {
+      "name": "capability-leases.json",
+      "bytes": 1546,
+      "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "regular": true
+    }
+  ],
+  "remaining_gate": "Canonical material write authority for the already SUBMITTED task; no edit, lease restart, new state directory, canonical metadata mutation, commit or push performed in source workspace. HISTORY can project metadata but its proof leases do not authorize material editing.",
+  "proof_limit": "503/503 is the external proposal snapshot, not a new certified PR head, runtime acceptance, or certification of the 327 scenario groups."
+}

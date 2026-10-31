@@ -1,0 +1,44 @@
+{
+  "kind": "MATERIAL_AUTHOR_CONTROLLER_AND_TRANSPORT_PROVENANCE",
+  "preparedAt": "2026-10-31T18:18:14.000Z",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "materialWriter": {
+    "writerId": "cloud-coverage-authority-worker",
+    "executorIdentity": "CHATGPT-PRO-CONTROL",
+    "controllerIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root/autoridade_e_codigo",
+    "jobId": null,
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "commandIds": [
+      "exact-coverage-and-sensitive-boundaries"
+    ]
+  },
+  "controller": {
+    "logicalIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root"
+  },
+  "controllerStatement": {
+    "source": "Direct parent instruction authorizing this external archival preparation",
+    "facts": "Root atuou como controller/revisor e publicador de objetos; não manteve segundo worker/WIP de material coverage. Native3453 apenas bundle verify/fetch/push e terminou; 3454/3455 foram read-only e terminaram.",
+    "isRepositoryOwnerAttestation": false
+  },
+  "nativeTransport": {
+    "job3453": "Immutable bundle verification/fetch/guarded branch push, no material worktree or source editing.",
+    "job3454": "Read-only authenticated runtime readiness; not authority to edit or migrate task history.",
+    "job3455": "Read-only exact-branch material worktree/process inventory; exit 0 at 2026-10-31T18:12:20Z.",
+    "sessionNotAssignedToCloudAuthor": true
+  },
+  "commandIdBasis": "Only the genuinely recorded completed localProof.commandEvidence ID is listed. Zero pending commands; historical task/context/handoff records are preserved byte-identically.",
+  "historyUse": "Archival evidence only, stored outside .git; never installed as remote task state or used to manufacture a new generation.",
+  "writerStillStopped": true,
+  "remoteReadback": "PENDING",
+  "ownerAttestation": "MISSING",
+  "limits": [
+    "Source and proposal workspaces were not edited.",
+    "Local/Native process inventories are scoped observations, not a global owner attestation.",
+    "No retirement, task, claim, push or owner comment is performed by this preparation.",
+    "The independent classification review approves only an external proposal; it creates no product write authority."
+  ]
+}

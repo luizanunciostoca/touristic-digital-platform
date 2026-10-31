@@ -1,0 +1,119 @@
+diff --git a/tooling/ci/journey-audit-admission.test.mjs b/tooling/ci/journey-audit-admission.test.mjs
+index 68b2c64f..e6e011c1 100644
+--- a/tooling/ci/journey-audit-admission.test.mjs
++++ b/tooling/ci/journey-audit-admission.test.mjs
+@@ -473,10 +473,9 @@ test("the amendment preserves the existing critical workflow impact floor", () =
+   for (const path of paths) assert.deepEqual(owners(path), ["ci-release"]);
+ });
+ 
+-test("session recovery proof is selected for its workflow and CRM mutation surface", () => {
++test("session recovery workflow and auth fixture preserve their critical proof floor", () => {
+   for (const path of [
+     ".github/workflows/auth-login-browser-contract.yml",
+-    "apps/admin-crm/public/referrals.js",
+     "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+   ]) {
+     const report = analyzeFiles([path]);
+@@ -489,6 +488,70 @@ test("session recovery proof is selected for its workflow and CRM mutation surfa
+     assert.equal(ordinaryPrScope([path], risk, ownership), false);
+   }
+ });
++test("CRM referrals keeps its high risk and selects the session recovery proof", () => {
++  const path = "apps/admin-crm/public/referrals.js";
++  const report = analyzeFiles([path]);
++  assert.equal(report.classificationBlocked, false);
++  assert.ok(report.domains.includes("crm-browser"));
++  assert.ok(report.domains.includes("crm-referrals-session-recovery"));
++  assert.equal(report.domains.includes("session-recovery-browser"), false);
++  assert.equal(report.risk, "HIGH");
++  assert.ok(report.suites.includes("crm-equivalence-browser-contract.yml"));
++  assert.ok(report.suites.includes("auth-login-browser-contract.yml"));
++  assert.equal(report.needsBrowser, true);
++  assert.equal(report.needsVisual, true);
++  assert.equal(report.needsDatabase, false);
++  assert.equal(report.needsFullSecurity, false);
++  assert.equal(ordinaryPrScope([path], risk, ownership), false);
++});
++
++test("the additional CRM session recovery selection matches only referrals", () => {
++  for (const path of [
++    "apps/admin-crm/public/trials.js",
++    "apps/admin-crm/public/referrals.html",
++    "apps/admin-crm/public/referrals.js.bak",
++    "apps/admin-crm/public/referrals.js-extra",
++    "tooling/crm/crm-html-access.test.mjs",
++  ]) {
++    const report = analyzeFiles([path]);
++    assert.equal(
++      report.domains.includes("crm-referrals-session-recovery"),
++      false,
++      path,
++    );
++    assert.equal(
++      report.suites.includes("auth-login-browser-contract.yml"),
++      false,
++      path,
++    );
++  }
++});
++
++test("CRM referrals cannot lower auth or ticketing requirements in mixed changes", () => {
++  for (const sensitive of [
++    "apps/morro-digital-platform/tooling/auth-api.mjs",
++    "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs",
++  ]) {
++    const baseline = analyzeFiles([sensitive]);
++    const mixed = analyzeFiles([
++      "apps/admin-crm/public/referrals.js",
++      sensitive,
++    ]);
++    assert.equal(mixed.risk, baseline.risk, sensitive);
++    assert.equal(mixed.needsFullSecurity, true, sensitive);
++    assert.equal(mixed.needsDatabase, baseline.needsDatabase, sensitive);
++    assert.ok(mixed.suites.includes("auth-login-browser-contract.yml"));
++    assert.equal(
++      ordinaryPrScope(
++        ["apps/admin-crm/public/referrals.js", sensitive],
++        risk,
++        ownership,
++      ),
++      false,
++    );
++  }
++});
++
+ test("public shell coverage cannot lower workflow or auth risk in a mixed change", () => {
+   for (const sensitive of [
+     ".github/workflows/auth-login-browser-contract.yml",
+diff --git a/tooling/ci/test-impact-manifest.json b/tooling/ci/test-impact-manifest.json
+index 765b863d..909e39ea 100644
+--- a/tooling/ci/test-impact-manifest.json
++++ b/tooling/ci/test-impact-manifest.json
+@@ -258,8 +258,7 @@
+         "apps/morro-digital-platform/src/affiliate-portal-client.test.ts",
+         "apps/morro-digital-platform/src/affiliate-portal-entry.ts",
+         "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+-        ".github/workflows/auth-login-browser-contract.yml",
+-        "apps/admin-crm/public/referrals.js"
++        ".github/workflows/auth-login-browser-contract.yml"
+       ],
+       "risk": "CRITICAL",
+       "dependsOn": ["auth"],
+@@ -385,6 +384,17 @@
+       "needsVisual": true,
+       "needsDatabase": false
+     },
++    "crm-referrals-session-recovery": {
++      "paths": ["apps/admin-crm/public/referrals.js"],
++      "risk": "HIGH",
++      "dependsOn": [],
++      "suites": ["auth-login-browser-contract.yml"],
++      "needsBrowser": true,
++      "needsVisual": false,
++      "needsDatabase": false,
++      "needsDependencyAudit": false,
++      "needsFullSecurity": false
++    },
+     "crm-backend": {
+       "risk": "HIGH",
+       "paths": [
