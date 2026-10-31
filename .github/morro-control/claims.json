@@ -182,23 +182,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
     },
-    "MD-MAP-ASSISTANT-PRESENTATION-20261031": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/map-assistant-contract-20261031",
-      "baseSha": "09a060a423c54fa444f259265a446fa733864846",
-      "paths": [
-        "apps/morro-digital-platform/src/layouts/app-shell.ts",
-        "apps/morro-digital-platform/src/map/discover-map-controls.ts",
-        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
-        "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs",
-        ".morro/changesets/MD-MAP-ASSISTANT-PRESENTATION-20261031.json"
-      ],
-      "domains": ["map"],
-      "risk": "P2",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-01T02:00:00.000Z"
-    },
     "MD-RETIREMENT-CLI-AUTH-20261031": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",

@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-MAP-ASSISTANT-PRESENTATION-20261031",
   "objective": "align-map-controls-before-deferred-css-and-present-one-assistant-message-without-criteria-chrome",
-  "baseSha": "09a060a423c54fa444f259265a446fa733864846",
-  "branch": "fix/map-assistant-contract-20261031",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "1109f2bd42a9cde9e8dd4bf297dc9ee976559c30",
+  "branch": "chore/retire-map-assistant-20261031",
+  "state": "MERGED",
   "risk": "medium",
   "scope": "DESTINATION:MORRO",
   "owns": {
