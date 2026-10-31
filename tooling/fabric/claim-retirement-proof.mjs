@@ -751,7 +751,42 @@ function isAncestor(root, ancestor, descendant) {
   }
 }
 
-async function githubJson(path, { token, fetchImpl = fetch } = {}) {
+export async function githubJson(
+  path,
+  {
+    token,
+    fetchImpl = fetch,
+    transport = process.env.TDP_RETIREMENT_GITHUB_TRANSPORT,
+    runCli = execFileSync,
+  } = {},
+) {
+  // Opt-in credential transport only; callers still validate the same provider
+  // evidence below. Never fall back after a supplied token is rejected.
+  if (!token && transport === "gh") {
+    assert.ok(
+      typeof path === "string" &&
+        /^\/repos\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/|\?|$)/u.test(path) &&
+        !/[\r\n\\]/u.test(path),
+      "GITHUB_EVIDENCE_PATH_INVALID",
+    );
+    try {
+      return JSON.parse(
+        runCli(
+          "gh",
+          ["api", "--hostname", "github.com", "--method", "GET", path.slice(1)],
+          {
+            encoding: "utf8",
+            timeout: 30_000,
+            maxBuffer: 4 * 1024 * 1024,
+            stdio: ["ignore", "pipe", "pipe"],
+          },
+        ),
+      );
+    } catch {
+      // CLI stderr can contain authentication details; do not propagate it.
+      throw new Error("GITHUB_CLI_EVIDENCE_REQUEST_FAILED");
+    }
+  }
   assert.ok(token, "GITHUB_TOKEN_REQUIRED");
   const response = await fetchImpl(`https://api.github.com${path}`, {
     redirect: "error",

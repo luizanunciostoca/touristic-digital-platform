@@ -14,6 +14,7 @@ import { join } from "node:path";
 
 import {
   addedClaimIds,
+  githubJson,
   buildClaimRetirementProof,
   deriveExplicitRetirementRequest,
   validateExplicitRetirementTime,
@@ -35,6 +36,91 @@ import {
 
 const BASE = "a".repeat(40);
 const MERGE = "b".repeat(40);
+
+test("retirement CLI transport is explicit and performs bounded GitHub GET only", async () => {
+  let calls = 0;
+  const runCli = (command, args, options) => {
+    calls++;
+    assert.equal(command, "gh");
+    assert.deepEqual(args, [
+      "api",
+      "--hostname",
+      "github.com",
+      "--method",
+      "GET",
+      "repos/owner/repo/pulls?state=all",
+    ]);
+    assert.equal(options.timeout, 30000);
+    assert.equal(options.maxBuffer, 4 * 1024 * 1024);
+    assert.deepEqual(options.stdio, ["ignore", "pipe", "pipe"]);
+    return '[{"number":1}]';
+  };
+  await assert.rejects(
+    githubJson("/repos/owner/repo/pulls?state=all", {
+      transport: undefined,
+      runCli,
+    }),
+    /GITHUB_TOKEN_REQUIRED/u,
+  );
+  assert.equal(calls, 0);
+  assert.deepEqual(
+    await githubJson("/repos/owner/repo/pulls?state=all", {
+      transport: "gh",
+      runCli,
+    }),
+    [{ number: 1 }],
+  );
+  assert.equal(calls, 1);
+});
+
+test("retirement CLI rejects host redirection and suppresses command error details", async () => {
+  for (const path of [
+    "https://other.example/repos/o/r",
+    "//other.example/repos/o/r",
+    "--hostname=other.example",
+    "/repos/o/r\n--method=POST",
+  ]) {
+    await assert.rejects(
+      githubJson(path, {
+        transport: "gh",
+        runCli: () => assert.fail("must not invoke CLI"),
+      }),
+      /GITHUB_EVIDENCE_PATH_INVALID/u,
+    );
+  }
+  for (const runCli of [
+    () => {
+      throw new Error("sensitive authentication detail");
+    },
+    () => "invalid JSON",
+  ]) {
+    await assert.rejects(
+      githubJson("/repos/o/r/pulls", { transport: "gh", runCli }),
+      (error) =>
+        error.message === "GITHUB_CLI_EVIDENCE_REQUEST_FAILED" && !error.cause,
+    );
+  }
+});
+
+test("retirement token authentication stays authoritative and never retries with CLI", async () => {
+  let calls = 0;
+  await assert.rejects(
+    githubJson("/repos/o/r/pulls", {
+      token: "fixture-token",
+      transport: "gh",
+      runCli: () => {
+        calls++;
+      },
+      fetchImpl: async (_url, options) => {
+        assert.equal(options.headers.Authorization, "Bearer fixture-token");
+        assert.equal(options.redirect, "error");
+        return { ok: false };
+      },
+    }),
+    /GITHUB_EVIDENCE_REQUEST_FAILED/u,
+  );
+  assert.equal(calls, 0);
+});
 
 function claim(overrides = {}) {
   return {
