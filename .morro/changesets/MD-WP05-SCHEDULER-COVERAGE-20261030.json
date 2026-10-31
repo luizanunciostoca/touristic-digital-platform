@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-WP05-SCHEDULER-COVERAGE-20261030",
   "objective": "prove-login-return-scheduler-coverage-and-detect-missing-suite-coverage-before-push",
-  "baseSha": "c67d46b0c55d59943da7d82453b6e8c2f2bef6cd",
-  "branch": "chore/wp05-scheduler-coverage-20261030",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "7462b4d009a8d93af3d8c8819424fab589e62f97",
+  "branch": "chore/retire-wp05-scheduler-20261031",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
