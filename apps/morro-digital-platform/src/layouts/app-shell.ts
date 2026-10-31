@@ -131,7 +131,7 @@ export function createAppShellMarkup(): string {
         data-assistant-state="idle"
       >
         <button class="minimize-button md-icon-button" type="button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
-        <p id="assistant-dialog-status" class="md-assistant-status" role="status" aria-live="polite" aria-atomic="true">Assistente pronto.</p>
+        <p id="assistant-dialog-status" class="md-assistant-status" hidden role="status" aria-live="polite" aria-atomic="true">Assistente pronto.</p>
         <div class="messages-area md-assistant-messages" role="region" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions text">
           <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
             Bem-vindo ao Morro Digital!
