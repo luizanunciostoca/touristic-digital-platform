@@ -198,6 +198,21 @@
       "risk": "P2",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-01T02:00:00.000Z"
+    },
+    "MD-RETIREMENT-CLI-AUTH-20261031": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/claim-retirement-cli-auth-20261031",
+      "baseSha": "48525eabd8a22b392e83b44f38497f20e2968648",
+      "paths": [
+        "tooling/fabric/claim-retirement-proof.mjs",
+        "tooling/fabric/claim-retirement-proof.test.mjs",
+        ".morro/changesets/MD-RETIREMENT-CLI-AUTH-20261031.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-02T09:30:00.000Z"
     }
   }
 }
