@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-WP05-SESSION-OWNERSHIP-20261030",
   "objective": "assign-ownership-for-session-recovery-and-affiliate-entry-regressions",
-  "baseSha": "0a92a3e8d6d22025d33e51d5f4d580918d308232",
-  "branch": "chore/wp05-session-ownership-20261030",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "9532e1328a476be7a65fe6c4f9ee96adb3ff32e3",
+  "branch": "chore/retire-wp05-ownership-20261031",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
