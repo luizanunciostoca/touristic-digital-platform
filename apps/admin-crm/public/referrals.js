@@ -105,6 +105,28 @@ async function loadReferrals() {
   render(payload.data);
 }
 
+async function refreshAfterMutation(confirmation, target = status) {
+  target.textContent = confirmation;
+  try {
+    await loadReferrals();
+    target.textContent = confirmation;
+  } catch {
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Atualizar lista";
+    retry.addEventListener("click", async () => {
+      retry.disabled = true;
+      await refreshAfterMutation(confirmation, target);
+    });
+    target.replaceChildren(
+      document.createTextNode(
+        `${confirmation} Não foi possível atualizar a lista. `,
+      ),
+      retry,
+    );
+  }
+}
+
 async function createReferral(event) {
   event.preventDefault();
   if (!(createForm instanceof HTMLFormElement)) return;
@@ -131,8 +153,7 @@ async function createReferral(event) {
       return;
     }
     createForm.reset();
-    if (createStatus) createStatus.textContent = "Salvo.";
-    await loadReferrals();
+    await refreshAfterMutation("Salvo.", createStatus || status);
   } catch {
     if (createStatus) createStatus.textContent = "Falha ao salvar.";
   } finally {
@@ -143,6 +164,7 @@ async function createReferral(event) {
 async function runAction(referralId, action, button) {
   button.disabled = true;
   status.textContent = "Atualizando indicação…";
+  let mutationConfirmed = false;
   try {
     const response = await auth.secureFetch(
       `/api/crm/referrals/${referralId}/${action}`,
@@ -155,11 +177,12 @@ async function runAction(referralId, action, button) {
           : `Falha ao atualizar (${response.status}).`;
       return;
     }
-    await loadReferrals();
+    mutationConfirmed = true;
+    await refreshAfterMutation("Indicação atualizada.");
   } catch {
     status.textContent = "Falha ao atualizar a indicação.";
   } finally {
-    button.disabled = false;
+    if (!mutationConfirmed) button.disabled = false;
   }
 }
 
@@ -179,6 +202,7 @@ async function linkLead(form) {
   const button = form.querySelector('button[type="submit"]');
   if (button instanceof HTMLButtonElement) button.disabled = true;
   status.textContent = "Vinculando Lead…";
+  let mutationConfirmed = false;
   try {
     const response = await auth.secureFetch(
       `/api/crm/referrals/${referralId}/link-lead`,
@@ -195,11 +219,13 @@ async function linkLead(form) {
       status.textContent = `Falha ao vincular Lead (${response.status}).`;
       return;
     }
-    await loadReferrals();
+    mutationConfirmed = true;
+    await refreshAfterMutation("Lead vinculado.");
   } catch {
     status.textContent = "Falha ao vincular Lead.";
   } finally {
-    if (button instanceof HTMLButtonElement) button.disabled = false;
+    if (button instanceof HTMLButtonElement && !mutationConfirmed)
+      button.disabled = false;
   }
 }
 
