@@ -111,21 +111,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
     },
-    "MD-WP05-SESSION-IMPACT-20261030": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/wp05-session-ci-impact-20261030",
-      "baseSha": "7b1d81ed60f57fe7ec20e629c7116a3309eadf3e",
-      "paths": [
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/impact-analyzer.test.mjs",
-        ".morro/changesets/MD-WP05-SESSION-IMPACT-20261030.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-31T23:00:00.000Z"
-    },
     "MD-WP05-SCHEDULER-COVERAGE-20261030": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
