@@ -154,7 +154,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/wp05-session-ci-impact-20261030",
-      "baseSha": "8950268a473a8647d1cbed1f8cdb4b5e95126daf",
+      "baseSha": "7b1d81ed60f57fe7ec20e629c7116a3309eadf3e",
       "paths": [
         "tooling/ci/test-impact-manifest.json",
         "tooling/ci/impact-analyzer.test.mjs",

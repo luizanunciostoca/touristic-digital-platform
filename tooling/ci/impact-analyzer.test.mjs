@@ -1555,3 +1555,33 @@ test("exact Turbo CSS cache paths require full quality and the actual cache regr
     }
   }
 });
+
+test("WP05 session and affiliate paths select auth and browser suites without claiming sibling files", () => {
+  const files = [
+    "packages/auth-browser/src/index.ts",
+    "packages/auth-browser/src/index.test.ts",
+    "packages/auth-browser/src/crm-auth-transport.test.ts",
+    "apps/morro-digital-platform/src/affiliate-portal-client.ts",
+    "apps/morro-digital-platform/src/affiliate-portal-client.test.ts",
+    "apps/morro-digital-platform/src/affiliate-portal-entry.ts",
+    "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+  ];
+  for (const file of files) {
+    const impact = analyzeFiles([file]);
+    assert.equal(impact.classificationBlocked, false, file);
+    assert.equal(impact.qualityProfile, "DEEP_PROOF", file);
+    assert.equal(impact.needsBrowser, true, file);
+    assert.equal(impact.needsFullSecurity, true, file);
+    for (const suite of [
+      "auth-login-browser-contract.yml",
+      "affiliates-feature-0010-contract.yml",
+      "crm-platform-auth-integration-contract.yml",
+    ]) {
+      assert.ok(impact.suites.includes(suite), suite);
+      assert.ok(existsSync(join(".github/workflows", suite)), suite);
+    }
+    assert.deepEqual(analyzeFiles([file + ".bak"]).unknownFiles, [
+      file + ".bak",
+    ]);
+  }
+});
