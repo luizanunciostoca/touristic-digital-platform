@@ -1,0 +1,167 @@
+{
+  "kind": "FROZEN_LOCAL_RENEWAL_ARCHIVE_AND_PURE_SCHEMA_VALIDATION",
+  "finalizedAt": "2026-10-31T22:24:49.000Z",
+  "packetDirectory": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd",
+  "bareClone": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/preserved.git",
+  "backup": {
+    "repository": "luizanunciostoca/touristic-digital-platform",
+    "ref": "refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+    "commitSha": "08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+    "treeSha": "1da9ede636b875aa0d2656db0dde7e33b88522bb",
+    "writerId": "cloud-coverage-authority-worker"
+  },
+  "parentBackup": {
+    "repository": "luizanunciostoca/touristic-digital-platform",
+    "ref": "refs/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+    "commitSha": "23870e2376903139188a04118a306542ffbf68aa",
+    "treeSha": "b6202ab6febd6cc4ef4495eee5cbbfc3cb52b21e",
+    "writerId": "cloud-coverage-authority-worker"
+  },
+  "bundle": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/coverage-stopped-writer-renewal.bundle",
+    "sha256": "f798f9b3f1109d96f16d083ddca382f469feda734cfc089efa5ebf22c6759882",
+    "bytes": 141584,
+    "prerequisiteSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "localVerificationOutput": "The bundle contains this ref:\n08ede13aa6e7028c826335986a94ab98c6b1cdd8 refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd\nThe bundle requires this ref:\nfc089a1fcef27e3c39f3c3d27faf4f69b088436b \nThe bundle uses this hash algorithm: sha1\n"
+  },
+  "request": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/voluntary-release-request.json",
+    "canonicalSha256": "04133e7876940a9ad616176f70b0e7d02c349ee45be926d4b20e25fa955e9a2e",
+    "fileSha256": "45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee",
+    "bytes": 24079,
+    "snapshotAt": "2026-10-31T22:24:49.000Z",
+    "decisionNonce": "audit-coverage-renewal-20261031-6b966c24-9a98-4a6a-92e0-33b4dff8d9f3",
+    "retirementBranch": "chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd"
+  },
+  "receipt": {
+    "pathInBackup": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/receipts/cloud-coverage-authority-worker.json",
+    "blobSha": "0f5ed808d40895ec85a09909397bc1f2e79071e9",
+    "sha256": "3c034c2282d8f558ee09b5ff4674ef59817d33b66433eaed00dc135e1dbae97d",
+    "requestedAt": "2026-10-31T22:21:36.000Z",
+    "acknowledgedAt": "2026-10-31T22:22:24.000Z",
+    "drainedAt": "2026-10-31T22:22:24.000Z"
+  },
+  "wipEntries": 52,
+  "archiveFiles": 47,
+  "newArchiveFiles": 15,
+  "ownedBlobsPreserved": [
+    {
+      "path": ".morro/ownership.json",
+      "blobSha": "dae399acf8982d3643719fe9af4b3722bebf78ea",
+      "sha256": "82404b46e333c1d4db7128d2d0c90b1c6e739e0e12e9d98ac689fdb8d6b7846a",
+      "bytes": 14012
+    },
+    {
+      "path": "tooling/ci/test-impact-manifest.json",
+      "blobSha": "765b863d8accdc4873b348ac0c9bc29cde15a37c",
+      "sha256": "080ac6a5efa913693ec78ab2182d1c1a6199f52735a38e9ffc461f37666e591e",
+      "bytes": 35460
+    },
+    {
+      "path": "tooling/ci/journey-audit-admission.test.mjs",
+      "blobSha": "68b2c64f5e8dee4be06465e8364d2716bd185d4f",
+      "sha256": "7a84a6f63968f3cddbc33a174b2371f77ea03597b0ac9404bc6e940f659bce3a",
+      "bytes": 18377
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "blobSha": "079f27045544fe6b77b956c4687d67fe2d84b2a8",
+      "sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+      "bytes": 2234
+    },
+    {
+      "path": ".github/workflows/auth-login-browser-contract.yml",
+      "blobSha": "5433db46895e94385a9f3713e29f1f961ff1070a",
+      "sha256": "04e451a248fd3ac1e8602d26449ba49a421c25bcdc3a975004d0ada64209df40",
+      "bytes": 10718
+    }
+  ],
+  "localChecks": {
+    "singleExactParentIsPreviousBackup": true,
+    "descendantOfWriterHead": true,
+    "allFiveOwnedBlobsUnchanged": true,
+    "onlyNewArchivePathsAdded": true,
+    "allPreviousArchivePathsUnchanged": true,
+    "allPriorFrozenFilesUnchanged": true,
+    "sourceWorkspaceStillCleanAndUnchanged": true,
+    "allSourceCopiesStillMatch": true,
+    "completeWipInventory": true,
+    "allWipBlobsAndHashesVerified": true,
+    "exactClosedReceiptVerified": true,
+    "pureSchema": "PASS",
+    "shellSyntaxOnly": "PASS",
+    "canonicalPolicyFilesUnchanged": true
+  },
+  "validatorSourceReadback": [
+    {
+      "path": "tooling/fabric/claim-retirement-proof.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "7b0829145f765bfeb98ca47a50633d6834520ef93dd179ce45b3e44fe186d991",
+      "byteIdentical": true
+    },
+    {
+      "path": "tooling/mdctl/changeset-v2.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "e0dca84e2b406152712aeadc060e810be4b24fcd9f1596f7a22bd467d4ef9d3d",
+      "byteIdentical": true
+    },
+    {
+      "path": "tooling/fabric/claim-guard.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "f07b5ad6168d4bd1c6a7bd7649492c8680a3870493e2dd073955100f9f448195",
+      "byteIdentical": true
+    },
+    {
+      "path": "tooling/mdctl/event-ledger.mjs",
+      "canonicalSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "sha256": "cc6e30de529c7280adff6b3590186bb885e3d05972ab1f7b547ea3a814fdf482",
+      "byteIdentical": true
+    }
+  ],
+  "pureValidationClockBasis": {
+    "snapshotFromObservedClock": "2026-10-31T22:24:49.000Z",
+    "validatedAt": "2026-10-31T22:24:56.575Z",
+    "noSimulatedProviderOrRemoteAuthority": true
+  },
+  "freshness": {
+    "drainedAtMustBeNoOlderThanSeconds": 3600,
+    "snapshotAtMustBeNoOlderThanSeconds": 3600,
+    "earliestLocalFreshnessDeadlineExclusive": "2026-10-31T23:22:24.000Z",
+    "ownerConsentMaxAgeSeconds": 1800,
+    "note": "The previous request expired. Never edit historical times or reuse its nonce. If the current window expires, repeat factual observation and rebuild identities."
+  },
+  "publication": {
+    "guardedScript": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/publish-backup-guarded.sh",
+    "transportDownloadScript": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/fetch-transport-blob.sh",
+    "transportBlobReadback": "NOT_PUBLISHED",
+    "requiredGuards": [
+      "exact bundle hash and size",
+      "parent equals prior published backup 23870",
+      "writer HEAD is ancestor",
+      "current main d979",
+      "source ref fc089",
+      "prior backup ref 23870",
+      "new backup ref absent under expected-absence lease",
+      "remote backup ref readback"
+    ],
+    "publicationExecuted": false
+  },
+  "oldFrozenFileHashes": {
+    "completion.json": "405bc0620215d7dd67628494b8cc8e1ac3ccda81c594116ba49904799a84e6d3",
+    "HANDOFF.md": "1902f1686916e50c2a3f05360ce1b2ad7763dec569f62d97d7deed514736ecc6",
+    "voluntary-release-request.json": "f5df76e08b27353d16291b08de0937675e780908775851dbf65046641c76fcbe",
+    "coverage-stopped-writer-compact.bundle": "715763b7756f7b3b9a497bb91d6979e87985060110f7c62c09aa7e5cf7bcd3c5"
+  },
+  "remote_readback": "PENDING",
+  "owner_attestation": "MISSING",
+  "ownerMarkerCandidateNotRequested": "APPROVED_VOLUNTARY_RELEASE:MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031:04133e7876940a9ad616176f70b0e7d02c349ee45be926d4b20e25fa955e9a2e:audit-coverage-renewal-20261031-6b966c24-9a98-4a6a-92e0-33b4dff8d9f3:d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "readyForOwnerRequest": false,
+  "readyForRetirement": false,
+  "limitations": [
+    "Local archival objects and pure schema were verified; the full canonical remote collector has not run.",
+    "No source material edit, task/claim operation, retirement, personal owner attestation or publication occurred.",
+    "The new remote ref and 52 WIP blobs need remote readback before an owner request.",
+    "Scoped inventories are factual evidence, not an owner assertion of global completeness.",
+    "The material writer remains STOPPED and all previous artifacts retain their original bytes and timestamps."
+  ]
+}

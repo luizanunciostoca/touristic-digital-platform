@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "content": "{\"ref\":\"refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd\",\"node_id\":\"REF_kwDOT_QyfdoAQnJlZnMvaGVhZHMvYXJjaGl2ZS9hdWRpdC1jb3ZlcmFnZS1yZW5ld2FsLTIwMjYxMDMxLTIyMjQwMC1mMjViOTdjZA\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd\",\"object\":{\"sha\":\"08ede13aa6e7028c826335986a94ab98c6b1cdd8\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/08ede13aa6e7028c826335986a94ab98c6b1cdd8\"}}",
+    "title": "audit-coverage-renewal-20261031-222400-f25b97cd",
+    "modified_date": null,
+    "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+    "display_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+    "display_title": "audit-coverage-renewal-20261031-222400-f25b97cd",
+    "structuredContent": {
+      "title": "audit-coverage-renewal-20261031-222400-f25b97cd",
+      "content": "{\"ref\":\"refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd\",\"node_id\":\"REF_kwDOT_QyfdoAQnJlZnMvaGVhZHMvYXJjaGl2ZS9hdWRpdC1jb3ZlcmFnZS1yZW5ld2FsLTIwMjYxMDMxLTIyMjQwMC1mMjViOTdjZA\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd\",\"object\":{\"sha\":\"08ede13aa6e7028c826335986a94ab98c6b1cdd8\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/08ede13aa6e7028c826335986a94ab98c6b1cdd8\"}}",
+      "display_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd"
+    }
+  },
+  "isError": false
+}
+

@@ -1,0 +1,84 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "comments": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3464#issuecomment-6550481873",
+        "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: 9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384",
+        "user": {
+          "login": "github-actions[bot]",
+          "name": "github-actions[bot]",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+          "id": 41898282
+        },
+        "id": 6550481873,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: 9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3464#issuecomment-6550483524",
+        "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3464 at 2026-10-31T23:18:16Z.",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550483524,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6140890621\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3464\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3464/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3464\">#3464</a> at 2026-10-31T23:18:16Z.</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3464#issuecomment-6550485982",
+        "body": "MORRO_AGENT_RESULT_V3\n\n- id: coverage-retirement-plan-diagnosis-20261031-cf947\n- target: termux\n- exit_code: 0\n- started_at: 2026-10-31T23:18:18Z\n- ended_at: 2026-10-31T23:18:30Z\n- duration_seconds: 12\n- request_sha256: 9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"coverage-retirement-plan-diagnosis-20261031-cf947\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:18:18Z\",\"ended_at\":\"2026-10-31T23:18:30Z\",\"duration_seconds\":12,\"exit_code\":0,\"request_sha256\":\"9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\n{\"mode\":\"AUTH_EXEC\",\"runtime\":\"debian-proot\",\"repository\":\"luizanunciostoca/touristic-digital-platform\",\"headSha\":\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\",\"baseSha\":\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\"credentialSource\":\"gh-store\",\"exitCode\":0,\"stdout\":\"{\\\"name\\\":\\\"git-remote-main\\\",\\\"elapsedMs\\\":1775,\\\"status\\\":0,\\\"signal\\\":null,\\\"stdout\\\":\\\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\\\\trefs/heads/main\\\\n\\\",\\\"stderr\\\":\\\"\\\"}\\n{\\\"name\\\":\\\"canonical-plan\\\",\\\"elapsedMs\\\":3001,\\\"status\\\":0,\\\"signal\\\":null,\\\"stdout\\\":\\\"{\\\\n  \\\\\\\"baseSha\\\\\\\": \\\\\\\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\\\\\\\",\\\\n  \\\\\\\"headSha\\\\\\\": \\\\\\\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\\\\\\\",\\\\n  \\\\\\\"treeSha\\\\\\\": \\\\\\\"98d1f5b4b861684ec6495d983e0d272ef4960d42\\\\\\\",\\\\n  \\\\\\\"files\\\\\\\": [\\\\n    \\\\\\\".github/morro-control/claims.json\\\\\\\",\\\\n    \\\\\\\".github/morro-control/events.ndjson\\\\\\\",\\\\n    \\\\\\\".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json\\\\\\\"\\\\n  ],\\\\n  \\\\\\\"domains\\\\\\\": [\\\\n    \\\\\\\"governance\\\\\\\"\\\\n  ],\\\\n  \\\\\\\"risk\\\\\\\": \\\\\\\"HIGH\\\\\\\",\\\\n  \\\\\\\"mode\\\\\\\": \\\\\\\"NON_RUNTIME\\\\\\\",\\\\n  \\\\\\\"qualityProfile\\\\\\\": \\\\\\\"NON_RUNTIME\\\\\\\",\\\\n  \\\\\\\"needsBrowser\\\\\\\": false,\\\\n  \\\\\\\"needsDatabase\\\\\\\": false,\\\\n  \\\\\\\"affectedQualityArgs\\\\\\\": null,\\\\n  \\\\\\\"reason\\\\\\\": null\\\\n}\\\\n\\\",\\\"stderr\\\":\\\"\\\"}\\n\",\"stderr\":\"proot warning: can't sanitize binding \\\"/proc/self/fd/0\\\": No such file or directory\\nproot warning: can't sanitize binding \\\"/proc/self/fd/1\\\": No such file or directory\\nproot warning: can't sanitize binding \\\"/proc/self/fd/2\\\": No such file or directory\\n\"}\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3464/\n",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550485982,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: coverage-retirement-plan-diagnosis-20261031-cf947</li>\n<li>target: termux</li>\n<li>exit_code: 0</li>\n<li>started_at: 2026-10-31T23:18:18Z</li>\n<li>ended_at: 2026-10-31T23:18:30Z</li>\n<li>duration_seconds: 12</li>\n<li>request_sha256: 9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"coverage-retirement-plan-diagnosis-20261031-cf947\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:18:18Z\",\"ended_at\":\"2026-10-31T23:18:30Z\",\"duration_seconds\":12,\"exit_code\":0,\"request_sha256\":\"9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text<br>\n{\"mode\":\"AUTH_EXEC\",\"runtime\":\"debian-proot\",\"repository\":\"luizanunciostoca/touristic-digital-platform\",\"headSha\":\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\",\"baseSha\":\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\"credentialSource\":\"gh-store\",\"exitCode\":0,\"stdout\":\"{\"name\":\"git-remote-main\",\"elapsedMs\":1775,\"status\":0,\"signal\":null,\"stdout\":\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\\trefs/heads/main\\n\",\"stderr\":\"\"}\\n{\"name\":\"canonical-plan\",\"elapsedMs\":3001,\"status\":0,\"signal\":null,\"stdout\":\"{\\n  \\\"baseSha\\\": \\\"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\\\",\\n  \\\"headSha\\\": \\\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\\\",\\n  \\\"treeSha\\\": \\\"98d1f5b4b861684ec6495d983e0d272ef4960d42\\\",\\n  \\\"files\\\": [\\n    \\\".github/morro-control/claims.json\\\",\\n    \\\".github/morro-control/events.ndjson\\\",\\n    \\\".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json\\\"\\n  ],\\n  \\\"domains\\\": [\\n    \\\"governance\\\"\\n  ],\\n  \\\"risk\\\": \\\"HIGH\\\",\\n  \\\"mode\\\": \\\"NON_RUNTIME\\\",\\n  \\\"qualityProfile\\\": \\\"NON_RUNTIME\\\",\\n  \\\"needsBrowser\\\": false,\\n  \\\"needsDatabase\\\": false,\\n  \\\"affectedQualityArgs\\\": null,\\n  \\\"reason\\\": null\\n}\\n\",\"stderr\":\"\"}\\n\",\"stderr\":\"proot warning: can't sanitize binding \"/proc/self/fd/0\": No such file or directory\\nproot warning: can't sanitize binding \"/proc/self/fd/1\": No such file or directory\\nproot warning: can't sanitize binding \"/proc/self/fd/2\": No such file or directory\\n\"}<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3464/</p>"
+      }
+    ],
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3464",
+    "title": "luizanunciostoca/morro-termux-control Issue #3464 comments",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3464",
+    "display_title": "luizanunciostoca/morro-termux-control Issue #3464 comments"
+  },
+  "isError": false
+}
+

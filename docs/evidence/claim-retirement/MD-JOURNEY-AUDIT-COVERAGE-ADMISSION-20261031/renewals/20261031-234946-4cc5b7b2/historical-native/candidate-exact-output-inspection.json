@@ -1,0 +1,155 @@
+{
+  "kind": "HISTORICAL_RETIREMENT_CANDIDATE_PROVENANCE_READ_ONLY",
+  "observedAt": "2026-10-31T23:44:40.819999+00:00",
+  "temporaryInspectionDirectory": "/tmp/tdp-historical-retirement-readonly-inspection-swy5ieuf",
+  "candidate": {
+    "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+    "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+    "parents": [
+      "d979b9813c1ab40b96dee64616b9f7d08a7c0d07"
+    ],
+    "exactChangedPaths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+    ]
+  },
+  "collectorOutputComparison": [
+    {
+      "path": ".github/morro-control/claims.json",
+      "blobSha": "138fc84d7da226b3cf470a270899dc4e0d67dd53",
+      "candidateSha256": "5c40fb0b3b7cde400aaa5d8f853b2df2bee797d1cc741c0f135351cfe18df8ed",
+      "candidateBytes": 5230,
+      "collectorSha256": "97214bdefb7a3a0cea3d9cc0709285a9ee2356ad51a817c94c349ce5e6d67027",
+      "collectorBytes": 5366,
+      "byteIdentical": false,
+      "semanticIdentity": true,
+      "difference": "JSON formatting only; canonical object comparison identical"
+    },
+    {
+      "path": ".github/morro-control/events.ndjson",
+      "blobSha": "876719d3ad943bed55c135506839137975e588ca",
+      "candidateSha256": "0b21ec1e7b5a998b1334df5e7cd606250c18cb58e1647952534decf142048df4",
+      "candidateBytes": 534490,
+      "collectorSha256": "0b21ec1e7b5a998b1334df5e7cd606250c18cb58e1647952534decf142048df4",
+      "collectorBytes": 534490,
+      "byteIdentical": true,
+      "semanticIdentity": true,
+      "difference": "none"
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "blobSha": "bb4677ee6fbf0118de145e0c9015464c277593bd",
+      "candidateSha256": "818c9a58e41c4699e84b1059806d8b7b913819bf760f57bbb252ee86fb817485",
+      "candidateBytes": 2247,
+      "collectorSha256": "818c9a58e41c4699e84b1059806d8b7b913819bf760f57bbb252ee86fb817485",
+      "collectorBytes": 2247,
+      "byteIdentical": true,
+      "semanticIdentity": true,
+      "difference": "none"
+    }
+  ],
+  "semanticDeltaFromMain": {
+    "removedRegistryClaimOnly": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "ledgerPrefixUnchanged": true,
+    "appendedEvent": {
+      "eventType": "CLAIM_RELEASED",
+      "entity": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+      "observedAt": "2026-10-31T23:01:51.275Z",
+      "actor": "ORCHESTRATOR"
+    },
+    "manifestChangedKeys": [
+      "baseSha",
+      "branch"
+    ],
+    "materialStateUnchanged": true,
+    "noProductOwnershipImpactOrWorkflowChange": true
+  },
+  "historicalOwnerDecision": {
+    "commentId": 6550135699,
+    "ownerId": 318748875,
+    "ownerLogin": "luizanunciostoca",
+    "createdAt": "2026-10-31T22:44:06.000Z",
+    "updatedAt": "2026-10-31T22:44:06.000Z",
+    "bodySha256": "cc738de3b6139a9570500616f1e1483631fdfee06a763731d932af9ac85f9a63",
+    "anchorAcquisitionPr": 1336
+  },
+  "historicalEvidenceObservedAt": "2026-10-31T23:01:51.275Z",
+  "jobsStaticReview": [
+    {
+      "issue": 3459,
+      "commandSha256": "702afe6848fb31e67b12a8dc22d9405a6842c5c145bf1ef2ba8d81ce3a197dbc",
+      "canonicalCollectorOrBuilderCalls": [
+        {
+          "line": 35,
+          "text": "const evidence=await collectClaimRetirementEvidence(id,registry.claims[id],{repository:request.repository,expectedBaseSha:request.exactBaseSha,token,requestedReason:'VOLUNTARY',decisionRequest:request,canonicalText:ledgerText,canonicalManifest:manifest,retirementBranch:request.retirementBranch});"
+        },
+        {
+          "line": 36,
+          "text": "const result=buildClaimRetirement({registry,ledgerText,manifest,evidence,retirementBaseSha:request.exactBaseSha,retirementBranch:request.retirementBranch,observedAt:evidence.observedAt,requestedReason:'VOLUNTARY',now:Date.now()});"
+        }
+      ],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    },
+    {
+      "issue": 3460,
+      "commandSha256": "179c862501c8709a0c62b22fb45f565b5f1cf76dd7e76697519ce4f39f87755e",
+      "canonicalCollectorOrBuilderCalls": [],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    },
+    {
+      "issue": 3461,
+      "commandSha256": "e4680c1b83944dd64a9ebdebb8f690afd4b34972d221d0938e3219f5ee0da68d",
+      "canonicalCollectorOrBuilderCalls": [],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    },
+    {
+      "issue": 3462,
+      "commandSha256": "53585bac47cb479c7bf513fd0b2cff9230be4c54b498f23e3461f29facb15107",
+      "canonicalCollectorOrBuilderCalls": [],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    },
+    {
+      "issue": 3463,
+      "commandSha256": "e5b60ad7d79ec78794060747c79290648c897ed802d6e1b63bd348e61736564f",
+      "canonicalCollectorOrBuilderCalls": [],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    },
+    {
+      "issue": 3464,
+      "commandSha256": "cdf6f3331aa115c0906f4c7101e7c0a80d1d2c2c91c07a700dd84292b4c1537a",
+      "canonicalCollectorOrBuilderCalls": [],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    },
+    {
+      "issue": 3465,
+      "commandSha256": "3b59b4fcc19438f8449a6d330373c0c875087556e8222dbec28cdb9565220f51",
+      "canonicalCollectorOrBuilderCalls": [],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    },
+    {
+      "issue": 3466,
+      "commandSha256": "b015c04ab39662d61f2e3ffa816d2e2b767700e9d66ffa9de334d89b6ffe3d6f",
+      "canonicalCollectorOrBuilderCalls": [],
+      "directTaskStartTestSubmitOrLeaseAcquireTextFound": false,
+      "limit": "Static command review only; absence of a text pattern is not a global execution attestation. Native3468 bounds actual roots/processes."
+    }
+  ],
+  "initialByteIdentityAssumptionFailurePreserved": "candidate-output-comparison-initial-observation.json",
+  "classificationNotGrantedByThisRecord": true,
+  "noCurrentReleaseAuthority": true,
+  "noMaterialSourceOrTaskOrLeaseOrClaimChangedByInspection": true,
+  "noNewReleasePackageCreated": true,
+  "limits": [
+    "The collector JSON and historical candidate differ in formatting of claims.json; both exact byte representations are retained and hashes are distinct.",
+    "Candidate scope is exactly canonical retirement metadata, not the material correction under the original claim. Whether controller work belongs in writerInventory still requires the canonical authority interpretation documented separately.",
+    "Static command inspection and historical artifacts do not prove absence of every possible external writer; Native3468 and controller inventory retain bounded scope."
+  ]
+}

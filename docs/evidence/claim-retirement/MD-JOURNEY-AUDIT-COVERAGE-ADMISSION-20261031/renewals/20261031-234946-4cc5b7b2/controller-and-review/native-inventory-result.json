@@ -1,0 +1,53 @@
+{
+  "issue": 3467,
+  "requestSha256": "64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08",
+  "preflightCommentId": 6550666367,
+  "resultCommentId": 6550669194,
+  "metadata": {
+    "id": "inventory-coverage-voluntary-prep-20261031-2336",
+    "target": "termux",
+    "started_at": "2026-10-31T23:37:50Z",
+    "ended_at": "2026-10-31T23:37:53Z",
+    "duration_seconds": 3,
+    "exit_code": 0,
+    "request_sha256": "64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08"
+  },
+  "observation": {
+    "kind": "NATIVE_SCOPED_READ_ONLY_RETIREMENT_PREPARATION_INVENTORY",
+    "startedAt": "2026-10-31T23:37:50.436551+00:00",
+    "observedAt": "2026-10-31T23:37:53.270219+00:00",
+    "branch": "refs/heads/chore/journey-audit-coverage-admission-20261031",
+    "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "pr": {
+      "number": 1337,
+      "state": "open",
+      "draft": true,
+      "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+      "baseSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "treeShaFromBareStore": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04"
+    },
+    "canonicalMainSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+    "previousBackupSha": "08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+    "matchingMaterialWorktrees": [],
+    "matchingProcessesExcludingThisProbeAndAncestors": [],
+    "processesScanned": 22,
+    "unreadableCwdCount": 0,
+    "unreadableCmdlineCount": 0,
+    "thisReadOnlyProbeAndAncestorPids": [
+      1,
+      10686,
+      28034,
+      28035,
+      28036
+    ],
+    "probeMarkerMatches": [],
+    "bareStorePresent": true,
+    "mutationsExecuted": [],
+    "limits": [
+      "Current PID/cwd and exact branch/claim markers only; inaccessible processes remain unknown.",
+      "No global absence assertion; no inference that unrelated open GitHub jobs are running or drained.",
+      "This inventory command is an observed read-only controller child until the signed Native result reports completion."
+    ]
+  },
+  "readOnlyInspection": true
+}

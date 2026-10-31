@@ -1,0 +1,106 @@
+{
+  "observedAt": "2026-10-31 23:42:10 UTC",
+  "totalReturned": 14,
+  "paginationComplete": true,
+  "openIssues": [
+    {
+      "number": 3399,
+      "title": "[TERMUX-JOB] Resume WP04 certification after agent recovery with bounded concurrency",
+      "state": "open",
+      "updatedAt": "2026-10-30T20:11:36Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 3397,
+      "title": "[TERMUX-JOB] Certify final WP04 in isolated checkout using shared object reads",
+      "state": "open",
+      "updatedAt": "2026-10-30T20:05:12Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 3291,
+      "title": "[TERMUX-JOB] Re-certify frozen R3 with periodic progress evidence",
+      "state": "open",
+      "updatedAt": "2026-10-29T10:04:32Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 3288,
+      "title": "[TERMUX-JOB] Certify and publish R3 with verified ASCII command transport",
+      "state": "open",
+      "updatedAt": "2026-10-29T09:05:35Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 3117,
+      "title": "feat(local): persistent passive Aurora runtime diagnostics without W14 authority",
+      "state": "open",
+      "updatedAt": "2026-10-28T09:03:06Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 2951,
+      "title": "[REVIEW-SNAPSHOT] CSS composed entry order regression 91cf3647",
+      "state": "open",
+      "updatedAt": "2026-10-24T12:59:20Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 2924,
+      "title": "[REVIEW-SNAPSHOT] CSS historical fixture stability e0816abd",
+      "state": "open",
+      "updatedAt": "2026-10-24T10:58:06Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 2908,
+      "title": "[REVIEW-SNAPSHOT] CSS reanchor compatibility 6ba3dba5",
+      "state": "open",
+      "updatedAt": "2026-10-24T09:50:57Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 2214,
+      "title": "[TERMUX-JOB] Read Android process-exit evidence for interrupted native agent",
+      "state": "open",
+      "updatedAt": "2026-10-22T03:42:36Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 1527,
+      "title": "[TERMUX-JOB] Audit TDP staging HTML routes read-only",
+      "state": "open",
+      "updatedAt": "2026-10-14T09:13:21Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 1525,
+      "title": "[TERMUX-JOB] Read-only live resume inventory for product lab and preserved SUPPORT worker",
+      "state": "open",
+      "updatedAt": "2026-10-14T08:51:29Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 1510,
+      "title": "[TERMUX-JOB] Resume preserved Financial819 only after actual861 merge and exact-main Quality",
+      "state": "open",
+      "updatedAt": "2026-10-14T07:21:05Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 1316,
+      "title": "[TDP-AUDIT] Melhoria contínua TDP-MAX — cinco auditorias e lote isolado",
+      "state": "open",
+      "updatedAt": "2026-10-08T07:57:34Z",
+      "mentionsTarget": false
+    },
+    {
+      "number": 4,
+      "title": "[TERMUX-AGENT] status",
+      "state": "open",
+      "updatedAt": "2026-10-31T23:41:03Z",
+      "mentionsTarget": false
+    }
+  ]
+}
+

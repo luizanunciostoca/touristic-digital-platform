@@ -1,0 +1,84 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "comments": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467#issuecomment-6550666367",
+        "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: 64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08",
+        "user": {
+          "login": "github-actions[bot]",
+          "name": "github-actions[bot]",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+          "id": 41898282
+        },
+        "id": 6550666367,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: 64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467#issuecomment-6550668370",
+        "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3467 at 2026-10-31T23:37:48Z.",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550668370,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6141040124\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3467\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3467/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3467\">#3467</a> at 2026-10-31T23:37:48Z.</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467#issuecomment-6550669194",
+        "body": "MORRO_AGENT_RESULT_V3\n\n- id: inventory-coverage-voluntary-prep-20261031-2336\n- target: termux\n- exit_code: 0\n- started_at: 2026-10-31T23:37:50Z\n- ended_at: 2026-10-31T23:37:53Z\n- duration_seconds: 3\n- request_sha256: 64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"inventory-coverage-voluntary-prep-20261031-2336\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:37:50Z\",\"ended_at\":\"2026-10-31T23:37:53Z\",\"duration_seconds\":3,\"exit_code\":0,\"request_sha256\":\"64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\n{\n  \"kind\": \"NATIVE_SCOPED_READ_ONLY_RETIREMENT_PREPARATION_INVENTORY\",\n  \"startedAt\": \"2026-10-31T23:37:50.436551+00:00\",\n  \"observedAt\": \"2026-10-31T23:37:53.270219+00:00\",\n  \"branch\": \"refs/heads/chore/journey-audit-coverage-admission-20261031\",\n  \"claimId\": \"MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031\",\n  \"pr\": {\n    \"number\": 1337,\n    \"state\": \"open\",\n    \"draft\": true,\n    \"headSha\": \"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\n    \"baseSha\": \"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\n    \"treeShaFromBareStore\": \"bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04\"\n  },\n  \"canonicalMainSha\": \"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",\n  \"previousBackupSha\": \"08ede13aa6e7028c826335986a94ab98c6b1cdd8\",\n  \"matchingMaterialWorktrees\": [],\n  \"matchingProcessesExcludingThisProbeAndAncestors\": [],\n  \"processesScanned\": 22,\n  \"unreadableCwdCount\": 0,\n  \"unreadableCmdlineCount\": 0,\n  \"thisReadOnlyProbeAndAncestorPids\": [\n    1,\n    10686,\n    28034,\n    28035,\n    28036\n  ],\n  \"probeMarkerMatches\": [],\n  \"bareStorePresent\": true,\n  \"mutationsExecuted\": [],\n  \"limits\": [\n    \"Current PID/cwd and exact branch/claim markers only; inaccessible processes remain unknown.\",\n    \"No global absence assertion; no inference that unrelated open GitHub jobs are running or drained.\",\n    \"This inventory command is an observed read-only controller child until the signed Native result reports completion.\"\n  ]\n}\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3467/\n",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550669194,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: inventory-coverage-voluntary-prep-20261031-2336</li>\n<li>target: termux</li>\n<li>exit_code: 0</li>\n<li>started_at: 2026-10-31T23:37:50Z</li>\n<li>ended_at: 2026-10-31T23:37:53Z</li>\n<li>duration_seconds: 3</li>\n<li>request_sha256: 64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"inventory-coverage-voluntary-prep-20261031-2336\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:37:50Z\",\"ended_at\":\"2026-10-31T23:37:53Z\",\"duration_seconds\":3,\"exit_code\":0,\"request_sha256\":\"64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text<br>\n{<br>\n\"kind\": \"NATIVE_SCOPED_READ_ONLY_RETIREMENT_PREPARATION_INVENTORY\",<br>\n\"startedAt\": \"2026-10-31T23:37:50.436551+00:00\",<br>\n\"observedAt\": \"2026-10-31T23:37:53.270219+00:00\",<br>\n\"branch\": \"refs/heads/chore/journey-audit-coverage-admission-20261031\",<br>\n\"claimId\": \"MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031\",<br>\n\"pr\": {<br>\n\"number\": 1337,<br>\n\"state\": \"open\",<br>\n\"draft\": true,<br>\n\"headSha\": \"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",<br>\n\"baseSha\": \"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",<br>\n\"treeShaFromBareStore\": \"bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04\"<br>\n},<br>\n\"canonicalMainSha\": \"d979b9813c1ab40b96dee64616b9f7d08a7c0d07\",<br>\n\"previousBackupSha\": \"08ede13aa6e7028c826335986a94ab98c6b1cdd8\",<br>\n\"matchingMaterialWorktrees\": [],<br>\n\"matchingProcessesExcludingThisProbeAndAncestors\": [],<br>\n\"processesScanned\": 22,<br>\n\"unreadableCwdCount\": 0,<br>\n\"unreadableCmdlineCount\": 0,<br>\n\"thisReadOnlyProbeAndAncestorPids\": [<br>\n1,<br>\n10686,<br>\n28034,<br>\n28035,<br>\n28036<br>\n],<br>\n\"probeMarkerMatches\": [],<br>\n\"bareStorePresent\": true,<br>\n\"mutationsExecuted\": [],<br>\n\"limits\": [<br>\n\"Current PID/cwd and exact branch/claim markers only; inaccessible processes remain unknown.\",<br>\n\"No global absence assertion; no inference that unrelated open GitHub jobs are running or drained.\",<br>\n\"This inventory command is an observed read-only controller child until the signed Native result reports completion.\"<br>\n]<br>\n}<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3467/</p>"
+      }
+    ],
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467",
+    "title": "luizanunciostoca/morro-termux-control Issue #3467 comments",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467",
+    "display_title": "luizanunciostoca/morro-termux-control Issue #3467 comments"
+  },
+  "isError": false
+}
+

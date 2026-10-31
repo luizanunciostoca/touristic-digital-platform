@@ -1,0 +1,13 @@
+{
+  "kind": "BINARY_CONNECTOR_READ_LIMIT_OBSERVATION",
+  "recordedAt": "2026-10-31T23:48:36.000Z",
+  "tool": "github_fetch_blob",
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "blobSha": "14af4c32b87cd56565fbf12a9d7c89f516c9ff9b",
+  "result": "ERROR",
+  "errorCode": "UNKNOWN",
+  "error": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 212: invalid start byte",
+  "countsAsPassedProof": false,
+  "preservedOriginalBytesVerifiedFromNative3468": true,
+  "futureReadback": "Use a supported base64 API response or authenticated read-only Native GET; distinguish this from direct UTF-8 connector reads."
+}

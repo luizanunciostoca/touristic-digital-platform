@@ -1,0 +1,40 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "issue": {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3468",
+      "title": "[TERMUX-JOB] inventory-retirement-wip-preserve-20261031-2340",
+      "issue_number": 3468,
+      "body": "{\n  \"version\": 2,\n  \"confirm\": \"EXECUTE\",\n  \"id\": \"inventory-retirement-wip-preserve-20261031-2340\",\n  \"target\": \"termux\",\n  \"cwd\": \"~\",\n  \"timeout_seconds\": 90,\n  \"command\": \"set -euo pipefail\\npython3 - <<'PRESERVATION_PY'\\nfrom pathlib import Path\\nimport os,sys,json,subprocess,datetime,hashlib,base64\\nstarted=datetime.datetime.now(datetime.timezone.utc).isoformat()\\ncache=Path.home()/'.cache'\\nexpected='e78f891eaea58ce850d154426420ea5e0c3dcdc1'\\nexpected_tree='98d1f5b4b861684ec6495d983e0d272ef4960d42'\\ndef run(args):\\n return subprocess.check_output(args,text=True).strip()\\nrecords=[]; roots=[]\\nfor pattern in ['tdp-retirement-proof-*','tdp-retirement-collector-*']:\\n for root in sorted(cache.glob(pattern)):\\n  if root.is_symlink() or not root.is_dir(): continue\\n  qa=root/'frozen-candidate'\\n  if qa.is_dir():\\n   head=run(['git','-C',str(qa),'rev-parse','HEAD'])\\n   if head!=expected: continue\\n   q={'path':str(qa),'head':head,'tree':run(['git','-C',str(qa),'rev-parse','HEAD^{tree}']),'branch':run(['git','-C',str(qa),'branch','--show-current']),'status':run(['git','--no-optional-locks','-C',str(qa),'status','--porcelain=v1','--untracked-files=all']),'changedPathsFromBase':run(['git','-C',str(qa),'diff','--name-only','d979b9813c1ab40b96dee64616b9f7d08a7c0d07',head]).splitlines()}\\n   assert q['tree']==expected_tree\\n  else:\\n   if root.name!='tdp-retirement-collector-l0o6i3w9': continue\\n   q=None\\n  files=[]\\n  for p in sorted(root.iterdir()):\\n   if p.is_symlink() or not p.is_file(): continue\\n   if p.suffix not in ['.json','.mjs','.bundle','.log']: continue\\n   if any(word in p.name.lower() for word in ['secret','token','credential','private-key']): continue\\n   b=p.read_bytes()\\n   files.append({'name':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})\\n  records.append({'root':str(root),'candidate':q,'topLevelPreservedFiles':files})\\n  roots.append(str(root))\\nancestors=set();pid=os.getpid()\\nwhile pid and pid not in ancestors:\\n ancestors.add(pid)\\n try: pid=int(next(x for x in Path('/proc',str(pid),'status').read_text().splitlines() if x.startswith('PPid:')).split()[1])\\n except (OSError,StopIteration,ValueError): break\\nmatched=[];scanned=0;badcwd=0;badargs=0\\nmarkers=roots+['chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd','MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031']\\nfor proc in Path('/proc').iterdir():\\n if not proc.name.isdigit(): continue\\n scanned+=1;pid=int(proc.name)\\n if pid in ancestors: continue\\n try: cwd=os.readlink(proc/'cwd')\\n except OSError: cwd=None;badcwd+=1\\n try: args=(proc/'cmdline').read_bytes().decode('utf-8','replace')\\n except OSError: args=None;badargs+=1\\n reasons=[]\\n if cwd and any(cwd==r or cwd.startswith(r+'/') for r in roots): reasons.append('cwd_under_observed_retirement_root')\\n if args and any(m in args for m in markers): reasons.append('exact_retirement_path_or_claim_marker')\\n if reasons:\\n  try: name=(proc/'comm').read_text().strip()\\n  except OSError: name=None\\n  matched.append({'pid':pid,'name':name,'cwd':cwd,'reasons':reasons})\\npayload=json.loads(run(['gh','api','repos/luizanunciostoca/touristic-digital-platform/git/blobs/14af4c32b87cd56565fbf12a9d7c89f516c9ff9b']))\\nbundle=base64.b64decode(payload['content'])\\nassert len(bundle)==6771 and hashlib.sha256(bundle).hexdigest()=='4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91'\\nassert hashlib.sha1(b'blob '+str(len(bundle)).encode()+b'\\\\0'+bundle).hexdigest()==payload['sha']\\nremote_ref=subprocess.run(['gh','api','repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd'],text=True,capture_output=True)\\nremote_ref_result={'exitCode':remote_ref.returncode,'response':json.loads(remote_ref.stdout) if remote_ref.stdout.strip().startswith('{') else None}\\nout={'kind':'READ_ONLY_PREVIOUS_RETIREMENT_WIP_AND_DESCENDANT_SCOPE_INVENTORY','startedAt':started,'observedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'candidateHead':expected,'candidateTree':expected_tree,'preservedRoots':records,'processScope':{'scanned':scanned,'unreadableCwd':badcwd,'unreadableCmdline':badargs,'probeAndAncestorsExcluded':sorted(ancestors),'matchingProcesses':matched},'oldRetirementRemoteRef':remote_ref_result,'bundle':{'blob':payload['sha'],'sha256':hashlib.sha256(bundle).hexdigest(),'bytes':len(bundle),'base64Transport':'stderr_JSON_envelope_only'},'mutationsExecuted':[],'limits':['Read-only observable roots, cwd and exact markers; not global absence of all external writers.','Historical test outputs do not certify this new request and are not rerun.','No cleanup, candidate edit, task, claim, branch, collector or release command executed.']}\\nout_text=json.dumps(out,separators=(',',':'),ensure_ascii=False)\\nassert len(out_text.encode())<=11500,'INVENTORY_EXCEEDS_RESULT_BUDGET'\\nprint(out_text)\\nprint(json.dumps({'kind':'PRESERVED_HISTORICAL_BUNDLE_BASE64','sha256':hashlib.sha256(bundle).hexdigest(),'bytes':len(bundle),'base64':base64.b64encode(bundle).decode()},separators=(',',':')),file=sys.stderr)\\nPRESERVATION_PY\\n\"\n}",
+      "state": "open",
+      "user": {
+        "login": "luizanunciostoca",
+        "name": "luizanunciostoca",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+        "id": 318748875
+      },
+      "assignees": null,
+      "labels": null,
+      "milestone": null,
+      "state_reason": null,
+      "comments": 0,
+      "created_at": "2026-10-31T23:40:19Z",
+      "updated_at": "2026-10-31T23:40:19Z",
+      "closed_at": null,
+      "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3468",
+      "display_title": "[TERMUX-JOB] inventory-retirement-wip-preserve-20261031-2340"
+    },
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3468",
+    "title": "[TERMUX-JOB] inventory-retirement-wip-preserve-20261031-2340",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3468",
+    "display_title": "[TERMUX-JOB] inventory-retirement-wip-preserve-20261031-2340"
+  },
+  "isError": false
+}
+

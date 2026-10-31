@@ -1,0 +1,40 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "issue": {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467",
+      "title": "[TERMUX-JOB] inventory-coverage-voluntary-prep-20261031-2336",
+      "issue_number": 3467,
+      "body": "{\n  \"version\": 2,\n  \"confirm\": \"EXECUTE\",\n  \"id\": \"inventory-coverage-voluntary-prep-20261031-2336\",\n  \"target\": \"termux\",\n  \"cwd\": \"~\",\n  \"timeout_seconds\": 90,\n  \"command\": \"set -euo pipefail\\npython3 - <<'INVENTORY_PY'\\nimport os,json,subprocess,datetime\\nfrom pathlib import Path\\nstarted=datetime.datetime.now(datetime.timezone.utc).isoformat()\\nrepo=Path.home()/'repos/touristic-digital-platform.git'\\nbranch='refs/heads/chore/journey-audit-coverage-admission-20261031'\\nclaim='MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031'\\ndef out(args):\\n return subprocess.check_output(args,text=True).strip()\\ndef api(path):\\n return json.loads(out(['gh','api',path]))\\nworktree_text=out(['git','--git-dir='+str(repo),'worktree','list','--porcelain'])\\nmatched=[]\\nfor block in worktree_text.split('\\\\n\\\\n'):\\n lines=block.splitlines()\\n if 'branch '+branch in lines:\\n  item=dict(line.split(' ',1) for line in lines if ' ' in line)\\n  item['statusPorcelain']=out(['git','--no-optional-locks','-C',item['worktree'],'status','--porcelain'])\\n  matched.append(item)\\nancestors=set()\\npid=os.getpid()\\nwhile pid and pid not in ancestors:\\n ancestors.add(pid)\\n try:\\n  line=next(x for x in Path('/proc',str(pid),'status').read_text().splitlines() if x.startswith('PPid:'))\\n  pid=int(line.split()[1])\\n except (OSError,StopIteration,ValueError):\\n  break\\nprocesses=[]; unreadable_cwd=0; unreadable_cmdline=0; scanned=0; probe_matches=[]\\nfor proc in Path('/proc').iterdir():\\n if not proc.name.isdigit(): continue\\n scanned+=1; pid=int(proc.name); cwd=None; cmdline=None\\n try: cwd=os.readlink(proc/'cwd')\\n except (OSError,PermissionError): unreadable_cwd+=1\\n try: cmdline=(proc/'cmdline').read_bytes().decode('utf-8','replace')\\n except (OSError,PermissionError): unreadable_cmdline+=1\\n reasons=[]\\n if cwd is not None and any(cwd==item.get('worktree') or cwd.startswith(item.get('worktree','!')+'/') for item in matched): reasons.append('cwd_in_matching_worktree')\\n if cmdline is not None and (branch in cmdline or claim in cmdline): reasons.append('exact_claim_or_branch_marker')\\n if not reasons: continue\\n try: name=(proc/'comm').read_text().strip()\\n except OSError: name=None\\n row={'pid':pid,'name':name,'cwd':cwd,'matchReasons':reasons,'fullArgumentsOmitted':True}\\n if pid in ancestors: probe_matches.append(row)\\n else: processes.append(row)\\npr=api('repos/luizanunciostoca/touristic-digital-platform/pulls/1337')\\nmain=api('repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/main')\\nbackup=api('repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd')\\ntree=out(['git','--git-dir='+str(repo),'rev-parse',pr['head']['sha']+'^{tree}'])\\nprint(json.dumps({\\n 'kind':'NATIVE_SCOPED_READ_ONLY_RETIREMENT_PREPARATION_INVENTORY',\\n 'startedAt':started,'observedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),\\n 'branch':branch,'claimId':claim,\\n 'pr':{'number':pr['number'],'state':pr['state'],'draft':pr['draft'],'headSha':pr['head']['sha'],'baseSha':pr['base']['sha'],'treeShaFromBareStore':tree},\\n 'canonicalMainSha':main['object']['sha'],'previousBackupSha':backup['object']['sha'],\\n 'matchingMaterialWorktrees':matched,'matchingProcessesExcludingThisProbeAndAncestors':processes,\\n 'processesScanned':scanned,'unreadableCwdCount':unreadable_cwd,'unreadableCmdlineCount':unreadable_cmdline,\\n 'thisReadOnlyProbeAndAncestorPids':sorted(ancestors),'probeMarkerMatches':probe_matches,\\n 'bareStorePresent':repo.is_dir(),'mutationsExecuted':[],\\n 'limits':['Current PID/cwd and exact branch/claim markers only; inaccessible processes remain unknown.','No global absence assertion; no inference that unrelated open GitHub jobs are running or drained.','This inventory command is an observed read-only controller child until the signed Native result reports completion.']\\n},ensure_ascii=False,indent=2))\\nINVENTORY_PY\\n\"\n}",
+      "state": "open",
+      "user": {
+        "login": "luizanunciostoca",
+        "name": "luizanunciostoca",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+        "id": 318748875
+      },
+      "assignees": null,
+      "labels": null,
+      "milestone": null,
+      "state_reason": null,
+      "comments": 0,
+      "created_at": "2026-10-31T23:37:26Z",
+      "updated_at": "2026-10-31T23:37:26Z",
+      "closed_at": null,
+      "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467",
+      "display_title": "[TERMUX-JOB] inventory-coverage-voluntary-prep-20261031-2336"
+    },
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467",
+    "title": "[TERMUX-JOB] inventory-coverage-voluntary-prep-20261031-2336",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3467",
+    "display_title": "[TERMUX-JOB] inventory-coverage-voluntary-prep-20261031-2336"
+  },
+  "isError": false
+}
+

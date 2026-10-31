@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "content": "{\n  \"schemaVersion\": 2,\n  \"id\": \"MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031\",\n  \"objective\": \"register-exact-audit-followup-coverage-and-wire-existing-session-recovery-browser-proof-without-product-or-policy-engine-changes\",\n  \"baseSha\": \"c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9\",\n  \"branch\": \"chore/journey-audit-coverage-admission-20261031\",\n  \"state\": \"IMPLEMENTING\",\n  \"risk\": \"critical\",\n  \"scope\": \"PLATFORM\",\n  \"owns\": {\n    \"paths\": [\n      \".morro/ownership.json\",\n      \"tooling/ci/test-impact-manifest.json\",\n      \"tooling/ci/journey-audit-admission.test.mjs\",\n      \".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json\",\n      \".github/workflows/auth-login-browser-contract.yml\"\n    ],\n    \"contracts\": []\n  },\n  \"reads\": {\n    \"contracts\": [\n      \"TDP-CONTROL-PLANE-V3.2\",\n      \"platform-authz\",\n      \"ticket-fulfillment\"\n    ]\n  },\n  \"produces\": {\n    \"events\": [],\n    \"routes\": []\n  },\n  \"database\": {\n    \"tables\": []\n  },\n  \"auth\": {\n    \"capabilities\": []\n  },\n  \"dependencies\": [],\n  \"requiredEvidence\": [\n    \"format\",\n    \"secrets\",\n    \"lint\",\n    \"typecheck\",\n    \"affected-tests\",\n    \"build\",\n    \"integration\",\n    \"automated-independent-proof\",\n    \"exact-head-identity\",\n    \"owner-scope-resolution\",\n    \"full-quality\",\n    \"domain-invariants\",\n    \"exact-head-release-gates\"\n  ],\n  \"requiredCapabilities\": [\n    \"github:read\",\n    \"workspace:write:claimed-paths\",\n    \"evidence:write:task-local\"\n  ],\n  \"contextPack\": {\n    \"maxBytes\": 65536,\n    \"include\": [\n      \"changeset\",\n      \"git-identity\",\n      \"ownership\",\n      \"contracts\",\n      \"dependencies\",\n      \"proof-plan\"\n    ]\n  },\n  \"proof\": {\n    \"budget\": {\n      \"maxCommands\": 2,\n      \"maxSeconds\": 600\n    },\n    \"commands\": [\n      {\n        \"id\": \"exact-coverage-and-sensitive-boundaries\",\n        \"argv\": [\n          \"node\",\n          \"--test\",\n          \"tooling/ci/journey-audit-admission.test.mjs\",\n          \"tooling/ci/impact-analyzer-exact-path.test.mjs\",\n          \"tooling/fabric/ordinary-pr-policy.test.mjs\"\n        ],\n        \"timeoutSeconds\": 300\n      }\n    ],\n    \"requiredRemoteEvidence\": [\n      \"automated-independent-proof\",\n      \"exact-head-identity\"\n    ]\n  },\n  \"stopAt\": \"REMOTE_PROVEN\"\n}\n",
+    "encoding": "utf-8",
+    "sha": "079f27045544fe6b77b956c4687d67fe2d84b2a8",
+    "display_url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/d979b9813c1ab40b96dee64616b9f7d08a7c0d07/.morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+    "display_title": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+  },
+  "isError": false
+}
+

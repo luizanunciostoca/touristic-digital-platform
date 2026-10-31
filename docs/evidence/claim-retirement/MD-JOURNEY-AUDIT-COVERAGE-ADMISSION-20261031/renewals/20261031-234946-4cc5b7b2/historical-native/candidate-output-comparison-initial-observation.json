@@ -1,0 +1,43 @@
+{
+  "kind": "HISTORICAL_CANDIDATE_INSPECTION_INITIAL_EXACT_BYTE_ASSUMPTION_FAILED",
+  "observedAt": "2026-10-31T23:44:19.997247+00:00",
+  "temporaryInspectionDirectory": "/tmp/tdp-historical-retirement-readonly-inspection-swy5ieuf",
+  "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+  "comparisons": [
+    {
+      "path": ".github/morro-control/claims.json",
+      "actualBytes": 5230,
+      "collectorBytes": 5366,
+      "actualSha256": "5c40fb0b3b7cde400aaa5d8f853b2df2bee797d1cc741c0f135351cfe18df8ed",
+      "collectorSha256": "97214bdefb7a3a0cea3d9cc0709285a9ee2356ad51a817c94c349ce5e6d67027",
+      "byteIdentical": false,
+      "actualEnding": "b'xpiresAt\": \"2026-11-02T11:59:00.000Z\"\\n    }\\n  }\\n}\\n'",
+      "collectorEnding": "b'xpiresAt\": \"2026-11-02T11:59:00.000Z\"\\n    }\\n  }\\n}\\n'",
+      "literalFinalSlashNOnly": false
+    },
+    {
+      "path": ".github/morro-control/events.ndjson",
+      "actualBytes": 534490,
+      "collectorBytes": 534490,
+      "actualSha256": "0b21ec1e7b5a998b1334df5e7cd606250c18cb58e1647952534decf142048df4",
+      "collectorSha256": "0b21ec1e7b5a998b1334df5e7cd606250c18cb58e1647952534decf142048df4",
+      "byteIdentical": true,
+      "actualEnding": "b'Model\":\"OWNER_ATTESTED_CLOSED_WRITER_INVENTORY\"}}\\n'",
+      "collectorEnding": "b'Model\":\"OWNER_ATTESTED_CLOSED_WRITER_INVENTORY\"}}\\n'",
+      "literalFinalSlashNOnly": false
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "actualBytes": 2247,
+      "collectorBytes": 2247,
+      "actualSha256": "818c9a58e41c4699e84b1059806d8b7b913819bf760f57bbb252ee86fb817485",
+      "collectorSha256": "818c9a58e41c4699e84b1059806d8b7b913819bf760f57bbb252ee86fb817485",
+      "byteIdentical": true,
+      "actualEnding": "b'dentity\"\\n    ]\\n  },\\n  \"stopAt\": \"REMOTE_PROVEN\"\\n}\\n'",
+      "collectorEnding": "b'dentity\"\\n    ]\\n  },\\n  \"stopAt\": \"REMOTE_PROVEN\"\\n}\\n'",
+      "literalFinalSlashNOnly": false
+    }
+  ],
+  "noSourceOrPreviousEvidenceModified": true,
+  "notAValidationBypass": true
+}

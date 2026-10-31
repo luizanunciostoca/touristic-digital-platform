@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "issues": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/4",
+        "title": "[TERMUX-AGENT] status",
+        "issue_number": 4,
+        "body": "MORRO_NATIVE_AGENT_V3\n\nstate: ONLINE\nbuild: native-v3\nprotocol_version: 2\nagent_instance_id: 8a89a49c9b3a4e73755b0831\nboot_id: 4dd9dc42-f602-4d59-9cf1-027cc7249f10\nheartbeat_utc: 2026-10-31T23:38:41Z\nhost: localhost\narch: aarch64\npid: 10686\npoll_seconds: 30\nrepo: luizanunciostoca/morro-termux-control\ntransport: GitHub Issues\ntargets: termux,debian",
+        "state": null,
+        "user": null,
+        "assignees": null,
+        "labels": null,
+        "milestone": null,
+        "state_reason": null,
+        "comments": null,
+        "created_at": null,
+        "updated_at": null,
+        "closed_at": null,
+        "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/4",
+        "display_title": "[TERMUX-AGENT] status"
+      }
+    ]
+  },
+  "isError": false
+}
+

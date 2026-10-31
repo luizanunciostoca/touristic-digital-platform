@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "kind": "NEW_REPRESENTATION_DISPOSITION_PRESERVING_PRIOR_CONTROLLER_SNAPSHOT",
+  "recordedAt": "2026-10-31T23:48:36.000Z",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "disposition": "ONE_ORIGINAL_MATERIAL_WRITER_WITH_FULLY_DISCLOSED_DISTINCT_HISTORICAL_LIFECYCLE_CHANNEL",
+  "decisionBasis": "Operational inference from canonical claim/task routes and exact recovered metadata, independently reviewed and accepted by controller; not a schema exception.",
+  "materialWriter": {
+    "sessionId": "/root/autoridade_e_codigo",
+    "writerId": "cloud-coverage-authority-worker",
+    "ackPath": "remediation/evidence/coverage-author-stop-reaffirmation-20261031-233449/author-stop-ack.json",
+    "ackSha256": "13ec6bae657bad52342507c0dcf683691c83041053bfb16cba6cdfa7d47b4982",
+    "sameOriginalAuthorReactivatedByFollowup": true,
+    "substituteAuthorCreated": false
+  },
+  "historicalGovernanceAttribution": "Controller and Native lifecycle channel; never attributed to /root/autoridade_e_codigo and never described as mere transport.",
+  "originalAuthorAckNotExpanded": true,
+  "controllerPendingReviewSnapshotPreserved": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-voluntary-preparation-20261031-2336/controller-inventory.json",
+    "sha256": "45797c696f60ce54f8efcbabd5c18136701b330b9989abed54a7f30579ece5a1",
+    "priorDisposition": "PENDING_REVIEW",
+    "modified": false
+  },
+  "independentReview": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native-independent-review.json",
+    "sha256": "47d59be891d529e77be011e0e7fc6d70cfb32fd1e2b6525859ddb37066053d34",
+    "markdown": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native-independent-review.md",
+    "markdownSha256": "2a9067cd19daa1a28835748518c8c8e3959a2ee24555c47d224bf30b2de7c4a0",
+    "reviewer": "/root/runtime_evidencias",
+    "decision": {
+      "classification": "Uma autora original de implementação; canal histórico separado de execução/controladoria de lifecycle, integralmente revelado e preservado.",
+      "basis": "Inferência operacional sustentada pela separação canônica claim/task, pelo builder pós-ACK com actor ORCHESTRATOR e pelas rotas dedicadas de prova de retirement, aplicada aos artefatos concretos. Não é uma exceção nova ao schema nem uma definição lexical universal de writerInventory.",
+      "materialWriter": {
+        "sessionId": "/root/autoridade_e_codigo",
+        "writerId": "cloud-coverage-authority-worker",
+        "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+        "ackSource": {
+          "path": "remediation/evidence/coverage-author-stop-reaffirmation-20261031-233449/author-stop-ack.json",
+          "bytes": 11782,
+          "sha256": "13ec6bae657bad52342507c0dcf683691c83041053bfb16cba6cdfa7d47b4982"
+        }
+      },
+      "historicalControllerChannel": "Controlador /root e execução Native dos jobs documentados; não atribuir esses jobs ou os outputs do retirement à sessão da autora original.",
+      "whyNoAutomaticSecondImplementationWriter": "O conteúdo concreto e78f é a transição de governança singleton produzida pelo lifecycle, preservando o estado/escopo de implementação. A própria rota canônica precisa produzir esses metadados após parada e consentimento; ela não abre uma task nem adquire leases de implementação. Criar um novo escritor de implementação apenas por essa execução confundiria as duas rotas.",
+      "requiredDisclosure": [
+        "3459 é geração de metadados e publicação de blob, não mero transporte.",
+        "3460-3462 importam o candidato congelado e tentam prova/publicação, interrompendo antes do push.",
+        "3463-3466 são diagnósticos/provas históricas; não equivalem a admissão.",
+        "Preservar output completo, bundle, requests/results, snapshots de caches e resultados que falharam, com atribuição real.",
+        "O manifesto material fc089 permanece arquivado na sua identidade original; o candidato e78f é preservado como artefato histórico separado, sem substituir ou renomear esse manifesto."
+      ],
+      "failClosedIf": [
+        "Qualquer alteração de implementação fora dos três metadados, inclusive ownership/impact/workflow/produto.",
+        "Qualquer abertura/migração de task, aquisição de lease material ou alteração de histórico operacional atribuível ao canal e omitida do inventário.",
+        "Divergência semântica entre candidato e saídas do builder além da formatação JSON registrada.",
+        "Comando ou filho material pendente no escopo observado, ou identidade de executor desconhecida tratada como encerrada sem prova."
+      ],
+      "notGranted": [
+        "Completude global de todos os escritores externos.",
+        "Validação ou aprovação do próximo request ainda inexistente.",
+        "Reuso do consentimento ou da janela histórica.",
+        "Autoridade de retomada material, liberação canônica, publicação ou merge."
+      ]
+    }
+  },
+  "historicalCandidate": {
+    "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+    "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+    "parents": [
+      "d979b9813c1ab40b96dee64616b9f7d08a7c0d07"
+    ],
+    "exactChangedPaths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+    ]
+  },
+  "outputIdentity": {
+    "exactBytes": 2,
+    "semanticJsonEquivalentWithFormattingDifference": 1,
+    "formatDifferencePath": ".github/morro-control/claims.json",
+    "initialComparisonFailurePreserved": true
+  },
+  "knownLifecycleJobs": [
+    3459,
+    3460,
+    3461,
+    3462,
+    3463,
+    3464,
+    3465,
+    3466
+  ],
+  "currentInventoryJobs": [
+    3467,
+    3468
+  ],
+  "canonicalSources": [
+    {
+      "path": "tooling/mdctl/mdctl.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 11022,
+      "sha256": "f1f7b2892a3cb93166243bd1147ab391c86081856fcbf8da0f77e4acaf383fd6",
+      "relevantSections": [
+        "220-230: rotas claim e task distintas"
+      ]
+    },
+    {
+      "path": "tooling/mdctl/task-lifecycle.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 31198,
+      "sha256": "ce13a478416d658993515203a4ee857b9d2695b4fc174fadba690d2ce3bb66f5",
+      "relevantSections": [
+        "78-115: início da tarefa adquire leases",
+        "489-505: submissão libera leases e marca SUBMITTED"
+      ]
+    },
+    {
+      "path": "tooling/mdctl/claim-lifecycle.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 23218,
+      "sha256": "2b1253e1fec3ecd505a0f724aec7c1f73bbbcdd82a880b3d8b434ab4381b99ae",
+      "relevantSections": [
+        "248-313: builder e preservação do estado material",
+        "363-381: evento CLAIM_RELEASED por ORCHESTRATOR",
+        "464-501: preparação formata JSON",
+        "696-744: collect/build de retirement após validação",
+        "745-807: identidade, mutação de metadados e autoridade ainda local"
+      ]
+    },
+    {
+      "path": "tooling/fabric/claim-retirement-proof.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 50660,
+      "sha256": "7b0829145f765bfeb98ca47a50633d6834520ef93dd179ce45b3e44fe186d991",
+      "relevantSections": [
+        "156-221: frescor de snapshot/ACK",
+        "235-299: unicidade de paths, backups e executor enumerado",
+        "984-1159: cobertura por backup e recibos duráveis",
+        "1248-1365: comentário e observação recente",
+        "1558-1575: três paths exatos"
+      ]
+    },
+    {
+      "path": "tooling/ci/local-fast-gate.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 18042,
+      "sha256": "21f3f4ced8c470a83b6f272400a22565d3a1f19af5b7be663f0090da2aa3a80a",
+      "relevantSections": [
+        "341-385: rota própria de retirement anterior à resolução de branch de implementação"
+      ]
+    },
+    {
+      "path": "tooling/mdctl/merge-gate.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 31548,
+      "sha256": "2b8f58d453c66af3fc6cdb8bae5d1704cb96110cdea0dae501669dd945093e46",
+      "relevantSections": [
+        "285-325: autoridade e escopo de três metadados",
+        "909-955: retorno da rota dedicada retirement"
+      ]
+    },
+    {
+      "path": "tooling/control-state/retirement-trusted-routing.test.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 1809,
+      "sha256": "4fe8614b2f099d8a88d0a3640aba6789039b8110bd818a1e0105ed8445bdb63a",
+      "relevantSections": [
+        "11-55: contrato estático da separação de provas; não executado nesta revisão"
+      ]
+    }
+  ],
+  "scopeConditions": [
+    "Historical candidate differs from d979 only in the exact retirement trio.",
+    "No product, ownership, impact or workflow implementation change in e78f.",
+    "Material task remains SUBMITTED and its implementation leases RELEASED.",
+    "All historical lifecycle outputs, requests/results, diagnoses, recovered candidate and current bounded inventories are preserved with separate provenance.",
+    "Author ACK is not broadened to controller/Native channels or global completeness."
+  ],
+  "blockIf": [
+    "Any undeclared implementation writer, implementation lease or material task restart appears.",
+    "Any material diff outside the historical retirement trio is found.",
+    "Any pending material command or identity mismatch is found.",
+    "A second implementation writer actually requires overlapping canonical WIP paths; never rename or omit those paths to satisfy uniqueness."
+  ],
+  "currentAuthority": "PREPARATION_ONLY",
+  "ownerPersonalConsentForNewRequest": "NOT_REQUESTED_NOT_PRESENT",
+  "historicalConsent": "Existing comment binds only old request04133; no transfer to new digest/nonce.",
+  "noLifecycleOrReleaseExecuted": true,
+  "noMaterialAuthorityGranted": true
+}

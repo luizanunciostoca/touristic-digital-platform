@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "content": "{\"ref\":\"refs/heads/chore/journey-audit-coverage-admission-20261031\",\"node_id\":\"REF_kwDOT_QyfdoAOnJlZnMvaGVhZHMvY2hvcmUvam91cm5leS1hdWRpdC1jb3ZlcmFnZS1hZG1pc3Npb24tMjAyNjEwMzE\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/chore/journey-audit-coverage-admission-20261031\",\"object\":{\"sha\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/fc089a1fcef27e3c39f3c3d27faf4f69b088436b\"}}",
+    "title": "journey-audit-coverage-admission-20261031",
+    "modified_date": null,
+    "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/chore/journey-audit-coverage-admission-20261031",
+    "display_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/chore/journey-audit-coverage-admission-20261031",
+    "display_title": "journey-audit-coverage-admission-20261031",
+    "structuredContent": {
+      "title": "journey-audit-coverage-admission-20261031",
+      "content": "{\"ref\":\"refs/heads/chore/journey-audit-coverage-admission-20261031\",\"node_id\":\"REF_kwDOT_QyfdoAOnJlZnMvaGVhZHMvY2hvcmUvam91cm5leS1hdWRpdC1jb3ZlcmFnZS1hZG1pc3Npb24tMjAyNjEwMzE\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/chore/journey-audit-coverage-admission-20261031\",\"object\":{\"sha\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/fc089a1fcef27e3c39f3c3d27faf4f69b088436b\"}}",
+      "display_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/chore/journey-audit-coverage-admission-20261031"
+    }
+  },
+  "isError": false
+}
+

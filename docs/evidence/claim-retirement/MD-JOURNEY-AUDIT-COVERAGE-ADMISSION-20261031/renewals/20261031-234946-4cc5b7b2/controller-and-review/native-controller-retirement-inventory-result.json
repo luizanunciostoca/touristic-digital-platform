@@ -1,0 +1,195 @@
+{
+  "metadata": {
+    "id": "inventory-retirement-wip-preserve-20261031-2340",
+    "target": "termux",
+    "started_at": "2026-10-31T23:41:10Z",
+    "ended_at": "2026-10-31T23:41:12Z",
+    "duration_seconds": 2,
+    "exit_code": 0,
+    "request_sha256": "0412e4f732e4386f45581255f3cd3538707d5d0ce1aed623c7992152f10babc7"
+  },
+  "resultCommentId": 6550699704,
+  "inventory": {
+    "kind": "READ_ONLY_PREVIOUS_RETIREMENT_WIP_AND_DESCENDANT_SCOPE_INVENTORY",
+    "startedAt": "2026-10-31T23:41:10.731032+00:00",
+    "observedAt": "2026-10-31T23:41:12.510901+00:00",
+    "candidateHead": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+    "candidateTree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+    "preservedRoots": [
+      {
+        "root": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys",
+        "candidate": {
+          "path": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys/frozen-candidate",
+          "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+          "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+          "branch": "chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd",
+          "status": "",
+          "changedPathsFromBase": [
+            ".github/morro-control/claims.json",
+            ".github/morro-control/events.ndjson",
+            ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+          ]
+        },
+        "topLevelPreservedFiles": [
+          {
+            "name": "candidate.bundle",
+            "bytes": 6771,
+            "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91"
+          }
+        ]
+      },
+      {
+        "root": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr",
+        "candidate": {
+          "path": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate",
+          "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+          "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+          "branch": "chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd",
+          "status": "",
+          "changedPathsFromBase": [
+            ".github/morro-control/claims.json",
+            ".github/morro-control/events.ndjson",
+            ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+          ]
+        },
+        "topLevelPreservedFiles": [
+          {
+            "name": "admission-after-expiry.json",
+            "bytes": 969,
+            "sha256": "ad8f4d83dbbb0bf48365e922c555126a44b7a29b6d5204381c261d3882f6ba11"
+          },
+          {
+            "name": "auth-plan-diagnostic.mjs",
+            "bytes": 646,
+            "sha256": "f734924e4d05f650a680de86ddaa0a95fcbbf3d4d63bdfb2703f5c8596ec1024"
+          },
+          {
+            "name": "auth-proof.mjs",
+            "bytes": 872,
+            "sha256": "2e66ba7cb9663d31fe73a8b0808c03eca7d55ca7bc03ed2e8c66f8e9e9ee7101"
+          },
+          {
+            "name": "auth-runtime-diagnostic.mjs",
+            "bytes": 1094,
+            "sha256": "2999bbe9ec0ce973fd971c3bd01a16bbbc458daf79411a50d6370003ea5c7959"
+          },
+          {
+            "name": "candidate.bundle",
+            "bytes": 6771,
+            "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91"
+          },
+          {
+            "name": "certify.json",
+            "bytes": 600,
+            "sha256": "e1f4c15b1d6ca52745e198b446cdc725ffbeb0c7496d7db91559c44986cf9fec"
+          },
+          {
+            "name": "diagnostic-debian-proot.json",
+            "bytes": 780,
+            "sha256": "b4ba5feb229e6665a55c2195f26ef1218ae9d8baddd71a51cb70dce921f204ab"
+          },
+          {
+            "name": "diagnostic-native.json",
+            "bytes": 522,
+            "sha256": "6b625b1f58134073e53efc5c11b91d35e5871a1e6789170c577dffee167840b0"
+          },
+          {
+            "name": "governance-native-suite.json",
+            "bytes": 8318,
+            "sha256": "080332034c8d0fad5a02d6cd369a2376b1b506963974e7954114ee42f6e2234f"
+          },
+          {
+            "name": "governance-native-suite.log",
+            "bytes": 87248,
+            "sha256": "c1b1614f7093639ceedf6d9a0431922619a65b3e1f388f1450a814bff17bd4e1"
+          },
+          {
+            "name": "isolated-governance-suite.mjs",
+            "bytes": 1217,
+            "sha256": "e80d9fa7188a8ec8beb227c3f3d97e6d9da39b74b55f96b91a2ff31075cb686c"
+          },
+          {
+            "name": "plan-diagnostic.json",
+            "bytes": 1593,
+            "sha256": "a2c58c618ae3d6ddbdcb4cfde612777d3dc16eeea8daa57777d10b480c494116"
+          },
+          {
+            "name": "probe-plan-stages.mjs",
+            "bytes": 721,
+            "sha256": "691f6ced6a541f43d4f1c34b414c4a153c7767cfcec780eb9efb8e70adc6034d"
+          },
+          {
+            "name": "runtime-readiness-and-admission.mjs",
+            "bytes": 1286,
+            "sha256": "aa63d32637a22a92b0785c17a9db371fa2027f123e704e3671d944f8bd6434b7"
+          },
+          {
+            "name": "runtime-readiness.json",
+            "bytes": 201,
+            "sha256": "7c58b62b124f1c5e6058b3546126c56a7ecd36a5704f712b27ec26475cf67589"
+          }
+        ]
+      },
+      {
+        "root": "/data/data/com.termux/files/home/.cache/tdp-retirement-collector-l0o6i3w9",
+        "candidate": null,
+        "topLevelPreservedFiles": [
+          {
+            "name": "blob-request.json",
+            "bytes": 825109,
+            "sha256": "32b351aa5052f79dd047641516a60482a25faafe964a919a72266702f737502b"
+          },
+          {
+            "name": "collector.mjs",
+            "bytes": 2219,
+            "sha256": "4b6243e2174199d0185dfc79059e97fc6f0c5028af26ab3a06d7372d4d659053"
+          },
+          {
+            "name": "generated-output.json",
+            "bytes": 618804,
+            "sha256": "9f11cbd6a18ce81dea50f72f2ee5fc3b02d07cbebe25b86c394ee9baddbda7cd"
+          },
+          {
+            "name": "request.json",
+            "bytes": 24079,
+            "sha256": "45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee"
+          }
+        ]
+      }
+    ],
+    "processScope": {
+      "scanned": 22,
+      "unreadableCwd": 0,
+      "unreadableCmdline": 0,
+      "probeAndAncestorsExcluded": [
+        1,
+        10686,
+        30401,
+        30402,
+        30404
+      ],
+      "matchingProcesses": []
+    },
+    "oldRetirementRemoteRef": {
+      "exitCode": 1,
+      "response": {
+        "message": "Not Found",
+        "documentation_url": "https://docs.github.com/rest/git/refs#get-a-reference",
+        "status": "404"
+      }
+    },
+    "bundle": {
+      "blob": "14af4c32b87cd56565fbf12a9d7c89f516c9ff9b",
+      "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91",
+      "bytes": 6771,
+      "base64Transport": "stderr_JSON_envelope_only"
+    },
+    "mutationsExecuted": [],
+    "limits": [
+      "Read-only observable roots, cwd and exact markers; not global absence of all external writers.",
+      "Historical test outputs do not certify this new request and are not rerun.",
+      "No cleanup, candidate edit, task, claim, branch, collector or release command executed."
+    ]
+  }
+}
+

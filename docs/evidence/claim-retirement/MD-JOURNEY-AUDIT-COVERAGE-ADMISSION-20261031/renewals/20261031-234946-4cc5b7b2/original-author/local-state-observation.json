@@ -1,0 +1,256 @@
+{
+  "observedAt": "2026-10-31T23:34:49.933149+00:00",
+  "workspace": "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+  "head": {
+    "exit_code": 0,
+    "stdout": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b\n",
+    "stderr": ""
+  },
+  "tree": {
+    "exit_code": 0,
+    "stdout": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04\n",
+    "stderr": ""
+  },
+  "branch": {
+    "exit_code": 0,
+    "stdout": "chore/journey-audit-coverage-admission-20261031\n",
+    "stderr": ""
+  },
+  "status": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "worktrees": {
+    "exit_code": 0,
+    "stdout": "worktree /workspace/scratch/f024a80a7385/tdp-coverage-admission\nHEAD fc089a1fcef27e3c39f3c3d27faf4f69b088436b\nbranch refs/heads/chore/journey-audit-coverage-admission-20261031\n\n",
+    "stderr": ""
+  },
+  "history": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "bytes": 2106,
+      "data": {
+        "schemaVersion": 1,
+        "kind": "TDP_TASK_STATE",
+        "taskId": "task-MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+        "owner": "CHATGPT-PRO-CONTROL",
+        "branch": "chore/journey-audit-coverage-admission-20261031",
+        "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+        "state": "SUBMITTED",
+        "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+        "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+        "contextPackDigest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5",
+        "leaseIds": [
+          "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+          "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+          "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270"
+        ],
+        "startedAt": "2026-10-31T17:17:37.630Z",
+        "testedAt": "2026-10-31T17:19:20.140Z",
+        "submittedAt": "2026-10-31T17:29:03.392Z",
+        "localProof": {
+          "schemaVersion": 1,
+          "kind": "TDP_TASK_LOCAL_PROOF",
+          "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+          "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+          "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+          "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+          "contextPackDigest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5",
+          "commandEvidence": [
+            {
+              "id": "exact-coverage-and-sensitive-boundaries",
+              "status": "PASS",
+              "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+              "timeoutSeconds": 300,
+              "outputDigest": "sha256:6a589c7c3921940994cfb3ad38135b1292a17ebbec5b019defcc757938106757"
+            }
+          ],
+          "requiredRemoteEvidence": [
+            "automated-independent-proof",
+            "exact-head-identity"
+          ],
+          "completedAt": "2026-10-31T17:19:20.140Z",
+          "digest": "sha256:fdcba672bda396fd9279ceb6907c86ff0cd996f8972af86054961d292388a170"
+        },
+        "handoffDigest": "sha256:5bdff5060537f9c35df8588981d79eee3304d70df6caef0e5d52dac73b4cebb7"
+      }
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "bytes": 1927,
+      "data": {
+        "schemaVersion": 1,
+        "kind": "TDP_CONTEXT_PACK",
+        "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+        "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+        "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+        "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+        "branch": "chore/journey-audit-coverage-admission-20261031",
+        "scope": "PLATFORM",
+        "owner": "CHATGPT-PRO-CONTROL",
+        "ownership": {
+          "paths": [
+            ".morro/ownership.json",
+            "tooling/ci/test-impact-manifest.json",
+            "tooling/ci/journey-audit-admission.test.mjs",
+            ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+            ".github/workflows/auth-login-browser-contract.yml"
+          ],
+          "contracts": []
+        },
+        "contracts": {
+          "reads": [
+            "TDP-CONTROL-PLANE-V3.2",
+            "platform-authz",
+            "ticket-fulfillment"
+          ],
+          "owns": []
+        },
+        "dependencies": [],
+        "proofPlan": {
+          "commandIds": [
+            "exact-coverage-and-sensitive-boundaries"
+          ],
+          "requiredEvidence": [
+            "format",
+            "secrets",
+            "lint",
+            "typecheck",
+            "affected-tests",
+            "build",
+            "integration",
+            "automated-independent-proof",
+            "exact-head-identity",
+            "owner-scope-resolution",
+            "full-quality",
+            "domain-invariants",
+            "exact-head-release-gates"
+          ],
+          "requiredRemoteEvidence": [
+            "automated-independent-proof",
+            "exact-head-identity"
+          ],
+          "budget": {
+            "maxCommands": 2,
+            "maxSeconds": 600
+          }
+        },
+        "capabilityLeaseIds": [
+          "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+          "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+          "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270"
+        ],
+        "generatedAt": "2026-10-31T17:19:20.140Z",
+        "digest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5"
+      }
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "bytes": 997,
+      "data": {
+        "schemaVersion": 1,
+        "kind": "TDP_TASK_HANDOFF",
+        "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "changeSetDigest": "sha256:6da67c807161f6f0b9571e612886f50383ddf7dfacc9dd9077e61772bb49af68",
+        "owner": "CHATGPT-PRO-CONTROL",
+        "branch": "chore/journey-audit-coverage-admission-20261031",
+        "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+        "candidateSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+        "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+        "contextPackDigest": "sha256:a45a873411e6b8b841b10208e5b3c16ba6cb0816eaed6a9b870d856122e720a5",
+        "localProofDigest": "sha256:fdcba672bda396fd9279ceb6907c86ff0cd996f8972af86054961d292388a170",
+        "requiredRemoteEvidence": [
+          "automated-independent-proof",
+          "exact-head-identity"
+        ],
+        "nextState": "REMOTE_PROVEN",
+        "authority": "WORKER_SUBMISSION_NOT_REMOTE_PROOF",
+        "generatedAt": "2026-10-31T17:29:03.392Z",
+        "digest": "sha256:5bdff5060537f9c35df8588981d79eee3304d70df6caef0e5d52dac73b4cebb7"
+      }
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/capability-leases.json",
+      "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "bytes": 1546,
+      "data": {
+        "schemaVersion": 1,
+        "authority": "TASK_LOCAL_PROJECTION",
+        "leases": {
+          "lease-1decc02c-8ee7-45c5-abfb-681623d49f33": {
+            "leaseId": "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+            "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+            "owner": "CHATGPT-PRO-CONTROL",
+            "capability": "github:read",
+            "scope": "PLATFORM",
+            "branch": "chore/journey-audit-coverage-admission-20261031",
+            "issuedAt": "2026-10-31T17:17:37.630Z",
+            "expiresAt": "2026-10-31T19:17:37.630Z",
+            "state": "RELEASED"
+          },
+          "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b": {
+            "leaseId": "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+            "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+            "owner": "CHATGPT-PRO-CONTROL",
+            "capability": "workspace:write:claimed-paths",
+            "scope": "PLATFORM",
+            "branch": "chore/journey-audit-coverage-admission-20261031",
+            "issuedAt": "2026-10-31T17:17:37.630Z",
+            "expiresAt": "2026-10-31T19:17:37.630Z",
+            "state": "RELEASED"
+          },
+          "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270": {
+            "leaseId": "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270",
+            "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+            "owner": "CHATGPT-PRO-CONTROL",
+            "capability": "evidence:write:task-local",
+            "scope": "PLATFORM",
+            "branch": "chore/journey-audit-coverage-admission-20261031",
+            "issuedAt": "2026-10-31T17:17:37.630Z",
+            "expiresAt": "2026-10-31T19:17:37.630Z",
+            "state": "RELEASED"
+          }
+        }
+      }
+    }
+  ],
+  "processCensus": {
+    "roots": [
+      "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+      "/tmp/tdp-coverage-impact-correction-git-fc089a1f"
+    ],
+    "matchingVisibleProcesses": [],
+    "unreadableProcessCount": 10,
+    "examinedNonInspectorProcesses": 13,
+    "inspectorAndAncestorsExcluded": true,
+    "commandArgumentsOrEnvironmentCollected": false,
+    "limitation": "Only visible local PID/comm/cwd under the two specified workspaces; no global process or external channel attestation."
+  },
+  "requestClock": "2026-10-31 23:34:49 UTC",
+  "childInventory": {
+    "tool": "collaboration.list_agents",
+    "pathPrefix": "/root/autoridade_e_codigo",
+    "returnedAgents": [
+      {
+        "agent_name": "/root/autoridade_e_codigo",
+        "agent_status": "running"
+      }
+    ],
+    "ownChildAgents": []
+  },
+  "ownToolState": {
+    "pendingMaterialWriteCommands": [],
+    "pendingChildAgents": [],
+    "knownYieldedExecCells": [],
+    "knownRunningExecCommandSessions": [],
+    "basis": "All exec/exec_command calls issued by this agent have returned completion; no background session or child task was started or remains pending by this author.",
+    "scope": "Only this original author session; no enumeration or attestation of all root, Native or external tool channels."
+  }
+}

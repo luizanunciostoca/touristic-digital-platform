@@ -1,0 +1,152 @@
+{
+  "kind": "HISTORICAL_NATIVE_REQUEST_PREFLIGHT_RESULT_BINDINGS",
+  "jobs": [
+    {
+      "issue": 3459,
+      "title": "[TERMUX-JOB] Collect approved coverage retirement and canonical metadata outputs",
+      "requestSha256": "aee0fa97f597b04daeb2e5e039d891677441ef1cc08f7c87a29aea65a9fcd034",
+      "preflightCommentId": 6550299014,
+      "resultCommentId": 6550314230,
+      "result": {
+        "id": "coverage-retirement-collect-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:01:17Z",
+        "ended_at": "2026-10-31T23:01:53Z",
+        "duration_seconds": 36,
+        "exit_code": 0,
+        "request_sha256": "aee0fa97f597b04daeb2e5e039d891677441ef1cc08f7c87a29aea65a9fcd034"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:01:55Z"
+    },
+    {
+      "issue": 3460,
+      "title": "[TERMUX-JOB] Certify frozen owner-approved coverage retirement and publish exact candidate",
+      "requestSha256": "8b4909847ddd0b396b88640d7f1768b245cf0e674a303063fe0e0540eae55568",
+      "preflightCommentId": 6550341226,
+      "resultCommentId": 6550351668,
+      "result": {
+        "id": "coverage-retirement-proof-publish-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:05:17Z",
+        "ended_at": "2026-10-31T23:05:26Z",
+        "duration_seconds": 9,
+        "exit_code": 1,
+        "request_sha256": "8b4909847ddd0b396b88640d7f1768b245cf0e674a303063fe0e0540eae55568"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:05:29Z"
+    },
+    {
+      "issue": 3461,
+      "title": "[TERMUX-JOB] Prove frozen retirement with Debian dependency resolution and publish",
+      "requestSha256": "f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d",
+      "preflightCommentId": 6550361493,
+      "resultCommentId": 6550365994,
+      "result": {
+        "id": "coverage-retirement-proof-debian-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:06:30Z",
+        "ended_at": "2026-10-31T23:06:50Z",
+        "duration_seconds": 20,
+        "exit_code": 1,
+        "request_sha256": "f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:06:52Z"
+    },
+    {
+      "issue": 3462,
+      "title": "[TERMUX-JOB] Complete pinned proof dependencies and certify exact approved retirement",
+      "requestSha256": "4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492",
+      "preflightCommentId": 6550373645,
+      "resultCommentId": 6550432626,
+      "result": {
+        "id": "coverage-retirement-complete-proof-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:07:51Z",
+        "ended_at": "2026-10-31T23:13:11Z",
+        "duration_seconds": 320,
+        "exit_code": 125,
+        "request_sha256": "4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:13:17Z"
+    },
+    {
+      "issue": 3463,
+      "title": "[TERMUX-JOB] Diagnose frozen coverage retirement proof runtime",
+      "requestSha256": "a4c2b23eaea866003718218471218ab20d0bcba6974fdb632711f498c6c9dce8",
+      "preflightCommentId": 6550463040,
+      "resultCommentId": 6550467913,
+      "result": {
+        "id": "coverage-retirement-auth-diagnosis-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:16:31Z",
+        "ended_at": "2026-10-31T23:16:40Z",
+        "duration_seconds": 9,
+        "exit_code": 0,
+        "request_sha256": "a4c2b23eaea866003718218471218ab20d0bcba6974fdb632711f498c6c9dce8"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:16:41Z"
+    },
+    {
+      "issue": 3464,
+      "title": "[TERMUX-JOB] Isolate exact retirement plan and Git connectivity",
+      "requestSha256": "9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384",
+      "preflightCommentId": 6550481873,
+      "resultCommentId": 6550485982,
+      "result": {
+        "id": "coverage-retirement-plan-diagnosis-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:18:18Z",
+        "ended_at": "2026-10-31T23:18:30Z",
+        "duration_seconds": 12,
+        "exit_code": 0,
+        "request_sha256": "9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:18:31Z"
+    },
+    {
+      "issue": 3465,
+      "title": "[TERMUX-JOB] Verify pinned runtime and observe canonical admission block",
+      "requestSha256": "d2537b167cf69ad057f4ce0b4a444262c65f8d98c13ccf05b5d9005e3313d413",
+      "preflightCommentId": 6550498894,
+      "resultCommentId": 6550504773,
+      "result": {
+        "id": "coverage-retirement-readiness-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:20:08Z",
+        "ended_at": "2026-10-31T23:20:23Z",
+        "duration_seconds": 15,
+        "exit_code": 2,
+        "request_sha256": "d2537b167cf69ad057f4ce0b4a444262c65f8d98c13ccf05b5d9005e3313d413"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:20:24Z"
+    },
+    {
+      "issue": 3466,
+      "title": "[TERMUX-JOB] Diagnose exact governance suite on pinned Debian runtime",
+      "requestSha256": "c2447d9d4f820c49883f4889fe37861dfa0b2e6bde0aea36377d94a592aa11e2",
+      "preflightCommentId": 6550515048,
+      "resultCommentId": 6550583141,
+      "result": {
+        "id": "coverage-retirement-isolated-suite-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:22:00Z",
+        "ended_at": "2026-10-31T23:28:31Z",
+        "duration_seconds": 391,
+        "exit_code": 0,
+        "request_sha256": "c2447d9d4f820c49883f4889fe37861dfa0b2e6bde0aea36377d94a592aa11e2"
+      },
+      "state": "closed",
+      "closedAt": "2026-10-31T23:28:33Z"
+    }
+  ],
+  "verified": 8,
+  "failed": 0,
+  "currentAuthorityGranted": false
+}

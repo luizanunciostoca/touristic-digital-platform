@@ -1,0 +1,743 @@
+{
+  "schemaVersion": 1,
+  "kind": "INDEPENDENT_HISTORICAL_NATIVE_AND_LIFECYCLE_SCOPE_REVIEW",
+  "reviewer": "/root/runtime_evidencias",
+  "recordedAt": "2026-10-31T23:47:29.352087+00:00",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "canonicalBaseSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "status": "SUPPORTED_HISTORICAL_CONTROL_PLANE_CLASSIFICATION_NOT_NEW_REQUEST_ADMISSION",
+  "scope": {
+    "readOnlyForProductAndPriorEvidence": true,
+    "newFilesAreExternalReviewOnly": true,
+    "testsExecuted": false,
+    "collectorExecuted": false,
+    "releaseExecuted": false,
+    "approvalRequestedOrPosted": false,
+    "newRequestOrNonceCreated": false,
+    "newPackageAssembled": false
+  },
+  "decision": {
+    "classification": "Uma autora original de implementação; canal histórico separado de execução/controladoria de lifecycle, integralmente revelado e preservado.",
+    "basis": "Inferência operacional sustentada pela separação canônica claim/task, pelo builder pós-ACK com actor ORCHESTRATOR e pelas rotas dedicadas de prova de retirement, aplicada aos artefatos concretos. Não é uma exceção nova ao schema nem uma definição lexical universal de writerInventory.",
+    "materialWriter": {
+      "sessionId": "/root/autoridade_e_codigo",
+      "writerId": "cloud-coverage-authority-worker",
+      "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+      "ackSource": {
+        "path": "remediation/evidence/coverage-author-stop-reaffirmation-20261031-233449/author-stop-ack.json",
+        "bytes": 11782,
+        "sha256": "13ec6bae657bad52342507c0dcf683691c83041053bfb16cba6cdfa7d47b4982"
+      }
+    },
+    "historicalControllerChannel": "Controlador /root e execução Native dos jobs documentados; não atribuir esses jobs ou os outputs do retirement à sessão da autora original.",
+    "whyNoAutomaticSecondImplementationWriter": "O conteúdo concreto e78f é a transição de governança singleton produzida pelo lifecycle, preservando o estado/escopo de implementação. A própria rota canônica precisa produzir esses metadados após parada e consentimento; ela não abre uma task nem adquire leases de implementação. Criar um novo escritor de implementação apenas por essa execução confundiria as duas rotas.",
+    "requiredDisclosure": [
+      "3459 é geração de metadados e publicação de blob, não mero transporte.",
+      "3460-3462 importam o candidato congelado e tentam prova/publicação, interrompendo antes do push.",
+      "3463-3466 são diagnósticos/provas históricas; não equivalem a admissão.",
+      "Preservar output completo, bundle, requests/results, snapshots de caches e resultados que falharam, com atribuição real.",
+      "O manifesto material fc089 permanece arquivado na sua identidade original; o candidato e78f é preservado como artefato histórico separado, sem substituir ou renomear esse manifesto."
+    ],
+    "failClosedIf": [
+      "Qualquer alteração de implementação fora dos três metadados, inclusive ownership/impact/workflow/produto.",
+      "Qualquer abertura/migração de task, aquisição de lease material ou alteração de histórico operacional atribuível ao canal e omitida do inventário.",
+      "Divergência semântica entre candidato e saídas do builder além da formatação JSON registrada.",
+      "Comando ou filho material pendente no escopo observado, ou identidade de executor desconhecida tratada como encerrada sem prova."
+    ],
+    "notGranted": [
+      "Completude global de todos os escritores externos.",
+      "Validação ou aprovação do próximo request ainda inexistente.",
+      "Reuso do consentimento ou da janela histórica.",
+      "Autoridade de retomada material, liberação canônica, publicação ou merge."
+    ]
+  },
+  "jobs": [
+    {
+      "issue": 3459,
+      "requestId": "coverage-retirement-collect-20261031-cf947",
+      "requestCanonicalSha256": "aee0fa97f597b04daeb2e5e039d891677441ef1cc08f7c87a29aea65a9fcd034",
+      "requestBodySha256": "caa4f690c5e85396847f85ec27e7d669bcecfbd6acd8724e2390f8c735e602b4",
+      "commandSha256": "702afe6848fb31e67b12a8dc22d9405a6842c5c145bf1ef2ba8d81ce3a197dbc",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550314230,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3459#issuecomment-6550314230",
+      "metadata": {
+        "id": "coverage-retirement-collect-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:01:17Z",
+        "ended_at": "2026-10-31T23:01:53Z",
+        "duration_seconds": 36,
+        "exit_code": 0,
+        "request_sha256": "aee0fa97f597b04daeb2e5e039d891677441ef1cc08f7c87a29aea65a9fcd034"
+      },
+      "classification": "COLETA_E_CONSTRUCAO_DE_LIFECYCLE",
+      "conclusion": "Coletou evidência e construiu saídas de três metadados; gravou JSON externo e publicou Git blob. Não foi mero transporte. O resultado não integra a transição em main.",
+      "historicalOnly": true
+    },
+    {
+      "issue": 3460,
+      "requestId": "coverage-retirement-proof-publish-20261031-cf947",
+      "requestCanonicalSha256": "8b4909847ddd0b396b88640d7f1768b245cf0e674a303063fe0e0540eae55568",
+      "requestBodySha256": "3e8fdf6fefd54506e809154bf8d8444d2aa3cd371e6a20f8b5952e8cc79717b3",
+      "commandSha256": "179c862501c8709a0c62b22fb45f565b5f1cf76dd7e76697519ce4f39f87755e",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550351668,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3460#issuecomment-6550351668",
+      "metadata": {
+        "id": "coverage-retirement-proof-publish-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:05:17Z",
+        "ended_at": "2026-10-31T23:05:26Z",
+        "duration_seconds": 9,
+        "exit_code": 1,
+        "request_sha256": "8b4909847ddd0b396b88640d7f1768b245cf0e674a303063fe0e0540eae55568"
+      },
+      "classification": "DEPENDENCIAS_INDISPONIVEIS",
+      "conclusion": "Importou candidato congelado em clone de prova; READ_ONLY_DEPENDENCIES_UNAVAILABLE interrompeu antes de admission/certify e do trecho de push.",
+      "historicalOnly": true
+    },
+    {
+      "issue": 3461,
+      "requestId": "coverage-retirement-proof-debian-20261031-cf947",
+      "requestCanonicalSha256": "f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d",
+      "requestBodySha256": "f103ff5d67ad2fc4b46a014041c008aa17c0cc111717bda51fc5a45e3ca1acfc",
+      "commandSha256": "e4680c1b83944dd64a9ebdebb8f690afd4b34972d221d0938e3219f5ee0da68d",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550365994,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3461#issuecomment-6550365994",
+      "metadata": {
+        "id": "coverage-retirement-proof-debian-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:06:30Z",
+        "ended_at": "2026-10-31T23:06:50Z",
+        "duration_seconds": 20,
+        "exit_code": 1,
+        "request_sha256": "f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d"
+      },
+      "classification": "INSTALACAO_OFFLINE_INCOMPLETA",
+      "conclusion": "Clone de prova e instalação offline; ERR_PNPM_NO_OFFLINE_TARBALL interrompeu antes da prova e do trecho de push.",
+      "historicalOnly": true
+    },
+    {
+      "issue": 3462,
+      "requestId": "coverage-retirement-complete-proof-20261031-cf947",
+      "requestCanonicalSha256": "4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492",
+      "requestBodySha256": "8472c743a3559bd2d0b61377713cd0e5cb6cb54af875ac1cc977f5b76b5b1da6",
+      "commandSha256": "53585bac47cb479c7bf513fd0b2cff9230be4c54b498f23e3461f29facb15107",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550432626,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3462#issuecomment-6550432626",
+      "metadata": {
+        "id": "coverage-retirement-complete-proof-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:07:51Z",
+        "ended_at": "2026-10-31T23:13:11Z",
+        "duration_seconds": 320,
+        "exit_code": 125,
+        "request_sha256": "4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492"
+      },
+      "classification": "CERTIFY_SEM_RESULTADO_APROVADO",
+      "conclusion": "Dependências concluídas; chamada --certify terminou exit125 AUTH_EXEC_RUNTIME_FAILED. Não houve aprovação de admission/certify; fluxo não chegou ao push.",
+      "historicalOnly": true
+    },
+    {
+      "issue": 3463,
+      "requestId": "coverage-retirement-auth-diagnosis-20261031-cf947",
+      "requestCanonicalSha256": "a4c2b23eaea866003718218471218ab20d0bcba6974fdb632711f498c6c9dce8",
+      "requestBodySha256": "0c3859254e14a76bad977a27b0d5bdcbe171420f6baf386f5227262a3f92ba07",
+      "commandSha256": "e5b60ad7d79ec78794060747c79290648c897ed802d6e1b63bd348e61736564f",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550467913,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3463#issuecomment-6550467913",
+      "metadata": {
+        "id": "coverage-retirement-auth-diagnosis-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:16:31Z",
+        "ended_at": "2026-10-31T23:16:40Z",
+        "duration_seconds": 9,
+        "exit_code": 0,
+        "request_sha256": "a4c2b23eaea866003718218471218ab20d0bcba6974fdb632711f498c6c9dce8"
+      },
+      "classification": "DIAGNOSTICO_DE_RUNTIME",
+      "conclusion": "Probes Native e Debian retornaram zero; a execução só demonstra runtime autenticado naquele diagnóstico. Readback declarou candidato limpo.",
+      "historicalOnly": true
+    },
+    {
+      "issue": 3464,
+      "requestId": "coverage-retirement-plan-diagnosis-20261031-cf947",
+      "requestCanonicalSha256": "9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384",
+      "requestBodySha256": "fdae0092d7cbc889d0716872ec303021cce7679fd68918f8afbc0ba3a224bdf7",
+      "commandSha256": "cdf6f3331aa115c0906f4c7101e7c0a80d1d2c2c91c07a700dd84292b4c1537a",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550485982,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3464#issuecomment-6550485982",
+      "metadata": {
+        "id": "coverage-retirement-plan-diagnosis-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:18:18Z",
+        "ended_at": "2026-10-31T23:18:30Z",
+        "duration_seconds": 12,
+        "exit_code": 0,
+        "request_sha256": "9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384"
+      },
+      "classification": "PLANO_DE_GOVERNANCA",
+      "conclusion": "ls-remote e --plan retornaram zero; plano identificou os três paths, governance/HIGH/NON_RUNTIME. Planejamento não equivale a admissão.",
+      "historicalOnly": true
+    },
+    {
+      "issue": 3465,
+      "requestId": "coverage-retirement-readiness-20261031-cf947",
+      "requestCanonicalSha256": "d2537b167cf69ad057f4ce0b4a444262c65f8d98c13ccf05b5d9005e3313d413",
+      "requestBodySha256": "4326ed78210ef2de5beafcbea040a7fd9cc26f90dc028ad5926b220f17091134",
+      "commandSha256": "3b59b4fcc19438f8449a6d330373c0c875087556e8222dbec28cdb9565220f51",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550504773,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3465#issuecomment-6550504773",
+      "metadata": {
+        "id": "coverage-retirement-readiness-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:20:08Z",
+        "ended_at": "2026-10-31T23:20:23Z",
+        "duration_seconds": 15,
+        "exit_code": 2,
+        "request_sha256": "d2537b167cf69ad057f4ce0b4a444262c65f8d98c13ccf05b5d9005e3313d413"
+      },
+      "classification": "ADMISSAO_RECUSADA",
+      "conclusion": "Readiness do runtime passou; admissão terminou exit2 VOLUNTARY_CONSENT_TIME_INVALID. A janela pessoal de 30 minutos havia expirado.",
+      "historicalOnly": true
+    },
+    {
+      "issue": 3466,
+      "requestId": "coverage-retirement-isolated-suite-20261031-cf947",
+      "requestCanonicalSha256": "c2447d9d4f820c49883f4889fe37861dfa0b2e6bde0aea36377d94a592aa11e2",
+      "requestBodySha256": "3ab1cbccae0cd1b86f9a05b677e7f671702658d65e82d672f5616e8c0a0c9e62",
+      "commandSha256": "b015c04ab39662d61f2e3ffa816d2e2b767700e9d66ffa9de334d89b6ffe3d6f",
+      "requestHashMatchesPreflight": true,
+      "requestHashMatchesResult": true,
+      "issueStateAtReadback": "closed",
+      "capturedCommentCount": 3,
+      "reportedCommentCount": 3,
+      "commentCountMatches": true,
+      "resultCommentId": 6550583141,
+      "resultUrl": "https://github.com/luizanunciostoca/morro-termux-control/issues/3466#issuecomment-6550583141",
+      "metadata": {
+        "id": "coverage-retirement-isolated-suite-20261031-cf947",
+        "target": "termux",
+        "started_at": "2026-10-31T23:22:00Z",
+        "ended_at": "2026-10-31T23:28:31Z",
+        "duration_seconds": 391,
+        "exit_code": 0,
+        "request_sha256": "c2447d9d4f820c49883f4889fe37861dfa0b2e6bde0aea36377d94a592aa11e2"
+      },
+      "classification": "SUITE_ISOLADA",
+      "conclusion": "Execução isolada dos testes governance informou 432 PASS, zero FAIL; não executou admission/certify completos e não publicou a branch. Readback declarou candidato limpo.",
+      "historicalOnly": true
+    }
+  ],
+  "collector": {
+    "source": {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/historical-collector-output.json",
+      "bytes": 618804,
+      "sha256": "9f11cbd6a18ce81dea50f72f2ee5fc3b02d07cbebe25b86c394ee9baddbda7cd"
+    },
+    "gitBlobSha": "296c6be7388fa144310d1755cf94fd3a8755da82",
+    "observedAt": "2026-10-31T23:01:51.275Z",
+    "requestDigest": "04133e7876940a9ad616176f70b0e7d02c349ee45be926d4b20e25fa955e9a2e",
+    "requestEqualsPreservedOldRequest": true,
+    "ownerDecision": {
+      "commentId": 6550135699,
+      "ownerId": 318748875,
+      "ownerLogin": "luizanunciostoca",
+      "createdAt": "2026-10-31T22:44:06.000Z",
+      "updatedAt": "2026-10-31T22:44:06.000Z",
+      "bodySha256": "cc738de3b6139a9570500616f1e1483631fdfee06a763731d932af9ac85f9a63",
+      "anchorAcquisitionPr": 1336
+    },
+    "outputs": [
+      {
+        "path": ".github/morro-control/claims.json",
+        "bytes": 5366,
+        "sha256": "97214bdefb7a3a0cea3d9cc0709285a9ee2356ad51a817c94c349ce5e6d67027",
+        "gitBlobSha": "323ac1e92e11788d5887eedac8ac1052f5bde17c"
+      },
+      {
+        "path": ".github/morro-control/events.ndjson",
+        "bytes": 534490,
+        "sha256": "0b21ec1e7b5a998b1334df5e7cd606250c18cb58e1647952534decf142048df4",
+        "gitBlobSha": "876719d3ad943bed55c135506839137975e588ca"
+      },
+      {
+        "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+        "bytes": 2247,
+        "sha256": "818c9a58e41c4699e84b1059806d8b7b913819bf760f57bbb252ee86fb817485",
+        "gitBlobSha": "bb4677ee6fbf0118de145e0c9015464c277593bd"
+      }
+    ],
+    "notCanonicalIntegration": true
+  },
+  "candidate": {
+    "inspectionSource": {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/candidate-exact-output-inspection.json",
+      "bytes": 7731,
+      "sha256": "6e56140be8ea7703f17adf67c2783284bcdb7aadd5d61e0ea954c17835adc9a9"
+    },
+    "candidate": {
+      "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+      "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+      "parents": [
+        "d979b9813c1ab40b96dee64616b9f7d08a7c0d07"
+      ],
+      "exactChangedPaths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+      ]
+    },
+    "outputComparison": [
+      {
+        "path": ".github/morro-control/claims.json",
+        "blobSha": "138fc84d7da226b3cf470a270899dc4e0d67dd53",
+        "candidateSha256": "5c40fb0b3b7cde400aaa5d8f853b2df2bee797d1cc741c0f135351cfe18df8ed",
+        "candidateBytes": 5230,
+        "collectorSha256": "97214bdefb7a3a0cea3d9cc0709285a9ee2356ad51a817c94c349ce5e6d67027",
+        "collectorBytes": 5366,
+        "byteIdentical": false,
+        "semanticIdentity": true,
+        "difference": "JSON formatting only; canonical object comparison identical"
+      },
+      {
+        "path": ".github/morro-control/events.ndjson",
+        "blobSha": "876719d3ad943bed55c135506839137975e588ca",
+        "candidateSha256": "0b21ec1e7b5a998b1334df5e7cd606250c18cb58e1647952534decf142048df4",
+        "candidateBytes": 534490,
+        "collectorSha256": "0b21ec1e7b5a998b1334df5e7cd606250c18cb58e1647952534decf142048df4",
+        "collectorBytes": 534490,
+        "byteIdentical": true,
+        "semanticIdentity": true,
+        "difference": "none"
+      },
+      {
+        "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+        "blobSha": "bb4677ee6fbf0118de145e0c9015464c277593bd",
+        "candidateSha256": "818c9a58e41c4699e84b1059806d8b7b913819bf760f57bbb252ee86fb817485",
+        "candidateBytes": 2247,
+        "collectorSha256": "818c9a58e41c4699e84b1059806d8b7b913819bf760f57bbb252ee86fb817485",
+        "collectorBytes": 2247,
+        "byteIdentical": true,
+        "semanticIdentity": true,
+        "difference": "none"
+      }
+    ],
+    "semanticDelta": {
+      "removedRegistryClaimOnly": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+      "ledgerPrefixUnchanged": true,
+      "appendedEvent": {
+        "eventType": "CLAIM_RELEASED",
+        "entity": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "observedAt": "2026-10-31T23:01:51.275Z",
+        "actor": "ORCHESTRATOR"
+      },
+      "manifestChangedKeys": [
+        "baseSha",
+        "branch"
+      ],
+      "materialStateUnchanged": true,
+      "noProductOwnershipImpactOrWorkflowChange": true
+    },
+    "identityStatement": "2/3 arquivos byte-idênticos; claims.json tem bytes distintos e JSON semanticamente idêntico. Não declarar 3/3 byte-idênticos.",
+    "formattingConsistentWithCanonicalPreparation": "prepareClaimLifecycleMutation formata os JSONs de registro/manifesto após a escrita. Isso explica a compatibilidade de formatação, sem provar qual comando específico formatou o artefato histórico.",
+    "initialFailedByteEqualityObservationPreserved": true,
+    "bundle": {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/historical-retirement-candidate.bundle",
+      "bytes": 6771,
+      "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91"
+    },
+    "bundleExpectedSha256Matches": true,
+    "bundleExpectedBytesMatch": true
+  },
+  "native3468": {
+    "requestCanonicalSha256": "0412e4f732e4386f45581255f3cd3538707d5d0ce1aed623c7992152f10babc7",
+    "matchesResult": true,
+    "metadata": {
+      "id": "inventory-retirement-wip-preserve-20261031-2340",
+      "target": "termux",
+      "started_at": "2026-10-31T23:41:10Z",
+      "ended_at": "2026-10-31T23:41:12Z",
+      "duration_seconds": 2,
+      "exit_code": 0,
+      "request_sha256": "0412e4f732e4386f45581255f3cd3538707d5d0ce1aed623c7992152f10babc7"
+    },
+    "resultCommentId": 6550699704,
+    "observedAt": "2026-10-31T23:41:12.510901+00:00",
+    "preservedRootCount": 3,
+    "candidateClones": [
+      {
+        "path": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys/frozen-candidate",
+        "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+        "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+        "branch": "chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd",
+        "status": "",
+        "changedPathsFromBase": [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+          ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+        ]
+      },
+      {
+        "path": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate",
+        "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+        "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+        "branch": "chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd",
+        "status": "",
+        "changedPathsFromBase": [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+          ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+        ]
+      }
+    ],
+    "topLevelPreservedFileCount": 20,
+    "processScope": {
+      "scanned": 22,
+      "unreadableCwd": 0,
+      "unreadableCmdline": 0,
+      "probeAndAncestorsExcluded": [
+        1,
+        10686,
+        30401,
+        30402,
+        30404
+      ],
+      "matchingProcesses": []
+    },
+    "oldRetirementRemoteRef": {
+      "exitCode": 1,
+      "response": {
+        "message": "Not Found",
+        "documentation_url": "https://docs.github.com/rest/git/refs#get-a-reference",
+        "status": "404"
+      }
+    },
+    "limits": [
+      "Read-only observable roots, cwd and exact markers; not global absence of all external writers.",
+      "Historical test outputs do not certify this new request and are not rerun.",
+      "No cleanup, candidate edit, task, claim, branch, collector or release command executed."
+    ],
+    "countInterpretation": "scanned=22 é o contador do loop; o inspetor/ancestrais listados são excluídos das verificações de cwd/cmdline. Zero matching e zero inacessíveis valem apenas para o recorte observado."
+  },
+  "controllerSnapshot": {
+    "source": {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/controller-inventory.json",
+      "bytes": 18002,
+      "sha256": "45797c696f60ce54f8efcbabd5c18136701b330b9989abed54a7f30579ece5a1"
+    },
+    "observedAt": "2026-10-31T23:44:00.039400+00:00",
+    "liveRefs": {
+      "main": {
+        "ref": "refs/heads/main",
+        "sha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07"
+      },
+      "material-ref": {
+        "ref": "refs/heads/chore/journey-audit-coverage-admission-20261031",
+        "sha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b"
+      },
+      "previous-backup-ref": {
+        "ref": "refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+        "sha": "08ede13aa6e7028c826335986a94ab98c6b1cdd8"
+      }
+    },
+    "currentMaterialPendingDeclared": 0,
+    "activePreparationChildren": [
+      {
+        "session": "/root/autoridade_e_codigo",
+        "role": "original author; factual stopped-writer evidence and preservation planning only",
+        "materialPermission": "STOPPED"
+      },
+      {
+        "session": "/root/runtime_evidencias",
+        "role": "independent read-only evidence and canonical representation review",
+        "materialPermission": "NONE"
+      }
+    ],
+    "openJobObservation": "current-native-open-issues.json: 14 open issues; eight unrelated TERMUX-JOB issues; zero body matches exact target claim/branch/historical candidate. Unrelated open jobs were not closed or declared drained.",
+    "limits": [
+      "The author ACK covers only the original author tools and descendants; the controller does not widen it.",
+      "Native inspections cover exact branch/claim markers and the observed historical retirement roots, with process-access limits preserved in their reports.",
+      "Current root preparatory children remain active for reading and archival preparation, not material commands.",
+      "This document is neither a globally complete writer attestation nor a canonical release request.",
+      "Potential schema/semantic representation questions for the historical governance channel must be resolved separately before a complete request is asserted."
+    ]
+  },
+  "timeDistinctions": {
+    "ownerCommentCreatedAt": "2026-10-31T22:44:06.000Z",
+    "ownerConsentThirtyMinuteDeadline": "2026-10-31T23:14:06.000Z",
+    "historicalCollectionAt": "2026-10-31T23:01:51.275Z",
+    "oldDrainOneHourDeadline": "2026-10-31T23:22:24.000Z",
+    "conclusion": "O comentário existia e foi aceito na coleta histórica de 23:01; foi descoberto nesta revisão posterior. Não era novo consentimento às 23:20 e não renova o pedido atual. A falha3465 é compatível com o prazo pessoal de30min, distinto do prazo geral do ACK."
+  },
+  "globalPathUniqueness": {
+    "source": "tooling/fabric/claim-retirement-proof.mjs:235;1059-1075",
+    "finding": "Se existisse um segundo escritor real de implementação com versão distinta do manifesto, o esquema atual exigiria cobertura por backupIndex e impediria duplicação global do path. Esse conflito é real.",
+    "disposition": "A conclusão presente não remove essa regra; classifica o trabalho observado pela rota e conteúdo de lifecycle. Se novos fatos o converterem em implementação, não esconder, renomear ou consolidar versões para forçar PASS; bloquear o pedido."
+  },
+  "canonicalSources": [
+    {
+      "path": "tooling/mdctl/mdctl.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 11022,
+      "sha256": "f1f7b2892a3cb93166243bd1147ab391c86081856fcbf8da0f77e4acaf383fd6",
+      "relevantSections": [
+        "220-230: rotas claim e task distintas"
+      ]
+    },
+    {
+      "path": "tooling/mdctl/task-lifecycle.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 31198,
+      "sha256": "ce13a478416d658993515203a4ee857b9d2695b4fc174fadba690d2ce3bb66f5",
+      "relevantSections": [
+        "78-115: início da tarefa adquire leases",
+        "489-505: submissão libera leases e marca SUBMITTED"
+      ]
+    },
+    {
+      "path": "tooling/mdctl/claim-lifecycle.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 23218,
+      "sha256": "2b1253e1fec3ecd505a0f724aec7c1f73bbbcdd82a880b3d8b434ab4381b99ae",
+      "relevantSections": [
+        "248-313: builder e preservação do estado material",
+        "363-381: evento CLAIM_RELEASED por ORCHESTRATOR",
+        "464-501: preparação formata JSON",
+        "696-744: collect/build de retirement após validação",
+        "745-807: identidade, mutação de metadados e autoridade ainda local"
+      ]
+    },
+    {
+      "path": "tooling/fabric/claim-retirement-proof.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 50660,
+      "sha256": "7b0829145f765bfeb98ca47a50633d6834520ef93dd179ce45b3e44fe186d991",
+      "relevantSections": [
+        "156-221: frescor de snapshot/ACK",
+        "235-299: unicidade de paths, backups e executor enumerado",
+        "984-1159: cobertura por backup e recibos duráveis",
+        "1248-1365: comentário e observação recente",
+        "1558-1575: três paths exatos"
+      ]
+    },
+    {
+      "path": "tooling/ci/local-fast-gate.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 18042,
+      "sha256": "21f3f4ced8c470a83b6f272400a22565d3a1f19af5b7be663f0090da2aa3a80a",
+      "relevantSections": [
+        "341-385: rota própria de retirement anterior à resolução de branch de implementação"
+      ]
+    },
+    {
+      "path": "tooling/mdctl/merge-gate.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 31548,
+      "sha256": "2b8f58d453c66af3fc6cdb8bae5d1704cb96110cdea0dae501669dd945093e46",
+      "relevantSections": [
+        "285-325: autoridade e escopo de três metadados",
+        "909-955: retorno da rota dedicada retirement"
+      ]
+    },
+    {
+      "path": "tooling/control-state/retirement-trusted-routing.test.mjs",
+      "revision": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bytes": 1809,
+      "sha256": "4fe8614b2f099d8a88d0a3640aba6789039b8110bd818a1e0105ed8445bdb63a",
+      "relevantSections": [
+        "11-55: contrato estático da separação de provas; não executado nesta revisão"
+      ]
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3459-issue.json",
+      "bytes": 10929,
+      "sha256": "73fdb15d22dcd61944e0aa20572ca2030369d0774722a26cc7170be533657d18"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3459-comments.json",
+      "bytes": 7133,
+      "sha256": "cf7c1cc28fc076316e6da2b2c9eb166978f3d314da5e6c308c5f4a56264c6d21"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3460-issue.json",
+      "bytes": 11334,
+      "sha256": "da287a6636d185cb91c08fbe4b51a1403eba6005977f31c17ec4116b8b04772b"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3460-comments.json",
+      "bytes": 5668,
+      "sha256": "79dfb7ace32f0100eb1afd197143829c9f97c9f58abe313b516be10a925226c1"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3461-issue.json",
+      "bytes": 12297,
+      "sha256": "1ac8bc5bc7dffd3aa5e609246a6062d41fc5ea6970f379b09544eaa64ada8724"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3461-comments.json",
+      "bytes": 8396,
+      "sha256": "2b85a12f972dca3c1a03f2ab48565a29848a283dbf99f1fb51f670e2fd934a36"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3462-issue.json",
+      "bytes": 10387,
+      "sha256": "2dffb7cae6c81d4a87136f536287ac05f0e129525ef2d78c993f648fb58e230d"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3462-comments.json",
+      "bytes": 10099,
+      "sha256": "87f924a90aecc3e625c1c70b5a2f663e90da718897450c83b3aa8fc825aff1f6"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3463-issue.json",
+      "bytes": 8620,
+      "sha256": "b289517e4749cd9dda00b9f239d37776e8fa176e5b25352febd7948cec10a8dc"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3463-comments.json",
+      "bytes": 7515,
+      "sha256": "2a24a82746b2e0a9ce79d220367a9a372929da94d93275ae7052b61ae022a672"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3464-issue.json",
+      "bytes": 8383,
+      "sha256": "36a4b95ac0fb16872b07b5268b7bd1991c26309306f476365b15899e7802b3e5"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3464-comments.json",
+      "bytes": 8923,
+      "sha256": "269e076ec8a733ff457929da142dcc47dfd5447d227fea2957ffdb96b346f40e"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3465-issue.json",
+      "bytes": 8141,
+      "sha256": "c43466e5a029374e567bdea5d62f556b9b60a0d4c702992ec4a6841a939d73ce"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3465-comments.json",
+      "bytes": 8033,
+      "sha256": "4bbd0a248384ca67c2e7911827d52bfbb7f544bfe6982873c1b461a6e7a398ae"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3466-issue.json",
+      "bytes": 8607,
+      "sha256": "ea08da73912a44432a0a45770fe08466ac1a8bb7bb91cbadf6488aa5f7ad6491"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/3466-comments.json",
+      "bytes": 22637,
+      "sha256": "7f38c522f0872706f4914177228194309dbbbe387410fef4adc35c1e5cc3206d"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/historical-collector-output.json",
+      "bytes": 618804,
+      "sha256": "9f11cbd6a18ce81dea50f72f2ee5fc3b02d07cbebe25b86c394ee9baddbda7cd"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/candidate-exact-output-inspection.json",
+      "bytes": 7731,
+      "sha256": "6e56140be8ea7703f17adf67c2783284bcdb7aadd5d61e0ea954c17835adc9a9"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/candidate-output-comparison-initial-observation.json",
+      "bytes": 2088,
+      "sha256": "81ef261dbdc46ffd47c196f9cabb3e6c64e56769dd5c904f9368f9e24873a29e"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/historical-retirement-candidate.bundle",
+      "bytes": 6771,
+      "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/controller-inventory.json",
+      "bytes": 18002,
+      "sha256": "45797c696f60ce54f8efcbabd5c18136701b330b9989abed54a7f30579ece5a1"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/native-controller-retirement-inventory-request.json",
+      "bytes": 5115,
+      "sha256": "d1566c7452e5ccc7102dc236fe53842911ed380db4bca4b07c114e220a8869fb"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/native-controller-retirement-inventory-comments.json",
+      "bytes": 34565,
+      "sha256": "c755fc28a9379e2edddfb9fa90e1c967f5338e22df323f6e252eb41077ea899c"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/native-controller-retirement-inventory-result.json",
+      "bytes": 7207,
+      "sha256": "dd150b4cfb4cbd22a8abc1b42d950fea161ed699fbc386b3202c2f4ba59d7aef"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/current-native-binding-verification.json",
+      "bytes": 10890,
+      "sha256": "1823a596ab619072140de15a6b94689be8fdad2c551200f20a891cfdf0507d2b"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/current-native-open-issues.json",
+      "bytes": 3177,
+      "sha256": "795b227641b2a60c4023ce1afe69e17eb4ed2c03e1dd635b6ced5d887ffb8881"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/canonical-preparation-readback.json",
+      "bytes": 14058,
+      "sha256": "60e7cf2070589f3c5d54f15bcfa390edbb4794742f08cc7f05501b5780b1be4d"
+    },
+    {
+      "path": "remediation/evidence/coverage-author-stop-reaffirmation-20261031-233449/author-stop-ack.json",
+      "bytes": 11782,
+      "sha256": "13ec6bae657bad52342507c0dcf683691c83041053bfb16cba6cdfa7d47b4982"
+    }
+  ],
+  "limitations": [
+    "As APIs remotas não foram chamadas por este revisor: a revisão confere artefatos salvos e suas identidades/timestamps.",
+    "Os três metadados do candidato foram inspecionados em cópia pela autora e o registro foi revisto; este revisor não repetiu importação do bundle.",
+    "Contagem de comentários coincide com a contagem das issues capturadas; isso não prova ausência de comentários posteriores.",
+    "O exit code de um job e uma busca por processos não são atestação de ausência global de filhos, canais ou dispositivos.",
+    "A fonte canônica não oferece uma definição lexical exaustiva de todas as sessões humanas/agentes como writers; a classificação é específica aos artefatos e à separação funcional comprovados.",
+    "Os originais, inclusive primeira hipótese de igualdade de bytes que falhou, permanecem preservados. Nenhum teste histórico foi reexecutado."
+  ]
+}

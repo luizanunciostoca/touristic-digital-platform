@@ -1,0 +1,2179 @@
+{
+  "kind": "INDEPENDENT_DIRECT_GITHUB_RENEWAL_ARCHIVE_READBACK_METADATA_ONLY",
+  "reviewer": "/root/autoridade_e_codigo",
+  "status": "VERIFIED_52_OF_52",
+  "compiled_at": "2026-10-31T22:31:25.980373+00:00",
+  "mutable_refs_readback_window": {
+    "started_at": "2026-10-31 22:28:40 UTC",
+    "last_mutable_ref_read_at": "2026-10-31 22:29:54 UTC"
+  },
+  "backup": {
+    "ref": "refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+    "commit_sha": "08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+    "tree_sha": "1da9ede636b875aa0d2656db0dde7e33b88522bb",
+    "parents": [
+      "23870e2376903139188a04118a306542ffbf68aa"
+    ],
+    "commit_url": "https://github.com/luizanunciostoca/touristic-digital-platform/commit/08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+    "stable_before_after": true
+  },
+  "previous_backup": {
+    "ref": "refs/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+    "commit_sha": "23870e2376903139188a04118a306542ffbf68aa",
+    "tree_sha": "b6202ab6febd6cc4ef4495eee5cbbfc3cb52b21e",
+    "single_parent_is_writer_head": true,
+    "stable_before_after": true
+  },
+  "main": {
+    "sha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+    "tree_sha": "281971a7bc4bceea7f007b227a027fc183a53479",
+    "stable_before_after": true
+  },
+  "source_branch": {
+    "ref": "refs/heads/chore/journey-audit-coverage-admission-20261031",
+    "sha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "tree_sha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "stable_before_after": true
+  },
+  "canonical_authority": {
+    "claim_id": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "claim_digest": "4d4b0748ae7209892eaa924d17ddc3e2d3ebff7dbee2e42c4a46cd651b5801e0",
+    "claim_unchanged": true,
+    "manifest_unchanged": true,
+    "material_state": "IMPLEMENTING",
+    "claim_base_sha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+    "claims_blob_sha": "48be3e89f141ebef869a9b4877c1672ef71ce21e",
+    "manifest_blob_sha": "079f27045544fe6b77b956c4687d67fe2d84b2a8"
+  },
+  "remote_tree": {
+    "recursive_entries": 2562,
+    "truncated": false,
+    "new_archive_additions": 15,
+    "previous_archive_paths_preserved": 32,
+    "total_archive_additions_from_writer_head": 47,
+    "other_changes": 0,
+    "owned_blobs_preserved": 5,
+    "complete_wip_delta_coverage": true
+  },
+  "wip": {
+    "entries": 52,
+    "unique_remote_blob_reads": 52,
+    "passed": 52,
+    "failed": 0,
+    "records": [
+      {
+        "path": ".github/workflows/auth-login-browser-contract.yml",
+        "status": "tracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "5433db46895e94385a9f3713e29f1f961ff1070a",
+        "sha256": "04e451a248fd3ac1e8602d26449ba49a421c25bcdc3a975004d0ada64209df40",
+        "bytes": 10718,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/5433db46895e94385a9f3713e29f1f961ff1070a",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+        "status": "tracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "079f27045544fe6b77b956c4687d67fe2d84b2a8",
+        "sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+        "bytes": 2234,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/079f27045544fe6b77b956c4687d67fe2d84b2a8",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": ".morro/ownership.json",
+        "status": "tracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "dae399acf8982d3643719fe9af4b3722bebf78ea",
+        "sha256": "82404b46e333c1d4db7128d2d0c90b1c6e739e0e12e9d98ac689fdb8d6b7846a",
+        "bytes": 14012,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/dae399acf8982d3643719fe9af4b3722bebf78ea",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/README.md",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "c0120574c08e8428864f2aa1ab1e4e23f533a984",
+        "sha256": "9011877bc4131244bbe25c72f2bc368a261cf9815631c0d46ef6ab17def880e8",
+        "bytes": 595,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/c0120574c08e8428864f2aa1ab1e4e23f533a984",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/journey-audit-admission.test.mjs",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "e6e011c1f9ba9a1dd7308906bfce697e56d573a6",
+        "sha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+        "bytes": 20674,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/e6e011c1f9ba9a1dd7308906bfce697e56d573a6",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/test-impact-manifest.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "909e39ea78328a3ce96d7cf16b87cca7e09d3e9b",
+        "sha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+        "bytes": 35770,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/909e39ea78328a3ce96d7cf16b87cca7e09d3e9b",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/coverage-impact-correction.proposed.patch",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "ec04ef95b7888b9b7fbe0f1c79fc87bc7c27e778",
+        "sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+        "bytes": 4850,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/ec04ef95b7888b9b7fbe0f1c79fc87bc7c27e778",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposal-no-git-environment-failure.log",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "3a558bb29828c91ae922330b7cb283a724a31fd4",
+        "sha256": "c720c55d3e7aa3fe2dac914fa8273496606e30c6df8cf09fb4411d3123960cb9",
+        "bytes": 30053,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/3a558bb29828c91ae922330b7cb283a724a31fd4",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposed-green.log",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "30a837dfd46bf1e24580c8de6c7ccdc51f6f3cb7",
+        "sha256": "ade556d48a9e681379ba4cd889d5dfaa260813718e197c5184c557d160c0478f",
+        "bytes": 28952,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/30a837dfd46bf1e24580c8de6c7ccdc51f6f3cb7",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-red.log",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "89d620c410033fcd3cfa6eacc43d2d7d8dda9692",
+        "sha256": "03f66bbbaf0933aeeb3b6fa04ec0caa16841baa486b7fa72191d566175bdb192",
+        "bytes": 12772,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/89d620c410033fcd3cfa6eacc43d2d7d8dda9692",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-proposal-dependency-install.log",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "fd67f39c4b5a8ffcbae1d04faff941584a338679",
+        "sha256": "26f4a0232845c38350fc4e7702844ef203f44d62767c48462cb07fb2ea2a7e26",
+        "bytes": 1439,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/fd67f39c4b5a8ffcbae1d04faff941584a338679",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposal-missing-dependencies-failure.log",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "6c9aaea86d1a1751c497c8c040c163be5234b1b1",
+        "sha256": "55f9979017bfe757b5fa8d09134c25ea8117150cf48c047efabbba97ce92c4fa",
+        "bytes": 108682,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/6c9aaea86d1a1751c497c8c040c163be5234b1b1",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposed-green.log",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "d10b60213b5459321d583c23e7f510d8d58abb2b",
+        "sha256": "51e3efbe1d28811dfb1feacf0874113d8dc18bd96777d06296cc2896fd5e17a5",
+        "bytes": 115575,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/d10b60213b5459321d583c23e7f510d8d58abb2b",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/proof-summary.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "1db132457d29fe130ae5e5fcf640fd757b16336c",
+        "sha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+        "bytes": 6753,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/1db132457d29fe130ae5e5fcf640fd757b16336c",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "54a87f626846cae1f931ad8401ff282b5ab751cb",
+        "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+        "bytes": 1927,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/54a87f626846cae1f931ad8401ff282b5ab751cb",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "b7305a1e0b1004516f9f27d521d6e4eacb4d76bf",
+        "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+        "bytes": 997,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/b7305a1e0b1004516f9f27d521d6e4eacb4d76bf",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "c394b359f52107355ef6c482ca88233579dfd980",
+        "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+        "bytes": 2106,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/c394b359f52107355ef6c482ca88233579dfd980",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/capability-leases.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "37700a5f091ae2b7ef823fdc4f0306b96620a83e",
+        "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+        "bytes": 1546,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/37700a5f091ae2b7ef823fdc4f0306b96620a83e",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/source-history-manifest.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "4ce581f2435474b1a5edf99dc9401750af73412c",
+        "sha256": "c4916a6d17478d936a5b9bedf6eeabbfb07d3403978da461e6d3bdac8e666460",
+        "bytes": 2435,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/4ce581f2435474b1a5edf99dc9401750af73412c",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-author-stop-observation.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "49c4ad043fa195921eb6f3d6127214ea57fb1369",
+        "sha256": "4fe10a9d64defadec652b2cbc7f4c34a355db4b29673a14c64afea65002bb32f",
+        "bytes": 6980,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/49c4ad043fa195921eb6f3d6127214ea57fb1369",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-local-inventory.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "7be5eadcec5e3c4f51e4774154e0b005e8bd1ab5",
+        "sha256": "5408099d8b44c3033de5cd22ff53cc135b65d2af22946dfd8146a62427d8c69e",
+        "bytes": 923,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/7be5eadcec5e3c4f51e4774154e0b005e8bd1ab5",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-comments.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "6203c9bd4b563baebeac77017bd505653de61a53",
+        "sha256": "63ca94b9442902276509806533f38ca43501704cc5c294936aa9f045d34d3b6a",
+        "bytes": 6996,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/6203c9bd4b563baebeac77017bd505653de61a53",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-issue.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "bace0b457e7562d59bf06e4961a79dba25b8e4a2",
+        "sha256": "6de352e3e7b05cf6c6523d5ec47bab1dd254e38b334881ed6b44b1571a686dc8",
+        "bytes": 3416,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/bace0b457e7562d59bf06e4961a79dba25b8e4a2",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-request.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "52332c692b0d6b8f87eff99d4cc5a3e221f9b221",
+        "sha256": "d1b9eeb809bad5bcc390f5c23d380e344446e185101ae2fc07eb51aebc7bb36e",
+        "bytes": 2044,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/52332c692b0d6b8f87eff99d4cc5a3e221f9b221",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/preservation-manifest.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "e33b19e46f223a30f8364232849af2fd0434f2b6",
+        "sha256": "cfb985b3dfec32163c6822e034aabdd8c5a9ea689de9f14b00a1a97dc33a0d6a",
+        "bytes": 14535,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/e33b19e46f223a30f8364232849af2fd0434f2b6",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/provenance/writer-controller-transport.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "5a6cf6029ba25d0df0d9ec319b10bea4a6923bd0",
+        "sha256": "f5b5b61e64934d1605c2552cfcb5da44e7dbe94134a9d481e8d14d1e0550ef2c",
+        "bytes": 2371,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/5a6cf6029ba25d0df0d9ec319b10bea4a6923bd0",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/receipts/cloud-coverage-authority-worker.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f",
+        "sha256": "e97c9f9849e5aa7356cdb8644536a6c080e1197edd64531ad4a30f1bf4a3db29",
+        "bytes": 809,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/README.md",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "d406d6fa08e07425041e9a9d4a5fd41e7173c6b7",
+        "sha256": "a2c0c842e36fe90a91e3ecc36a848f7b65c0778ca9b645083f2a6fd70536f043",
+        "bytes": 665,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/d406d6fa08e07425041e9a9d4a5fd41e7173c6b7",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/completion.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "36fd287f3e0b613d775784791ff4d35d3064d420",
+        "sha256": "405bc0620215d7dd67628494b8cc8e1ac3ccda81c594116ba49904799a84e6d3",
+        "bytes": 7517,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/36fd287f3e0b613d775784791ff4d35d3064d420",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/remote-readback.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "0b61296dc5b64168be92c8bf79a7902a677f9e4f",
+        "sha256": "5fdfc7ad411edab6f586ffd7cf4475eecc8ccf17f873659f48949463706539d3",
+        "bytes": 68974,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/0b61296dc5b64168be92c8bf79a7902a677f9e4f",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/voluntary-release-request.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "0ce62fac1c7cb4f21688bcf45d95ec37bb089aa3",
+        "sha256": "f5df76e08b27353d16291b08de0937675e780908775851dbf65046641c76fcbe",
+        "bytes": 17547,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/0ce62fac1c7cb4f21688bcf45d95ec37bb089aa3",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/closing-read-only-census.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "72f476c35bbe5b2334b0e016d4dd4803a7d38e3a",
+        "sha256": "cff2eb1575dd11574f0776dff5420656b913f569e688466decb2925b5c91eb27",
+        "bytes": 6357,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/72f476c35bbe5b2334b0e016d4dd4803a7d38e3a",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/closing-remote-observation.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "14d2b9bc31d5ccc98bb0cfa0c145572ca6bceb7b",
+        "sha256": "0f864b807ad636d90d5bc192a00d3d204047e656a5b7e81f50d7e9680db34f44",
+        "bytes": 12937,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/14d2b9bc31d5ccc98bb0cfa0c145572ca6bceb7b",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-author-stop-renewal-observation-20261031-222136.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "83aacd14e4b45e19d02a273cc854bce11f1ff582",
+        "sha256": "82b37c456ab640d69474060fc71d18538dd566ec04f255cf48be513d058b5337",
+        "bytes": 8442,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/83aacd14e4b45e19d02a273cc854bce11f1ff582",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-controller-inventory.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "1d17223d799936559d3dd414e96514667eedfd5a",
+        "sha256": "153338eddf8fa497db68da84ef96f4242b661b57300fe159c93b81a0439b99f5",
+        "bytes": 1355,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/1d17223d799936559d3dd414e96514667eedfd5a",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-comments.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "05035d3995445c19a194a98fc2d7e417db2c19da",
+        "sha256": "c1c5484d73ec871dd5862bc96b57afe63d16360e21830bbb70a38c93b22d8b58",
+        "bytes": 7048,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/05035d3995445c19a194a98fc2d7e417db2c19da",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-issue.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "6ad98cba7d0c526b80ce9aeb8d538c3e3d82917f",
+        "sha256": "b6a8c62d0b855c08d01e8d09bb51b6daf76dc88f7269c62151afbba36e4a2ba7",
+        "bytes": 3481,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/6ad98cba7d0c526b80ce9aeb8d538c3e3d82917f",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-request.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "e66012154e3431aaa51051a7888833f03164b130",
+        "sha256": "a8f37850a2f992c8bdfbd406093070da715113cbe4f280b1a4f3a80a7cec991e",
+        "bytes": 2057,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/e66012154e3431aaa51051a7888833f03164b130",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-result.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "a62ac413e85b5268b680405c68a9ca769ed3e90f",
+        "sha256": "558227ff6f7a93673f03060840244cc8e0c1ab29e776837ce4aba420f1e204c6",
+        "bytes": 1121,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/a62ac413e85b5268b680405c68a9ca769ed3e90f",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/preservation-manifest.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "b2364dfba530d0819ae60061f58aa0d8b1fb19e3",
+        "sha256": "66857b88ce932a3dac5062f97aa0b0351fca88565a2812050a962aa5484e324d",
+        "bytes": 9935,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/b2364dfba530d0819ae60061f58aa0d8b1fb19e3",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/provenance/writer-controller-transport.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "a456b6a3b13a7f22ee78751e0aa39a95e4b3f63f",
+        "sha256": "2587475e3782c965e90052316f59a90f68c7c398b4069926c7add628f0a4e7af",
+        "bytes": 3357,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/a456b6a3b13a7f22ee78751e0aa39a95e4b3f63f",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/receipts/cloud-coverage-authority-worker.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "0f5ed808d40895ec85a09909397bc1f2e79071e9",
+        "sha256": "3c034c2282d8f558ee09b5ff4674ef59817d33b66433eaed00dc135e1dbae97d",
+        "bytes": 809,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/0f5ed808d40895ec85a09909397bc1f2e79071e9",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "8c69bbfc448e893e7fa6a7b22a9d6d462cedb1f0",
+        "sha256": "0dc05d4f2c43b94ed20499b240b417f49aae6f8258061bd1ddb46e405576fdc9",
+        "bytes": 2473,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/8c69bbfc448e893e7fa6a7b22a9d6d462cedb1f0",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.md",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "bd37620296edfcaf8fdbf9f9b2fb3f640311be60",
+        "sha256": "064e98748052d3d9f8d0277464c58b3068cb508717d2d6d608536b16b43811a9",
+        "bytes": 1388,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/bd37620296edfcaf8fdbf9f9b2fb3f640311be60",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "511fc4978e05f3c9c27045d4ff577af990336622",
+        "sha256": "ffeb14591b77cc2a3aaa4f80b1d41dab210686773a9556e60f196f8fb660022d",
+        "bytes": 15721,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/511fc4978e05f3c9c27045d4ff577af990336622",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.md",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "da5348e1224a3b031f43f169f95a013fef7171d4",
+        "sha256": "63d9211b7bb75e45f9ba4c76cbfa52155a2fcf2795ec7558bee03870dd21fec1",
+        "bytes": 6611,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/da5348e1224a3b031f43f169f95a013fef7171d4",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-comments.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "007efad325b835d08534b5ce3dd200dd6ee87e44",
+        "sha256": "587ce9c82465afbdfe242f58002bf1c96997f1b532e595776fc647b286bfdf10",
+        "bytes": 8719,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/007efad325b835d08534b5ce3dd200dd6ee87e44",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-request.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "d7b7e86d555126b4dc4003e90503fcc1210f0475",
+        "sha256": "14c718e20d8a034c8f89e8466217ae94a4dd277eb9666d45465e433688b57006",
+        "bytes": 786,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/d7b7e86d555126b4dc4003e90503fcc1210f0475",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-job.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "ea87f5f6eee31ddec1e1f4fe30c25b07ac52cc3a",
+        "sha256": "79acb295f385d3e8ab0fe47ce718e184d927f65c1a1c6e442f42bf2866779a1a",
+        "bytes": 8155,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/ea87f5f6eee31ddec1e1f4fe30c25b07ac52cc3a",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-request.json",
+        "status": "untracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "cbedcb72cd212d04cee8e1534822d3fb96e51da4",
+        "sha256": "a40d2a0c10e9de1eba19602ef468f3a0cca0d61c62254cb76cd390ae13869725",
+        "bytes": 8516,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/cbedcb72cd212d04cee8e1534822d3fb96e51da4",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "tooling/ci/journey-audit-admission.test.mjs",
+        "status": "tracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "68b2c64f5e8dee4be06465e8364d2716bd185d4f",
+        "sha256": "7a84a6f63968f3cddbc33a174b2371f77ea03597b0ac9404bc6e940f659bce3a",
+        "bytes": 18377,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/68b2c64f5e8dee4be06465e8364d2716bd185d4f",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      },
+      {
+        "path": "tooling/ci/test-impact-manifest.json",
+        "status": "tracked",
+        "backup_index": 0,
+        "mode_git": "100644",
+        "blob_sha": "765b863d8accdc4873b348ac0c9bc29cde15a37c",
+        "sha256": "080ac6a5efa913693ec78ab2182d1c1a6199f52735a38e9ffc461f37666e591e",
+        "bytes": 35460,
+        "direct_api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/765b863d8accdc4873b348ac0c9bc29cde15a37c",
+        "checks": {
+          "path_mode_type_and_blob": true,
+          "git_blob_hash": true,
+          "sha256": true,
+          "bytes": true,
+          "inventory_status_and_backup": true
+        },
+        "pass": true
+      }
+    ]
+  },
+  "receipt": {
+    "blob_sha": "0f5ed808d40895ec85a09909397bc1f2e79071e9",
+    "sha256": "3c034c2282d8f558ee09b5ff4674ef59817d33b66433eaed00dc135e1dbae97d",
+    "api_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/0f5ed808d40895ec85a09909397bc1f2e79071e9",
+    "exact_closed_schema_and_facts": true,
+    "requestedAt": "2026-10-31T22:21:36.000Z",
+    "acknowledgedAt": "2026-10-31T22:22:24.000Z",
+    "drainedAt": "2026-10-31T22:22:24.000Z"
+  },
+  "request": {
+    "canonical_sha256": "04133e7876940a9ad616176f70b0e7d02c349ee45be926d4b20e25fa955e9a2e",
+    "file_sha256": "45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee",
+    "snapshotAt": "2026-10-31T22:24:49.000Z",
+    "earliest_freshness_deadline_exclusive": "2026-10-31T23:22:24.000Z"
+  },
+  "owner_comment_readback": {
+    "anchor_pr": 1336,
+    "anchor_merged": true,
+    "comments_before": 0,
+    "comments_after": 0,
+    "first_page_complete": true,
+    "repository_owner": {
+      "login": "luizanunciostoca",
+      "id": 318748875,
+      "type": "User"
+    },
+    "personal_consent_found": false,
+    "no_consent_assumed": true
+  },
+  "publication_evidence": {
+    "issue": 3458,
+    "resultCommentId": 6549980656,
+    "exitCode": 0,
+    "requestSha256": "93fa1b410b50233813527ffede3decfc4942922b1496a37c0f17af9c60661833",
+    "startedAt": "2026-10-31T22:27:40Z",
+    "endedAt": "2026-10-31T22:28:00Z"
+  },
+  "direct_remote_verification": [
+    "GitHub GETs directly returned four mutable refs before/after, five commits and five complete recursive trees.",
+    "52 unique blob contents were retrieved directly by immutable Git blob SHA, including the renewed closed receipt.",
+    "Canonical claim/manifest bytes were retrieved at the stable main SHA and bound to its tree entries.",
+    "The acquisition PR and complete empty comments page were read directly; owner metadata was read directly."
+  ],
+  "local_computation_from_remote_data": [
+    "SHA-256, Git blob SHA-1 and UTF-8 byte counts were recomputed from direct remote response bodies.",
+    "Tree comparisons established exactly 15 new archival additions, 32 prior paths unchanged and all 5 owned blobs preserved.",
+    "Request digest, complete 52-item WIP coverage, exact receipt schema and local frozen-file hashes were checked without rerunning tests or lifecycle commands."
+  ],
+  "checks_count": 124,
+  "failed_checks": [],
+  "checks": [
+    {
+      "check": "main.refBefore",
+      "pass": true
+    },
+    {
+      "check": "main.refAfter",
+      "pass": true
+    },
+    {
+      "check": "main.stableBeforeAfter",
+      "pass": true
+    },
+    {
+      "check": "source.refBefore",
+      "pass": true
+    },
+    {
+      "check": "source.refAfter",
+      "pass": true
+    },
+    {
+      "check": "source.stableBeforeAfter",
+      "pass": true
+    },
+    {
+      "check": "backup.refBefore",
+      "pass": true
+    },
+    {
+      "check": "backup.refAfter",
+      "pass": true
+    },
+    {
+      "check": "backup.stableBeforeAfter",
+      "pass": true
+    },
+    {
+      "check": "parent.refBefore",
+      "pass": true
+    },
+    {
+      "check": "parent.refAfter",
+      "pass": true
+    },
+    {
+      "check": "parent.stableBeforeAfter",
+      "pass": true
+    },
+    {
+      "check": "main.commitSha",
+      "pass": true
+    },
+    {
+      "check": "source.commitSha",
+      "pass": true
+    },
+    {
+      "check": "backup.commitSha",
+      "pass": true
+    },
+    {
+      "check": "parent.commitSha",
+      "pass": true
+    },
+    {
+      "check": "claim-base.commitSha",
+      "pass": true
+    },
+    {
+      "check": "backup.treeExpected",
+      "pass": true
+    },
+    {
+      "check": "parent.treeExpected",
+      "pass": true
+    },
+    {
+      "check": "source.treeExpected",
+      "pass": true
+    },
+    {
+      "check": "backup.singleParentIsPreviousBackup",
+      "pass": true
+    },
+    {
+      "check": "parent.singleParentIsWriterHead",
+      "pass": true
+    },
+    {
+      "check": "backup.treeIdentity",
+      "pass": true
+    },
+    {
+      "check": "backup.treeNotTruncated",
+      "pass": true
+    },
+    {
+      "check": "backup.treePathsUnique",
+      "pass": true
+    },
+    {
+      "check": "source.treeIdentity",
+      "pass": true
+    },
+    {
+      "check": "source.treeNotTruncated",
+      "pass": true
+    },
+    {
+      "check": "source.treePathsUnique",
+      "pass": true
+    },
+    {
+      "check": "main.treeIdentity",
+      "pass": true
+    },
+    {
+      "check": "main.treeNotTruncated",
+      "pass": true
+    },
+    {
+      "check": "main.treePathsUnique",
+      "pass": true
+    },
+    {
+      "check": "parent.treeIdentity",
+      "pass": true
+    },
+    {
+      "check": "parent.treeNotTruncated",
+      "pass": true
+    },
+    {
+      "check": "parent.treePathsUnique",
+      "pass": true
+    },
+    {
+      "check": "claim-base.treeIdentity",
+      "pass": true
+    },
+    {
+      "check": "claim-base.treeNotTruncated",
+      "pass": true
+    },
+    {
+      "check": "claim-base.treePathsUnique",
+      "pass": true
+    },
+    {
+      "check": "canonical.claimsBlobMatchesMainTree",
+      "pass": true
+    },
+    {
+      "check": "canonical.manifestBlobMatchesMainTree",
+      "pass": true
+    },
+    {
+      "check": "canonical.claimUnchanged",
+      "pass": true
+    },
+    {
+      "check": "canonical.manifestUnchanged",
+      "pass": true
+    },
+    {
+      "check": "canonical.claimDigest",
+      "pass": true
+    },
+    {
+      "check": "canonical.materialStillImplementing",
+      "pass": true
+    },
+    {
+      "check": "delta.exact15AdditionsAfterPreviousBackup",
+      "pass": true
+    },
+    {
+      "check": "delta.exact47ArchiveAdditionsAfterWriterHead",
+      "pass": true
+    },
+    {
+      "check": "delta.all32PreviousArchivePathsUnchanged",
+      "pass": true
+    },
+    {
+      "check": "owned.exactlyFivePaths",
+      "pass": true
+    },
+    {
+      "check": "owned..morro/ownership.json",
+      "pass": true
+    },
+    {
+      "check": "owned.tooling/ci/test-impact-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "owned.tooling/ci/journey-audit-admission.test.mjs",
+      "pass": true
+    },
+    {
+      "check": "owned..morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "pass": true
+    },
+    {
+      "check": "owned..github/workflows/auth-login-browser-contract.yml",
+      "pass": true
+    },
+    {
+      "check": "wip.countAndUnique",
+      "pass": true
+    },
+    {
+      "check": "wip.allOwnedDeltasCovered",
+      "pass": true
+    },
+    {
+      "check": "wip.exactFullArchivalAndOwnedDeltaCoverage",
+      "pass": true
+    },
+    {
+      "check": "wip.digest",
+      "pass": true
+    },
+    {
+      "check": "wip..github/workflows/auth-login-browser-contract.yml",
+      "pass": true
+    },
+    {
+      "check": "wip..morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "pass": true
+    },
+    {
+      "check": "wip..morro/ownership.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/README.md",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/journey-audit-admission.test.mjs",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/test-impact-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/coverage-impact-correction.proposed.patch",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposal-no-git-environment-failure.log",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposed-green.log",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-red.log",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-proposal-dependency-install.log",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposal-missing-dependencies-failure.log",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposed-green.log",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/proof-summary.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/capability-leases.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/source-history-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-author-stop-observation.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-local-inventory.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-comments.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-issue.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-request.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/preservation-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/provenance/writer-controller-transport.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/receipts/cloud-coverage-authority-worker.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/README.md",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/completion.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/remote-readback.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/voluntary-release-request.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/closing-read-only-census.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/closing-remote-observation.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-author-stop-renewal-observation-20261031-222136.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-controller-inventory.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-comments.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-issue.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-request.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-result.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/preservation-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/provenance/writer-controller-transport.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/receipts/cloud-coverage-authority-worker.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.md",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.md",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-comments.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-request.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-job.json",
+      "pass": true
+    },
+    {
+      "check": "wip.docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-request.json",
+      "pass": true
+    },
+    {
+      "check": "wip.tooling/ci/journey-audit-admission.test.mjs",
+      "pass": true
+    },
+    {
+      "check": "wip.tooling/ci/test-impact-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "receipt.exactClosedSchemaAndFacts",
+      "pass": true
+    },
+    {
+      "check": "receipt.sha256MatchesRequest",
+      "pass": true
+    },
+    {
+      "check": "receipt.apiUrlMatchesRequest",
+      "pass": true
+    },
+    {
+      "check": "receipt.zeroPendingAndStopped",
+      "pass": true
+    },
+    {
+      "check": "request.canonicalDigest",
+      "pass": true
+    },
+    {
+      "check": "request.fileDigest",
+      "pass": true
+    },
+    {
+      "check": "request.notCompletionAndNoAcquire",
+      "pass": true
+    },
+    {
+      "check": "frozen.completion.json",
+      "pass": true
+    },
+    {
+      "check": "frozen.HANDOFF.md",
+      "pass": true
+    },
+    {
+      "check": "frozen.owner-review.md",
+      "pass": true
+    },
+    {
+      "check": "frozen.voluntary-release-request.json",
+      "pass": true
+    },
+    {
+      "check": "frozen.coverage-stopped-writer-renewal.bundle",
+      "pass": true
+    },
+    {
+      "check": "ownerComments.completeEmptyFirstPageBeforeAfter",
+      "pass": true
+    },
+    {
+      "check": "anchor.acquisitionMerged",
+      "pass": true
+    },
+    {
+      "check": "owner.repositoryIdentity",
+      "pass": true
+    },
+    {
+      "check": "freshness.stillBeforeDrainDeadline",
+      "pass": true
+    }
+  ],
+  "remote_readback": "PASS",
+  "owner_attestation": "MISSING_NO_PERSONAL_COMMENT_OBSERVED",
+  "ready_for_owner_request_after_controller_review": true,
+  "ready_for_retirement": false,
+  "canonical_retirement_collector": "NOT_EXECUTED",
+  "retirement_task_claim_or_publication_by_reviewer": false,
+  "raw_readbacks": {
+    "directory": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/remote-readback-raw",
+    "response_files": 76,
+    "include_in_deliverable_zip": false,
+    "metadata_only_index": [
+      {
+        "file": "anchor-pr.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/pulls/1336",
+        "record_sha256": "b05725a7a219ebc7f0cb6a4bba82615b12e67f77af0ccf5b4ff56276adde7c5f",
+        "record_bytes": 22850,
+        "body_sha256": "7ec5a35868f9f6a04022c63df7514134a3dc0d046a227fcd810c94cd6c79bab5",
+        "body_bytes": 21510
+      },
+      {
+        "file": "backup-commit.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+        "record_sha256": "f5ea0b36bfcc008f485b4be9c7796701f33433643cdcf38ffab25ba6b285783a",
+        "record_bytes": 1691,
+        "body_sha256": "72058dab25b51fcacc7b74f8f0b0ea2f5ed305f8ac39d26c91d8fe823d946787",
+        "body_bytes": 1421
+      },
+      {
+        "file": "backup-ref-after.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+        "record_sha256": "ba9038838862b55c61ec23f8e5a01a83713e674d233b06c31b6c16dd26fb090e",
+        "record_bytes": 785,
+        "body_sha256": "7d83590b9c354015d8acc391d4d1af371729762c8956fd36e47de039e4a4b64c",
+        "body_bytes": 557
+      },
+      {
+        "file": "backup-ref-before.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+        "record_sha256": "df742a8728456303f52a81aa28a5513ddac3e125bf1d3d3b446b9fca9b0b7c0e",
+        "record_bytes": 786,
+        "body_sha256": "7d83590b9c354015d8acc391d4d1af371729762c8956fd36e47de039e4a4b64c",
+        "body_bytes": 557
+      },
+      {
+        "file": "backup-tree.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/trees/1da9ede636b875aa0d2656db0dde7e33b88522bb?recursive=1",
+        "record_sha256": "59e99cfcdc2f8fe148f41cb31b2ab3e56128c49fa94b2afeaa1deef612d99fe7",
+        "record_bytes": 786606,
+        "body_sha256": "b604d188e716e1949b0506a2e1828559b1edcbedc0338e816ee55ac2b1f33e2f",
+        "body_bytes": 730478
+      },
+      {
+        "file": "blob-007efad325b835d08534b5ce3dd200dd6ee87e44.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/007efad325b835d08534b5ce3dd200dd6ee87e44",
+        "record_sha256": "03dbc5b5e219b260ebc4e7c76f9c5bb174f94c9ad52ccf1d5ae6b94cb98c9f41",
+        "record_bytes": 9772,
+        "body_sha256": "587ce9c82465afbdfe242f58002bf1c96997f1b532e595776fc647b286bfdf10",
+        "body_bytes": 8719
+      },
+      {
+        "file": "blob-05035d3995445c19a194a98fc2d7e417db2c19da.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/05035d3995445c19a194a98fc2d7e417db2c19da",
+        "record_sha256": "ba18612fcd19ab122803a570e92c317d1eedcd3822b519c025ab16db6576e79e",
+        "record_bytes": 8005,
+        "body_sha256": "c1c5484d73ec871dd5862bc96b57afe63d16360e21830bbb70a38c93b22d8b58",
+        "body_bytes": 7048
+      },
+      {
+        "file": "blob-079f27045544fe6b77b956c4687d67fe2d84b2a8.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/079f27045544fe6b77b956c4687d67fe2d84b2a8",
+        "record_sha256": "93046fa7f3051bde0601174ac50f497453bbffc53db7cd0bee926971a3ecec9d",
+        "record_bytes": 2703,
+        "body_sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+        "body_bytes": 2234
+      },
+      {
+        "file": "blob-0b61296dc5b64168be92c8bf79a7902a677f9e4f.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/0b61296dc5b64168be92c8bf79a7902a677f9e4f",
+        "record_sha256": "6dcf2d64f159e95fd4854a0d429d837a1528114d3c5156a514f94f93dd234704",
+        "record_bytes": 74160,
+        "body_sha256": "5fdfc7ad411edab6f586ffd7cf4475eecc8ccf17f873659f48949463706539d3",
+        "body_bytes": 68974
+      },
+      {
+        "file": "blob-0ce62fac1c7cb4f21688bcf45d95ec37bb089aa3.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/0ce62fac1c7cb4f21688bcf45d95ec37bb089aa3",
+        "record_sha256": "763b557060afb718bfcf7b09acdbd101166906d1b8a05ee0a79e85fdf480f635",
+        "record_bytes": 19230,
+        "body_sha256": "f5df76e08b27353d16291b08de0937675e780908775851dbf65046641c76fcbe",
+        "body_bytes": 17547
+      },
+      {
+        "file": "blob-0f5ed808d40895ec85a09909397bc1f2e79071e9.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/0f5ed808d40895ec85a09909397bc1f2e79071e9",
+        "record_sha256": "10033ef9932055263b804ed945047a146412e141592ac54bb36d20e3d0b4a5c4",
+        "record_bytes": 1110,
+        "body_sha256": "3c034c2282d8f558ee09b5ff4674ef59817d33b66433eaed00dc135e1dbae97d",
+        "body_bytes": 809
+      },
+      {
+        "file": "blob-14d2b9bc31d5ccc98bb0cfa0c145572ca6bceb7b.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/14d2b9bc31d5ccc98bb0cfa0c145572ca6bceb7b",
+        "record_sha256": "4357433408dad9b2639e4d4f9b4a37c63b2ed91b6c3ddf91dc3bedfc4abecbc1",
+        "record_bytes": 14166,
+        "body_sha256": "0f864b807ad636d90d5bc192a00d3d204047e656a5b7e81f50d7e9680db34f44",
+        "body_bytes": 12937
+      },
+      {
+        "file": "blob-1d17223d799936559d3dd414e96514667eedfd5a.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/1d17223d799936559d3dd414e96514667eedfd5a",
+        "record_sha256": "a886950f20cd7c58b0c448e24bba500f3ca4705507a4cefba38669c5b3f00666",
+        "record_bytes": 1702,
+        "body_sha256": "153338eddf8fa497db68da84ef96f4242b661b57300fe159c93b81a0439b99f5",
+        "body_bytes": 1355
+      },
+      {
+        "file": "blob-1db132457d29fe130ae5e5fcf640fd757b16336c.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/1db132457d29fe130ae5e5fcf640fd757b16336c",
+        "record_sha256": "4bc02e3c9ec8f528dd759924899a2d55db418ec44d5e0b538a607b4dcc3a51c0",
+        "record_bytes": 7513,
+        "body_sha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+        "body_bytes": 6753
+      },
+      {
+        "file": "blob-30a837dfd46bf1e24580c8de6c7ccdc51f6f3cb7.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/30a837dfd46bf1e24580c8de6c7ccdc51f6f3cb7",
+        "record_sha256": "1aeef2bf62ff7ba137c76a82bd916ce3131943df2dfdeeeacde3065ed96a7f01",
+        "record_bytes": 29861,
+        "body_sha256": "ade556d48a9e681379ba4cd889d5dfaa260813718e197c5184c557d160c0478f",
+        "body_bytes": 28952
+      },
+      {
+        "file": "blob-36fd287f3e0b613d775784791ff4d35d3064d420.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/36fd287f3e0b613d775784791ff4d35d3064d420",
+        "record_sha256": "907176265da77104cc7f03aca07c2855e0a582e9a77cb8408a0c281daae7ba28",
+        "record_bytes": 8238,
+        "body_sha256": "405bc0620215d7dd67628494b8cc8e1ac3ccda81c594116ba49904799a84e6d3",
+        "body_bytes": 7517
+      },
+      {
+        "file": "blob-37700a5f091ae2b7ef823fdc4f0306b96620a83e.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/37700a5f091ae2b7ef823fdc4f0306b96620a83e",
+        "record_sha256": "36513933eab7fe8e9b494abf8d850e22ad44f55720ece428fb4f416b22fdbca3",
+        "record_bytes": 1919,
+        "body_sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+        "body_bytes": 1546
+      },
+      {
+        "file": "blob-3a558bb29828c91ae922330b7cb283a724a31fd4.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/3a558bb29828c91ae922330b7cb283a724a31fd4",
+        "record_sha256": "751f55dc2be4d07653ac6f837b7c0d12e3267f11cd126e3b61ffd1da31f65146",
+        "record_bytes": 30981,
+        "body_sha256": "c720c55d3e7aa3fe2dac914fa8273496606e30c6df8cf09fb4411d3123960cb9",
+        "body_bytes": 30053
+      },
+      {
+        "file": "blob-3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f",
+        "record_sha256": "e56333c06038f91aecb6dee3c4b3baa1c371a9cb39e1d6c2041d2befe16c35dc",
+        "record_bytes": 1110,
+        "body_sha256": "e97c9f9849e5aa7356cdb8644536a6c080e1197edd64531ad4a30f1bf4a3db29",
+        "body_bytes": 809
+      },
+      {
+        "file": "blob-49c4ad043fa195921eb6f3d6127214ea57fb1369.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/49c4ad043fa195921eb6f3d6127214ea57fb1369",
+        "record_sha256": "bec5690be90bcc313d064d2345a4112c85e956ab59719245b0ec432d6ee73d57",
+        "record_bytes": 7688,
+        "body_sha256": "4fe10a9d64defadec652b2cbc7f4c34a355db4b29673a14c64afea65002bb32f",
+        "body_bytes": 6980
+      },
+      {
+        "file": "blob-4ce581f2435474b1a5edf99dc9401750af73412c.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/4ce581f2435474b1a5edf99dc9401750af73412c",
+        "record_sha256": "bb8121d80cee8fb347534ee195e1124b83566f1273035bb1b4a2511735cb8203",
+        "record_bytes": 2792,
+        "body_sha256": "c4916a6d17478d936a5b9bedf6eeabbfb07d3403978da461e6d3bdac8e666460",
+        "body_bytes": 2435
+      },
+      {
+        "file": "blob-511fc4978e05f3c9c27045d4ff577af990336622.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/511fc4978e05f3c9c27045d4ff577af990336622",
+        "record_sha256": "f8f91e5931556451cafd516be14c643da65fa0dda18687e0601c84ee4fe036bd",
+        "record_bytes": 16963,
+        "body_sha256": "ffeb14591b77cc2a3aaa4f80b1d41dab210686773a9556e60f196f8fb660022d",
+        "body_bytes": 15721
+      },
+      {
+        "file": "blob-52332c692b0d6b8f87eff99d4cc5a3e221f9b221.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/52332c692b0d6b8f87eff99d4cc5a3e221f9b221",
+        "record_sha256": "06174c3081732f4b2b6187b244cad7576c1e8e99ebf99513cfdae241bd5a3ae0",
+        "record_bytes": 2318,
+        "body_sha256": "d1b9eeb809bad5bcc390f5c23d380e344446e185101ae2fc07eb51aebc7bb36e",
+        "body_bytes": 2044
+      },
+      {
+        "file": "blob-5433db46895e94385a9f3713e29f1f961ff1070a.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/5433db46895e94385a9f3713e29f1f961ff1070a",
+        "record_sha256": "321388ce68a9c7ab41b16508f8e13e64e2d35f5ae201409e0aaa554af0b560fe",
+        "record_bytes": 11276,
+        "body_sha256": "04e451a248fd3ac1e8602d26449ba49a421c25bcdc3a975004d0ada64209df40",
+        "body_bytes": 10718
+      },
+      {
+        "file": "blob-54a87f626846cae1f931ad8401ff282b5ab751cb.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/54a87f626846cae1f931ad8401ff282b5ab751cb",
+        "record_sha256": "ba0a825aba47075cb10643e79c486a58c1839f64c1b1a6610cb0ba5352ce0b48",
+        "record_bytes": 2335,
+        "body_sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+        "body_bytes": 1927
+      },
+      {
+        "file": "blob-5a6cf6029ba25d0df0d9ec319b10bea4a6923bd0.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/5a6cf6029ba25d0df0d9ec319b10bea4a6923bd0",
+        "record_sha256": "d924f961f6605b69f633d866d99f4b56267f606bb86b574096fd1d3bdcd49820",
+        "record_bytes": 2741,
+        "body_sha256": "f5b5b61e64934d1605c2552cfcb5da44e7dbe94134a9d481e8d14d1e0550ef2c",
+        "body_bytes": 2371
+      },
+      {
+        "file": "blob-6203c9bd4b563baebeac77017bd505653de61a53.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/6203c9bd4b563baebeac77017bd505653de61a53",
+        "record_sha256": "de065fbb88a3619f26f1351be530be354dfdca209d6aec356844ab8f898cae78",
+        "record_bytes": 7953,
+        "body_sha256": "63ca94b9442902276509806533f38ca43501704cc5c294936aa9f045d34d3b6a",
+        "body_bytes": 6996
+      },
+      {
+        "file": "blob-68b2c64f5e8dee4be06465e8364d2716bd185d4f.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/68b2c64f5e8dee4be06465e8364d2716bd185d4f",
+        "record_sha256": "fc6e31270707aad720e0efe09cb40728e4ec8f29d7713d7e9e3f500d282691a3",
+        "record_bytes": 19667,
+        "body_sha256": "7a84a6f63968f3cddbc33a174b2371f77ea03597b0ac9404bc6e940f659bce3a",
+        "body_bytes": 18377
+      },
+      {
+        "file": "blob-6ad98cba7d0c526b80ce9aeb8d538c3e3d82917f.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/6ad98cba7d0c526b80ce9aeb8d538c3e3d82917f",
+        "record_sha256": "053870c08d18840a1f14ca821f94ad31f0c30bcaf88a296838083e80309c61d0",
+        "record_bytes": 3942,
+        "body_sha256": "b6a8c62d0b855c08d01e8d09bb51b6daf76dc88f7269c62151afbba36e4a2ba7",
+        "body_bytes": 3481
+      },
+      {
+        "file": "blob-6c9aaea86d1a1751c497c8c040c163be5234b1b1.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/6c9aaea86d1a1751c497c8c040c163be5234b1b1",
+        "record_sha256": "8fefd4fc465198b899c9fbb693832a2df6501ea14f023b4aaf9c61fdc0d7e22c",
+        "record_bytes": 112298,
+        "body_sha256": "55f9979017bfe757b5fa8d09134c25ea8117150cf48c047efabbba97ce92c4fa",
+        "body_bytes": 108682
+      },
+      {
+        "file": "blob-72f476c35bbe5b2334b0e016d4dd4803a7d38e3a.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/72f476c35bbe5b2334b0e016d4dd4803a7d38e3a",
+        "record_sha256": "ee0ddb47db7b5e1246ad43e0cbbd2b6087c4f1212d1ab6b4c0c3c6e9cb54f81e",
+        "record_bytes": 7058,
+        "body_sha256": "cff2eb1575dd11574f0776dff5420656b913f569e688466decb2925b5c91eb27",
+        "body_bytes": 6357
+      },
+      {
+        "file": "blob-765b863d8accdc4873b348ac0c9bc29cde15a37c.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/765b863d8accdc4873b348ac0c9bc29cde15a37c",
+        "record_sha256": "f786120492e371dc123b6843aefea69d4a1dcc3366c3dda9297d4f927e353b7b",
+        "record_bytes": 38512,
+        "body_sha256": "080ac6a5efa913693ec78ab2182d1c1a6199f52735a38e9ffc461f37666e591e",
+        "body_bytes": 35460
+      },
+      {
+        "file": "blob-7be5eadcec5e3c4f51e4774154e0b005e8bd1ab5.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/7be5eadcec5e3c4f51e4774154e0b005e8bd1ab5",
+        "record_sha256": "f590edf3a22359940256e967784bdd2f09129dac18a021fc864f3a7b2ccce886",
+        "record_bytes": 1189,
+        "body_sha256": "5408099d8b44c3033de5cd22ff53cc135b65d2af22946dfd8146a62427d8c69e",
+        "body_bytes": 923
+      },
+      {
+        "file": "blob-83aacd14e4b45e19d02a273cc854bce11f1ff582.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/83aacd14e4b45e19d02a273cc854bce11f1ff582",
+        "record_sha256": "a62c9a29206d57d4e2ecc20b20047d170ef56db579e0b204a0eaddd6b40f9982",
+        "record_bytes": 9223,
+        "body_sha256": "82b37c456ab640d69474060fc71d18538dd566ec04f255cf48be513d058b5337",
+        "body_bytes": 8442
+      },
+      {
+        "file": "blob-89d620c410033fcd3cfa6eacc43d2d7d8dda9692.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/89d620c410033fcd3cfa6eacc43d2d7d8dda9692",
+        "record_sha256": "5abd32c53baa50c9d135737ebcd61a1215dde26d595d447daddaf5f04a2db25b",
+        "record_bytes": 13335,
+        "body_sha256": "03f66bbbaf0933aeeb3b6fa04ec0caa16841baa486b7fa72191d566175bdb192",
+        "body_bytes": 12772
+      },
+      {
+        "file": "blob-8c69bbfc448e893e7fa6a7b22a9d6d462cedb1f0.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/8c69bbfc448e893e7fa6a7b22a9d6d462cedb1f0",
+        "record_sha256": "5e09cf76432c0371c17d8ac260447d2c9549485070b1841b2f42e55c45364077",
+        "record_bytes": 2862,
+        "body_sha256": "0dc05d4f2c43b94ed20499b240b417f49aae6f8258061bd1ddb46e405576fdc9",
+        "body_bytes": 2473
+      },
+      {
+        "file": "blob-909e39ea78328a3ce96d7cf16b87cca7e09d3e9b.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/909e39ea78328a3ce96d7cf16b87cca7e09d3e9b",
+        "record_sha256": "43b4da4ecde9f9722402944fc3d7e1de9f54f894d2ce68058c4badfc5bc6b27a",
+        "record_bytes": 38856,
+        "body_sha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+        "body_bytes": 35770
+      },
+      {
+        "file": "blob-a456b6a3b13a7f22ee78751e0aa39a95e4b3f63f.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/a456b6a3b13a7f22ee78751e0aa39a95e4b3f63f",
+        "record_sha256": "b559f372e3c59f3ccbc8398e174521f64b3a1feb211ee4a5d5fa7b52b6599cc0",
+        "record_bytes": 3876,
+        "body_sha256": "2587475e3782c965e90052316f59a90f68c7c398b4069926c7add628f0a4e7af",
+        "body_bytes": 3357
+      },
+      {
+        "file": "blob-a62ac413e85b5268b680405c68a9ca769ed3e90f.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/a62ac413e85b5268b680405c68a9ca769ed3e90f",
+        "record_sha256": "7e4e54c924d25db52eb75a7477f11c33305f5a001b79e320fc4043d26f89d481",
+        "record_bytes": 1425,
+        "body_sha256": "558227ff6f7a93673f03060840244cc8e0c1ab29e776837ce4aba420f1e204c6",
+        "body_bytes": 1121
+      },
+      {
+        "file": "blob-b2364dfba530d0819ae60061f58aa0d8b1fb19e3.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/b2364dfba530d0819ae60061f58aa0d8b1fb19e3",
+        "record_sha256": "b5aa74d6fecfc54b80b6209fba812357abcadd739707eaab5d0a243e3dbdadc6",
+        "record_bytes": 10733,
+        "body_sha256": "66857b88ce932a3dac5062f97aa0b0351fca88565a2812050a962aa5484e324d",
+        "body_bytes": 9935
+      },
+      {
+        "file": "blob-b7305a1e0b1004516f9f27d521d6e4eacb4d76bf.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/b7305a1e0b1004516f9f27d521d6e4eacb4d76bf",
+        "record_sha256": "91d996f28b76af77cf7e39ddee004648aa1c7828fe9e22227a3e9c0e03f07b7d",
+        "record_bytes": 1294,
+        "body_sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+        "body_bytes": 997
+      },
+      {
+        "file": "blob-bace0b457e7562d59bf06e4961a79dba25b8e4a2.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/bace0b457e7562d59bf06e4961a79dba25b8e4a2",
+        "record_sha256": "0a0f677440c4877a952dd8cdebfe57ecc8c6a630784cada09f30e454e1d08b03",
+        "record_bytes": 3877,
+        "body_sha256": "6de352e3e7b05cf6c6523d5ec47bab1dd254e38b334881ed6b44b1571a686dc8",
+        "body_bytes": 3416
+      },
+      {
+        "file": "blob-bd37620296edfcaf8fdbf9f9b2fb3f640311be60.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/bd37620296edfcaf8fdbf9f9b2fb3f640311be60",
+        "record_sha256": "e6f9641d7f1f02d533883e6945fa5e854cee55f80f32f891829e4e21c3de255a",
+        "record_bytes": 1609,
+        "body_sha256": "064e98748052d3d9f8d0277464c58b3068cb508717d2d6d608536b16b43811a9",
+        "body_bytes": 1388
+      },
+      {
+        "file": "blob-c0120574c08e8428864f2aa1ab1e4e23f533a984.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/c0120574c08e8428864f2aa1ab1e4e23f533a984",
+        "record_sha256": "0a26e97722ec66c8cc63c78999f068e2ede876ae19139b9ff2fcffce8da3b9e5",
+        "record_bytes": 812,
+        "body_sha256": "9011877bc4131244bbe25c72f2bc368a261cf9815631c0d46ef6ab17def880e8",
+        "body_bytes": 595
+      },
+      {
+        "file": "blob-c394b359f52107355ef6c482ca88233579dfd980.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/c394b359f52107355ef6c482ca88233579dfd980",
+        "record_sha256": "8d2c966c4ec26d5b6f3aa0b7b1fa02ddfd9fa1766429d95119c1c1b8507fa8df",
+        "record_bytes": 2497,
+        "body_sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+        "body_bytes": 2106
+      },
+      {
+        "file": "blob-cbedcb72cd212d04cee8e1534822d3fb96e51da4.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/cbedcb72cd212d04cee8e1534822d3fb96e51da4",
+        "record_sha256": "6182784be904c9c1cdbcd4fc4cd05ffca2ae090cdc79523d9286aaec76c2e0f1",
+        "record_bytes": 8905,
+        "body_sha256": "a40d2a0c10e9de1eba19602ef468f3a0cca0d61c62254cb76cd390ae13869725",
+        "body_bytes": 8516
+      },
+      {
+        "file": "blob-d10b60213b5459321d583c23e7f510d8d58abb2b.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/d10b60213b5459321d583c23e7f510d8d58abb2b",
+        "record_sha256": "7276a47b1c5b8a6eb81184b4ce03f386148f5ac5f9119b9707632bbbf58c4730",
+        "record_bytes": 119915,
+        "body_sha256": "51e3efbe1d28811dfb1feacf0874113d8dc18bd96777d06296cc2896fd5e17a5",
+        "body_bytes": 115575
+      },
+      {
+        "file": "blob-d406d6fa08e07425041e9a9d4a5fd41e7173c6b7.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/d406d6fa08e07425041e9a9d4a5fd41e7173c6b7",
+        "record_sha256": "10aa630e128d02bc5c7db29c5b5ebe8026b5660def3030ed19dc543bd6015cae",
+        "record_bytes": 882,
+        "body_sha256": "a2c0c842e36fe90a91e3ecc36a848f7b65c0778ca9b645083f2a6fd70536f043",
+        "body_bytes": 665
+      },
+      {
+        "file": "blob-d7b7e86d555126b4dc4003e90503fcc1210f0475.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/d7b7e86d555126b4dc4003e90503fcc1210f0475",
+        "record_sha256": "7370ba90fa81e0b0128466f543e19ba8bb30e9ea3408182273d61c4e227c227a",
+        "record_bytes": 1058,
+        "body_sha256": "14c718e20d8a034c8f89e8466217ae94a4dd277eb9666d45465e433688b57006",
+        "body_bytes": 786
+      },
+      {
+        "file": "blob-da5348e1224a3b031f43f169f95a013fef7171d4.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/da5348e1224a3b031f43f169f95a013fef7171d4",
+        "record_sha256": "a0bf23f2587052d0f033c688fd03127adc351d52b698d7c745753e1d8110f62c",
+        "record_bytes": 6886,
+        "body_sha256": "63d9211b7bb75e45f9ba4c76cbfa52155a2fcf2795ec7558bee03870dd21fec1",
+        "body_bytes": 6611
+      },
+      {
+        "file": "blob-dae399acf8982d3643719fe9af4b3722bebf78ea.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/dae399acf8982d3643719fe9af4b3722bebf78ea",
+        "record_sha256": "779369b994a87cbb850a00825cb5e07b91b42a5d63b655bcf7e62949b378fc22",
+        "record_bytes": 14988,
+        "body_sha256": "82404b46e333c1d4db7128d2d0c90b1c6e739e0e12e9d98ac689fdb8d6b7846a",
+        "body_bytes": 14012
+      },
+      {
+        "file": "blob-e33b19e46f223a30f8364232849af2fd0434f2b6.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/e33b19e46f223a30f8364232849af2fd0434f2b6",
+        "record_sha256": "329a0898b1e5b48672b171e8468e8ce19bc363a797fdc0fe2257e651cae35fc7",
+        "record_bytes": 15553,
+        "body_sha256": "cfb985b3dfec32163c6822e034aabdd8c5a9ea689de9f14b00a1a97dc33a0d6a",
+        "body_bytes": 14535
+      },
+      {
+        "file": "blob-e66012154e3431aaa51051a7888833f03164b130.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/e66012154e3431aaa51051a7888833f03164b130",
+        "record_sha256": "f153fbec0ecdcf5f4a13b49c6df194944610b23e152b79014c59fc6616e1c9a4",
+        "record_bytes": 2331,
+        "body_sha256": "a8f37850a2f992c8bdfbd406093070da715113cbe4f280b1a4f3a80a7cec991e",
+        "body_bytes": 2057
+      },
+      {
+        "file": "blob-e6e011c1f9ba9a1dd7308906bfce697e56d573a6.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/e6e011c1f9ba9a1dd7308906bfce697e56d573a6",
+        "record_sha256": "c09e47407779d2892bb19ecb62322de09da398dc04ec4cf06599ed5cd78507be",
+        "record_bytes": 22069,
+        "body_sha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+        "body_bytes": 20674
+      },
+      {
+        "file": "blob-ea87f5f6eee31ddec1e1f4fe30c25b07ac52cc3a.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/ea87f5f6eee31ddec1e1f4fe30c25b07ac52cc3a",
+        "record_sha256": "56c888f14487e58fcedcb359f58e7f1f39af1a79190200a7085446462ef43847",
+        "record_bytes": 8947,
+        "body_sha256": "79acb295f385d3e8ab0fe47ce718e184d927f65c1a1c6e442f42bf2866779a1a",
+        "body_bytes": 8155
+      },
+      {
+        "file": "blob-ec04ef95b7888b9b7fbe0f1c79fc87bc7c27e778.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/ec04ef95b7888b9b7fbe0f1c79fc87bc7c27e778",
+        "record_sha256": "7632a3a0be00e7a353f890ba56f63893fcd0391dd548f1f061b2a79faffc8fdb",
+        "record_bytes": 5302,
+        "body_sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+        "body_bytes": 4850
+      },
+      {
+        "file": "blob-fd67f39c4b5a8ffcbae1d04faff941584a338679.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/blobs/fd67f39c4b5a8ffcbae1d04faff941584a338679",
+        "record_sha256": "4cbf8336f33837e804b77664ea98b2bb85990c0d8e9e6542d61ada594bd8e168",
+        "record_bytes": 1683,
+        "body_sha256": "26f4a0232845c38350fc4e7702844ef203f44d62767c48462cb07fb2ea2a7e26",
+        "body_bytes": 1439
+      },
+      {
+        "file": "claim-base-commit.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+        "record_sha256": "f7513532529dd87491c00178d8cca93fdf13654f45506febabf6bd339348e7dc",
+        "record_bytes": 3252,
+        "body_sha256": "57d6f44855eca370ecd25191866602d30d98dd817d2987218707b81629a1706a",
+        "body_bytes": 2936
+      },
+      {
+        "file": "claim-base-tree.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/trees/f0065a9e23bc95217058e092bc592690f84804a2?recursive=1",
+        "record_sha256": "d76f7b40674aba81398c0455bfe3fc01d4f96cabcf9a22b54282858b951fcb06",
+        "record_bytes": 760655,
+        "body_sha256": "64f4c8916f2464ef93b00a201c670bfa6b7d84cc3c772124465a0f9330223cd6",
+        "body_bytes": 706001
+      },
+      {
+        "file": "claims-canonical.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/contents/.github/morro-control/claims.json?ref=d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+        "record_sha256": "c7feb0f7188ca1d82285a72dca89a2ebea2b58e1d3df819141b3452a5a782223",
+        "record_bytes": 6705,
+        "body_sha256": "ce1f8b359193be21918ab0620d7247d3dad9ef7dd9ae0deccd4bf288a40890b3",
+        "body_bytes": 5938
+      },
+      {
+        "file": "main-commit.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+        "record_sha256": "d6e3ea0b290062ad00100c7f9a5704c0b3e9b093a745aff9dc891524b38e9dc1",
+        "record_bytes": 3244,
+        "body_sha256": "58b0954d53c8595663058a22ddcff949d53c9681e8b594a5afc4c3848a7b5d66",
+        "body_bytes": 2934
+      },
+      {
+        "file": "main-ref-after.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/main",
+        "record_sha256": "88e209b816eaf4f6e0044e30bc1851cae33973f95bd39e4c78cb6d33d3e1aad7",
+        "record_bytes": 559,
+        "body_sha256": "e9402a0de0ca488ad83ce95c31efbaf6dcf3c8c389dc3c57d4dc53da1764a049",
+        "body_bytes": 384
+      },
+      {
+        "file": "main-ref-before.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/main",
+        "record_sha256": "f15ba88ee73edb4a4ea51077897c12763a72af03a7c5cae733ed0985f814b234",
+        "record_bytes": 560,
+        "body_sha256": "e9402a0de0ca488ad83ce95c31efbaf6dcf3c8c389dc3c57d4dc53da1764a049",
+        "body_bytes": 384
+      },
+      {
+        "file": "main-tree.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/trees/281971a7bc4bceea7f007b227a027fc183a53479?recursive=1",
+        "record_sha256": "bc06aa9f8b04f7d7864e33e669f062ac579e8bb7b953238ad2436747456698dc",
+        "record_bytes": 760973,
+        "body_sha256": "d52eb770b3739861f76ad2d8bf363374493c04d123a72251174c2078cb18abf2",
+        "body_bytes": 706303
+      },
+      {
+        "file": "manifest-canonical.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/contents/.morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json?ref=d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+        "record_sha256": "203b90b8523cbfa478bc341af5da02ce6c63481446003d69bd20960039ebd4bd",
+        "record_bytes": 2747,
+        "body_sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+        "body_bytes": 2234
+      },
+      {
+        "file": "owner-comments-after.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/issues/1336/comments?per_page=100&page=1",
+        "record_sha256": "7a423f57aff54cb63feeb748269610fac71e3cb9d5b73fc7259646b72892da51",
+        "record_bytes": 179,
+        "body_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "body_bytes": 2
+      },
+      {
+        "file": "owner-comments.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/issues/1336/comments?per_page=100&page=1",
+        "record_sha256": "5b32a898f3cb0fb4aecbcbc3d06924c648341c2def96d2d526dced8ddd8fe940",
+        "record_bytes": 173,
+        "body_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "body_bytes": 2
+      },
+      {
+        "file": "parent-commit.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/23870e2376903139188a04118a306542ffbf68aa",
+        "record_sha256": "bcc9d038c446a5bc2b37c690a3a43d998a91f65371ba764f50af722c49c1ee1b",
+        "record_bytes": 1716,
+        "body_sha256": "38ad047d08c945e10757fc91de4203534b2af193ef6cd7bb22341f7bac2cdfc5",
+        "body_bytes": 1446
+      },
+      {
+        "file": "parent-ref-after.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+        "record_sha256": "92e700e3887b4676d6281c4dd7485b87dcc028656e198b38caab85ce59f4df1a",
+        "record_bytes": 785,
+        "body_sha256": "c213ce8259e4ba01e99b532498fe7d6470aa3dae33641a1dc6321bf9bd3f78ba",
+        "body_bytes": 557
+      },
+      {
+        "file": "parent-ref-before.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-stopped-20261031-181814-99ba1a8b",
+        "record_sha256": "78dff177915765a1be897881b1ed2123b7a31089b9344b21ae71a6185931da1b",
+        "record_bytes": 786,
+        "body_sha256": "c213ce8259e4ba01e99b532498fe7d6470aa3dae33641a1dc6321bf9bd3f78ba",
+        "body_bytes": 557
+      },
+      {
+        "file": "parent-tree.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/trees/b6202ab6febd6cc4ef4495eee5cbbfc3cb52b21e?recursive=1",
+        "record_sha256": "2c8a3e7070c20f3be9a9a8a2c786c085454b8e2f7354a9f25478727458263b7c",
+        "record_bytes": 778229,
+        "body_sha256": "2ad812d2910e2d339e49df13303e8956b45afc78ec7083d8ff6c98edb652a7c6",
+        "body_bytes": 722551
+      },
+      {
+        "file": "repository-owner.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform",
+        "record_sha256": "1988f898908daa7584bc9c23107914d29016449672da4bc5bc1ac10d0a89e335",
+        "record_bytes": 7148,
+        "body_sha256": "76a5377d8dfb1ebb59d3577b848d1c48f4e4f28ab713af6175b10ddce369a719",
+        "body_bytes": 6632
+      },
+      {
+        "file": "source-commit.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+        "record_sha256": "1110fd78ba440ea61121df1524ecc8bdade38369190c099edd0393649633fc23",
+        "record_bytes": 1527,
+        "body_sha256": "a8a788898e64c84fc6f8961c8ce1c72b71665753f88954541f8267e4732cf5fe",
+        "body_bytes": 1259
+      },
+      {
+        "file": "source-ref-after.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/chore/journey-audit-coverage-admission-20261031",
+        "record_sha256": "5de20133e7f4986bdc14b6353c15723cc86e58f99cff9a55915277fb3f74c7a5",
+        "record_bytes": 750,
+        "body_sha256": "3ff3e09cbf10cb80b75339610f54df15a2ea8c0b907248be5fdb2d7e68595a24",
+        "body_bytes": 530
+      },
+      {
+        "file": "source-ref-before.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/chore/journey-audit-coverage-admission-20261031",
+        "record_sha256": "7faf95cdcd5bebf4849c327416ea270f5f8f689053f5752db76b86a02e21c9bd",
+        "record_bytes": 751,
+        "body_sha256": "3ff3e09cbf10cb80b75339610f54df15a2ea8c0b907248be5fdb2d7e68595a24",
+        "body_bytes": 530
+      },
+      {
+        "file": "source-tree.json",
+        "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/trees/bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04?recursive=1",
+        "record_sha256": "02722b0bcf59c4d5d523e4cdebc92f05beb11a31cb5de4d3a99aac4ccc0a20d2",
+        "record_bytes": 761277,
+        "body_sha256": "c822f85a230149c8606bff79a51b1e42cdcbb7eaabf2470000d351b73a53c6c3",
+        "body_bytes": 706583
+      }
+    ]
+  },
+  "frozen_completion_handoff_prepublication_review_request_bundle_modified": false,
+  "limitations": [
+    "The writer remains STOPPED. Backup publication and this readback do not release the claim or assert material completion.",
+    "The full canonical retirement evidence collector has not run. Personal owner consent remains missing.",
+    "Readbacks describe the recorded time window; the canonical collector must reread mutable state and freshness later.",
+    "Local and Native writer inventories retain their explicit process/visibility scope; global completeness is not personally attested by this reviewer.",
+    "Raw response bytes and Git-backed repository data stay outside the document ZIP; this report contains metadata and hashes only."
+  ]
+}

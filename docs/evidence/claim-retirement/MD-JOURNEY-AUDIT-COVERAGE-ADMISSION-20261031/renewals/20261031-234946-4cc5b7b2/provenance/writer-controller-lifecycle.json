@@ -1,0 +1,434 @@
+{
+  "kind": "CUMULATIVE_ARCHIVE_WITH_DISTINCT_HISTORICAL_LIFECYCLE_CHANNEL",
+  "preparedAt": "2026-10-31T23:49:46.000Z",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "materialWriter": {
+    "writerId": "cloud-coverage-authority-worker",
+    "executorIdentity": "CHATGPT-PRO-CONTROL",
+    "controllerIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root/autoridade_e_codigo",
+    "jobId": null,
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "commandIds": [
+      "exact-coverage-and-sensitive-boundaries"
+    ]
+  },
+  "controller": {
+    "logicalIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root"
+  },
+  "classification": "ONE_ORIGINAL_MATERIAL_WRITER_WITH_FULLY_DISCLOSED_DISTINCT_HISTORICAL_LIFECYCLE_CHANNEL",
+  "classificationBasis": "Canonical claim/task separation, exact three-metadata candidate, independent semantic review and controller disposition. Not an exception to global WIP path uniqueness.",
+  "historicalGovernance": {
+    "observed": true,
+    "attribution": "Native execution and controller retirement outputs are recorded separately; not attributed to the original material author. GitHub job author alone does not identify a cloud-agent session.",
+    "candidateHead": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+    "candidateTree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+    "canonicalIntegrationObserved": false,
+    "remoteRetirementRefAbsentIn3468": true,
+    "preservedNativeRoots": [
+      {
+        "root": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys",
+        "candidate": {
+          "path": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys/frozen-candidate",
+          "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+          "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+          "branch": "chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd",
+          "status": "",
+          "changedPathsFromBase": [
+            ".github/morro-control/claims.json",
+            ".github/morro-control/events.ndjson",
+            ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+          ]
+        },
+        "topLevelPreservedFiles": [
+          {
+            "name": "candidate.bundle",
+            "bytes": 6771,
+            "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91"
+          }
+        ]
+      },
+      {
+        "root": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr",
+        "candidate": {
+          "path": "/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate",
+          "head": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+          "tree": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+          "branch": "chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd",
+          "status": "",
+          "changedPathsFromBase": [
+            ".github/morro-control/claims.json",
+            ".github/morro-control/events.ndjson",
+            ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json"
+          ]
+        },
+        "topLevelPreservedFiles": [
+          {
+            "name": "admission-after-expiry.json",
+            "bytes": 969,
+            "sha256": "ad8f4d83dbbb0bf48365e922c555126a44b7a29b6d5204381c261d3882f6ba11"
+          },
+          {
+            "name": "auth-plan-diagnostic.mjs",
+            "bytes": 646,
+            "sha256": "f734924e4d05f650a680de86ddaa0a95fcbbf3d4d63bdfb2703f5c8596ec1024"
+          },
+          {
+            "name": "auth-proof.mjs",
+            "bytes": 872,
+            "sha256": "2e66ba7cb9663d31fe73a8b0808c03eca7d55ca7bc03ed2e8c66f8e9e9ee7101"
+          },
+          {
+            "name": "auth-runtime-diagnostic.mjs",
+            "bytes": 1094,
+            "sha256": "2999bbe9ec0ce973fd971c3bd01a16bbbc458daf79411a50d6370003ea5c7959"
+          },
+          {
+            "name": "candidate.bundle",
+            "bytes": 6771,
+            "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91"
+          },
+          {
+            "name": "certify.json",
+            "bytes": 600,
+            "sha256": "e1f4c15b1d6ca52745e198b446cdc725ffbeb0c7496d7db91559c44986cf9fec"
+          },
+          {
+            "name": "diagnostic-debian-proot.json",
+            "bytes": 780,
+            "sha256": "b4ba5feb229e6665a55c2195f26ef1218ae9d8baddd71a51cb70dce921f204ab"
+          },
+          {
+            "name": "diagnostic-native.json",
+            "bytes": 522,
+            "sha256": "6b625b1f58134073e53efc5c11b91d35e5871a1e6789170c577dffee167840b0"
+          },
+          {
+            "name": "governance-native-suite.json",
+            "bytes": 8318,
+            "sha256": "080332034c8d0fad5a02d6cd369a2376b1b506963974e7954114ee42f6e2234f"
+          },
+          {
+            "name": "governance-native-suite.log",
+            "bytes": 87248,
+            "sha256": "c1b1614f7093639ceedf6d9a0431922619a65b3e1f388f1450a814bff17bd4e1"
+          },
+          {
+            "name": "isolated-governance-suite.mjs",
+            "bytes": 1217,
+            "sha256": "e80d9fa7188a8ec8beb227c3f3d97e6d9da39b74b55f96b91a2ff31075cb686c"
+          },
+          {
+            "name": "plan-diagnostic.json",
+            "bytes": 1593,
+            "sha256": "a2c58c618ae3d6ddbdcb4cfde612777d3dc16eeea8daa57777d10b480c494116"
+          },
+          {
+            "name": "probe-plan-stages.mjs",
+            "bytes": 721,
+            "sha256": "691f6ced6a541f43d4f1c34b414c4a153c7767cfcec780eb9efb8e70adc6034d"
+          },
+          {
+            "name": "runtime-readiness-and-admission.mjs",
+            "bytes": 1286,
+            "sha256": "aa63d32637a22a92b0785c17a9db371fa2027f123e704e3671d944f8bd6434b7"
+          },
+          {
+            "name": "runtime-readiness.json",
+            "bytes": 201,
+            "sha256": "7c58b62b124f1c5e6058b3546126c56a7ecd36a5704f712b27ec26475cf67589"
+          }
+        ]
+      },
+      {
+        "root": "/data/data/com.termux/files/home/.cache/tdp-retirement-collector-l0o6i3w9",
+        "candidate": null,
+        "topLevelPreservedFiles": [
+          {
+            "name": "blob-request.json",
+            "bytes": 825109,
+            "sha256": "32b351aa5052f79dd047641516a60482a25faafe964a919a72266702f737502b"
+          },
+          {
+            "name": "collector.mjs",
+            "bytes": 2219,
+            "sha256": "4b6243e2174199d0185dfc79059e97fc6f0c5028af26ab3a06d7372d4d659053"
+          },
+          {
+            "name": "generated-output.json",
+            "bytes": 618804,
+            "sha256": "9f11cbd6a18ce81dea50f72f2ee5fc3b02d07cbebe25b86c394ee9baddbda7cd"
+          },
+          {
+            "name": "request.json",
+            "bytes": 24079,
+            "sha256": "45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee"
+          }
+        ]
+      }
+    ],
+    "jobs": [
+      {
+        "issue": 3459,
+        "title": "[TERMUX-JOB] Collect approved coverage retirement and canonical metadata outputs",
+        "requestSha256": "aee0fa97f597b04daeb2e5e039d891677441ef1cc08f7c87a29aea65a9fcd034",
+        "preflightCommentId": 6550299014,
+        "resultCommentId": 6550314230,
+        "result": {
+          "id": "coverage-retirement-collect-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:01:17Z",
+          "ended_at": "2026-10-31T23:01:53Z",
+          "duration_seconds": 36,
+          "exit_code": 0,
+          "request_sha256": "aee0fa97f597b04daeb2e5e039d891677441ef1cc08f7c87a29aea65a9fcd034"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:01:55Z",
+        "observedRole": "Canonical collector and pure build of retirement metadata, stored as generated output; no canonical integration."
+      },
+      {
+        "issue": 3460,
+        "title": "[TERMUX-JOB] Certify frozen owner-approved coverage retirement and publish exact candidate",
+        "requestSha256": "8b4909847ddd0b396b88640d7f1768b245cf0e674a303063fe0e0540eae55568",
+        "preflightCommentId": 6550341226,
+        "resultCommentId": 6550351668,
+        "result": {
+          "id": "coverage-retirement-proof-publish-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:05:17Z",
+          "ended_at": "2026-10-31T23:05:26Z",
+          "duration_seconds": 9,
+          "exit_code": 1,
+          "request_sha256": "8b4909847ddd0b396b88640d7f1768b245cf0e674a303063fe0e0540eae55568"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:05:29Z",
+        "observedRole": "Frozen retirement candidate checkout/dependency proof attempt, failed before push."
+      },
+      {
+        "issue": 3461,
+        "title": "[TERMUX-JOB] Prove frozen retirement with Debian dependency resolution and publish",
+        "requestSha256": "f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d",
+        "preflightCommentId": 6550361493,
+        "resultCommentId": 6550365994,
+        "result": {
+          "id": "coverage-retirement-proof-debian-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:06:30Z",
+          "ended_at": "2026-10-31T23:06:50Z",
+          "duration_seconds": 20,
+          "exit_code": 1,
+          "request_sha256": "f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:06:52Z",
+        "observedRole": "Frozen retirement candidate checkout/dependency proof attempt, failed before push."
+      },
+      {
+        "issue": 3462,
+        "title": "[TERMUX-JOB] Complete pinned proof dependencies and certify exact approved retirement",
+        "requestSha256": "4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492",
+        "preflightCommentId": 6550373645,
+        "resultCommentId": 6550432626,
+        "result": {
+          "id": "coverage-retirement-complete-proof-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:07:51Z",
+          "ended_at": "2026-10-31T23:13:11Z",
+          "duration_seconds": 320,
+          "exit_code": 125,
+          "request_sha256": "4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:13:17Z",
+        "observedRole": "Dependency installation and frozen CERTIFY attempt, failed before push."
+      },
+      {
+        "issue": 3463,
+        "title": "[TERMUX-JOB] Diagnose frozen coverage retirement proof runtime",
+        "requestSha256": "a4c2b23eaea866003718218471218ab20d0bcba6974fdb632711f498c6c9dce8",
+        "preflightCommentId": 6550463040,
+        "resultCommentId": 6550467913,
+        "result": {
+          "id": "coverage-retirement-auth-diagnosis-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:16:31Z",
+          "ended_at": "2026-10-31T23:16:40Z",
+          "duration_seconds": 9,
+          "exit_code": 0,
+          "request_sha256": "a4c2b23eaea866003718218471218ab20d0bcba6974fdb632711f498c6c9dce8"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:16:41Z",
+        "observedRole": "Runtime diagnosis on the frozen historical candidate; no integration."
+      },
+      {
+        "issue": 3464,
+        "title": "[TERMUX-JOB] Isolate exact retirement plan and Git connectivity",
+        "requestSha256": "9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384",
+        "preflightCommentId": 6550481873,
+        "resultCommentId": 6550485982,
+        "result": {
+          "id": "coverage-retirement-plan-diagnosis-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:18:18Z",
+          "ended_at": "2026-10-31T23:18:30Z",
+          "duration_seconds": 12,
+          "exit_code": 0,
+          "request_sha256": "9c314833cf0e767cf695498e195d7334331723885695adc0d04a41756d335384"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:18:31Z",
+        "observedRole": "Plan/connectivity diagnosis on the frozen historical candidate; no integration."
+      },
+      {
+        "issue": 3465,
+        "title": "[TERMUX-JOB] Verify pinned runtime and observe canonical admission block",
+        "requestSha256": "d2537b167cf69ad057f4ce0b4a444262c65f8d98c13ccf05b5d9005e3313d413",
+        "preflightCommentId": 6550498894,
+        "resultCommentId": 6550504773,
+        "result": {
+          "id": "coverage-retirement-readiness-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:20:08Z",
+          "ended_at": "2026-10-31T23:20:23Z",
+          "duration_seconds": 15,
+          "exit_code": 2,
+          "request_sha256": "d2537b167cf69ad057f4ce0b4a444262c65f8d98c13ccf05b5d9005e3313d413"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:20:24Z",
+        "observedRole": "Admission diagnosis rejected stale personal consent; no push."
+      },
+      {
+        "issue": 3466,
+        "title": "[TERMUX-JOB] Diagnose exact governance suite on pinned Debian runtime",
+        "requestSha256": "c2447d9d4f820c49883f4889fe37861dfa0b2e6bde0aea36377d94a592aa11e2",
+        "preflightCommentId": 6550515048,
+        "resultCommentId": 6550583141,
+        "result": {
+          "id": "coverage-retirement-isolated-suite-20261031-cf947",
+          "target": "termux",
+          "started_at": "2026-10-31T23:22:00Z",
+          "ended_at": "2026-10-31T23:28:31Z",
+          "duration_seconds": 391,
+          "exit_code": 0,
+          "request_sha256": "c2447d9d4f820c49883f4889fe37861dfa0b2e6bde0aea36377d94a592aa11e2"
+        },
+        "state": "closed",
+        "closedAt": "2026-10-31T23:28:33Z",
+        "observedRole": "Isolated historical governance suite, not admission/certification and no push."
+      }
+    ],
+    "allObservedJobsHaveBoundTerminalResults": true,
+    "canonicalWriterRepresentation": "PENDING_INDEPENDENT_SEMANTIC_REVIEW; no forced closed-inventory request has been issued."
+  },
+  "currentControllerState": {
+    "pendingMaterialCommands": [],
+    "knownYieldedMaterialExecCells": [],
+    "knownRunningMaterialExecSessions": [],
+    "currentNativeInspectionJobs": [
+      {
+        "issue": 3467,
+        "metadata": {
+          "id": "inventory-coverage-voluntary-prep-20261031-2336",
+          "target": "termux",
+          "started_at": "2026-10-31T23:37:50Z",
+          "ended_at": "2026-10-31T23:37:53Z",
+          "duration_seconds": 3,
+          "exit_code": 0,
+          "request_sha256": "64fe00a8b2a1e8af2b503d092a6ec4dbf813abc10adf1fc9d59ea25064914c08"
+        }
+      },
+      {
+        "issue": 3468,
+        "metadata": {
+          "id": "inventory-retirement-wip-preserve-20261031-2340",
+          "target": "termux",
+          "started_at": "2026-10-31T23:41:10Z",
+          "ended_at": "2026-10-31T23:41:12Z",
+          "duration_seconds": 2,
+          "exit_code": 0,
+          "request_sha256": "0412e4f732e4386f45581255f3cd3538707d5d0ce1aed623c7992152f10babc7"
+        }
+      }
+    ],
+    "allCurrentNativeInspectionsCompleted": true,
+    "activePreparationChildren": [
+      {
+        "session": "/root/autoridade_e_codigo",
+        "role": "original author; factual stopped-writer evidence and preservation planning only",
+        "materialPermission": "STOPPED"
+      },
+      {
+        "session": "/root/runtime_evidencias",
+        "role": "independent read-only evidence and canonical representation review",
+        "materialPermission": "NONE"
+      }
+    ],
+    "agentListObserved": [
+      {
+        "agent_name": "/root",
+        "agent_status": "running"
+      },
+      {
+        "agent_name": "/root/autoridade_e_codigo",
+        "agent_status": "running"
+      },
+      {
+        "agent_name": "/root/runtime_evidencias",
+        "agent_status": "running"
+      }
+    ],
+    "agentListSource": "collaboration.list_agents immediately before current readbacks; agent active status is not material-writing authority.",
+    "currentInvocationIsExternalEvidencePreparation": true
+  },
+  "attribution": {
+    "original-author": "Factual observations of the same original material writer only.",
+    "controller-and-review": "Controller/Native observations and independent reviewer documents, preserving their own stated identities and limits.",
+    "historical-native": "Recovered controller/Native lifecycle work, including generated metadata, frozen candidate, proof failures and diagnosis. Never attributed to the material author; never called mere transport.",
+    "archiveConstruction": "Original author performed only the separately authorized archival copy/object preparation; this does not restart implementation."
+  },
+  "historyUse": "Four genuine implementation histories remain byte-identically inherited. No operational history is installed, migrated, reset or reopened.",
+  "writerContinuallyStopped": true,
+  "currentStop": {
+    "writerId": "cloud-coverage-authority-worker",
+    "requestedAt": "2026-10-31T23:34:49.000Z",
+    "acknowledgedAt": "2026-10-31T23:36:01.000Z",
+    "drainedAt": "2026-10-31T23:36:01.000Z",
+    "terminalState": "STOPPED",
+    "pendingCommands": 0,
+    "pendingChildren": 0
+  },
+  "previousRequestsExpired": true,
+  "previousConsentTransferred": false,
+  "historicalOwnerComment": {
+    "id": 6550135699,
+    "createdAt": "2026-10-31T22:44:06Z",
+    "updatedAt": "2026-10-31T22:44:06Z",
+    "boundRequestDigest": "04133e7876940a9ad616176f70b0e7d02c349ee45be926d4b20e25fa955e9a2e",
+    "personalConsentDeadline": "2026-10-31T23:14:06Z",
+    "priorDrainDeadline": "2026-10-31T23:22:24.000Z",
+    "historicallyFreshAtCollection": "2026-10-31T23:01:51.275Z",
+    "currentUse": "historical preservation only; not transferred to a new request"
+  },
+  "lineage": {
+    "writerHead": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "previousArchive": "08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+    "newArchiveParent": "08ede13aa6e7028c826335986a94ab98c6b1cdd8"
+  },
+  "preparationOnly": true,
+  "noPersonalApprovalRequested": true,
+  "remoteReadback": "PENDING",
+  "ownerAttestationForNewRequest": "NOT_REQUESTED_NOT_PRESENT",
+  "limits": [
+    "No global absence of writers is asserted; every inventory retains its own observation scope.",
+    "Lifecycle channel classification is conditional on the reviewed exact three metadata files; a real additional implementation writer would require reevaluation, not omission or renamed paths.",
+    "The historical candidate and old consent are preserved only as history; neither authorizes current release.",
+    "No material edit, task/claim operation, collector, gate, deployment or release is executed by this preparation."
+  ]
+}

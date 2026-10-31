@@ -1,0 +1,84 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "comments": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3462#issuecomment-6550373645",
+        "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: 4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492",
+        "user": {
+          "login": "github-actions[bot]",
+          "name": "github-actions[bot]",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+          "id": 41898282
+        },
+        "id": 6550373645,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: 4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3462#issuecomment-6550376015",
+        "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3462 at 2026-10-31T23:07:48Z.",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550376015,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6140809276\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3462\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3462/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3462\">#3462</a> at 2026-10-31T23:07:48Z.</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3462#issuecomment-6550432626",
+        "body": "MORRO_AGENT_RESULT_V3\n\n- id: coverage-retirement-complete-proof-20261031-cf947\n- target: termux\n- exit_code: 125\n- started_at: 2026-10-31T23:07:51Z\n- ended_at: 2026-10-31T23:13:11Z\n- duration_seconds: 320\n- request_sha256: 4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"coverage-retirement-complete-proof-20261031-cf947\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:07:51Z\",\"ended_at\":\"2026-10-31T23:13:11Z\",\"duration_seconds\":320,\"exit_code\":125,\"request_sha256\":\"4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\nLockfile is up to date, resolution step is skipped\nProgress: resolved 1, reused 0, downloaded 0, added 0\n.                                        | +158 ++++++++++++++++\nProgress: resolved 158, reused 101, downloaded 0, added 0\nProgress: resolved 158, reused 156, downloaded 0, added 3\n\n   ╭───────────────────────────────────────────────╮\n   │                                               │\n   │     Update available! 10.15.0 → 12.16.1.      │\n   │     Changelog: https://pnpm.io/v/12.16.1      │\n   │   To update, run: corepack use pnpm@12.16.1   │\n   │                                               │\n   ╰───────────────────────────────────────────────╯\n\nProgress: resolved 158, reused 156, downloaded 2, added 26\nProgress: resolved 158, reused 156, downloaded 2, added 52\nProgress: resolved 158, reused 156, downloaded 2, added 90\nProgress: resolved 158, reused 156, downloaded 2, added 100\nProgress: resolved 158, reused 156, downloaded 2, added 103\nProgress: resolved 158, reused 156, downloaded 2, added 117\nProgress: resolved 158, reused 156, downloaded 2, added 137\nProgress: resolved 158, reused 156, downloaded 2, added 158, done\nDone in 11.9s using pnpm v10.15.0\n\n{\"kind\": \"FROZEN_CANDIDATE_QA\", \"workspace\": \"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate\", \"sourceHead\": \"e78f891eaea58ce850d154426420ea5e0c3dcdc1\", \"tree\": \"98d1f5b4b861684ec6495d983e0d272ef4960d42\", \"dependencySeed\": \"frozen-root-install-completed\", \"purpose\": \"proof-only; no material editing, task migration, lease issuance, commit creation or deployment\"}\n{\"mode\":\"--certify\",\"exitCode\":125,\"runtime\":\"debian-proot\",\"stdout\":\"\",\"stderr\":\"proot warning: can't sanitize binding \\\"/proc/self/fd/0\\\": No such file or directory\\nproot warning: can't sanitize binding \\\"/proc/self/fd/1\\\": No such file or directory\\nproot warning: can't sanitize binding \\\"/proc/self/fd/2\\\": No such file or directory\\nAUTH_EXEC_RUNTIME_FAILED\\n\"}\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3462/\n",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550432626,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: coverage-retirement-complete-proof-20261031-cf947</li>\n<li>target: termux</li>\n<li>exit_code: 125</li>\n<li>started_at: 2026-10-31T23:07:51Z</li>\n<li>ended_at: 2026-10-31T23:13:11Z</li>\n<li>duration_seconds: 320</li>\n<li>request_sha256: 4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"coverage-retirement-complete-proof-20261031-cf947\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:07:51Z\",\"ended_at\":\"2026-10-31T23:13:11Z\",\"duration_seconds\":320,\"exit_code\":125,\"request_sha256\":\"4bc3b8310845efc52ae809d24af49e101f5bfabb550834a78b7812def5604492\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text<br>\nLockfile is up to date, resolution step is skipped<br>\nProgress: resolved 1, reused 0, downloaded 0, added 0<br>\n.                                        | +158 ++++++++++++++++<br>\nProgress: resolved 158, reused 101, downloaded 0, added 0<br>\nProgress: resolved 158, reused 156, downloaded 0, added 3</p>\n<p dir=\"auto\">╭───────────────────────────────────────────────╮<br>\n│                                               │<br>\n│     Update available! 10.15.0 → 12.16.1.      │<br>\n│     Changelog: <a href=\"https://pnpm.io/v/12.16.1\" rel=\"nofollow\">https://pnpm.io/v/12.16.1</a>      │<br>\n│   To update, run: corepack use pnpm@12.16.1   │<br>\n│                                               │<br>\n╰───────────────────────────────────────────────╯</p>\n<p dir=\"auto\">Progress: resolved 158, reused 156, downloaded 2, added 26<br>\nProgress: resolved 158, reused 156, downloaded 2, added 52<br>\nProgress: resolved 158, reused 156, downloaded 2, added 90<br>\nProgress: resolved 158, reused 156, downloaded 2, added 100<br>\nProgress: resolved 158, reused 156, downloaded 2, added 103<br>\nProgress: resolved 158, reused 156, downloaded 2, added 117<br>\nProgress: resolved 158, reused 156, downloaded 2, added 137<br>\nProgress: resolved 158, reused 156, downloaded 2, added 158, done<br>\nDone in 11.9s using pnpm v10.15.0</p>\n<p dir=\"auto\">{\"kind\": \"FROZEN_CANDIDATE_QA\", \"workspace\": \"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate\", \"sourceHead\": \"e78f891eaea58ce850d154426420ea5e0c3dcdc1\", \"tree\": \"98d1f5b4b861684ec6495d983e0d272ef4960d42\", \"dependencySeed\": \"frozen-root-install-completed\", \"purpose\": \"proof-only; no material editing, task migration, lease issuance, commit creation or deployment\"}<br>\n{\"mode\":\"--certify\",\"exitCode\":125,\"runtime\":\"debian-proot\",\"stdout\":\"\",\"stderr\":\"proot warning: can't sanitize binding \"/proc/self/fd/0\": No such file or directory\\nproot warning: can't sanitize binding \"/proc/self/fd/1\": No such file or directory\\nproot warning: can't sanitize binding \"/proc/self/fd/2\": No such file or directory\\nAUTH_EXEC_RUNTIME_FAILED\\n\"}<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3462/</p>"
+      }
+    ],
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3462",
+    "title": "luizanunciostoca/morro-termux-control Issue #3462 comments",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3462",
+    "display_title": "luizanunciostoca/morro-termux-control Issue #3462 comments"
+  },
+  "isError": false
+}
+

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "CONTROLLER_DISPOSITION_OF_HISTORICAL_LIFECYCLE_CHANNEL",
+  "observedAt": "2026-10-31T23:48:41.491520+00:00",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "controllerSession": "/root",
+  "earlierInventory": {
+    "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/controller-inventory.json",
+    "sha256": "45797c696f60ce54f8efcbabd5c18136701b330b9989abed54a7f30579ece5a1",
+    "preservedWithoutEdits": true
+  },
+  "independentReview": {
+    "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native-independent-review.json",
+    "sha256": "47d59be891d529e77be011e0e7fc6d70cfb32fd1e2b6525859ddb37066053d34"
+  },
+  "historicalCandidateInspection": {
+    "path": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/historical-native/candidate-exact-output-inspection.json",
+    "sha256": "6e56140be8ea7703f17adf67c2783284bcdb7aadd5d61e0ea954c17835adc9a9"
+  },
+  "decision": "PREPARE_WITH_ONE_ORIGINAL_MATERIAL_WRITER_AND_EXPLICIT_SEPARATE_HISTORICAL_LIFECYCLE_CHANNEL",
+  "basis": "Canonical claim/task routing, ORCHESTRATOR lifecycle builder, preservation of material state, exact three-metadata candidate scope, request/result bindings, and observed absence of matching pending processes. This is a bounded semantic inference, not a schema exception or owner completeness attestation.",
+  "materialWriter": {
+    "sessionId": "/root/autoridade_e_codigo",
+    "writerId": "cloud-coverage-authority-worker",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "state": "STOPPED",
+    "ackScopeNotExpanded": true
+  },
+  "historicalLifecycleChannel": {
+    "headSha": "e78f891eaea58ce850d154426420ea5e0c3dcdc1",
+    "treeSha": "98d1f5b4b861684ec6495d983e0d272ef4960d42",
+    "retainedWithOwnControllerNativeProvenance": true,
+    "notAttributedToOriginalMaterialAuthor": true,
+    "notMereTransport": true,
+    "notIntegrated": true,
+    "allHistoricalBytesAndFailuresRetained": true,
+    "candidateOutputIdentity": "ledger and manifest byte-identical; claims.json formatting differs but JSON is semantically identical"
+  },
+  "currentPreparationRoles": [
+    {
+      "sessionId": "/root",
+      "role": "controller, reviewer, publisher of archival objects only"
+    },
+    {
+      "sessionId": "/root/autoridade_e_codigo",
+      "role": "same original material writer stopped; new factual ACK and archival preparation"
+    },
+    {
+      "sessionId": "/root/runtime_evidencias",
+      "role": "independent read-only review; final classification report delivered"
+    },
+    {
+      "sessionId": "/root/matriz_cobertura",
+      "role": "documentary report and package only, outside material workspaces"
+    }
+  ],
+  "pendingMaterialCommandsKnownToController": [],
+  "knownCurrentNativeReadOnlyJobs": [
+    {
+      "issue": 3467,
+      "exitCode": 0,
+      "endedAt": "2026-10-31T23:37:53Z"
+    },
+    {
+      "issue": 3468,
+      "exitCode": 0,
+      "endedAt": "2026-10-31T23:41:12Z"
+    }
+  ],
+  "archivePreparationAuthorized": true,
+  "newPersonalApprovalRequested": false,
+  "canonicalRetirementExecutionAuthorizedInThisStage": false,
+  "materialWritingResumed": false,
+  "noCanonicalSourceTaskClaimHistoryEdits": true,
+  "blockConditions": [
+    "Any real second implementation writer or unresolved material command/child.",
+    "Any candidate delta outside the three lifecycle metadata paths.",
+    "Any undisclosed implementation task/lease or source edit.",
+    "Any identity, preservation, request-schema or remote-readback mismatch."
+  ],
+  "limits": [
+    "This addendum resolves only the earlier representation question and does not rewrite the earlier PENDING_REVIEW observation.",
+    "Factual zeros retain the original author/controller/Native scopes; unknown global writers are not asserted absent.",
+    "Preparatory documentary agents can remain active without material authority; a later final readback must record completion of archival publication.",
+    "The new request and receipt still require their own structural, freshness and remote-byte checks; no personal consent or release is supplied by this disposition."
+  ]
+}

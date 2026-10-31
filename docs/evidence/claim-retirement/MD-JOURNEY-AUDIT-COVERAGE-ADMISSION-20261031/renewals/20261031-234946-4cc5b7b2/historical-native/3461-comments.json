@@ -1,0 +1,84 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "comments": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3461#issuecomment-6550361493",
+        "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d",
+        "user": {
+          "login": "github-actions[bot]",
+          "name": "github-actions[bot]",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+          "id": 41898282
+        },
+        "id": 6550361493,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3461#issuecomment-6550362076",
+        "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3461 at 2026-10-31T23:06:27Z.",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550362076,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6140800013\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3461\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3461/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3461\">#3461</a> at 2026-10-31T23:06:27Z.</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3461#issuecomment-6550365994",
+        "body": "MORRO_AGENT_RESULT_V3\n\n- id: coverage-retirement-proof-debian-20261031-cf947\n- target: termux\n- exit_code: 1\n- started_at: 2026-10-31T23:06:30Z\n- ended_at: 2026-10-31T23:06:50Z\n- duration_seconds: 20\n- request_sha256: f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"coverage-retirement-proof-debian-20261031-cf947\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:06:30Z\",\"ended_at\":\"2026-10-31T23:06:50Z\",\"duration_seconds\":20,\"exit_code\":1,\"request_sha256\":\"f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\n{\"dependencyDiscovery\": {\"seed\": null, \"scanned\": 697}, \"qa\": \"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate\"}\nLockfile is up to date, resolution step is skipped\nProgress: resolved 1, reused 0, downloaded 0, added 0\n.                                        | +158 ++++++++++++++++\nProgress: resolved 158, reused 6, downloaded 0, added 0\nProgress: resolved 158, reused 25, downloaded 0, added 0\nProgress: resolved 158, reused 55, downloaded 0, added 0\nProgress: resolved 158, reused 101, downloaded 0, added 0\nProgress: resolved 158, reused 108, downloaded 0, added 0\nProgress: resolved 158, reused 133, downloaded 0, added 0\nProgress: resolved 158, reused 156, downloaded 0, added 0\nProgress: resolved 158, reused 156, downloaded 0, added 32\nProgress: resolved 158, reused 156, downloaded 0, added 105\nProgress: resolved 158, reused 156, downloaded 0, added 140\n ERR_PNPM_NO_OFFLINE_TARBALL  A package is missing from the store but cannot download it in offline mode. The missing package may be downloaded from https://registry.npmjs.org/minimatch/-/minimatch-11.0.3.tgz.\n\nproot warning: can't sanitize binding \"/proc/self/fd/0\": No such file or directory\nproot warning: can't sanitize binding \"/proc/self/fd/1\": No such file or directory\nproot warning: can't sanitize binding \"/proc/self/fd/2\": No such file or directory\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3461/\n",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6550365994,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: coverage-retirement-proof-debian-20261031-cf947</li>\n<li>target: termux</li>\n<li>exit_code: 1</li>\n<li>started_at: 2026-10-31T23:06:30Z</li>\n<li>ended_at: 2026-10-31T23:06:50Z</li>\n<li>duration_seconds: 20</li>\n<li>request_sha256: f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"coverage-retirement-proof-debian-20261031-cf947\",\"target\":\"termux\",\"started_at\":\"2026-10-31T23:06:30Z\",\"ended_at\":\"2026-10-31T23:06:50Z\",\"duration_seconds\":20,\"exit_code\":1,\"request_sha256\":\"f08e00ced5d37b75382a9cceb472b89e227684f89ccd69ab99026e0410aa6b5d\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text<br>\n{\"dependencyDiscovery\": {\"seed\": null, \"scanned\": 697}, \"qa\": \"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate\"}<br>\nLockfile is up to date, resolution step is skipped<br>\nProgress: resolved 1, reused 0, downloaded 0, added 0<br>\n.                                        | +158 ++++++++++++++++<br>\nProgress: resolved 158, reused 6, downloaded 0, added 0<br>\nProgress: resolved 158, reused 25, downloaded 0, added 0<br>\nProgress: resolved 158, reused 55, downloaded 0, added 0<br>\nProgress: resolved 158, reused 101, downloaded 0, added 0<br>\nProgress: resolved 158, reused 108, downloaded 0, added 0<br>\nProgress: resolved 158, reused 133, downloaded 0, added 0<br>\nProgress: resolved 158, reused 156, downloaded 0, added 0<br>\nProgress: resolved 158, reused 156, downloaded 0, added 32<br>\nProgress: resolved 158, reused 156, downloaded 0, added 105<br>\nProgress: resolved 158, reused 156, downloaded 0, added 140<br>\n ERR_PNPM_NO_OFFLINE_TARBALL  A package is missing from the store but cannot download it in offline mode. The missing package may be downloaded from <a href=\"https://registry.npmjs.org/minimatch/-/minimatch-11.0.3.tgz\" rel=\"nofollow\">https://registry.npmjs.org/minimatch/-/minimatch-11.0.3.tgz</a>.</p>\n<p dir=\"auto\">proot warning: can't sanitize binding \"/proc/self/fd/0\": No such file or directory<br>\nproot warning: can't sanitize binding \"/proc/self/fd/1\": No such file or directory<br>\nproot warning: can't sanitize binding \"/proc/self/fd/2\": No such file or directory<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3461/</p>"
+      }
+    ],
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3461",
+    "title": "luizanunciostoca/morro-termux-control Issue #3461 comments",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3461",
+    "display_title": "luizanunciostoca/morro-termux-control Issue #3461 comments"
+  },
+  "isError": false
+}
+
