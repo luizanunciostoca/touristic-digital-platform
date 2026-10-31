@@ -113,6 +113,7 @@ async function refreshAfterMutation(confirmation, target = status) {
   } catch {
     const retry = document.createElement("button");
     retry.type = "button";
+    retry.style.minHeight = "44px";
     retry.textContent = "Atualizar lista";
     retry.addEventListener("click", async () => {
       retry.disabled = true;

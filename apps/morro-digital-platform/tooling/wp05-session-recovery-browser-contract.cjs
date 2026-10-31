@@ -210,6 +210,11 @@ async function verifyReferralMutationRecovery(page) {
           ? /Lead vinculado\./
           : /Indicação atualizada\./;
     await retry.waitFor();
+    const retryBox = await retry.boundingBox();
+    assert.ok(
+      retryBox && retryBox.height >= 44 && retryBox.width >= 44,
+      `${operation}: refresh target must be at least 44 by 44 CSS pixels`,
+    );
     assert.match(await target.textContent(), confirmation);
     assert.match(
       await target.textContent(),
@@ -266,13 +271,12 @@ async function verifyReferralMutationRecovery(page) {
   await page.unroute("**/api/crm/referrals**", route);
 }
 
-if (process.argv.includes("--wp06-deterministic")) {
-  registerReferralMutationTests();
-} else {
-  run().catch((e) => {
-    console.error(e);
-    process.exitCode = 1;
-  });
+registerReferralMutationTests();
+if (!process.argv.includes("--wp06-deterministic")) {
+  require("node:test").test(
+    "WP05 session recovery and WP06 confirmed referral mutations in Chromium",
+    run,
+  );
 }
 
 // These tests execute the actual referral controller with deterministic DOM and
@@ -295,6 +299,7 @@ function registerReferralMutationTests() {
         const retry = target.querySelector("button");
         assert.ok(retry, "confirmed write must offer a list refresh");
         assert.equal(retry.textContent, "Atualizar lista");
+        assert.equal(retry.style.minHeight, "44px");
         await retry.click();
         assert.equal(fixture.writes(), 1);
         assert.equal(fixture.reads(), 2);
@@ -347,6 +352,7 @@ async function referralFixture() {
     constructor(tagName = "div") {
       this.tagName = tagName;
       this.dataset = {};
+      this.style = {};
       this.children = [];
       this.listeners = new Map();
       this.disabled = false;
