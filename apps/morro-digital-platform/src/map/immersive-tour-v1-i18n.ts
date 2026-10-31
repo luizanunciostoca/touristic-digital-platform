@@ -21,6 +21,7 @@ export interface V1ImmersiveTourCopy {
   readonly completedTitle: string;
   readonly completedCta: string;
   readonly notFound: string;
+  photoUnavailable(title: string): string;
   stopLabel(current: number, total: number): string;
   stopsLabel(count: number): string;
   stopsOf(title: string): string;
@@ -48,6 +49,7 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "Gostou? Compartilhe com seus amigos e volte sempre! 🌊",
     notFound:
       "Desculpe, não encontrei o roteiro para este passeio. Tente novamente ou escolha outro passeio.",
+    photoUnavailable: (title: string) => `Foto indisponível para ${title}.`,
     stopLabel: (current: number, total: number) =>
       `Parada ${current} de ${total}`,
     stopsLabel: (count: number) => `${count} paradas:`,
@@ -76,6 +78,7 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "Liked it? Share with your friends and come back soon! 🌊",
     notFound:
       "Sorry, I couldn't find the itinerary for this tour. Please try again or choose another tour.",
+    photoUnavailable: (title: string) => `Photo unavailable for ${title}.`,
     stopLabel: (current: number, total: number) =>
       `Stop ${current} of ${total}`,
     stopsLabel: (count: number) => `${count} stops:`,
@@ -104,6 +107,7 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "¿Te gustó? ¡Comparte con tus amigos y vuelve pronto! 🌊",
     notFound:
       "Lo siento, no encontré el itinerario para este paseo. Por favor, inténtalo de nuevo o elige otro paseo.",
+    photoUnavailable: (title: string) => `Foto no disponible para ${title}.`,
     stopLabel: (current: number, total: number) =>
       `Parada ${current} de ${total}`,
     stopsLabel: (count: number) => `${count} paradas:`,
@@ -132,6 +136,7 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "אהבת? שתף עם חבריך וחזור בקרוב! 🌊",
     notFound:
       "מצטער, לא מצאתי את המסלול לסיור זה. אנא נסה שוב או בחר סיור אחר.",
+    photoUnavailable: (title: string) => `התמונה אינה זמינה עבור ${title}.`,
     stopLabel: (current: number, total: number) =>
       `עצירה ${current} מתוך ${total}`,
     stopsLabel: (count: number) => `${count} עצירות:`,

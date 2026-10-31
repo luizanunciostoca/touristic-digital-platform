@@ -375,6 +375,14 @@ export function createV1ImmersiveTourController(
     card.dataset.stopIndex = String(state.currentStopIndex);
     card.dataset.totalStops = String(tour.stops.length);
     card.dataset.photoState = stop.photoPath ? "available" : "missing";
+    const photoUnavailable = createElement(
+      document,
+      "p",
+      "tour-stop-photo-unavailable",
+      copy.photoUnavailable(stop.title),
+    );
+    photoUnavailable.hidden = Boolean(stop.photoPath);
+    photoUnavailable.setAttribute("role", "status");
 
     const compactHeader = createElement(document, "div", "tour-active-header");
     const compactThumb = createElement(
@@ -481,6 +489,7 @@ export function createV1ImmersiveTourController(
         () => {
           card.dataset.photoState = "missing";
           photoWrap.hidden = true;
+          photoUnavailable.hidden = false;
         },
         { once: true },
       );
@@ -503,6 +512,7 @@ export function createV1ImmersiveTourController(
     header.appendChild(
       createElement(document, "strong", "tour-stop-title", stop.title),
     );
+    header.appendChild(photoUnavailable);
     card.appendChild(header);
     card.appendChild(
       createElement(document, "p", "tour-stop-desc", stop.description),

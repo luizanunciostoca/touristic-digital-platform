@@ -2,8 +2,11 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   installDiscoverLayer,
   installDiscoverLocation,
+  installDiscoverLayersGroup,
 } from "./discover-map-controls.js";
 class Element {
+  id = "";
+  style = { display: "" };
   attrs = new Map<string, string>();
   dataset: Record<string, string> = {};
   disabled = false;
@@ -17,10 +20,20 @@ class Element {
   setAttribute(k: string, v: string) {
     this.attrs.set(k, v);
   }
+  getAttribute(k: string) {
+    return this.attrs.get(k) ?? null;
+  }
+  querySelector(selector: string) {
+    return selector === ".control-tooltip"
+      ? (this.children.find((child) => child.className === "control-tooltip") ??
+          null)
+      : null;
+  }
   removeAttribute(k: string) {
     this.attrs.delete(k);
   }
   append(e: Element) {
+    e.remove();
     this.children.push(e);
     e.parentElement = this;
   }
@@ -29,6 +42,20 @@ class Element {
       this.parentElement.children = this.parentElement.children.filter(
         (x) => x !== this,
       );
+    this.parentElement = null;
+  }
+  before(element: Element) {
+    this.parentElement?.insertBefore(element, this);
+  }
+  insertBefore(element: Element, reference: Element) {
+    element.remove();
+    const index = this.children.indexOf(reference);
+    this.children.splice(index < 0 ? this.children.length : index, 0, element);
+    element.parentElement = this;
+  }
+  replaceWith(element: Element) {
+    this.parentElement?.insertBefore(element, this);
+    this.remove();
   }
   addEventListener(k: string, fn: () => void) {
     this.listeners.set(k, fn);
@@ -43,21 +70,30 @@ class Element {
 afterEach(() => vi.unstubAllGlobals());
 function fixture() {
   vi.stubGlobal("HTMLButtonElement", Element);
-  vi.stubGlobal(
-    "MutationObserver",
-    class {
-      observe() {}
-      disconnect() {}
-    },
-  );
+  const observers = new Set<() => void>();
+  class Observer {
+    constructor(private readonly callback: () => void) {}
+    observe() {
+      observers.add(this.callback);
+    }
+    disconnect() {
+      observers.delete(this.callback);
+    }
+  }
+  vi.stubGlobal("MutationObserver", Observer);
   const parent = new Element(),
     button = new Element(),
     map = new Element();
   parent.append(button);
+  const tooltip = new Element();
+  tooltip.className = "control-tooltip";
+  button.append(tooltip);
   const document = {
     documentElement: { lang: "pt" },
-    getElementById: (id: string) => (id === "map" ? map : button),
+    getElementById: (id: string): Element | null =>
+      id === "map" ? map : button,
     createElement: () => new Element(),
+    createComment: () => new Element(),
     defaultView: { navigator: { geolocation: undefined as unknown } },
   };
   return {
@@ -66,8 +102,109 @@ function fixture() {
     button,
     map,
     parent,
+    setLanguage(language: string) {
+      document.documentElement.lang = language;
+      for (const callback of observers) callback();
+    },
+    observerCount: () => observers.size,
   };
 }
+
+it.each([
+  ["en-US", "Toggle 3D perspective", "Switch map layer", "Show my location"],
+  [
+    "es",
+    "Alternar perspectiva 3D",
+    "Cambiar capa del mapa",
+    "Mostrar mi ubicación",
+  ],
+  ["he-IL", "שינוי זווית תלת־ממד", "החלפת שכבת מפה", "הצג את המיקום שלי"],
+] as const)(
+  "localizes shell controls in %s without depending on a map provider",
+  (locale, perspective, layer, location) => {
+    const f = fixture();
+    f.button.remove();
+    const ids = [
+      "toggle-3d-mode",
+      "toggle-map-layer",
+      "toggle-globe-view",
+      "recenter-map-control",
+    ];
+    const buttons = new Map(
+      ids.map((id) => {
+        const button = new Element();
+        button.id = id;
+        button.setAttribute("aria-label", "Rótulo em português");
+        button.setAttribute("title", "Título em português");
+        button.setAttribute("aria-pressed", "false");
+        const tooltip = new Element();
+        tooltip.className = "control-tooltip";
+        tooltip.textContent = "Texto em português";
+        button.append(tooltip);
+        f.parent.append(button);
+        return [id, button] as const;
+      }),
+    );
+    f.raw.getElementById = (id) => buttons.get(id) ?? null;
+    const dispose = installDiscoverLayersGroup(f.document);
+    f.setLanguage(locale);
+
+    for (const [id, expected] of [
+      [ids[0]!, perspective],
+      [ids[1]!, layer],
+      [ids[3]!, location],
+    ]) {
+      const button = buttons.get(id!)!;
+      expect(button.getAttribute("aria-label")).toBe(expected);
+      expect(button.getAttribute("title")).toBe(expected);
+      expect(button.querySelector(".control-tooltip")?.textContent).not.toBe(
+        "Texto em português",
+      );
+      expect(button.getAttribute("aria-pressed")).toBe("false");
+    }
+    dispose();
+    expect(f.parent.children.map((button) => button.id)).toEqual(ids);
+    expect(f.observerCount()).toBe(0);
+    f.setLanguage("pt-BR");
+    expect(buttons.get(ids[0]!)?.getAttribute("aria-label")).toBe(perspective);
+  },
+);
+
+it("updates layer labels during a pending provider operation without changing its state", () => {
+  const f = fixture();
+  const setStyle = vi.fn();
+  const dispose = installDiscoverLayer({
+    document: f.document,
+    map: { setStyle, on: vi.fn(), off: vi.fn() },
+    standardStyle: "standard",
+    satelliteStyle: "satellite",
+  });
+  f.button.click();
+  f.setLanguage("en");
+  expect(f.button.getAttribute("title")).toBe("Switch map layer");
+  expect(f.button.getAttribute("aria-label")).toBe("Switch map layer");
+  expect(f.button.getAttribute("aria-busy")).toBe("true");
+  expect(f.button.getAttribute("aria-pressed")).toBe("false");
+  expect(setStyle).toHaveBeenCalledExactlyOnceWith("satellite");
+  dispose();
+});
+
+it("localizes the location control without requesting location", () => {
+  const f = fixture();
+  const getCurrentPosition = vi.fn();
+  f.raw.defaultView.navigator.geolocation = { getCurrentPosition };
+  const dispose = installDiscoverLocation({
+    document: f.document,
+    currentLocation: () => undefined,
+    onLocation: vi.fn(),
+  });
+  f.setLanguage("es");
+  expect(f.button.getAttribute("aria-label")).toBe("Mostrar mi ubicación");
+  expect(f.button.getAttribute("title")).toBe("Mostrar mi ubicación");
+  expect(getCurrentPosition).not.toHaveBeenCalled();
+  dispose();
+  expect(f.observerCount()).toBe(0);
+});
 it("does not activate a thrown or unacknowledged style and removes provider listeners", () => {
   const f = fixture(),
     listeners = new Map<string, () => void>();

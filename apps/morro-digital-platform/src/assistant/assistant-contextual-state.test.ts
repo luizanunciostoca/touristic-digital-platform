@@ -1,11 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AssistantMessageInput } from "@touristic/assistant";
 import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-router.js";
 
 import {
   ASSISTANT_CONTEXTUAL_STATE_MATRIX,
+  installAssistantContextualMessaging,
   normalizeAssistantContextualLanguage,
   resolveAssistantContextualCategoryLabel,
   resolveAssistantContextualCopy,
@@ -13,6 +15,58 @@ import {
   resolveExploreLocationCount,
   type AssistantContextualState,
 } from "./assistant-contextual-state.js";
+
+afterEach(() => vi.unstubAllGlobals());
+
+function navigationMessagingFixture() {
+  class MessageNode {
+    dataset: Record<string, string> = {};
+  }
+  vi.stubGlobal("HTMLElement", MessageNode);
+  const nodes = new Map<string, MessageNode>();
+  const visible = new Map<string, AssistantMessageInput>();
+  const view = new EventTarget();
+  const document = Object.assign(new EventTarget(), {
+    documentElement: { lang: "pt-BR" },
+    defaultView: view,
+    getElementById: (id: string) => nodes.get(id) ?? null,
+  }) as unknown as Document;
+  const messages = {
+    append: vi.fn((input: AssistantMessageInput) => {
+      if (input.id) {
+        nodes.set(input.id, new MessageNode());
+        visible.set(input.id, input);
+      }
+      return null;
+    }),
+    removeById: vi.fn((id: string) => {
+      nodes.delete(id);
+      return visible.delete(id);
+    }),
+    clear: vi.fn(() => 0),
+  };
+  const messaging = installAssistantContextualMessaging({
+    document,
+    messages,
+    readExploreState: () => ({
+      stage: "menu",
+      category: null,
+      place: null,
+      tour: null,
+      markerCount: 0,
+    }),
+  });
+  return {
+    messaging,
+    messages,
+    visible,
+    status(detail: Record<string, unknown>) {
+      const event = new Event("navigationStatusChanged");
+      Object.defineProperty(event, "detail", { value: detail });
+      view.dispatchEvent(event);
+    },
+  };
+}
 
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
@@ -125,30 +179,55 @@ describe("assistant contextual state messaging", () => {
     );
   });
 
-  it("keeps navigation context on its dedicated surface and leaves completion feedback canonical", async () => {
-    const contextual = await readFile(
-      `${repositoryRoot}apps/morro-digital-platform/src/assistant/assistant-contextual-state.ts`,
-      "utf8",
-    );
-    const feedback = await readFile(
-      `${repositoryRoot}apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts`,
-      "utf8",
-    );
+  it.each([false, undefined])(
+    "keeps terminal failure in the replaceable conversation when active is %s",
+    (isActive) => {
+      const f = navigationMessagingFixture();
+      f.status({
+        phase: "active",
+        isActive: true,
+        destination: "Segunda Praia",
+      });
+      f.status({ phase: "failed", isActive });
 
-    expect(contextual).toContain("assistant-navigation-contextual-state");
-    expect(contextual).toContain('area === "navigation"');
-    expect(contextual).toContain('publish("provider_error", {}, "navigation")');
-    expect(contextual).toContain("options.messages.removeById");
-    expect(contextual).toContain("contextualNonBlocking");
-    expect(contextual).toContain("conversationTurnId");
-    expect(contextual).toContain('publish("online_restored")');
-    expect(contextual).toContain(
-      "Completion feedback has a dedicated canonical presenter",
+      expect(f.visible.has("assistant-navigation-contextual-state")).toBe(
+        false,
+      );
+      expect(f.messages.append).toHaveBeenLastCalledWith(
+        expect.objectContaining({ area: "messages", navigationActive: false }),
+      );
+      for (const state of [
+        "category_selected",
+        "place_selected",
+        "action_available",
+      ] as const) {
+        f.messaging.publish(state, {
+          category: "Praias",
+          place: "Segunda Praia",
+        });
+        expect(f.visible.has("assistant-navigation-contextual-state")).toBe(
+          false,
+        );
+        expect(f.visible.size).toBe(1);
+      }
+      f.messaging.destroy();
+      expect(f.visible.size).toBe(0);
+    },
+  );
+
+  it("preserves failure feedback for navigation that is still active", () => {
+    const f = navigationMessagingFixture();
+    f.status({ phase: "active", isActive: true, destination: "Segunda Praia" });
+    f.status({ phase: "failed", isActive: true });
+    expect(f.visible.get("assistant-navigation-contextual-state")).toEqual(
+      expect.objectContaining({ area: "navigation", navigationActive: true }),
     );
-    expect(contextual).not.toContain(
-      'publish(detail?.reason === "arrived" ? "arrival" : "cancelled"',
-    );
-    expect(feedback).toContain("destinationFromCurrentSurface");
+    expect(f.visible.has("assistant-contextual-state")).toBe(false);
+    f.status({ phase: "ended", isActive: false });
+    expect(f.visible.size).toBe(0);
+    f.messaging.destroy();
+    f.status({ phase: "active", isActive: true });
+    expect(f.visible.size).toBe(0);
   });
 
   it("maps Explore stages to coherent contextual states", () => {
