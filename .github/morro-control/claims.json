@@ -110,6 +110,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
+    },
+    "MD-MINIMATCH-SECURITY-20261031": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/minimatch-security-20261031",
+      "baseSha": "0b0d54663503d32d9cc3b6c0ad462c65509c6614",
+      "paths": [
+        ".morro/changesets/MD-MINIMATCH-SECURITY-20261031.json",
+        "package.json",
+        "pnpm-lock.yaml",
+        "tooling/quality/dependency-security-remediation.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-01T23:59:59.000Z"
     }
   }
 }
