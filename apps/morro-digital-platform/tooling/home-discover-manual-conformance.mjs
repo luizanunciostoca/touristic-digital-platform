@@ -423,7 +423,7 @@ async function assertPureDiscover(page, viewport) {
   return state;
 }
 
-async function verifyAppliedMapFilters(page) {
+async function verifyAppliedMapFilters(page, evidence) {
   const applied = await page.evaluate(async () => {
     const { getMorroDigitalApplication } = await import(
       new URL(
@@ -567,6 +567,11 @@ async function verifyAppliedMapFilters(page) {
     (await page.locator("#map").getAttribute("data-explore-state")) === "ready",
     "clear must be provider-confirmed before zero",
   );
+  const viewport = page.viewportSize();
+  if (viewport?.width === 390 && viewport.height === 844) {
+    evidence.deferredAssistantPresentation =
+      await verifyDeferredAssistantPresentation(page.context());
+  }
 }
 
 async function verifyDeferredAssistantPresentation(context) {
@@ -1695,8 +1700,6 @@ try {
         });
       }
       if (viewport.name === "390x844") {
-        evidence.deferredAssistantPresentation =
-          await verifyDeferredAssistantPresentation(context);
         await verifyLocales(page);
         await verifyProfileAndPrivacy(page);
         await verifyAssistantEntry(page);
@@ -1704,7 +1707,7 @@ try {
         await verifyVariants(page, viewport, evidence);
       }
 
-      await verifyAppliedMapFilters(page);
+      await verifyAppliedMapFilters(page, evidence);
       assert(pageErrors.length === 0, "Browser page errors", pageErrors);
       evidence.viewports.push({ viewport, state, pageErrors });
       await context.close();
