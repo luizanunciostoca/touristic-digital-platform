@@ -17,6 +17,37 @@ import {
 const all = suiteManifest.suites.map((suite) => suite.workflow);
 const BASE = "a".repeat(40);
 const HEAD = "b".repeat(40);
+const loginTest =
+  "apps/morro-digital-platform/src/business-login-entry.test.ts";
+const wp05Files = [
+  "apps/admin-crm/public/referrals.js",
+  "apps/admin-crm/public/trials.js",
+  "apps/morro-digital-platform/src/affiliate-portal-client.ts",
+  "apps/morro-digital-platform/src/affiliate-portal-entry.ts",
+  loginTest,
+  "apps/morro-digital-platform/src/business-login-entry.ts",
+  "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
+  "packages/auth-browser/src/index.test.ts",
+  "packages/auth-browser/src/index.ts",
+];
+test("WP05 login source, regression test and composed product have scheduled coverage", () => {
+  for (const files of [[loginTest], [wp05Files[5]], wp05Files]) {
+    const report = analyzeFiles(files);
+    assert.equal(report.classificationBlocked, false);
+    assert.ok(
+      selectSuites(report).includes("control-center-browser-contract.yml"),
+    );
+  }
+});
+test("full WP05 regression cannot mask missing login test coverage", () => {
+  const manifest = structuredClone(suiteManifest);
+  for (const suite of manifest.suites)
+    suite.paths = suite.paths.filter((path) => path !== loginTest);
+  assert.throws(
+    () => selectSuites(analyzeFiles(wp05Files), manifest),
+    /CI_SUITE_COVERAGE_UNPROVEN:apps\/morro-digital-platform\/src\/business-login-entry\.test\.ts/,
+  );
+});
 function completeReport(overrides = {}) {
   return {
     ...analyzeFiles(["docs/overview.md"], { base: BASE, head: HEAD }),
@@ -261,7 +292,7 @@ test("unmigrated runtime coverage fails closed without unrelated fan-out", () =>
   for (const file of [
     "apps/morro-digital-platform/src/business-location-discovery-adapter.test.ts",
     "apps/morro-digital-platform/src/business-location-discovery-adapter.ts",
-    "apps/morro-digital-platform/src/business-login-entry.test.ts",
+    "apps/morro-digital-platform/src/business-scheduler-gap.test.ts",
     "apps/morro-digital-platform/tooling/business-api-catalog.invariants.mjs",
     "apps/morro-digital-platform/tooling/business-api-media.invariants.mjs",
     "apps/morro-digital-platform/tooling/business-api.test.mjs",

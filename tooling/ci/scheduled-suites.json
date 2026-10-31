@@ -11,6 +11,7 @@
         ".github/workflows/control-center-browser-contract.yml",
         "apps/control-center/**",
         "apps/morro-digital-platform/src/business-login-entry.ts",
+        "apps/morro-digital-platform/src/business-login-entry.test.ts",
         "apps/morro-digital-platform/src/ux/control-center-*",
         "apps/morro-digital-platform/tooling/admin-*.mjs",
         "apps/morro-digital-platform/tooling/auth-api.mjs",
