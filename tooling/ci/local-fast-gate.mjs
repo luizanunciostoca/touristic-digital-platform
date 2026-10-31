@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { ordinaryPrScope } from "../fabric/ordinary-pr-policy.mjs";
+import { selectSuites } from "./suite-scheduler.mjs";
 import { matchesOwnershipPath } from "../fabric/ownership-path.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -533,6 +534,7 @@ if (invokedDirectly) {
     if (plan.mode === "CLASSIFICATION_BLOCK") {
       throw new Error("FAST_GATE_CLASSIFICATION_BLOCKED");
     }
+    selectSuites(report);
     if (process.argv.includes("--plan")) process.exit(0);
 
     const authority = await validateAdmission(baseSha, headSha, files);

@@ -6,9 +6,11 @@ import {
   writeFileSync,
   rmSync,
   chmodSync,
+  copyFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFileSync, spawnSync } from "node:child_process";
 import test from "node:test";
 import { analyzeFiles } from "./impact-analyzer.mjs";
@@ -26,6 +28,69 @@ import {
 } from "./local-fast-gate.mjs";
 
 const BASE = "a".repeat(40);
+
+test("CLI plan, admission and certification reject uncovered runtime before execution", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "fast-gate-suite-coverage-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const repository = fileURLToPath(new URL("../../", import.meta.url));
+  const git = (...args) =>
+    execFileSync("git", args, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  git("clone", "--shared", "--quiet", "--no-checkout", repository, ".");
+  git("checkout", "--quiet", "--detach", "HEAD");
+  git("config", "user.email", "fixture@example.test");
+  git("config", "user.name", "Fixture");
+  const gate = "tooling/ci/local-fast-gate.mjs";
+  copyFileSync(join(repository, gate), join(root, gate));
+  git("add", gate);
+  git("commit", "--allow-empty", "-qm", "current gate fixture");
+  const base = git("rev-parse", "HEAD");
+  git("branch", "-f", "main", base);
+  git("remote", "set-url", "origin", root);
+  git("update-ref", "refs/remotes/origin/main", base);
+  git("switch", "-qc", "fix/suite-coverage-fixture");
+  const uncovered =
+    "apps/morro-digital-platform/src/business-scheduler-gap.test.ts";
+  writeFileSync(join(root, uncovered), "export {};\n");
+  git("add", uncovered);
+  git("commit", "-qm", "uncovered runtime fixture");
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const invoke = (mode) =>
+    spawnSync(process.execPath, [gate, mode, "--base", base], {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 15000,
+      env,
+    });
+  for (const mode of ["--plan", "--admission", "--certify"]) {
+    const result = invoke(mode);
+    assert.ifError(result.error);
+    assert.equal(result.status, 2, mode + result.stdout + result.stderr);
+    assert.match(
+      result.stderr,
+      /CI_SUITE_COVERAGE_UNPROVEN:/,
+      mode + result.stdout + result.stderr,
+    );
+    assert.ok(result.stdout.includes(uncovered));
+    assert.doesNotMatch(result.stdout, /"mode":\s*"(?:ADMITTED|CERTIFIED)"/);
+  }
+  // Removing the preflight reproduces the prior false-positive plan.
+  const source = readFileSync(join(root, gate), "utf8");
+  assert.ok(source.includes("    selectSuites(report);"));
+  writeFileSync(
+    join(root, gate),
+    source.replace("    selectSuites(report);", ""),
+  );
+  git("add", gate);
+  git("commit", "-qm", "remove suite preflight negative control");
+  const historical = invoke("--plan");
+  assert.ifError(historical.error);
+  assert.equal(historical.status, 0, historical.stdout + historical.stderr);
+});
 
 const affectedArgs = buildAffectedTurboArgs(BASE);
 const requestedKinds = ["lint", "typecheck", "test", "build"];
@@ -388,6 +453,15 @@ test("real --certify CLI rejects zero tasks; reverting its dispatch restores fal
     "utf8",
   );
   put("tooling/ci/local-fast-gate.mjs", source);
+  for (const file of [
+    "suite-scheduler.mjs",
+    "scheduled-suites.json",
+    "test-impact-manifest.json",
+  ])
+    put(
+      "tooling/ci/" + file,
+      readFileSync(new URL("./" + file, import.meta.url), "utf8"),
+    );
   put(
     "tooling/ci/affected-quality.mjs",
     readFileSync(new URL("./affected-quality.mjs", import.meta.url), "utf8"),
@@ -421,7 +495,7 @@ test("real --certify CLI rejects zero tasks; reverting its dispatch restores fal
   );
   put(
     "tooling/ci/impact-analyzer.mjs",
-    `console.log(JSON.stringify({base:process.argv[2],head:process.argv[3],files:["fixture.txt"],domains:["ci-tooling"],risk:"HIGH",qualityProfile:"BUGFIX_FAST",nonRuntime:false}));`,
+    `export function analyzeFiles(){throw Error('UNEXPECTED_FIXTURE_ANALYSIS')}; if(process.argv[1]?.endsWith('/impact-analyzer.mjs')) console.log(JSON.stringify({base:process.argv[2],head:process.argv[3],files:["fixture.txt"],domains:["ci-tooling"],risk:"HIGH",qualityProfile:"BUGFIX_FAST",nonRuntime:false}));`,
   );
   put(
     "tooling/ci/fixture.test.mjs",
