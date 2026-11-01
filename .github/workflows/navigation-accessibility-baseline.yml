@@ -14,6 +14,13 @@ on:
       - apps/morro-digital-platform/public/**
       - packages/geospatial/src/**
       - packages/navigation/src/**
+      - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts
+      - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+      - packages/assistant/src/dialog-controller.presentation-language.test.ts
+      - packages/assistant/src/dialog-controller.test.ts
+      - packages/assistant/src/dialog-controller.ts
+      - packages/assistant/src/intent-engine.more-info-i18n.test.ts
+      - packages/assistant/src/intent-engine.ts
 
 permissions:
   contents: read

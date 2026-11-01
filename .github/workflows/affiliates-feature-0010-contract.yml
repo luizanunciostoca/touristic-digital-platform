@@ -22,6 +22,7 @@ on:
       - "docs/features/registry.json"
       - "docs/migration/MASTER-MIGRATION-TRACKER.md"
       - ".github/workflows/affiliates-feature-0010-contract.yml"
+      - ".github/workflows/auth-login-browser-contract.yml"
   workflow_dispatch:
 
 permissions:
