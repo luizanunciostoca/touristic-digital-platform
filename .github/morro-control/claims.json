@@ -147,7 +147,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/retirement-blob-concurrency-20261101",
-      "baseSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "baseSha": "0acd8053209e80a765723130ec11397fcdb6d9f3",
       "paths": [
         "tooling/fabric/claim-retirement-proof.mjs",
         "tooling/fabric/claim-retirement-proof.test.mjs",
