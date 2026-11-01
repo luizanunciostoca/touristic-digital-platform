@@ -17,11 +17,72 @@ const createForm = document.querySelector("#referral-create-form");
 const createSubmit = document.querySelector("#referral-create-submit");
 const createStatus = document.querySelector("#referral-create-status");
 
+let mutationGeneration = 0;
+let readGeneration = 0;
+let listNeedsRefresh = true;
+let listHasLoaded = false;
+const feedbackOwners = new WeakMap();
+const pendingControls = new Map();
+const recovery = document.createElement("p");
+recovery.id = "referrals-recovery";
+recovery.setAttribute("role", "status");
+status.after(recovery);
+
+function beginMutation(target, button, key) {
+  if (pendingControls.has(key)) return null;
+  const operation = { target, button, key, confirmed: false };
+  pendingControls.set(key, operation);
+  feedbackOwners.set(target, operation);
+  ++mutationGeneration;
+  ++readGeneration;
+  if (listNeedsRefresh) offerRecovery();
+  return operation;
+}
+
+function ownsFeedback(operation) {
+  return feedbackOwners.get(operation.target) === operation;
+}
+
+function releaseButton(operation) {
+  if (
+    (!operation.confirmed || operation.key === "create") &&
+    pendingControls.get(operation.key) === operation
+  ) {
+    pendingControls.delete(operation.key);
+  }
+  if (pendingControls.has(operation.key)) return;
+  operation.button.disabled = false;
+  for (const button of list.querySelectorAll("button[data-referral-key]")) {
+    if (button.dataset.referralKey === operation.key) button.disabled = false;
+  }
+}
+
+function offerRecovery(authFailure = false) {
+  if (!listHasLoaded && !feedbackOwners.has(status)) {
+    status.textContent = "Lista ainda não carregada.";
+  }
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.style.minHeight = "44px";
+  retry.textContent = authFailure ? "Tentar novamente" : "Atualizar lista";
+  retry.addEventListener("click", async () => {
+    retry.disabled = true;
+    if (authFailure) await start();
+    else await loadReferrals();
+  });
+  recovery.replaceChildren(
+    document.createTextNode("Não foi possível atualizar a lista. "),
+    retry,
+  );
+}
+
 function actionButton(referralId, action, label) {
   const button = document.createElement("button");
   button.type = "button";
   button.dataset.referralId = String(referralId);
   button.dataset.referralAction = action;
+  button.dataset.referralKey = `${referralId}:${action}`;
+  button.disabled = pendingControls.has(button.dataset.referralKey);
   button.textContent = label;
   return button;
 }
@@ -48,7 +109,7 @@ function actionRow(item) {
   return row;
 }
 
-function linkLeadForm(item) {
+function linkLeadForm(item, draft) {
   const form = document.createElement("form");
   form.dataset.referralLinkForm = "true";
   form.dataset.referralId = String(item.id);
@@ -61,21 +122,39 @@ function linkLeadForm(item) {
   input.min = "1";
   input.step = "1";
   input.required = true;
-  if (item.referredLeadId) input.value = String(item.referredLeadId);
+  input.defaultValue = String(item.referredLeadId ?? "");
+  const pending = pendingControls.get(`${item.id}:link`);
+  input.value = draft &&
+    (draft.value !== draft.baseline || pending?.confirmed === false)
+    ? draft.value
+    : input.defaultValue;
   label.append(input);
 
   const button = document.createElement("button");
   button.type = "submit";
   button.textContent = "Vincular Lead";
+  button.dataset.referralKey = `${item.id}:link`;
+  button.disabled = pendingControls.has(button.dataset.referralKey);
   form.append(label, button);
   return form;
 }
 
 function render(items) {
+  const drafts = new Map(
+    [...list.querySelectorAll("form[data-referral-link-form]")].map((form) => {
+      const input = form.querySelector("input");
+      return [form.dataset.referralId, {
+        value: input.value,
+        baseline: input.defaultValue,
+      }];
+    }),
+  );
   list.replaceChildren();
-  status.textContent = items.length
-    ? `${items.length} registro(s).`
-    : "Nenhum registro encontrado.";
+  if (!feedbackOwners.has(status)) {
+    status.textContent = items.length
+      ? `${items.length} registro(s).`
+      : "Nenhum registro encontrado.";
+  }
   for (const item of items) {
     const article = document.createElement("article");
     const heading = document.createElement("h2");
@@ -91,18 +170,48 @@ function render(items) {
       state,
       linkedLead,
       actionRow(item),
-      linkLeadForm(item),
+      linkLeadForm(item, drafts.get(String(item.id))),
     );
     list.append(article);
   }
 }
 
-async function loadReferrals() {
-  const response = await auth.secureFetch("/api/crm/referrals");
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const payload = await response.json();
-  if (!payload || !Array.isArray(payload.data)) throw new Error("INVALID_RESPONSE");
-  render(payload.data);
+async function loadReferrals(generation = mutationGeneration) {
+  if (generation !== mutationGeneration) return false;
+  listNeedsRefresh = true;
+  const read = ++readGeneration;
+  const current = () => generation === mutationGeneration && read === readGeneration;
+  recovery.textContent = "Atualizando lista…";
+  try {
+    const response = await auth.secureFetch("/api/crm/referrals");
+    if (!current()) return false;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    if (!current()) return false;
+    if (!payload || !Array.isArray(payload.data)) throw new Error("INVALID_RESPONSE");
+    render(payload.data);
+    for (const [key, operation] of pendingControls) {
+      if (!operation.confirmed) continue;
+      pendingControls.delete(key);
+      releaseButton(operation);
+    }
+    listNeedsRefresh = false;
+    listHasLoaded = true;
+    recovery.replaceChildren();
+    return true;
+  } catch {
+    if (current()) offerRecovery();
+    return false;
+  }
+}
+
+async function refreshAfterMutation(confirmation, operation) {
+  operation.confirmed = true;
+  ++mutationGeneration;
+  listNeedsRefresh = true;
+  if (ownsFeedback(operation)) operation.target.textContent = confirmation;
+  // Every confirmed write needs a current read, even after its message lost ownership.
+  await loadReferrals();
 }
 
 async function createReferral(event) {
@@ -118,6 +227,12 @@ async function createReferral(event) {
     return;
   }
 
+  const operation = beginMutation(
+    createStatus || status,
+    createSubmit,
+    "create",
+  );
+  if (!operation) return;
   if (createSubmit instanceof HTMLButtonElement) createSubmit.disabled = true;
   if (createStatus) createStatus.textContent = "Salvando…";
   try {
@@ -127,20 +242,29 @@ async function createReferral(event) {
       body: JSON.stringify({ referrerLeadId, referredName }),
     });
     if (!response.ok) {
-      if (createStatus) createStatus.textContent = `Falha (${response.status}).`;
+      if (ownsFeedback(operation) && createStatus) {
+        createStatus.textContent = `Falha (${response.status}).`;
+      }
       return;
     }
-    createForm.reset();
-    if (createStatus) createStatus.textContent = "Salvo.";
-    await loadReferrals();
+    const currentDraft = new FormData(createForm);
+    if (["referrerLeadId", "referredName"].every(
+      (name) => currentDraft.get(name) === data.get(name),
+    )) {
+      createForm.reset();
+    }
+    await refreshAfterMutation("Salvo.", operation);
   } catch {
-    if (createStatus) createStatus.textContent = "Falha ao salvar.";
+    if (ownsFeedback(operation) && createStatus)
+      createStatus.textContent = "Falha ao salvar.";
   } finally {
-    if (createSubmit instanceof HTMLButtonElement) createSubmit.disabled = false;
+    releaseButton(operation);
   }
 }
 
 async function runAction(referralId, action, button) {
+  const operation = beginMutation(status, button, `${referralId}:${action}`);
+  if (!operation) return;
   button.disabled = true;
   status.textContent = "Atualizando indicação…";
   try {
@@ -149,17 +273,17 @@ async function runAction(referralId, action, button) {
       { method: "POST", headers: { Accept: "application/json" } },
     );
     if (!response.ok) {
-      status.textContent =
+      if (ownsFeedback(operation)) status.textContent =
         response.status === 409
           ? "A transição não é permitida para esta indicação."
           : `Falha ao atualizar (${response.status}).`;
       return;
     }
-    await loadReferrals();
+    await refreshAfterMutation("Indicação atualizada.", operation);
   } catch {
-    status.textContent = "Falha ao atualizar a indicação.";
+    if (ownsFeedback(operation)) status.textContent = "Falha ao atualizar a indicação.";
   } finally {
-    button.disabled = false;
+    releaseButton(operation);
   }
 }
 
@@ -177,6 +301,8 @@ async function linkLead(form) {
   }
 
   const button = form.querySelector('button[type="submit"]');
+  const operation = beginMutation(status, button, `${referralId}:link`);
+  if (!operation) return;
   if (button instanceof HTMLButtonElement) button.disabled = true;
   status.textContent = "Vinculando Lead…";
   try {
@@ -192,14 +318,24 @@ async function linkLead(form) {
       },
     );
     if (!response.ok) {
-      status.textContent = `Falha ao vincular Lead (${response.status}).`;
+      if (ownsFeedback(operation))
+        status.textContent = `Falha ao vincular Lead (${response.status}).`;
       return;
     }
-    await loadReferrals();
+    for (const currentForm of list.querySelectorAll(
+      "form[data-referral-link-form]",
+    )) {
+      if (currentForm.dataset.referralId !== referralId) continue;
+      const input = currentForm.querySelector("input");
+      const value = input.value;
+      input.defaultValue = String(referredLeadId);
+      input.value = value;
+    }
+    await refreshAfterMutation("Lead vinculado.", operation);
   } catch {
-    status.textContent = "Falha ao vincular Lead.";
+    if (ownsFeedback(operation)) status.textContent = "Falha ao vincular Lead.";
   } finally {
-    if (button instanceof HTMLButtonElement) button.disabled = false;
+    releaseButton(operation);
   }
 }
 
@@ -239,11 +375,7 @@ async function start() {
       return;
     }
     sessionStatus.textContent = "Não foi possível verificar a sessão.";
-    const retry = document.createElement("button");
-    retry.type = "button";
-    retry.textContent = "Tentar novamente";
-    retry.addEventListener("click", () => void start(), { once: true });
-    status.replaceChildren(retry);
+    offerRecovery(true);
   }
 }
 
