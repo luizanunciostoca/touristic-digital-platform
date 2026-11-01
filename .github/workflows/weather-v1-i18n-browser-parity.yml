@@ -18,6 +18,10 @@ on:
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - package.json
       - pnpm-lock.yaml
+      - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts
+      - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+      - apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts
+      - apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts
 
 permissions:
   contents: read

@@ -38,6 +38,7 @@ on:
       - "services/ticketing/src/**"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs"
 
 permissions:
   contents: read

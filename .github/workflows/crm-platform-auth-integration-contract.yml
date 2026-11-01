@@ -15,6 +15,7 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/crm-platform-auth-integration-contract.yml"
       - "tooling/crm/**"
+      - ".github/workflows/auth-login-browser-contract.yml"
   push:
     branches:
       - main
@@ -31,6 +32,7 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/crm-platform-auth-integration-contract.yml"
       - "tooling/crm/**"
+      - ".github/workflows/auth-login-browser-contract.yml"
   workflow_dispatch:
 
 permissions:
