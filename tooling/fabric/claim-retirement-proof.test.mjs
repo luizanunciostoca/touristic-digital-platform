@@ -1763,6 +1763,194 @@ function voluntaryFixture(state = "LOCAL_PROVEN", overrides = {}) {
   };
 }
 
+function voluntaryBatchFixture() {
+  const f = voluntaryFixture();
+  for (let index = 2; index < 9; index++) {
+    // Distinct paths may share a blob; every inventory row must still be read.
+    const value =
+      index === 8
+        ? f.routes.get(`/git/blobs/${f.request.wipInventory[0].blobSha}`)
+        : f.blob(`preserved batch material ${index}\n`);
+    const file = preservedFile(`tooling/batch-${index}.mjs`, value, f.hash);
+    f.request.wipInventory.push(file);
+    f.snapshot.tree.push({
+      path: file.path,
+      type: "blob",
+      mode: file.modeGit,
+      sha: file.blobSha,
+    });
+    f.routes.set(`/git/blobs/${value.sha}`, value);
+  }
+  f.refresh();
+  return f;
+}
+
+function controlledVoluntaryBlobFetch(f) {
+  const calls = [],
+    requests = [];
+  let active = 0,
+    maximumActive = 0,
+    passthrough = false;
+  const release = (index, value) => {
+    const request = requests[index];
+    assert.ok(request && !request.settled);
+    request.settled = true;
+    request.resolve(
+      value === undefined
+        ? f.fetchImpl(request.url, request.init)
+        : new Response(JSON.stringify(value), { status: 200 }),
+    );
+  };
+  return {
+    calls,
+    requests,
+    get active() {
+      return active;
+    },
+    get maximumActive() {
+      return maximumActive;
+    },
+    async fetchImpl(url, init) {
+      const path = String(url).replace(
+        "https://api.github.com/repos/owner/repo",
+        "",
+      );
+      calls.push({ path, active });
+      if (
+        !path.startsWith("/git/blobs/") ||
+        passthrough ||
+        requests.length >= f.request.wipInventory.length
+      )
+        return f.fetchImpl(url, init);
+      active++;
+      maximumActive = Math.max(maximumActive, active);
+      return new Promise((resolve, reject) => {
+        requests.push({ path, url, init, resolve, reject, settled: false });
+      }).finally(() => {
+        active--;
+      });
+    },
+    release,
+    reject(index, error) {
+      const request = requests[index];
+      assert.ok(request && !request.settled);
+      request.settled = true;
+      request.reject(error);
+    },
+    drain() {
+      passthrough = true;
+      for (const [index, request] of requests.entries())
+        if (!request.settled) release(index);
+    },
+  };
+}
+
+const nextEventLoopTurn = () => new Promise((resolve) => setImmediate(resolve));
+
+test("VOLUNTARY reads backup blobs in ordered batches of at most four", async () => {
+  const f = voluntaryBatchFixture(),
+    control = controlledVoluntaryBlobFetch(f),
+    completed = f.collect({ fetchImpl: control.fetchImpl }).then(
+      (evidence) => ({ evidence }),
+      (error) => ({ error }),
+    ),
+    refPath = "/git/ref/heads/backup-example",
+    refCalls = () => control.calls.filter(({ path }) => path === refPath);
+  try {
+    await nextEventLoopTurn();
+    assert.equal(control.requests.length, 4);
+    assert.equal(control.active, 4);
+    assert.equal(refCalls().length, 1);
+    for (const index of [0, 1, 2]) control.release(index);
+    await nextEventLoopTurn();
+    assert.equal(control.requests.length, 4);
+    assert.equal(control.active, 1);
+    control.release(3);
+    await nextEventLoopTurn();
+    assert.equal(control.requests.length, 8);
+    assert.equal(control.active, 4);
+    for (const index of [4, 5, 6, 7]) control.release(index);
+    await nextEventLoopTurn();
+    assert.equal(control.requests.length, 9);
+    assert.equal(control.active, 1);
+    assert.equal(refCalls().length, 1);
+    control.release(8);
+    const result = await completed;
+    assert.ifError(result.error);
+    assert.equal(result.evidence.reason, "VOLUNTARY");
+    assert.equal(control.active, 0);
+    assert.equal(control.maximumActive, 4);
+    const expected = f.request.wipInventory.map(
+      (file) => `/git/blobs/${file.blobSha}`,
+    );
+    assert.deepEqual(
+      control.requests.map(({ path }) => path),
+      expected,
+    );
+    assert.deepEqual(
+      control.calls
+        .filter(({ path }) => path.startsWith("/git/blobs/"))
+        .map(({ path }) => path),
+      [...expected, expected[1]],
+    );
+    assert.equal(refCalls().length, 2);
+    assert.equal(refCalls()[1].active, 0);
+    assert.ok(
+      control.calls.findIndex(({ path }) => path === refPath) <
+        control.calls.findIndex(({ path }) => path.startsWith("/git/blobs/")),
+    );
+  } finally {
+    control.drain();
+    await completed;
+  }
+});
+
+test("VOLUNTARY drains a failed blob batch and reports inventory-order failure", async () => {
+  const f = voluntaryBatchFixture(),
+    control = controlledVoluntaryBlobFetch(f);
+  let settled = false;
+  const completed = f.collect({ fetchImpl: control.fetchImpl }).then(
+    (evidence) => {
+      settled = true;
+      return { evidence };
+    },
+    (error) => {
+      settled = true;
+      return { error };
+    },
+  );
+  try {
+    await nextEventLoopTurn();
+    assert.equal(control.requests.length, 4);
+    const callCount = control.calls.length;
+    control.reject(3, new Error("later inventory transport failure"));
+    control.release(1);
+    control.release(2);
+    await nextEventLoopTurn();
+    assert.equal(settled, false);
+    assert.equal(control.active, 1);
+    assert.equal(control.requests.length, 4);
+    const first = f.routes.get(control.requests[0].path);
+    control.release(0, { ...first, size: first.size + 1 });
+    const result = await completed;
+    assert.match(result.error?.message ?? "", /VOLUNTARY_BLOB_SIZE_MISMATCH/u);
+    assert.equal(control.active, 0);
+    assert.equal(control.maximumActive, 4);
+    assert.equal(control.requests.length, 4);
+    // No next batch, final ref, receipt reread, consent reread or main reread.
+    assert.equal(control.calls.length, callCount);
+    assert.equal(
+      control.calls.filter(
+        ({ path }) => path === "/git/ref/heads/backup-example",
+      ).length,
+      1,
+    );
+  } finally {
+    control.drain();
+    await completed;
+  }
+});
+
 test("explicit activation preserves both material states and exact authority envelopes", async () => {
   for (const state of ["IMPLEMENTING", "LOCAL_PROVEN"]) {
     const f = voluntaryFixture(state),
