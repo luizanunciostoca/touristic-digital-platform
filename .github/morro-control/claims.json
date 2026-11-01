@@ -130,7 +130,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/journey-audit-coverage-correction-20261031",
-      "baseSha": "cf5ab9b337d9860b68c68d0964ded00982543944",
+      "baseSha": "07368717de0f4fc8eaefa4ba3cf1ed53911d2c4f",
       "paths": [
         ".morro/ownership.json",
         "tooling/ci/test-impact-manifest.json",
