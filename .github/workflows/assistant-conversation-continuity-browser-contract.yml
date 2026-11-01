@@ -15,6 +15,8 @@ on:
       - apps/morro-digital-platform/src/navigation/**
       - packages/assistant/src/**
       - tooling/ci/test-impact-manifest.json
+      - apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
+      - apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
 
 permissions:
   contents: read

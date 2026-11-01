@@ -20,6 +20,8 @@ on:
       - packages/assistant/src/**
       - packages/search/src/**
       - packages/geospatial/src/**
+      - apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
+      - apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
 
 permissions:
   contents: read
