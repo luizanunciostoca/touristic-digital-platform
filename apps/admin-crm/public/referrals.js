@@ -17,6 +17,29 @@ const createForm = document.querySelector("#referral-create-form");
 const createSubmit = document.querySelector("#referral-create-submit");
 const createStatus = document.querySelector("#referral-create-status");
 
+let mutationGeneration = 0;
+let readGeneration = 0;
+const feedbackOwners = new WeakMap();
+const buttonOwners = new WeakMap();
+
+function beginMutation(target, button) {
+  const operation = { generation: ++mutationGeneration, target, button };
+  feedbackOwners.set(target, operation);
+  if (button instanceof HTMLButtonElement) buttonOwners.set(button, operation);
+  return operation;
+}
+
+function ownsFeedback(operation) {
+  return feedbackOwners.get(operation.target) === operation;
+}
+
+function releaseButton(operation) {
+  if (buttonOwners.get(operation.button) === operation) {
+    operation.button.disabled = false;
+    buttonOwners.delete(operation.button);
+  }
+}
+
 function actionButton(referralId, action, label) {
   const button = document.createElement("button");
   button.type = "button";
@@ -97,27 +120,41 @@ function render(items) {
   }
 }
 
-async function loadReferrals() {
-  const response = await auth.secureFetch("/api/crm/referrals");
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const payload = await response.json();
-  if (!payload || !Array.isArray(payload.data)) throw new Error("INVALID_RESPONSE");
-  render(payload.data);
+async function loadReferrals(generation = mutationGeneration) {
+  if (generation !== mutationGeneration) return false;
+  const read = ++readGeneration;
+  const current = () => generation === mutationGeneration && read === readGeneration;
+  try {
+    const response = await auth.secureFetch("/api/crm/referrals");
+    if (!current()) return false;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    if (!current()) return false;
+    if (!payload || !Array.isArray(payload.data)) throw new Error("INVALID_RESPONSE");
+    render(payload.data);
+    return true;
+  } catch (error) {
+    if (!current()) return false;
+    throw error;
+  }
 }
 
-async function refreshAfterMutation(confirmation, target = status) {
+async function refreshAfterMutation(confirmation, operation) {
+  if (!ownsFeedback(operation)) return;
+  const { target, generation } = operation;
   target.textContent = confirmation;
   try {
-    await loadReferrals();
-    target.textContent = confirmation;
+    const applied = await loadReferrals(generation);
+    if (applied && ownsFeedback(operation)) target.textContent = confirmation;
   } catch {
+    if (!ownsFeedback(operation) || generation !== mutationGeneration) return;
     const retry = document.createElement("button");
     retry.type = "button";
     retry.style.minHeight = "44px";
     retry.textContent = "Atualizar lista";
     retry.addEventListener("click", async () => {
       retry.disabled = true;
-      await refreshAfterMutation(confirmation, target);
+      await refreshAfterMutation(confirmation, operation);
     });
     target.replaceChildren(
       document.createTextNode(
@@ -141,6 +178,7 @@ async function createReferral(event) {
     return;
   }
 
+  const operation = beginMutation(createStatus || status, createSubmit);
   if (createSubmit instanceof HTMLButtonElement) createSubmit.disabled = true;
   if (createStatus) createStatus.textContent = "Salvando…";
   try {
@@ -149,20 +187,23 @@ async function createReferral(event) {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ referrerLeadId, referredName }),
     });
+    if (!ownsFeedback(operation)) return;
     if (!response.ok) {
       if (createStatus) createStatus.textContent = `Falha (${response.status}).`;
       return;
     }
     createForm.reset();
-    await refreshAfterMutation("Salvo.", createStatus || status);
+    await refreshAfterMutation("Salvo.", operation);
   } catch {
-    if (createStatus) createStatus.textContent = "Falha ao salvar.";
+    if (ownsFeedback(operation) && createStatus)
+      createStatus.textContent = "Falha ao salvar.";
   } finally {
-    if (createSubmit instanceof HTMLButtonElement) createSubmit.disabled = false;
+    releaseButton(operation);
   }
 }
 
 async function runAction(referralId, action, button) {
+  const operation = beginMutation(status, button);
   button.disabled = true;
   status.textContent = "Atualizando indicação…";
   let mutationConfirmed = false;
@@ -172,18 +213,19 @@ async function runAction(referralId, action, button) {
       { method: "POST", headers: { Accept: "application/json" } },
     );
     if (!response.ok) {
-      status.textContent =
+      if (ownsFeedback(operation)) status.textContent =
         response.status === 409
           ? "A transição não é permitida para esta indicação."
           : `Falha ao atualizar (${response.status}).`;
       return;
     }
     mutationConfirmed = true;
-    await refreshAfterMutation("Indicação atualizada.");
+    await refreshAfterMutation("Indicação atualizada.", operation);
   } catch {
-    status.textContent = "Falha ao atualizar a indicação.";
+    if (ownsFeedback(operation)) status.textContent = "Falha ao atualizar a indicação.";
   } finally {
-    if (!mutationConfirmed) button.disabled = false;
+    if (!mutationConfirmed || operation.generation !== mutationGeneration)
+      releaseButton(operation);
   }
 }
 
@@ -201,6 +243,7 @@ async function linkLead(form) {
   }
 
   const button = form.querySelector('button[type="submit"]');
+  const operation = beginMutation(status, button);
   if (button instanceof HTMLButtonElement) button.disabled = true;
   status.textContent = "Vinculando Lead…";
   let mutationConfirmed = false;
@@ -217,16 +260,17 @@ async function linkLead(form) {
       },
     );
     if (!response.ok) {
-      status.textContent = `Falha ao vincular Lead (${response.status}).`;
+      if (ownsFeedback(operation))
+        status.textContent = `Falha ao vincular Lead (${response.status}).`;
       return;
     }
     mutationConfirmed = true;
-    await refreshAfterMutation("Lead vinculado.");
+    await refreshAfterMutation("Lead vinculado.", operation);
   } catch {
-    status.textContent = "Falha ao vincular Lead.";
+    if (ownsFeedback(operation)) status.textContent = "Falha ao vincular Lead.";
   } finally {
-    if (button instanceof HTMLButtonElement && !mutationConfirmed)
-      button.disabled = false;
+    if (!mutationConfirmed || operation.generation !== mutationGeneration)
+      releaseButton(operation);
   }
 }
 
@@ -255,16 +299,18 @@ createForm?.addEventListener("submit", (event) => {
 });
 
 async function start() {
+  const generation = mutationGeneration;
   try {
     await auth.getSession();
     sessionStatus.textContent = "Sessão autenticada. Lifecycle operacional.";
-    await loadReferrals();
+    await loadReferrals(generation);
   } catch (error) {
     if (error instanceof Error && error.message === "AUTH_REQUIRED") {
       const current = window.location.pathname + window.location.search;
       window.location.replace("/dashboard/login.html?return=" + encodeURIComponent(current));
       return;
     }
+    if (generation !== mutationGeneration) return;
     sessionStatus.textContent = "Não foi possível verificar a sessão.";
     const retry = document.createElement("button");
     retry.type = "button";
