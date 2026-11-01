@@ -139,30 +139,43 @@ async function loadReferrals(generation = mutationGeneration) {
   }
 }
 
-async function refreshAfterMutation(confirmation, operation) {
+async function refreshAfterMutation(
+  confirmation,
+  operation,
+  generation = operation.generation,
+) {
   if (!ownsFeedback(operation)) return;
-  const { target, generation } = operation;
+  const { target } = operation;
+  const attempt = {};
+  operation.refreshAttempt = attempt;
   target.textContent = confirmation;
+  let applied;
   try {
-    const applied = await loadReferrals(generation);
-    if (applied && ownsFeedback(operation)) target.textContent = confirmation;
+    applied = await loadReferrals(generation);
   } catch {
-    if (!ownsFeedback(operation) || generation !== mutationGeneration) return;
-    const retry = document.createElement("button");
-    retry.type = "button";
-    retry.style.minHeight = "44px";
-    retry.textContent = "Atualizar lista";
-    retry.addEventListener("click", async () => {
-      retry.disabled = true;
-      await refreshAfterMutation(confirmation, operation);
-    });
-    target.replaceChildren(
-      document.createTextNode(
-        `${confirmation} Não foi possível atualizar a lista. `,
-      ),
-      retry,
-    );
+    applied = false;
   }
+  if (!ownsFeedback(operation) || operation.refreshAttempt !== attempt) return;
+  if (applied) {
+    target.textContent = confirmation;
+    return;
+  }
+  // Failed or superseded reads still need recovery for their own feedback.
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.style.minHeight = "44px";
+  retry.textContent = "Atualizar lista";
+  retry.addEventListener("click", async () => {
+    retry.disabled = true;
+    // A new click keeps the confirmed write identity but starts a current read.
+    await refreshAfterMutation(confirmation, operation, mutationGeneration);
+  });
+  target.replaceChildren(
+    document.createTextNode(
+      `${confirmation} Não foi possível atualizar a lista. `,
+    ),
+    retry,
+  );
 }
 
 async function createReferral(event) {

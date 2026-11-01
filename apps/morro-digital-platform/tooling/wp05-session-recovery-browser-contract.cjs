@@ -132,6 +132,7 @@ async function run() {
     status = 200;
     await verifyReferralMutationRecovery(page);
     await verifyReferralMutationRaces(page);
+    await verifyLaterReferralRefreshes(page);
     assert.deepEqual(errors, []);
     console.log(
       "PASS: affiliate login and return, unavailable affiliation runtime, transient recovery, CRM session expiry and confirmed referral writes with read-only refresh recovery",
@@ -623,6 +624,266 @@ async function verifyReferralMutationRace(page, variant) {
     await bounded(Promise.all([...pending]), "own fixture routes settled");
     await page.unroute(referralsApi, route);
     await page.evaluate(() => window.__wp06RaceDom?.observer.disconnect());
+  }
+}
+
+async function verifyLaterReferralRefreshes(page) {
+  const failures = [];
+  for (const [firstRetryStatus, superseded] of [
+    [200, false],
+    [500, false],
+    [200, true],
+  ]) {
+    try {
+      await verifyLaterReferralRefresh(page, firstRetryStatus, superseded);
+    } catch (error) {
+      console.error(
+        `FAIL WP06 later retry ${firstRetryStatus}/superseded=${superseded}: ${error.stack}`,
+      );
+      failures.push(error);
+    }
+  }
+  if (failures.length)
+    throw new AggregateError(failures, "WP06 later explicit refresh failed");
+}
+
+async function verifyLaterReferralRefresh(page, firstRetryStatus, superseded) {
+  const item = { id: 7, status: "pending", referredLeadId: null };
+  const unexpected = [],
+    pageErrors = [],
+    pending = new Set();
+  const onPageError = (error) => pageErrors.push(error.message);
+  page.on("pageerror", onPageError);
+  let releaseHeld, captureHeld;
+  const heldReadReleased = new Promise((resolve) => {
+    releaseHeld = resolve;
+  });
+  const heldReadCaptured = new Promise((resolve) => {
+    captureHeld = resolve;
+  });
+  const needsSecondRetry = firstRetryStatus === 500 || superseded;
+  let reads = 0,
+    writes = 0;
+  const handle = async (route) => {
+    const request = route.request();
+    try {
+      if (request.method() === "POST") {
+        writes++;
+        if (writes === 1) {
+          assert.equal(request.url(), origin + "/api/crm/referrals/7/contact");
+          assert.equal(request.postData(), null);
+          item.status = "contacted";
+          await route.fulfill({ json: { success: true } });
+        } else {
+          assert.equal(writes, 2, "retry must never repeat either write");
+          assert.equal(request.url(), origin + "/api/crm/referrals");
+          assert.deepEqual(request.postDataJSON(), {
+            referrerLeadId: 43,
+            referredName: "B ainda não salvo",
+          });
+          await route.fulfill({
+            status: 409,
+            json: { error: "FIXTURE_CONFLICT" },
+          });
+        }
+      } else {
+        assert.equal(request.method(), "GET");
+        assert.equal(request.url(), origin + "/api/crm/referrals");
+        reads++;
+        assert.ok(
+          reads <= (needsSecondRetry ? 4 : 3),
+          "unexpected additional list read",
+        );
+        if (superseded && reads === 3) {
+          const snapshot = structuredClone(item);
+          captureHeld();
+          await heldReadReleased;
+          await route.fulfill({ json: { data: [snapshot] } });
+          return;
+        }
+        const fail = reads === 2 || (reads === 3 && firstRetryStatus === 500);
+        await route.fulfill(
+          fail
+            ? { status: 500, json: { error: "FIXTURE_REFRESH_FAILED" } }
+            : { json: { data: [item] } },
+        );
+      }
+    } catch (error) {
+      unexpected.push(String(error));
+      await route.fulfill({
+        status: 500,
+        json: { error: "FIXTURE_CONTRACT_FAILED" },
+      });
+    }
+  };
+  const route = async (requestRoute) => {
+    const work = handle(requestRoute);
+    pending.add(work);
+    try {
+      await work;
+    } finally {
+      pending.delete(work);
+    }
+  };
+  await page.route(referralsApi, route);
+  try {
+    await page.goto(origin + "/apps/admin-crm/public/referrals.html");
+    await page.getByText("Registro #7", { exact: true }).waitFor();
+    await page.evaluate(() => {
+      window.__wp06LaterRetryButton = document.querySelector(
+        'button[data-referral-action="contact"]',
+      );
+    });
+    await page.locator('button[data-referral-action="contact"]').click();
+    const target = page.locator("#referrals-status");
+    const retry = target.getByRole("button", {
+      name: "Atualizar lista",
+      exact: true,
+    });
+    await retry.waitFor();
+    assert.match(
+      await target.textContent(),
+      /Indicação atualizada\. Não foi possível atualizar a lista/,
+    );
+    assert.equal(writes, 1);
+    assert.equal(reads, 2);
+    if (superseded) {
+      await retry.click();
+      await heldReadCaptured;
+      assert.deepEqual(
+        await page.evaluate(() => window.__wp06RetryObservations),
+        [{ done: false, thenable: true, error: null }],
+      );
+    }
+    await page.locator('[name="referrerLeadId"]').fill("43");
+    await page.locator('[name="referredName"]').fill("B ainda não salvo");
+    await page.locator("#referral-create-submit").click();
+    await page.getByText("Falha (409).", { exact: true }).waitFor();
+    assert.equal(writes, 2);
+    assert.equal(reads, superseded ? 3 : 2);
+    for (let attempt = 0; attempt < (needsSecondRetry ? 2 : 1); attempt++) {
+      if (superseded && attempt === 0) {
+        await page.evaluate(() => {
+          window.__wp06LaterMutations = 0;
+          window.__wp06LaterObserver = new MutationObserver((records) => {
+            window.__wp06LaterMutations += records.length;
+          });
+          window.__wp06LaterObserver.observe(
+            document.querySelector("#referrals-list"),
+            { childList: true, subtree: true },
+          );
+        });
+        releaseHeld();
+      } else {
+        await retry.click();
+      }
+      // The R1 instrumentation observes the original listener on every navigation.
+      await page.evaluate((index) => {
+        const completion = window.__wp06RetrySettlements[index];
+        if (!completion)
+          throw new Error("Missing later retry listener promise");
+        return completion;
+      }, attempt);
+      const observed = await page.evaluate((index) => {
+        let mutations = null;
+        if (window.__wp06LaterObserver) {
+          mutations =
+            window.__wp06LaterMutations +
+            window.__wp06LaterObserver.takeRecords().length;
+          window.__wp06LaterObserver.disconnect();
+          window.__wp06LaterObserver = null;
+        }
+        return {
+          mutations,
+          listener: window.__wp06RetryObservations[index],
+          feedbackA: document.querySelector("#referrals-status").textContent,
+          feedbackB: document.querySelector("#referral-create-status")
+            .textContent,
+          referrerDraft: document.querySelector('[name="referrerLeadId"]')
+            .value,
+          nameDraft: document.querySelector('[name="referredName"]').value,
+          retryPresent: Boolean(
+            document.querySelector("#referrals-status button"),
+          ),
+          retryEnabled:
+            document.querySelector("#referrals-status button")?.disabled ===
+            false,
+          rowStatus: document.querySelector("#referrals-list article p")
+            .textContent,
+          originalButtonConnected: window.__wp06LaterRetryButton.isConnected,
+          originalButtonDisabled: window.__wp06LaterRetryButton.disabled,
+          currentContactButtonPresent: Boolean(
+            document.querySelector('button[data-referral-action="contact"]'),
+          ),
+          createSubmitEnabled: !document.querySelector(
+            "#referral-create-submit",
+          ).disabled,
+        };
+      }, attempt);
+      console.log(
+        "WP06_LATER_RETRY_OBSERVATION " +
+          JSON.stringify({
+            firstRetryStatus,
+            superseded,
+            attempt,
+            reads,
+            writes,
+            backendStatus: item.status,
+            unexpected,
+            pageErrors,
+            observed,
+          }),
+      );
+      assert.deepEqual(unexpected, []);
+      assert.deepEqual(pageErrors, []);
+      assert.deepEqual(observed.listener, {
+        done: true,
+        thenable: true,
+        error: null,
+      });
+      assert.equal(writes, 2, "explicit retry must remain read-only");
+      assert.equal(
+        reads,
+        3 + attempt,
+        "a new explicit retry must request a fresh list",
+      );
+      assert.equal(observed.feedbackB, "Falha (409).");
+      assert.equal(observed.referrerDraft, "43");
+      assert.equal(observed.nameDraft, "B ainda não salvo");
+      assert.equal(observed.createSubmitEnabled, true);
+      if (needsSecondRetry && attempt === 0) {
+        assert.match(
+          observed.feedbackA,
+          /Indicação atualizada\. Não foi possível atualizar a lista/,
+        );
+        assert.equal(observed.retryPresent, true);
+        assert.equal(observed.retryEnabled, true);
+        assert.equal(observed.rowStatus, "Status: pending");
+        assert.equal(observed.originalButtonConnected, true);
+        assert.equal(observed.originalButtonDisabled, true);
+        if (superseded)
+          assert.equal(
+            observed.mutations,
+            0,
+            "superseded list read must not render",
+          );
+      } else {
+        assert.equal(observed.feedbackA, "Indicação atualizada.");
+        assert.equal(observed.retryPresent, false);
+        assert.equal(observed.rowStatus, "Status: contacted");
+        assert.equal(observed.originalButtonConnected, false);
+        assert.equal(observed.currentContactButtonPresent, false);
+      }
+    }
+    console.log(
+      `PASS WP06 later retry ${firstRetryStatus}/superseded=${superseded}: ${writes} POST, ${reads} GET; B error and draft preserved`,
+    );
+  } finally {
+    releaseHeld();
+    await Promise.all([...pending]);
+    await page.unroute(referralsApi, route);
+    await page.evaluate(() => window.__wp06LaterObserver?.disconnect());
+    page.off("pageerror", onPageError);
   }
 }
 
