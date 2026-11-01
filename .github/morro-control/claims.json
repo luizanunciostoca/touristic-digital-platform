@@ -142,32 +142,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T03:00:00.000Z"
-    },
-    "MD-JOURNEY-AUDIT-BROWSER-ROUTING-20261101": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/journey-audit-browser-routing-20261101",
-      "baseSha": "0a2281083c4f8f70a5ffcbd3ce5498cdfc88c740",
-      "paths": [
-        ".github/workflows/assistant-conversation-continuity-browser-contract.yml",
-        ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
-        ".github/workflows/weather-v1-i18n-browser-parity.yml",
-        ".github/workflows/map-tour-browser-regression.yml",
-        ".github/workflows/v1-tour-responsive-browser-regression.yml",
-        ".github/workflows/home-discover-manual-conformance.yml",
-        ".github/workflows/navigation-accessibility-baseline.yml",
-        ".github/workflows/navigation-turn-by-turn-parity.yml",
-        ".github/workflows/commerce-browser-regression.yml",
-        ".github/workflows/payments-browser-checkout-contract.yml",
-        ".github/workflows/affiliates-feature-0010-contract.yml",
-        ".github/workflows/crm-platform-auth-integration-contract.yml",
-        "tooling/ci/journey-audit-browser-routing.test.mjs",
-        ".morro/changesets/MD-JOURNEY-AUDIT-BROWSER-ROUTING-20261101.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-02T03:00:00.000Z"
     }
   }
 }
