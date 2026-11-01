@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-D01-D02-OPERATOR-AUTHZ-20261101",
+  "objective": "enforce-self-logout-and-canonical-online-ticketing-operator-authority",
+  "baseSha": "fc2ee015b0d8d1893e7006a6396703046ebff87e",
+  "branch": "fix/d01-d02-operator-authz-20261101",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "apps/morro-digital-platform/tooling/auth-api.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+      "services/ticketing/src/operator-authorization.ts",
+      "services/ticketing/src/public-http-transport.ts",
+      "services/ticketing/src/ticketing-application-service.ts",
+      "services/ticketing/src/business-inventory-repository.ts",
+      "services/ticketing/src/index.ts",
+      "apps/morro-digital-platform/tooling/auth-api-logout.test.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs",
+      "services/ticketing/src/operator-authorization.test.ts",
+      "services/ticketing/src/ticketing-application-service.test.ts",
+      "services/ticketing/src/commerce-public-http-transport.test.ts",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+      "services/ticketing/src/transaction-mysql-integration.test.ts",
+      ".github/workflows/auth-integration-contract.yml",
+      ".morro/changesets/MD-D01-D02-OPERATOR-AUTHZ-20261101.json"
+    ],
+    "contracts": ["platform-authz", "ticket-fulfillment"]
+  },
+  "reads": {
+    "contracts": [
+      "commerce-offering-identity",
+      "reservation-capacity",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": [
+      "auth_session_revocations",
+      "auth_session_registry",
+      "auth_principal_admin_state",
+      "ordering_orders",
+      "ordering_ticketing_reservation_bindings",
+      "ticketing_tickets",
+      "ticketing_checkins",
+      "ticketing_reservations",
+      "ticketing_inventory",
+      "ticketing_inventory_ownership",
+      "ticketing_admission_profiles",
+      "ticketing_inventory_catalog_bindings",
+      "business_entities",
+      "business_destinations",
+      "business_places",
+      "catalog_offers",
+      "auth_login_rate_limits",
+      "auth_admin_mutation_replay_guard",
+      "catalog_products",
+      "business_place_revision_history"
+    ]
+  },
+  "auth": {
+    "capabilities": ["ticketing.manage"]
+  },
+  "dependencies": [
+    "MD-JOURNEY-AUDIT-COVERAGE-CORRECTION-20261031",
+    "MD-WP06-CRM-FEEDBACK-20261031"
+  ],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-and-claim-invariants",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
