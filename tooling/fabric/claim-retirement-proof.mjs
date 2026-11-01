@@ -18,6 +18,7 @@ const RETIREMENT_REASONS = new Set([
 ]);
 
 const VOLUNTARY_MODEL = "OWNER_ATTESTED_CLOSED_WRITER_INVENTORY";
+const VOLUNTARY_BLOB_READ_CONCURRENCY = 4;
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const objectDigest = (value) => digest(canonicalJson(value));
 const HEX256 = /^[0-9a-f]{64}$/u;
@@ -1074,7 +1075,7 @@ async function verifyVoluntaryBackups(request, claim, options) {
       )
         assert.ok(covered.has(path), "VOLUNTARY_WIP_PATH_OMITTED");
     }
-    for (const file of files) {
+    const readBackupBlob = async (file) => {
       if (file.status === "deleted") {
         assert.ok(
           canonicalTree.has(file.path) || head.has(file.path),
@@ -1085,7 +1086,7 @@ async function verifyVoluntaryBackups(request, claim, options) {
           false,
           "VOLUNTARY_DELETED_PATH_PRESENT",
         );
-        continue;
+        return null;
       }
       if (file.status === "untracked")
         assert.ok(
@@ -1102,16 +1103,37 @@ async function verifyVoluntaryBackups(request, claim, options) {
       assert.equal(entry.type, "blob");
       assert.equal(entry.mode, file.modeGit, "VOLUNTARY_BACKUP_MODE_MISMATCH");
       assert.equal(entry.sha, file.blobSha, "VOLUNTARY_BACKUP_BLOB_MISMATCH");
-      const bytes = decodedBlob(
-        await githubJson(`${repoPath}/git/blobs/${file.blobSha}`, options),
-        file.blobSha,
+      return {
+        file,
+        blob: await githubJson(
+          `${repoPath}/git/blobs/${file.blobSha}`,
+          options,
+        ),
+      };
+    };
+    for (
+      let offset = 0;
+      offset < files.length;
+      offset += VOLUNTARY_BLOB_READ_CONCURRENCY
+    ) {
+      const results = await Promise.allSettled(
+        files
+          .slice(offset, offset + VOLUNTARY_BLOB_READ_CONCURRENCY)
+          .map(readBackupBlob),
       );
-      assert.equal(bytes.length, file.bytes);
-      assert.equal(
-        digest(bytes),
-        file.sha256,
-        "VOLUNTARY_BACKUP_CONTENT_MISMATCH",
-      );
+      // Drain started reads and retain inventory-order integrity/error checks.
+      for (const result of results) {
+        if (result.status === "rejected") throw result.reason;
+        if (result.value === null) continue;
+        const { file, blob } = result.value;
+        const bytes = decodedBlob(blob, file.blobSha);
+        assert.equal(bytes.length, file.bytes);
+        assert.equal(
+          digest(bytes),
+          file.sha256,
+          "VOLUNTARY_BACKUP_CONTENT_MISMATCH",
+        );
+      }
     }
     await readRef(backup);
   }
