@@ -110,21 +110,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
-    },
-    "MD-WP06-CRM-FEEDBACK-20261031": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/wp06-crm-feedback-20261031",
-      "baseSha": "146b81ee86ecac7e8b40b79317953cae9ac671e3",
-      "paths": [
-        "apps/admin-crm/public/referrals.js",
-        "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs",
-        ".morro/changesets/MD-WP06-CRM-FEEDBACK-20261031.json"
-      ],
-      "domains": ["auth"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-02T11:59:00.000Z"
     }
   }
 }

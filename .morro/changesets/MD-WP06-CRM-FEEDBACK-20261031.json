@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-WP06-CRM-FEEDBACK-20261031",
   "objective": "preserve-confirmed-crm-referral-mutations-when-refresh-fails-and-retry-only-reads",
-  "baseSha": "146b81ee86ecac7e8b40b79317953cae9ac671e3",
-  "branch": "fix/wp06-crm-feedback-20261031",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "398cf1819cdb2949a8ee846783b4b3c0e7246365",
+  "branch": "chore/retire-wp06-crm-feedback-20261101",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
