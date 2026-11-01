@@ -1,0 +1,24 @@
+{
+  "kind": "NATIVE_REQUEST_PREFLIGHT_RESULT_BINDING",
+  "issueNumber": 3470,
+  "issueState": "closed",
+  "requestSha256": "a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520",
+  "preflightCommentId": 6551185555,
+  "resultCommentId": 6551201347,
+  "metadata": {
+    "id": "coverage-retirement-cumulative-collect-20261101-cf947",
+    "target": "termux",
+    "started_at": "2026-11-01T00:29:56Z",
+    "ended_at": "2026-11-01T00:31:15Z",
+    "duration_seconds": 79,
+    "exit_code": 1,
+    "request_sha256": "a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520"
+  },
+  "stdout": "\nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: VOLUNTARY_PROVIDER_OBSERVATION_STALE\n    at verifyVoluntaryRelease (file:///data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7/tooling/fabric/claim-retirement-proof.mjs:1353:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7/collector.mjs:12:16 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n\nNode.js v24.17.0",
+  "stderr": "",
+  "bindingVerified": true,
+  "observedAt": "2026-11-01T02:06:03.970499+00:00",
+  "historicalOnly": true,
+  "reexecutedThisPreparation": false,
+  "consentTransferred": false
+}

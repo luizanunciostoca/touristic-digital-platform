@@ -1,0 +1,997 @@
+{
+  "kind": "READ_ONLY_CURRENT_PRESERVATION_OF_ORIGINAL_AUTHOR_EVIDENCE",
+  "observedAt": "2026-11-01T01:54:00.353060+00:00",
+  "cumulativeArchive": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2",
+    "commit": "dc7f5e3a22d88256639e6e699f894e9bf82ff268",
+    "tree": "e8792c0e0b1091446fe1747221033c33365c1a34",
+    "parent": "08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+    "backupRef": "refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2",
+    "wip": [
+      {
+        "path": ".github/workflows/auth-login-browser-contract.yml",
+        "blobSha": "5433db46895e94385a9f3713e29f1f961ff1070a",
+        "sha256": "04e451a248fd3ac1e8602d26449ba49a421c25bcdc3a975004d0ada64209df40",
+        "bytes": 10718,
+        "matches": true
+      },
+      {
+        "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+        "blobSha": "079f27045544fe6b77b956c4687d67fe2d84b2a8",
+        "sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+        "bytes": 2234,
+        "matches": true
+      },
+      {
+        "path": ".morro/ownership.json",
+        "blobSha": "dae399acf8982d3643719fe9af4b3722bebf78ea",
+        "sha256": "82404b46e333c1d4db7128d2d0c90b1c6e739e0e12e9d98ac689fdb8d6b7846a",
+        "bytes": 14012,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/README.md",
+        "blobSha": "c0120574c08e8428864f2aa1ab1e4e23f533a984",
+        "sha256": "9011877bc4131244bbe25c72f2bc368a261cf9815631c0d46ef6ab17def880e8",
+        "bytes": 595,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/journey-audit-admission.test.mjs",
+        "blobSha": "e6e011c1f9ba9a1dd7308906bfce697e56d573a6",
+        "sha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+        "bytes": 20674,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/after/tooling/ci/test-impact-manifest.json",
+        "blobSha": "909e39ea78328a3ce96d7cf16b87cca7e09d3e9b",
+        "sha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+        "bytes": 35770,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/coverage-impact-correction.proposed.patch",
+        "blobSha": "ec04ef95b7888b9b7fbe0f1c79fc87bc7c27e778",
+        "sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+        "bytes": 4850,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposal-no-git-environment-failure.log",
+        "blobSha": "3a558bb29828c91ae922330b7cb283a724a31fd4",
+        "sha256": "c720c55d3e7aa3fe2dac914fa8273496606e30c6df8cf09fb4411d3123960cb9",
+        "bytes": 30053,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-proposed-green.log",
+        "blobSha": "30a837dfd46bf1e24580c8de6c7ccdc51f6f3cb7",
+        "sha256": "ade556d48a9e681379ba4cd889d5dfaa260813718e197c5184c557d160c0478f",
+        "bytes": 28952,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-impact-red.log",
+        "blobSha": "89d620c410033fcd3cfa6eacc43d2d7d8dda9692",
+        "sha256": "03f66bbbaf0933aeeb3b6fa04ec0caa16841baa486b7fa72191d566175bdb192",
+        "bytes": 12772,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-proposal-dependency-install.log",
+        "blobSha": "fd67f39c4b5a8ffcbae1d04faff941584a338679",
+        "sha256": "26f4a0232845c38350fc4e7702844ef203f44d62767c48462cb07fb2ea2a7e26",
+        "bytes": 1439,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposal-missing-dependencies-failure.log",
+        "blobSha": "6c9aaea86d1a1751c497c8c040c163be5234b1b1",
+        "sha256": "55f9979017bfe757b5fa8d09134c25ea8117150cf48c047efabbba97ce92c4fa",
+        "bytes": 108682,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/logs/coverage-material-root-ci-proposed-green.log",
+        "blobSha": "d10b60213b5459321d583c23e7f510d8d58abb2b",
+        "sha256": "51e3efbe1d28811dfb1feacf0874113d8dc18bd96777d06296cc2896fd5e17a5",
+        "bytes": 115575,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/external-proposal/proof-summary.json",
+        "blobSha": "1db132457d29fe130ae5e5fcf640fd757b16336c",
+        "sha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+        "bytes": 6753,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+        "blobSha": "54a87f626846cae1f931ad8401ff282b5ab751cb",
+        "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+        "bytes": 1927,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+        "blobSha": "b7305a1e0b1004516f9f27d521d6e4eacb4d76bf",
+        "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+        "bytes": 997,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+        "blobSha": "c394b359f52107355ef6c482ca88233579dfd980",
+        "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+        "bytes": 2106,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/capability-leases.json",
+        "blobSha": "37700a5f091ae2b7ef823fdc4f0306b96620a83e",
+        "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+        "bytes": 1546,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/history/source-history-manifest.json",
+        "blobSha": "4ce581f2435474b1a5edf99dc9401750af73412c",
+        "sha256": "c4916a6d17478d936a5b9bedf6eeabbfb07d3403978da461e6d3bdac8e666460",
+        "bytes": 2435,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-author-stop-observation.json",
+        "blobSha": "49c4ad043fa195921eb6f3d6127214ea57fb1369",
+        "sha256": "4fe10a9d64defadec652b2cbc7f4c34a355db4b29673a14c64afea65002bb32f",
+        "bytes": 6980,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-local-inventory.json",
+        "blobSha": "7be5eadcec5e3c4f51e4774154e0b005e8bd1ab5",
+        "sha256": "5408099d8b44c3033de5cd22ff53cc135b65d2af22946dfd8146a62427d8c69e",
+        "bytes": 923,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-comments.json",
+        "blobSha": "6203c9bd4b563baebeac77017bd505653de61a53",
+        "sha256": "63ca94b9442902276509806533f38ca43501704cc5c294936aa9f045d34d3b6a",
+        "bytes": 6996,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-issue.json",
+        "blobSha": "bace0b457e7562d59bf06e4961a79dba25b8e4a2",
+        "sha256": "6de352e3e7b05cf6c6523d5ec47bab1dd254e38b334881ed6b44b1571a686dc8",
+        "bytes": 3416,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/observations/coverage-voluntary-native-inventory-request.json",
+        "blobSha": "52332c692b0d6b8f87eff99d4cc5a3e221f9b221",
+        "sha256": "d1b9eeb809bad5bcc390f5c23d380e344446e185101ae2fc07eb51aebc7bb36e",
+        "bytes": 2044,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/preservation-manifest.json",
+        "blobSha": "e33b19e46f223a30f8364232849af2fd0434f2b6",
+        "sha256": "cfb985b3dfec32163c6822e034aabdd8c5a9ea689de9f14b00a1a97dc33a0d6a",
+        "bytes": 14535,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/provenance/writer-controller-transport.json",
+        "blobSha": "5a6cf6029ba25d0df0d9ec319b10bea4a6923bd0",
+        "sha256": "f5b5b61e64934d1605c2552cfcb5da44e7dbe94134a9d481e8d14d1e0550ef2c",
+        "bytes": 2371,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/receipts/cloud-coverage-authority-worker.json",
+        "blobSha": "3c6e27c651c5d36b3b82dab167ff7dae56fbdb2f",
+        "sha256": "e97c9f9849e5aa7356cdb8644536a6c080e1197edd64531ad4a30f1bf4a3db29",
+        "bytes": 809,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/README.md",
+        "blobSha": "d406d6fa08e07425041e9a9d4a5fd41e7173c6b7",
+        "sha256": "a2c0c842e36fe90a91e3ecc36a848f7b65c0778ca9b645083f2a6fd70536f043",
+        "bytes": 665,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/completion.json",
+        "blobSha": "36fd287f3e0b613d775784791ff4d35d3064d420",
+        "sha256": "405bc0620215d7dd67628494b8cc8e1ac3ccda81c594116ba49904799a84e6d3",
+        "bytes": 7517,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/remote-readback.json",
+        "blobSha": "0b61296dc5b64168be92c8bf79a7902a677f9e4f",
+        "sha256": "5fdfc7ad411edab6f586ffd7cf4475eecc8ccf17f873659f48949463706539d3",
+        "bytes": 68974,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/expired-request/voluntary-release-request.json",
+        "blobSha": "0ce62fac1c7cb4f21688bcf45d95ec37bb089aa3",
+        "sha256": "f5df76e08b27353d16291b08de0937675e780908775851dbf65046641c76fcbe",
+        "bytes": 17547,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/closing-read-only-census.json",
+        "blobSha": "72f476c35bbe5b2334b0e016d4dd4803a7d38e3a",
+        "sha256": "cff2eb1575dd11574f0776dff5420656b913f569e688466decb2925b5c91eb27",
+        "bytes": 6357,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/closing-remote-observation.json",
+        "blobSha": "14d2b9bc31d5ccc98bb0cfa0c145572ca6bceb7b",
+        "sha256": "0f864b807ad636d90d5bc192a00d3d204047e656a5b7e81f50d7e9680db34f44",
+        "bytes": 12937,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-author-stop-renewal-observation-20261031-222136.json",
+        "blobSha": "83aacd14e4b45e19d02a273cc854bce11f1ff582",
+        "sha256": "82b37c456ab640d69474060fc71d18538dd566ec04f255cf48be513d058b5337",
+        "bytes": 8442,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-controller-inventory.json",
+        "blobSha": "1d17223d799936559d3dd414e96514667eedfd5a",
+        "sha256": "153338eddf8fa497db68da84ef96f4242b661b57300fe159c93b81a0439b99f5",
+        "bytes": 1355,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-comments.json",
+        "blobSha": "05035d3995445c19a194a98fc2d7e417db2c19da",
+        "sha256": "c1c5484d73ec871dd5862bc96b57afe63d16360e21830bbb70a38c93b22d8b58",
+        "bytes": 7048,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-issue.json",
+        "blobSha": "6ad98cba7d0c526b80ce9aeb8d538c3e3d82917f",
+        "sha256": "b6a8c62d0b855c08d01e8d09bb51b6daf76dc88f7269c62151afbba36e4a2ba7",
+        "bytes": 3481,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-request.json",
+        "blobSha": "e66012154e3431aaa51051a7888833f03164b130",
+        "sha256": "a8f37850a2f992c8bdfbd406093070da715113cbe4f280b1a4f3a80a7cec991e",
+        "bytes": 2057,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/observations/coverage-voluntary-renewal-native-inventory-result.json",
+        "blobSha": "a62ac413e85b5268b680405c68a9ca769ed3e90f",
+        "sha256": "558227ff6f7a93673f03060840244cc8e0c1ab29e776837ce4aba420f1e204c6",
+        "bytes": 1121,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/preservation-manifest.json",
+        "blobSha": "b2364dfba530d0819ae60061f58aa0d8b1fb19e3",
+        "sha256": "66857b88ce932a3dac5062f97aa0b0351fca88565a2812050a962aa5484e324d",
+        "bytes": 9935,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/provenance/writer-controller-transport.json",
+        "blobSha": "a456b6a3b13a7f22ee78751e0aa39a95e4b3f63f",
+        "sha256": "2587475e3782c965e90052316f59a90f68c7c398b4069926c7add628f0a4e7af",
+        "bytes": 3357,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/receipts/cloud-coverage-authority-worker.json",
+        "blobSha": "0f5ed808d40895ec85a09909397bc1f2e79071e9",
+        "sha256": "3c034c2282d8f558ee09b5ff4674ef59817d33b66433eaed00dc135e1dbae97d",
+        "bytes": 809,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/README.md",
+        "blobSha": "c722c7f2b33d340ef0e306672422588836cbaec4",
+        "sha256": "a60648b1a257ac3251120f137abc1bee5baaa1cebe8408d290b6f19740d804fe",
+        "bytes": 870,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/CHATGPT-START-HERE.exact-main.md",
+        "blobSha": "c314fcd16df689168ad7630dfcd9edbb8495683c",
+        "sha256": "5b85c3b8b64d4a2ae1f66140d77063d179fd0a0e9e45a8423f51ed44793a6ad3",
+        "bytes": 14630,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/canonical-preparation-readback.json",
+        "blobSha": "a6cfa586200a135d67ae3f9b7755a4e0c67ffa83",
+        "sha256": "60e7cf2070589f3c5d54f15bcfa390edbb4794742f08cc7f05501b5780b1be4d",
+        "bytes": 14058,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/controller-classification-disposition.json",
+        "blobSha": "68749380e41e59b2b231c05578015756de418e1d",
+        "sha256": "299b2c1ff594534f24bf28bd07f04634c0ebe7cd6e0f311128e2c05eb4cd7b90",
+        "bytes": 4179,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/controller-inventory.json",
+        "blobSha": "176824e82652d9bb1cc612eab230392f1c1b0c34",
+        "sha256": "45797c696f60ce54f8efcbabd5c18136701b330b9989abed54a7f30579ece5a1",
+        "bytes": 18002,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/current-canonical-claims.json",
+        "blobSha": "9b09485dccf605241de60eef8eb5ada2a6b0ec9a",
+        "sha256": "1ed0968c50c4b3c7fd46e16d17569b61c41a4f48ff8689396cc2beb498eca7f0",
+        "bytes": 6926,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/current-canonical-manifest.json",
+        "blobSha": "d3905a88f26080cb35eedde47b4ce49399de1696",
+        "sha256": "82d7bc4f9633dfb9b8b9ce7c23c6db8f7e88f23bcdc7b1ddfb11790656c8980f",
+        "bytes": 3004,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/current-main.json",
+        "blobSha": "c0c7a2003686ead36383bd5066f9924e97c91911",
+        "sha256": "fb9edbf5264452a427ecd09e49c3c146071e6d62f2af1fdffbabc11d1dd5e46c",
+        "bytes": 1470,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/current-material-ref.json",
+        "blobSha": "512874a282ba8ee1fc52fc5fb61c081903ad9392",
+        "sha256": "5b121bbe7c1c07a7f5ecc4eb7105666f8874c0d3b433658ee6522eeaf80cef7e",
+        "bytes": 2002,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/current-native-binding-verification.json",
+        "blobSha": "f306ecdd6c689319be804d8d22ea7b0338574692",
+        "sha256": "1823a596ab619072140de15a6b94689be8fdad2c551200f20a891cfdf0507d2b",
+        "bytes": 10890,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/current-native-open-issues.json",
+        "blobSha": "1ede4e7056f7b0d2e5dcb4ed6369e3d3ef848653",
+        "sha256": "795b227641b2a60c4023ce1afe69e17eb4ed2c03e1dd635b6ced5d887ffb8881",
+        "bytes": 3177,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/current-previous-backup-ref.json",
+        "blobSha": "89124f4083ed4f726b2069d29858484510008d2c",
+        "sha256": "089a05f584600e8534ae24affcbce4bf67430fc93430471fb57c708689a739b1",
+        "bytes": 2098,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/historical-native-independent-review.json",
+        "blobSha": "412897ee10770fa8d93831b4c5158147da040c17",
+        "sha256": "47d59be891d529e77be011e0e7fc6d70cfb32fd1e2b6525859ddb37066053d34",
+        "bytes": 37038,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/historical-native-independent-review.md",
+        "blobSha": "496cfd80ae7da09221799f5272098af9607b7b63",
+        "sha256": "2a9067cd19daa1a28835748518c8c8e3959a2ee24555c47d224bf30b2de7c4a0",
+        "bytes": 8209,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/live-transport-discovery.json",
+        "blobSha": "4120be5970154503ca6c15897b87102716198838",
+        "sha256": "cc0b737d3b5a72dcec9711fcb240447be18199a4f8d716b247d2406a0c309792",
+        "bytes": 6881,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-controller-retirement-inventory-comments.json",
+        "blobSha": "1306ae1de3fa46fb49b29279e5895c55a0663ef3",
+        "sha256": "c755fc28a9379e2edddfb9fa90e1c967f5338e22df323f6e252eb41077ea899c",
+        "bytes": 34565,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-controller-retirement-inventory-issue.json",
+        "blobSha": "d6190ac234ac0edf528499148b629b9fb8334285",
+        "sha256": "1ba24dd51847fd52595470c83befff405e2e157f227e59e28b4ef8f3324004e0",
+        "bytes": 6582,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-controller-retirement-inventory-request.json",
+        "blobSha": "71a361b51031cd04c8a91ebde284d77abdf208f5",
+        "sha256": "d1566c7452e5ccc7102dc236fe53842911ed380db4bca4b07c114e220a8869fb",
+        "bytes": 5115,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-controller-retirement-inventory-result.json",
+        "blobSha": "fcd22bc0e6b02c2d1426b2333129745ceb76832b",
+        "sha256": "dd150b4cfb4cbd22a8abc1b42d950fea161ed699fbc386b3202c2f4ba59d7aef",
+        "bytes": 7207,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-expanded-heartbeat.json",
+        "blobSha": "269c1c27181d32dee9106035bdf1d951cdf54281",
+        "sha256": "c89ed43027ff0518316fee2daa2b68fb0c9ae5b2fdded3ee9d8456e3edc1cf61",
+        "bytes": 1119,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-inventory-comments.json",
+        "blobSha": "ea7efce9b5974bd043e8d53b715432e2970f4715",
+        "sha256": "a70b6d7cc9d21c38f62c940c0b55a0288efe461586c4997574ff62479c070b94",
+        "bytes": 8499,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-inventory-issue.json",
+        "blobSha": "46c95fcf8775a7e5ec804e0c3d8e52ea44bca92e",
+        "sha256": "a7fc31ecca2cfb8d946d40484f747c75d9adcf4d00ac95c919cc55aa8b930e26",
+        "bytes": 5385,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-inventory-request.json",
+        "blobSha": "4f935808637b6f293bbdeabe1244e18b2b2216c9",
+        "sha256": "a240ca96fae21ba059d38dc9e8d1e25caf464a14870cc1d25ba001cb8549b472",
+        "bytes": 3919,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/controller-and-review/native-inventory-result.json",
+        "blobSha": "bb7850b058aaba400750063a85da0d1039d00c9a",
+        "sha256": "89f1b182e56517946ef96bdbcf50ce2fcc4c793b856df1bcefe7f34a67b78408",
+        "bytes": 2027,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/expired-request/completion.json",
+        "blobSha": "1a2080d98766443055bf9101dda4ae55fd4996b6",
+        "sha256": "4ac7b22a63d47d84b0eae8fee50e9b125d8311e7f75d2d034d682cd6be56d757",
+        "bytes": 8398,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/expired-request/owner-review-current.md",
+        "blobSha": "6aa0938d0ef7b4b826728f84ec53b12c2432a240",
+        "sha256": "f159239ef902a6e1c5426ee5da4f6ca22fd3c1285ce898fc5ccb616646480da9",
+        "bytes": 4616,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/expired-request/remote-readback.json",
+        "blobSha": "f1a342482b002d91a52a4e62f3d3cd9525d9e808",
+        "sha256": "dd0598d3545517ba12b675bb7fbcf0dd91d8c52359c1a7305007ba316cb01ba5",
+        "bytes": 98449,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/expired-request/remote-readback.md",
+        "blobSha": "ac07fb6db09188de3ae05bb4e4aedb45aaad5977",
+        "sha256": "4dd2448f6f7928192e8f818e6312440e2c3e1f9c41379e563864b9f85a3db473",
+        "bytes": 3750,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/expired-request/voluntary-release-request.json",
+        "blobSha": "75ffacb127e24f232afc5c73f4ceb12794300598",
+        "sha256": "45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee",
+        "bytes": 24079,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3459-comments.json",
+        "blobSha": "11f5fa010fa58b45618563634338e79b0fc24e4d",
+        "sha256": "cf7c1cc28fc076316e6da2b2c9eb166978f3d314da5e6c308c5f4a56264c6d21",
+        "bytes": 7133,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3459-issue.json",
+        "blobSha": "429da0568bc95393a4023f67958fc26e7a42dbf8",
+        "sha256": "73fdb15d22dcd61944e0aa20572ca2030369d0774722a26cc7170be533657d18",
+        "bytes": 10929,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3460-comments.json",
+        "blobSha": "c19a1b81aadaa4881423dcdb12719e2696ac09b1",
+        "sha256": "79dfb7ace32f0100eb1afd197143829c9f97c9f58abe313b516be10a925226c1",
+        "bytes": 5668,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3460-issue.json",
+        "blobSha": "b945ca8feeee65da721672e752d388673db8fe3a",
+        "sha256": "da287a6636d185cb91c08fbe4b51a1403eba6005977f31c17ec4116b8b04772b",
+        "bytes": 11334,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3461-comments.json",
+        "blobSha": "a1fb356d34c0f82bb0c16f20152cbd95fa3aa9e6",
+        "sha256": "2b85a12f972dca3c1a03f2ab48565a29848a283dbf99f1fb51f670e2fd934a36",
+        "bytes": 8396,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3461-issue.json",
+        "blobSha": "7e00e2d7688b51bc10ab1ca1a8b0f2f5a6b515ed",
+        "sha256": "1ac8bc5bc7dffd3aa5e609246a6062d41fc5ea6970f379b09544eaa64ada8724",
+        "bytes": 12297,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3462-comments.json",
+        "blobSha": "8384bafcf95915b2cddfe5c6b9cdd802f00a7b21",
+        "sha256": "87f924a90aecc3e625c1c70b5a2f663e90da718897450c83b3aa8fc825aff1f6",
+        "bytes": 10099,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3462-issue.json",
+        "blobSha": "a546465ddfa8564093ca3e7e51655efe0843a494",
+        "sha256": "2dffb7cae6c81d4a87136f536287ac05f0e129525ef2d78c993f648fb58e230d",
+        "bytes": 10387,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3463-comments.json",
+        "blobSha": "0299300df783d6adf2b82af0fe64eb2629b6f4da",
+        "sha256": "2a24a82746b2e0a9ce79d220367a9a372929da94d93275ae7052b61ae022a672",
+        "bytes": 7515,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3463-issue.json",
+        "blobSha": "1e489e4295a18453085d04457d65aa27f9bbebea",
+        "sha256": "b289517e4749cd9dda00b9f239d37776e8fa176e5b25352febd7948cec10a8dc",
+        "bytes": 8620,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3464-comments.json",
+        "blobSha": "9fbd89045cc2985b77c6bb8d6b09f57cf63bfa89",
+        "sha256": "269e076ec8a733ff457929da142dcc47dfd5447d227fea2957ffdb96b346f40e",
+        "bytes": 8923,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3464-issue.json",
+        "blobSha": "1655b5929c61b96eea3464926b0feceba77e3a8b",
+        "sha256": "36a4b95ac0fb16872b07b5268b7bd1991c26309306f476365b15899e7802b3e5",
+        "bytes": 8383,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3465-comments.json",
+        "blobSha": "6dc7ce499203c369804b632167e77ca8a678b6ff",
+        "sha256": "4bbd0a248384ca67c2e7911827d52bfbb7f544bfe6982873c1b461a6e7a398ae",
+        "bytes": 8033,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3465-issue.json",
+        "blobSha": "01d428e5b0e2960d0146e3011a5772200434c7c3",
+        "sha256": "c43466e5a029374e567bdea5d62f556b9b60a0d4c702992ec4a6841a939d73ce",
+        "bytes": 8141,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3466-comments.json",
+        "blobSha": "37c1d25e3d852d103f6421ac87b4fda7e8b0985d",
+        "sha256": "7f38c522f0872706f4914177228194309dbbbe387410fef4adc35c1e5cc3206d",
+        "bytes": 22637,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/3466-issue.json",
+        "blobSha": "ade04862cfeebb1da397b35a3dac12b1a7ae9cb0",
+        "sha256": "ea08da73912a44432a0a45770fe08466ac1a8bb7bb91cbadf6488aa5f7ad6491",
+        "bytes": 8607,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/binary-connector-read-limitation.json",
+        "blobSha": "c2b963a8ed8c2722b3ee4685941dbfba8360cd93",
+        "sha256": "213ae641cb50827a92cf1e299cf1c5762754a7af530419105714db048e2bf098",
+        "bytes": 643,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/candidate-exact-output-inspection.json",
+        "blobSha": "4c821be618da484d8dc9f2da992b50614b421288",
+        "sha256": "6e56140be8ea7703f17adf67c2783284bcdb7aadd5d61e0ea954c17835adc9a9",
+        "bytes": 7731,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/candidate-output-comparison-initial-observation.json",
+        "blobSha": "e4256b8e91f1149094a635bfd72239d9eff23fe3",
+        "sha256": "81ef261dbdc46ffd47c196f9cabb3e6c64e56769dd5c904f9368f9e24873a29e",
+        "bytes": 2088,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/historical-collector-output.json",
+        "blobSha": "296c6be7388fa144310d1755cf94fd3a8755da82",
+        "sha256": "9f11cbd6a18ce81dea50f72f2ee5fc3b02d07cbebe25b86c394ee9baddbda7cd",
+        "bytes": 618804,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/historical-retirement-bundle-envelope.json",
+        "blobSha": "d8d7037544b22ed2a1a2386479c70f72b720b9fa",
+        "sha256": "0c5478954e80eddf06a9699c375aedb9fbbaa09594e41f6b7533924a84c3ddda",
+        "bytes": 9193,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/historical-retirement-candidate.bundle",
+        "blobSha": "14af4c32b87cd56565fbf12a9d7c89f516c9ff9b",
+        "sha256": "4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91",
+        "bytes": 6771,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/historical-retirement-candidate.bundle.base64.json",
+        "blobSha": "b495d4c7157d3be5d7294ca5ebe7537eb5282220",
+        "sha256": "d634a9236f766c0ebbb09f677fc82013bb018d4e54cd722b2a85fb06485283e4",
+        "bytes": 9346,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/historical-native/request-result-binding-verification.json",
+        "blobSha": "31e662ef30dec6de50bce3775895106b91bf5db9",
+        "sha256": "a7809fa5b0c6f590e4c93313f18c51550fa2b037413add707c26973d484d1bdc",
+        "bytes": 5926,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/original-author/author-stop-ack.json",
+        "blobSha": "7dfd003e31fa537e7e43369ea1f55071e0224e72",
+        "sha256": "13ec6bae657bad52342507c0dcf683691c83041053bfb16cba6cdfa7d47b4982",
+        "bytes": 11782,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/original-author/local-state-observation.json",
+        "blobSha": "63515d0274306645b757c2846835e76fe1d569c9",
+        "sha256": "b98018b97de6320f94a7d8bb1c554811fc6a50e4afd7513aa7772cba42a93f52",
+        "bytes": 10814,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/original-author/preserved-evidence-inventory.json",
+        "blobSha": "db124ace698f279bdab1b4b74614e3a9766b76b9",
+        "sha256": "e3d38b2f70880a20b0ec752d8196ce260815159802fa1d4a90e34029880a1943",
+        "bytes": 62920,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/preservation-manifest.json",
+        "blobSha": "3cdebbfbdde2485916dbe54119159c358b02758a",
+        "sha256": "b87278a48bd7a10c99a88af84d886dffa8fc0a0993ac8fd983d6eacd642c7029",
+        "bytes": 32806,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/provenance/representation-disposition.json",
+        "blobSha": "b5f3083e750d64392b8cd2f4c1a4251f4de2da8e",
+        "sha256": "591c453b12f95f233125cfb068bd505aefa56b4d8a0a4d5dd3f3278f1022baa2",
+        "bytes": 10132,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/provenance/writer-controller-lifecycle.json",
+        "blobSha": "ea6aeba6daf957dd178c78c96336e9aa86864f57",
+        "sha256": "956f2e47f1a72737a8d1318283b659700c2e88ac50f6cb7beb54b3f6fe1abaff",
+        "bytes": 18806,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/receipts/cloud-coverage-authority-worker.json",
+        "blobSha": "f64edec9d8ffab81ad99a822690d8ff483376827",
+        "sha256": "f2f0056b5a8d8a09edf103340741fbaa2e05598d9274356c0acc9672aa099792",
+        "bytes": 809,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.json",
+        "blobSha": "8c69bbfc448e893e7fa6a7b22a9d6d462cedb1f0",
+        "sha256": "0dc05d4f2c43b94ed20499b240b417f49aae6f8258061bd1ddb46e405576fdc9",
+        "bytes": 2473,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/coverage-impact-correction-root-review.md",
+        "blobSha": "bd37620296edfcaf8fdbf9f9b2fb3f640311be60",
+        "sha256": "064e98748052d3d9f8d0277464c58b3068cb508717d2d6d608536b16b43811a9",
+        "bytes": 1388,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.json",
+        "blobSha": "511fc4978e05f3c9c27045d4ff577af990336622",
+        "sha256": "ffeb14591b77cc2a3aaa4f80b1d41dab210686773a9556e60f196f8fb660022d",
+        "bytes": 15721,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/reviews/voluntary-multi-writer-representation-review.md",
+        "blobSha": "da5348e1224a3b031f43f169f95a013fef7171d4",
+        "sha256": "63d9211b7bb75e45f9ba4c76cbfa52155a2fcf2795ec7558bee03870dd21fec1",
+        "bytes": 6611,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-comments.json",
+        "blobSha": "007efad325b835d08534b5ce3dd200dd6ee87e44",
+        "sha256": "587ce9c82465afbdfe242f58002bf1c96997f1b532e595776fc647b286bfdf10",
+        "bytes": 8719,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-history-native-readiness-request.json",
+        "blobSha": "d7b7e86d555126b4dc4003e90503fcc1210f0475",
+        "sha256": "14c718e20d8a034c8f89e8466217ae94a4dd277eb9666d45465e433688b57006",
+        "bytes": 786,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-job.json",
+        "blobSha": "ea87f5f6eee31ddec1e1f4fe30c25b07ac52cc3a",
+        "sha256": "79acb295f385d3e8ab0fe47ce718e184d927f65c1a1c6e442f42bf2866779a1a",
+        "bytes": 8155,
+        "matches": true
+      },
+      {
+        "path": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/transport/coverage-material-native-push-request.json",
+        "blobSha": "cbedcb72cd212d04cee8e1534822d3fb96e51da4",
+        "sha256": "a40d2a0c10e9de1eba19602ef468f3a0cca0d61c62254cb76cd390ae13869725",
+        "bytes": 8516,
+        "matches": true
+      },
+      {
+        "path": "tooling/ci/journey-audit-admission.test.mjs",
+        "blobSha": "68b2c64f5e8dee4be06465e8364d2716bd185d4f",
+        "sha256": "7a84a6f63968f3cddbc33a174b2371f77ea03597b0ac9404bc6e940f659bce3a",
+        "bytes": 18377,
+        "matches": true
+      },
+      {
+        "path": "tooling/ci/test-impact-manifest.json",
+        "blobSha": "765b863d8accdc4873b348ac0c9bc29cde15a37c",
+        "sha256": "080ac6a5efa913693ec78ab2182d1c1a6199f52735a38e9ffc461f37666e591e",
+        "bytes": 35460,
+        "matches": true
+      }
+    ],
+    "bundle": {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/coverage-stopped-writer-cumulative.bundle",
+      "sha256": "9c54b1ff6b10e28316bf1c680d4c3566ce07ac684313db3c64db0321fbb6c0c6",
+      "bytes": 356061,
+      "prerequisiteSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+      "localVerificationOutput": "The bundle contains this ref:\ndc7f5e3a22d88256639e6e699f894e9bf82ff268 refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\nThe bundle requires this ref:\nfc089a1fcef27e3c39f3c3d27faf4f69b088436b \nThe bundle uses this hash algorithm: sha1\n"
+    }
+  },
+  "historicalAndExternalFrozenFiles": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "bytes": 2106,
+      "expectedSha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "matches": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "bytes": 1927,
+      "expectedSha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "matches": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "bytes": 997,
+      "expectedSha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "matches": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/capability-leases.json",
+      "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "bytes": 1546,
+      "expectedSha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "matches": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/coverage-impact-correction.proposed.patch",
+      "sha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+      "bytes": 4850,
+      "expectedSha256": "243a23fac179de44d6fe72011daa657516c0a5e01fa0d3684409bdfd83aa4cd7",
+      "matches": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/proof-summary.json",
+      "sha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+      "bytes": 6753,
+      "expectedSha256": "170754f7e1355a3a3c1353cde751219e223de6c72317cc2f80b6cac8be9720e2",
+      "matches": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/after/tooling/ci/journey-audit-admission.test.mjs",
+      "sha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+      "bytes": 20674,
+      "expectedSha256": "cc46f2ad3d0054f79cbdce5e27cdfee2e4e2cb19d5ca2a78fda2984c17512846",
+      "matches": true
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/plans/coverage-impact-correction/after/tooling/ci/test-impact-manifest.json",
+      "sha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+      "bytes": 35770,
+      "expectedSha256": "4e7ede0c4d6aaa163683379285b361e2ced815115cf573cc29777c2f9e14004a",
+      "matches": true
+    }
+  ],
+  "priorReceiptRequestBundleAndHandoffFiles": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-author-stop-observation.json",
+      "sha256": "4fe10a9d64defadec652b2cbc7f4c34a355db4b29673a14c64afea65002bb32f",
+      "bytes": 6980
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-author-stop-renewal-observation-20261031-222136.json",
+      "sha256": "82b37c456ab640d69474060fc71d18538dd566ec04f255cf48be513d058b5337",
+      "bytes": 8442
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-author-stop-reaffirmation-20261031-233449/author-stop-ack.json",
+      "sha256": "13ec6bae657bad52342507c0dcf683691c83041053bfb16cba6cdfa7d47b4982",
+      "bytes": 11782
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/completion.json",
+      "sha256": "405bc0620215d7dd67628494b8cc8e1ac3ccda81c594116ba49904799a84e6d3",
+      "bytes": 7517
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/HANDOFF.md",
+      "sha256": "1902f1686916e50c2a3f05360ce1b2ad7763dec569f62d97d7deed514736ecc6",
+      "bytes": 4749
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/voluntary-release-request.json",
+      "sha256": "f5df76e08b27353d16291b08de0937675e780908775851dbf65046641c76fcbe",
+      "bytes": 17547
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/coverage-stopped-writer-compact.bundle",
+      "sha256": "715763b7756f7b3b9a497bb91d6979e87985060110f7c62c09aa7e5cf7bcd3c5",
+      "bytes": 81883
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/owner-review.md",
+      "sha256": "3463c091a1c47cb1d56339b6544515e1107d3854243e25d2d9958348219d8d6d",
+      "bytes": 4704
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-20261031-181814-99ba1a8b/payload/docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/receipts/cloud-coverage-authority-worker.json",
+      "sha256": "e97c9f9849e5aa7356cdb8644536a6c080e1197edd64531ad4a30f1bf4a3db29",
+      "bytes": 809
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/completion.json",
+      "sha256": "4ac7b22a63d47d84b0eae8fee50e9b125d8311e7f75d2d034d682cd6be56d757",
+      "bytes": 8398
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/HANDOFF.md",
+      "sha256": "0d25d04430dfc933a24093a87895e27a8e5c66809dae38c99a8585c035ec6e61",
+      "bytes": 6332
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/voluntary-release-request.json",
+      "sha256": "45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee",
+      "bytes": 24079
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/coverage-stopped-writer-renewal.bundle",
+      "sha256": "f798f9b3f1109d96f16d083ddca382f469feda734cfc089efa5ebf22c6759882",
+      "bytes": 141584
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/freeze-readback.json",
+      "sha256": "f2f58dd623a4129a0af6226bf227637845d5fc98ec88f5ace16e7d01fcb09245",
+      "bytes": 615
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/owner-review.md",
+      "sha256": "1facbb08b62a9c571b357d612fd99df3cf9b31a724655d2113ea6312c0e53ad1",
+      "bytes": 3569
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/owner-review-current.md",
+      "sha256": "f159239ef902a6e1c5426ee5da4f6ca22fd3c1285ce898fc5ccb616646480da9",
+      "bytes": 4616
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-renewal-20261031-222400-f25b97cd/payload/docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-222400-f25b97cd/receipts/cloud-coverage-authority-worker.json",
+      "sha256": "3c034c2282d8f558ee09b5ff4674ef59817d33b66433eaed00dc135e1dbae97d",
+      "bytes": 809
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/completion.json",
+      "sha256": "61f9ff41c87fee16b2e48b2cdf9eb18224f333fb9eee545802d9aa2a4d3731e0",
+      "bytes": 20122
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/HANDOFF.md",
+      "sha256": "a6bb1292fd7ed6c3bc75db1670e38560132d1d2f6c0bbc9d36e75e2701ff10eb",
+      "bytes": 7628
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/voluntary-release-request.json",
+      "sha256": "9fa59845419a57b731dc97d06c89813f72ed99df11ee659f18620e2855c35f3f",
+      "bytes": 50073
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/coverage-stopped-writer-cumulative.bundle",
+      "sha256": "9c54b1ff6b10e28316bf1c680d4c3566ce07ac684313db3c64db0321fbb6c0c6",
+      "bytes": 356061
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/freeze-readback.json",
+      "sha256": "7b091f16f1610d10dc4431ecac755148201bfb967b9bea1696f3d87d28106079",
+      "bytes": 1975
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/payload/docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/receipts/cloud-coverage-authority-worker.json",
+      "sha256": "f2f0056b5a8d8a09edf103340741fbaa2e05598d9274356c0acc9672aa099792",
+      "bytes": 809
+    }
+  ],
+  "checks": {
+    "archiveCommitMatchesExpected": true,
+    "archiveTreeMatchesExpected": true,
+    "wipCount112": true,
+    "all112WipBlobsMatch": true,
+    "historyAndProposalMatch": true,
+    "bundleMatchesFrozen": true,
+    "requestMatchesFrozen": true,
+    "completionMatchesFrozen": true
+  },
+  "priorFilesModified": false,
+  "newArchiveOrRequestCreated": false,
+  "limits": [
+    "Local object/byte verification only; no live claim, PR, main or owner-comment recapture by this author.",
+    "All prior known author receipts and cumulative archive entries are retained; no assertion about unobserved external controller records.",
+    "All prior receipt times and request nonces remain historical and unchanged.",
+    "Preserved prior requests do not constitute current consent or release authority."
+  ]
+}

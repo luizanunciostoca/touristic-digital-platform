@@ -1,0 +1,197 @@
+{
+  "kind": "SCOPED_OPEN_NATIVE_ISSUES_SNAPSHOT",
+  "observedAt": "2026-11-01 01:53:49 UTC",
+  "exactHeartbeatCount": 1,
+  "heartbeat": [
+    {
+      "url": "https://api.github.com/repos/luizanunciostoca/morro-termux-control/issues/4",
+      "repository_url": "https://api.github.com/repos/luizanunciostoca/morro-termux-control",
+      "labels_url": "https://api.github.com/repos/luizanunciostoca/morro-termux-control/issues/4/labels{/name}",
+      "comments_url": "https://api.github.com/repos/luizanunciostoca/morro-termux-control/issues/4/comments",
+      "events_url": "https://api.github.com/repos/luizanunciostoca/morro-termux-control/issues/4/events",
+      "html_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/4",
+      "id": 5639326284,
+      "node_id": "I_kwDOU0BQEs8AAAABUCFKTA",
+      "number": 4,
+      "title": "[TERMUX-AGENT] status",
+      "user": {
+        "login": "luizanunciostoca",
+        "id": 318748875,
+        "node_id": "U_kgDOEv-4yw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/luizanunciostoca",
+        "html_url": "https://github.com/luizanunciostoca",
+        "followers_url": "https://api.github.com/users/luizanunciostoca/followers",
+        "following_url": "https://api.github.com/users/luizanunciostoca/following{/other_user}",
+        "gists_url": "https://api.github.com/users/luizanunciostoca/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/luizanunciostoca/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/luizanunciostoca/subscriptions",
+        "organizations_url": "https://api.github.com/users/luizanunciostoca/orgs",
+        "repos_url": "https://api.github.com/users/luizanunciostoca/repos",
+        "events_url": "https://api.github.com/users/luizanunciostoca/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/luizanunciostoca/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "labels": [],
+      "state": "open",
+      "locked": false,
+      "assignees": [],
+      "milestone": null,
+      "comments": 0,
+      "created_at": "2026-09-30T01:16:06Z",
+      "updated_at": "2026-11-01T01:51:35Z",
+      "closed_at": null,
+      "assignee": null,
+      "author_association": "OWNER",
+      "active_lock_reason": null,
+      "sub_issues_summary": {
+        "total": 0,
+        "completed": 0,
+        "percent_completed": 0
+      },
+      "issue_dependencies_summary": {
+        "blocked_by": 0,
+        "total_blocked_by": 0,
+        "blocking": 0,
+        "total_blocking": 0
+      },
+      "body": "MORRO_NATIVE_AGENT_V3\n\nstate: ONLINE\nbuild: native-v3\nprotocol_version: 2\nagent_instance_id: 8a89a49c9b3a4e73755b0831\nboot_id: 4dd9dc42-f602-4d59-9cf1-027cc7249f10\nheartbeat_utc: 2026-11-01T01:51:35Z\nhost: localhost\narch: aarch64\npid: 10686\npoll_seconds: 30\nrepo: luizanunciostoca/morro-termux-control\ntransport: GitHub Issues\ntargets: termux,debian",
+      "closed_by": null,
+      "reactions": {
+        "url": "https://api.github.com/repos/luizanunciostoca/morro-termux-control/issues/4/reactions",
+        "total_count": 0,
+        "+1": 0,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0
+      },
+      "timeline_url": "https://api.github.com/repos/luizanunciostoca/morro-termux-control/issues/4/timeline",
+      "performed_via_github_app": null,
+      "state_reason": null,
+      "pinned_comment": null
+    }
+  ],
+  "enumeratedOpenIssues": 14,
+  "issues": [
+    {
+      "number": 3399,
+      "title": "[TERMUX-JOB] Resume WP04 certification after agent recovery with bounded concurrency",
+      "state": "open",
+      "updated_at": "2026-10-30T20:11:36Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 3397,
+      "title": "[TERMUX-JOB] Certify final WP04 in isolated checkout using shared object reads",
+      "state": "open",
+      "updated_at": "2026-10-30T20:05:12Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 3291,
+      "title": "[TERMUX-JOB] Re-certify frozen R3 with periodic progress evidence",
+      "state": "open",
+      "updated_at": "2026-10-29T10:04:32Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 3288,
+      "title": "[TERMUX-JOB] Certify and publish R3 with verified ASCII command transport",
+      "state": "open",
+      "updated_at": "2026-10-29T09:05:35Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 3117,
+      "title": "feat(local): persistent passive Aurora runtime diagnostics without W14 authority",
+      "state": "open",
+      "updated_at": "2026-10-28T09:03:06Z",
+      "isNativeJob": false,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 2951,
+      "title": "[REVIEW-SNAPSHOT] CSS composed entry order regression 91cf3647",
+      "state": "open",
+      "updated_at": "2026-10-24T12:59:20Z",
+      "isNativeJob": false,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 2924,
+      "title": "[REVIEW-SNAPSHOT] CSS historical fixture stability e0816abd",
+      "state": "open",
+      "updated_at": "2026-10-24T10:58:06Z",
+      "isNativeJob": false,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 2908,
+      "title": "[REVIEW-SNAPSHOT] CSS reanchor compatibility 6ba3dba5",
+      "state": "open",
+      "updated_at": "2026-10-24T09:50:57Z",
+      "isNativeJob": false,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 2214,
+      "title": "[TERMUX-JOB] Read Android process-exit evidence for interrupted native agent",
+      "state": "open",
+      "updated_at": "2026-10-22T03:42:36Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 1527,
+      "title": "[TERMUX-JOB] Audit TDP staging HTML routes read-only",
+      "state": "open",
+      "updated_at": "2026-10-14T09:13:21Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 1525,
+      "title": "[TERMUX-JOB] Read-only live resume inventory for product lab and preserved SUPPORT worker",
+      "state": "open",
+      "updated_at": "2026-10-14T08:51:29Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 1510,
+      "title": "[TERMUX-JOB] Resume preserved Financial819 only after actual861 merge and exact-main Quality",
+      "state": "open",
+      "updated_at": "2026-10-14T07:21:05Z",
+      "isNativeJob": true,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 1316,
+      "title": "[TDP-AUDIT] Melhoria contínua TDP-MAX — cinco auditorias e lote isolado",
+      "state": "open",
+      "updated_at": "2026-10-08T07:57:34Z",
+      "isNativeJob": false,
+      "mentionsCoverage": false
+    },
+    {
+      "number": 4,
+      "title": "[TERMUX-AGENT] status",
+      "state": "open",
+      "updated_at": "2026-11-01T01:51:35Z",
+      "isNativeJob": false,
+      "mentionsCoverage": false
+    }
+  ],
+  "limitation": "Only provider-visible open issues in this repository; no global process or writer absence is asserted."
+}

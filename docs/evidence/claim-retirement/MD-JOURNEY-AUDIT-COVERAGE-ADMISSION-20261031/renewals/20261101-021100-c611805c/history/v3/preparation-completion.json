@@ -1,0 +1,123 @@
+{
+  "kind": "PREPARATION_COMPLETE_WITH_ARCHIVAL_PUBLICATION_AND_REMOTE_READBACK",
+  "observedAt": "2026-11-01T00:02:28.903016+00:00",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "currentUserScope": "PREPARATION_ONLY",
+  "preparationComplete": true,
+  "archive": {
+    "repository": "luizanunciostoca/touristic-digital-platform",
+    "ref": "refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2",
+    "commitSha": "dc7f5e3a22d88256639e6e699f894e9bf82ff268",
+    "treeSha": "e8792c0e0b1091446fe1747221033c33365c1a34",
+    "writerId": "cloud-coverage-authority-worker"
+  },
+  "parentArchive": {
+    "repository": "luizanunciostoca/touristic-digital-platform",
+    "ref": "refs/heads/archive/audit-coverage-renewal-20261031-222400-f25b97cd",
+    "commitSha": "08ede13aa6e7028c826335986a94ab98c6b1cdd8",
+    "treeSha": "1da9ede636b875aa0d2656db0dde7e33b88522bb",
+    "writerId": "cloud-coverage-authority-worker"
+  },
+  "request": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/voluntary-release-request.json",
+    "canonicalSha256": "3b96b7d4f3ed8aa461c000352a8cf40de8b25385f24706952ed94761ecfce704",
+    "fileSha256": "9fa59845419a57b731dc97d06c89813f72ed99df11ee659f18620e2855c35f3f",
+    "bytes": 50073,
+    "snapshotAt": "2026-10-31T23:50:36.000Z",
+    "decisionNonce": "audit-coverage-preparation-20261031-97287f78-f11d-4283-8210-1860c8dd60d2",
+    "retirementBranch": "chore/retire-audit-coverage-cumulative-20261031-234946-4cc5b7b2"
+  },
+  "receipt": {
+    "pathInBackup": "docs/evidence/claim-retirement/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031/renewals/20261031-234946-4cc5b7b2/receipts/cloud-coverage-authority-worker.json",
+    "blobSha": "f64edec9d8ffab81ad99a822690d8ff483376827",
+    "sha256": "f2f0056b5a8d8a09edf103340741fbaa2e05598d9274356c0acc9672aa099792",
+    "requestedAt": "2026-10-31T23:34:49.000Z",
+    "acknowledgedAt": "2026-10-31T23:36:01.000Z",
+    "drainedAt": "2026-10-31T23:36:01.000Z"
+  },
+  "authorSession": "/root/autoridade_e_codigo",
+  "authorState": "STOPPED",
+  "noSubstituteAuthorCreated": true,
+  "materialSource": {
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "localWorktreeCleanAtVerification": true
+  },
+  "canonicalMainShaObserved": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+  "preservedMaterialState": "IMPLEMENTING",
+  "localTaskStatePreserved": "SUBMITTED",
+  "materialWritingResumed": false,
+  "canonicalClaimTaskHistoriesModified": false,
+  "personalApprovalRequested": false,
+  "personalApprovalDeferredByCurrentUserScope": true,
+  "newConsentCommentsObserved": 0,
+  "observationTimeForComments": "2026-11-01T00:00:49Z",
+  "historicalConsentTransferred": false,
+  "canonicalCollectorExecuted": false,
+  "retirementExecuted": false,
+  "readyForRetirement": false,
+  "verification": {
+    "localReview": "PASS_LOCAL_ARCHIVE_REVIEW_ONLY",
+    "remoteReadback": "VERIFIED_112_OF_112",
+    "wipPaths": 112,
+    "uniqueRemoteBlobReads": 112,
+    "integrityComparisons": {
+      "count": 779,
+      "passed": 779,
+      "failed": 0
+    },
+    "archiveOnlyPublicationJob": 3469,
+    "archiveOnlyPublicationEndedAt": "2026-10-31T23:57:31Z"
+  },
+  "readbackInterpretation": {
+    "kind": "ARCHIVAL_BYTE_INTEGRITY_CHECK",
+    "durationSeconds": 84,
+    "getRequests": 135,
+    "canonicalRetirementCollectorMaxObservationSeconds": 60,
+    "usableAsCanonicalRetirementCollectorProof": false,
+    "reason": "This 84-second connector readback verifies preservation only. A future separately authorized canonical collector must execute its own current observation within its 60-second limit and validate fresh personal consent. No current release or consent is claimed."
+  },
+  "frozenDocumentsAreHistoricalSnapshots": true,
+  "frozenLocalCompletionRemainsUnmodified": {
+    "path": "remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/completion.json",
+    "bytes": 20122,
+    "sha256": "61f9ff41c87fee16b2e48b2cdf9eb18224f333fb9eee545802d9aa2a4d3731e0"
+  },
+  "subsequentEvidence": [
+    {
+      "path": "remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/native-publication-result.json",
+      "bytes": 1565,
+      "sha256": "7438764f030569f6b27e84ace055dadefc73271a57cdca26d9f9f83b35459d4f"
+    },
+    {
+      "path": "remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/remote-readback.json",
+      "bytes": 241807,
+      "sha256": "1c83c7e312f1c99360146f86656bf42c1cf8393b175b47b6e9067551b2a32297"
+    },
+    {
+      "path": "remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/remote-readback.md",
+      "bytes": 1640,
+      "sha256": "3375eb5e90197db0fb402d4f226e1dff2d56022ff3c687f3b06c115f164e5338"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2-local-review.json",
+      "bytes": 100365,
+      "sha256": "b483e45d03e64d8e0b9ad057e19f821fee96544beaf4e2c80ebf56031332baf2"
+    }
+  ],
+  "freshness": {
+    "drainedAtMustBeNoOlderThanSeconds": 3600,
+    "snapshotAtMustBeNoOlderThanSeconds": 3600,
+    "earliestLocalFreshnessDeadlineExclusive": "2026-11-01T00:36:01.000Z",
+    "ownerConsentMaxAgeSeconds": 1800,
+    "note": "The previous request expired. Never edit historical times or reuse its nonce. If the current window expires, repeat factual observation and rebuild identities."
+  },
+  "freshnessDeadlineBahia": "2026-10-31T21:36:01-03:00",
+  "limits": [
+    "Original author command/child zeros retain their own scope; no global assertion about all writers or unreadable processes.",
+    "Current Native inspections and archival-publication jobs are complete; unrelated jobs remain outside the conclusion.",
+    "Ten unreadable cloud PIDs remain expressly unverified.",
+    "Historical Native caches/logs remain inventoried and preserved, without a claim that every full log was copied.",
+    "A later phase must recapture factual state if time or identities change; no frozen historical receipt or consent may be edited or reused as new authority."
+  ]
+}

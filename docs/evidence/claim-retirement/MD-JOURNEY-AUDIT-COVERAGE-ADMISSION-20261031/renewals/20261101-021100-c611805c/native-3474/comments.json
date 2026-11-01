@@ -1,0 +1,83 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "comments": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474#issuecomment-6552114122",
+        "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: 03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263",
+        "user": {
+          "login": "github-actions[bot]",
+          "name": "github-actions[bot]",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+          "id": 41898282
+        },
+        "id": 6552114122,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: 03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474#issuecomment-6552117107",
+        "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3474 at 2026-11-01T02:04:50Z.",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6552117107,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6142198131\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3474\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3474/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3474\">#3474</a> at 2026-11-01T02:04:50Z.</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474#issuecomment-6552118550",
+        "body": "MORRO_AGENT_RESULT_V3\n\n- id: coverage-current-main-prep-inventory-20261101-0155\n- target: termux\n- exit_code: 0\n- started_at: 2026-11-01T02:04:52Z\n- ended_at: 2026-11-01T02:04:59Z\n- duration_seconds: 7\n- request_sha256: 03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"coverage-current-main-prep-inventory-20261101-0155\",\"target\":\"termux\",\"started_at\":\"2026-11-01T02:04:52Z\",\"ended_at\":\"2026-11-01T02:04:59Z\",\"duration_seconds\":7,\"exit_code\":0,\"request_sha256\":\"03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\n{\"kind\":\"CURRENT_MAIN_PREPARATION_SCOPED_NATIVE_READ_ONLY_INVENTORY\",\"startedAt\":\"2026-11-01T02:04:53.214082+00:00\",\"observedAt\":\"2026-11-01T02:04:59.186754+00:00\",\"canonicalMainSha\":\"693543a39eb4a3923668cc0005883daee9bbc5a0\",\"previousBackup\":{\"ref\":\"refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\",\"sha\":\"dc7f5e3a22d88256639e6e699f894e9bf82ff268\"},\"materialSource\":{\"ref\":\"refs/heads/chore/journey-audit-coverage-admission-20261031\",\"sha\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"pr\":{\"number\":1337,\"state\":\"closed\",\"draft\":true,\"merged\":false,\"headSha\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\"}},\"matchingMaterialWorktrees\":[],\"preservedHistoricalRoots\":[{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-collector-l0o6i3w9\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"blob-request.json\",\"bytes\":825109,\"sha256\":\"32b351aa5052f79dd047641516a60482a25faafe964a919a72266702f737502b\"},{\"name\":\"collector.mjs\",\"bytes\":2219,\"sha256\":\"4b6243e2174199d0185dfc79059e97fc6f0c5028af26ab3a06d7372d4d659053\"},{\"name\":\"generated-output.json\",\"bytes\":618804,\"sha256\":\"9f11cbd6a18ce81dea50f72f2ee5fc3b02d07cbebe25b86c394ee9baddbda7cd\"},{\"name\":\"request.json\",\"bytes\":24079,\"sha256\":\"45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee\"}],\"frozenCandidate\":null,\"generatedOutputExists\":true},{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"collector.mjs\",\"bytes\":2219,\"sha256\":\"4b6243e2174199d0185dfc79059e97fc6f0c5028af26ab3a06d7372d4d659053\"},{\"name\":\"request.json\",\"bytes\":50073,\"sha256\":\"9fa59845419a57b731dc97d06c89813f72ed99df11ee659f18620e2855c35f3f\"}],\"frozenCandidate\":null,\"generatedOutputExists\":false},{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"candidate.bundle\",\"bytes\":6771,\"sha256\":\"4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91\"}],\"frozenCandidate\":{\"path\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys/frozen-candidate\",\"head\":\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\",\"tree\":\"98d1f5b4b861684ec6495d983e0d272ef4960d42\",\"statusPorcelain\":\"\"},\"generatedOutputExists\":false},{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"admission-after-expiry.json\",\"bytes\":969,\"sha256\":\"ad8f4d83dbbb0bf48365e922c555126a44b7a29b6d5204381c261d3882f6ba11\"},{\"name\":\"auth-plan-diagnostic.mjs\",\"bytes\":646,\"sha256\":\"f734924e4d05f650a680de86ddaa0a95fcbbf3d4d63bdfb2703f5c8596ec1024\"},{\"name\":\"auth-proof.mjs\",\"bytes\":872,\"sha256\":\"2e66ba7cb9663d31fe73a8b0808c03eca7d55ca7bc03ed2e8c66f8e9e9ee7101\"},{\"name\":\"auth-runtime-diagnostic.mjs\",\"bytes\":1094,\"sha256\":\"2999bbe9ec0ce973fd971c3bd01a16bbbc458daf79411a50d6370003ea5c7959\"},{\"name\":\"candidate.bundle\",\"bytes\":6771,\"sha256\":\"4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91\"},{\"name\":\"certify.json\",\"bytes\":600,\"sha256\":\"e1f4c15b1d6ca52745e198b446cdc725ffbeb0c7496d7db91559c44986cf9fec\"},{\"name\":\"diagnostic-debian-proot.json\",\"bytes\":780,\"sha256\":\"b4ba5feb229e6665a55c2195f26ef1218ae9d8baddd71a51cb70dce921f204ab\"},{\"name\":\"diagnostic-native.json\",\"bytes\":522,\"sha256\":\"6b625b1f58134073e53efc5c11b91d35e5871a1e6789170c577dffee167840b0\"},{\"name\":\"governance-native-suite.json\",\"bytes\":8318,\"sha256\":\"080332034c8d0fad5a02d6cd369a2376b1b506963974e7954114ee42f6e2234f\"},{\"name\":\"governance-native-suite.log\",\"bytes\":87248,\"sha256\":\"c1b1614f7093639ceedf6d9a0431922619a65b3e1f388f1450a814bff17bd4e1\"},{\"name\":\"isolated-governance-suite.mjs\",\"bytes\":1217,\"sha256\":\"e80d9fa7188a8ec8beb227c3f3d97e6d9da39b74b55f96b91a2ff31075cb686c\"},{\"name\":\"plan-diagnostic.json\",\"bytes\":1593,\"sha256\":\"a2c58c618ae3d6ddbdcb4cfde612777d3dc16eeea8daa57777d10b480c494116\"},{\"name\":\"probe-plan-stages.mjs\",\"bytes\":721,\"sha256\":\"691f6ced6a541f43d4f1c34b414c4a153c7767cfcec780eb9efb8e70adc6034d\"},{\"name\":\"runtime-readiness-and-admission.mjs\",\"bytes\":1286,\"sha256\":\"aa63d32637a22a92b0785c17a9db371fa2027f123e704e3671d944f8bd6434b7\"},{\"name\":\"runtime-readiness.json\",\"bytes\":201,\"sha256\":\"7c58b62b124f1c5e6058b3546126c56a7ecd36a5704f712b27ec26475cf67589\"}],\"frozenCandidate\":{\"path\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate\",\"head\":\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\",\"tree\":\"98d1f5b4b861684ec6495d983e0d272ef4960d42\",\"statusPorcelain\":\"\"},\"generatedOutputExists\":false}],\"processScope\":{\"enumeratedPidEntries\":22,\"probeAndAncestorPidsExcluded\":[1,10686,32055,32060,32061],\"unreadableCwdCount\":0,\"unreadableCmdlineCount\":0,\"matchingProcesses\":[]},\"mutationsExecuted\":[],\"limits\":[\"Known material branch, four historical lifecycle roots, readable cwd and exact markers only; inaccessible processes remain unknown.\",\"No global process or writer absence assertion. Unrelated open Native jobs are not certified drained.\",\"Historical root contents remain untouched; only listed file sizes/hashes and candidate state were read. Full logs are not copied by this inventory.\",\"This read-only controller command is pending until its matching Native result confirms completion. No collector, test, task, claim, candidate, branch, retirement or material write is executed.\"]}\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3474/\n",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6552118550,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: coverage-current-main-prep-inventory-20261101-0155</li>\n<li>target: termux</li>\n<li>exit_code: 0</li>\n<li>started_at: 2026-11-01T02:04:52Z</li>\n<li>ended_at: 2026-11-01T02:04:59Z</li>\n<li>duration_seconds: 7</li>\n<li>request_sha256: 03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"coverage-current-main-prep-inventory-20261101-0155\",\"target\":\"termux\",\"started_at\":\"2026-11-01T02:04:52Z\",\"ended_at\":\"2026-11-01T02:04:59Z\",\"duration_seconds\":7,\"exit_code\":0,\"request_sha256\":\"03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text<br>\n{\"kind\":\"CURRENT_MAIN_PREPARATION_SCOPED_NATIVE_READ_ONLY_INVENTORY\",\"startedAt\":\"2026-11-01T02:04:53.214082+00:00\",\"observedAt\":\"2026-11-01T02:04:59.186754+00:00\",\"canonicalMainSha\":\"693543a39eb4a3923668cc0005883daee9bbc5a0\",\"previousBackup\":{\"ref\":\"refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\",\"sha\":\"dc7f5e3a22d88256639e6e699f894e9bf82ff268\"},\"materialSource\":{\"ref\":\"refs/heads/chore/journey-audit-coverage-admission-20261031\",\"sha\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\",\"pr\":{\"number\":1337,\"state\":\"closed\",\"draft\":true,\"merged\":false,\"headSha\":\"fc089a1fcef27e3c39f3c3d27faf4f69b088436b\"}},\"matchingMaterialWorktrees\":[],\"preservedHistoricalRoots\":[{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-collector-l0o6i3w9\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"blob-request.json\",\"bytes\":825109,\"sha256\":\"32b351aa5052f79dd047641516a60482a25faafe964a919a72266702f737502b\"},{\"name\":\"collector.mjs\",\"bytes\":2219,\"sha256\":\"4b6243e2174199d0185dfc79059e97fc6f0c5028af26ab3a06d7372d4d659053\"},{\"name\":\"generated-output.json\",\"bytes\":618804,\"sha256\":\"9f11cbd6a18ce81dea50f72f2ee5fc3b02d07cbebe25b86c394ee9baddbda7cd\"},{\"name\":\"request.json\",\"bytes\":24079,\"sha256\":\"45f25ed565915493aa8b6db7ecef278f631c58147872534f0d2b04d0f86aa6ee\"}],\"frozenCandidate\":null,\"generatedOutputExists\":true},{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"collector.mjs\",\"bytes\":2219,\"sha256\":\"4b6243e2174199d0185dfc79059e97fc6f0c5028af26ab3a06d7372d4d659053\"},{\"name\":\"request.json\",\"bytes\":50073,\"sha256\":\"9fa59845419a57b731dc97d06c89813f72ed99df11ee659f18620e2855c35f3f\"}],\"frozenCandidate\":null,\"generatedOutputExists\":false},{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"candidate.bundle\",\"bytes\":6771,\"sha256\":\"4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91\"}],\"frozenCandidate\":{\"path\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-u46bb0ys/frozen-candidate\",\"head\":\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\",\"tree\":\"98d1f5b4b861684ec6495d983e0d272ef4960d42\",\"statusPorcelain\":\"\"},\"generatedOutputExists\":false},{\"root\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr\",\"exists\":true,\"topLevelFiles\":[{\"name\":\"admission-after-expiry.json\",\"bytes\":969,\"sha256\":\"ad8f4d83dbbb0bf48365e922c555126a44b7a29b6d5204381c261d3882f6ba11\"},{\"name\":\"auth-plan-diagnostic.mjs\",\"bytes\":646,\"sha256\":\"f734924e4d05f650a680de86ddaa0a95fcbbf3d4d63bdfb2703f5c8596ec1024\"},{\"name\":\"auth-proof.mjs\",\"bytes\":872,\"sha256\":\"2e66ba7cb9663d31fe73a8b0808c03eca7d55ca7bc03ed2e8c66f8e9e9ee7101\"},{\"name\":\"auth-runtime-diagnostic.mjs\",\"bytes\":1094,\"sha256\":\"2999bbe9ec0ce973fd971c3bd01a16bbbc458daf79411a50d6370003ea5c7959\"},{\"name\":\"candidate.bundle\",\"bytes\":6771,\"sha256\":\"4cf01dd154b864e665566864f64d15b0710bf176462795923aaec27bfc7e2d91\"},{\"name\":\"certify.json\",\"bytes\":600,\"sha256\":\"e1f4c15b1d6ca52745e198b446cdc725ffbeb0c7496d7db91559c44986cf9fec\"},{\"name\":\"diagnostic-debian-proot.json\",\"bytes\":780,\"sha256\":\"b4ba5feb229e6665a55c2195f26ef1218ae9d8baddd71a51cb70dce921f204ab\"},{\"name\":\"diagnostic-native.json\",\"bytes\":522,\"sha256\":\"6b625b1f58134073e53efc5c11b91d35e5871a1e6789170c577dffee167840b0\"},{\"name\":\"governance-native-suite.json\",\"bytes\":8318,\"sha256\":\"080332034c8d0fad5a02d6cd369a2376b1b506963974e7954114ee42f6e2234f\"},{\"name\":\"governance-native-suite.log\",\"bytes\":87248,\"sha256\":\"c1b1614f7093639ceedf6d9a0431922619a65b3e1f388f1450a814bff17bd4e1\"},{\"name\":\"isolated-governance-suite.mjs\",\"bytes\":1217,\"sha256\":\"e80d9fa7188a8ec8beb227c3f3d97e6d9da39b74b55f96b91a2ff31075cb686c\"},{\"name\":\"plan-diagnostic.json\",\"bytes\":1593,\"sha256\":\"a2c58c618ae3d6ddbdcb4cfde612777d3dc16eeea8daa57777d10b480c494116\"},{\"name\":\"probe-plan-stages.mjs\",\"bytes\":721,\"sha256\":\"691f6ced6a541f43d4f1c34b414c4a153c7767cfcec780eb9efb8e70adc6034d\"},{\"name\":\"runtime-readiness-and-admission.mjs\",\"bytes\":1286,\"sha256\":\"aa63d32637a22a92b0785c17a9db371fa2027f123e704e3671d944f8bd6434b7\"},{\"name\":\"runtime-readiness.json\",\"bytes\":201,\"sha256\":\"7c58b62b124f1c5e6058b3546126c56a7ecd36a5704f712b27ec26475cf67589\"}],\"frozenCandidate\":{\"path\":\"/data/data/com.termux/files/home/.cache/tdp-retirement-proof-yt7rb4qr/frozen-candidate\",\"head\":\"e78f891eaea58ce850d154426420ea5e0c3dcdc1\",\"tree\":\"98d1f5b4b861684ec6495d983e0d272ef4960d42\",\"statusPorcelain\":\"\"},\"generatedOutputExists\":false}],\"processScope\":{\"enumeratedPidEntries\":22,\"probeAndAncestorPidsExcluded\":[1,10686,32055,32060,32061],\"unreadableCwdCount\":0,\"unreadableCmdlineCount\":0,\"matchingProcesses\":[]},\"mutationsExecuted\":[],\"limits\":[\"Known material branch, four historical lifecycle roots, readable cwd and exact markers only; inaccessible processes remain unknown.\",\"No global process or writer absence assertion. Unrelated open Native jobs are not certified drained.\",\"Historical root contents remain untouched; only listed file sizes/hashes and candidate state were read. Full logs are not copied by this inventory.\",\"This read-only controller command is pending until its matching Native result confirms completion. No collector, test, task, claim, candidate, branch, retirement or material write is executed.\"]}<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3474/</p>"
+      }
+    ],
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474",
+    "title": "luizanunciostoca/morro-termux-control Issue #3474 comments",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474",
+    "display_title": "luizanunciostoca/morro-termux-control Issue #3474 comments"
+  },
+  "isError": false
+}

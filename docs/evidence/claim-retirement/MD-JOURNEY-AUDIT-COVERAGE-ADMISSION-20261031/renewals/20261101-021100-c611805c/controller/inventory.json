@@ -1,0 +1,121 @@
+{
+  "kind": "CURRENT_MAIN_PREPARATION_CONTROLLER_INVENTORY",
+  "observedAt": "2026-11-01T02:06:03.971158+00:00",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "canonicalMainSha": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+  "scope": "PREPARATION_ONLY",
+  "originalMaterialAuthor": {
+    "writerId": "cloud-coverage-authority-worker",
+    "executorIdentity": "CHATGPT-PRO-CONTROL",
+    "controllerIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root/autoridade_e_codigo",
+    "jobId": null,
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "commandIds": [
+      "exact-coverage-and-sensitive-boundaries"
+    ]
+  },
+  "sameOriginalAuthor": true,
+  "originalAuthorReceiptPath": "remediation/evidence/coverage-author-stop-reaffirmation-20261101-015300/writer-stop-receipt.json",
+  "originalAuthorAckNotExpanded": true,
+  "currentControllerState": {
+    "pendingMaterialCommands": [],
+    "pendingOwnNativeCommands": [],
+    "allCurrentNativeInspectionsCompleted": true,
+    "completedReadOnlyNativeInventoryIssue": 3474,
+    "ongoingPreparationAgents": [
+      {
+        "sessionId": "/root/autoridade_e_codigo",
+        "scope": "new archival copy and pure request validation only"
+      }
+    ],
+    "completedDocumentaryAgents": [
+      "/root/runtime_evidencias",
+      "/root/matriz_cobertura"
+    ],
+    "rootNoMaterialWritingResumed": true
+  },
+  "knownTreeObservation": {
+    "observedNames": [
+      "/root",
+      "/root/autoridade_e_codigo",
+      "/root/runtime_evidencias",
+      "/root/matriz_cobertura"
+    ],
+    "newSubstitutesCreated": false,
+    "newAgentsCreated": false,
+    "originalAuthorOwnChildCount": 0,
+    "basis": "collaboration list after Native completion; author own child list in factual ACK; other listed agents are root documentary children, not children of author"
+  },
+  "nativeInspection": {
+    "issue": 3474,
+    "requestSha256": "03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263",
+    "resultCommentId": 6552118550,
+    "completedAt": "2026-11-01T02:04:59Z",
+    "matchingProcesses": 0,
+    "unreadableCwdCount": 0,
+    "unreadableCmdlineCount": 0,
+    "scope": [
+      "Known material branch, four historical lifecycle roots, readable cwd and exact markers only; inaccessible processes remain unknown.",
+      "No global process or writer absence assertion. Unrelated open Native jobs are not certified drained.",
+      "Historical root contents remain untouched; only listed file sizes/hashes and candidate state were read. Full logs are not copied by this inventory.",
+      "This read-only controller command is pending until its matching Native result confirms completion. No collector, test, task, claim, candidate, branch, retirement or material write is executed."
+    ]
+  },
+  "materialPRObserved": {
+    "number": 1337,
+    "state": "closed",
+    "draft": true,
+    "merged": false,
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b"
+  },
+  "historicalLifecycleChannel": {
+    "previousClassification": "ONE_ORIGINAL_MATERIAL_WRITER_WITH_FULLY_DISCLOSED_DISTINCT_HISTORICAL_LIFECYCLE_CHANNEL",
+    "priorDispositionPath": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/controller-classification-disposition.json",
+    "priorArchiveCommit": "dc7f5e3a22d88256639e6e699f894e9bf82ff268",
+    "additionalHistoricalAttempt": {
+      "issue": 3470,
+      "requestSha256": "a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520",
+      "exitCode": 1,
+      "durationSeconds": 79,
+      "error": "VOLUNTARY_PROVIDER_OBSERVATION_STALE",
+      "frozenRoot": "/data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7",
+      "generatedOutputExists": false,
+      "attribution": "historical controller/Native lifecycle collection; never attributed to original material author"
+    }
+  },
+  "historicalOwnerComments": [
+    {
+      "id": 6550135699,
+      "createdAt": "2026-10-31T22:44:06Z",
+      "updatedAt": "2026-10-31T22:44:06Z",
+      "author": "luizanunciostoca",
+      "body": "APPROVED_VOLUNTARY_RELEASE:MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031:04133e7876940a9ad616176f70b0e7d02c349ee45be926d4b20e25fa955e9a2e:audit-coverage-renewal-20261031-6b966c24-9a98-4a6a-92e0-33b4dff8d9f3:d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bodySha256": "cc738de3b6139a9570500616f1e1483631fdfee06a763731d932af9ac85f9a63",
+      "usedForNewRequest": false
+    },
+    {
+      "id": 6551115616,
+      "createdAt": "2026-11-01T00:22:41Z",
+      "updatedAt": "2026-11-01T00:22:41Z",
+      "author": "luizanunciostoca",
+      "body": "APPROVED_VOLUNTARY_RELEASE:MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031:3b96b7d4f3ed8aa461c000352a8cf40de8b25385f24706952ed94761ecfce704:audit-coverage-preparation-20261031-97287f78-f11d-4283-8210-1860c8dd60d2:d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "bodySha256": "41b7416a24fd01b54a48d02eedcdeff306bcb1c636995937df7288987eb87841",
+      "usedForNewRequest": false
+    }
+  ],
+  "newPersonalApprovalRequested": false,
+  "historicalConsentTransferred": false,
+  "canonicalCollectorExecutedThisPreparation": false,
+  "materialOrClaimTaskHistoryMutation": false,
+  "retirementExecuted": false,
+  "limits": [
+    "Own known commands and current selected Native inventories only; no global absence of writers or external work is asserted.",
+    "Ten non-readable local PIDs remain outside the original author observation.",
+    "Unrelated open Native jobs are preserved and are not certified drained.",
+    "Historical logs and roots remain untouched; copied evidence is identified, metadata-only inspection is not a claim of complete log recovery.",
+    "Archival preparation commands are distinct from stopped material implementation and must finish before delivery."
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "kind": "SAME_ORIGINAL_AUTHOR_CURRENT_FACTUAL_STOP_OBSERVATION_ONLY",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "writer": {
+    "writerId": "cloud-coverage-authority-worker",
+    "executorIdentity": "CHATGPT-PRO-CONTROL",
+    "controllerIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root/autoridade_e_codigo",
+    "jobId": null,
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "commandIds": [
+      "exact-coverage-and-sensitive-boundaries"
+    ]
+  },
+  "sameOriginalAuthor": true,
+  "controllerSessionId": "/root",
+  "requestedAt": "2026-11-01T01:53:00.000Z",
+  "acknowledgedAt": "2026-11-01T01:55:02.000Z",
+  "drainedAt": "2026-11-01T01:55:02.000Z",
+  "terminalState": "STOPPED",
+  "pendingCommands": 0,
+  "pendingChildren": 0,
+  "timestampBasis": {
+    "clock": "clock.curr_time UTC",
+    "requestedAt": "First current clock read after receiving this preparation-only stop instruction, not a recycled time.",
+    "acknowledgedAtAndDrainedAt": "Clock read after synchronous inspections of material Git state, four histories, leases, visible local processes, own children and preservation checks had completed.",
+    "historicalTimesAndNoncesUnchanged": true
+  },
+  "materialWorkspace": {
+    "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "statusPorcelain": "",
+    "clean": true,
+    "untrackedFilesIncluded": true,
+    "optionalGitLocksDisabled": true
+  },
+  "task": {
+    "recordPath": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+    "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+    "taskId": "task-MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "changeSetId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+    "owner": "CHATGPT-PRO-CONTROL",
+    "state": "SUBMITTED"
+  },
+  "leases": {
+    "recordPath": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/capability-leases.json",
+    "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+    "activeRelevantLeaseCount": 0,
+    "observed": [
+      {
+        "leaseId": "lease-1decc02c-8ee7-45c5-abfb-681623d49f33",
+        "capability": "github:read",
+        "state": "RELEASED"
+      },
+      {
+        "leaseId": "lease-83dcbef0-4160-4b33-8b4b-b39cc93ce10b",
+        "capability": "workspace:write:claimed-paths",
+        "state": "RELEASED"
+      },
+      {
+        "leaseId": "lease-54e9dc40-0f88-4f29-9563-e6eae6b68270",
+        "capability": "evidence:write:task-local",
+        "state": "RELEASED"
+      }
+    ]
+  },
+  "fourHistories": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.task.json",
+      "sha256": "1fd2c5c776ae92b23ed868bc8b569a8ffaa7947574466d5d9f5dd59f960b4db4",
+      "bytes": 2106
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.context-pack.json",
+      "sha256": "a20ad9af1d24ee36bbeedf310c027dcbb201a64c725de340fe5eef64c5d825f1",
+      "bytes": 1927
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.handoff.json",
+      "sha256": "0abfde6757f83474a775429b349da9e6627e67712fe0750a9cd7ab5815892ebe",
+      "bytes": 997
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/tdp-coverage-admission/.git/morro-control/capability-leases.json",
+      "sha256": "cc4cbfad5cd513fbb710570b0b0f9614825d945024187cb41255517d444edbca",
+      "bytes": 1546
+    }
+  ],
+  "ownToolSessions": {
+    "pendingMaterialWriteCommands": [],
+    "knownYieldedExecCells": [],
+    "knownRunningExecCommandSessions": [],
+    "basis": "All previously issued calls in this original author session returned completion. No asynchronous material process or child was started by this renewal inspection.",
+    "limit": "No global registry of root, Native or external service sessions is asserted."
+  },
+  "childInventory": {
+    "tool": "collaboration.list_agents",
+    "pathPrefix": "/root/autoridade_e_codigo",
+    "returnedAgents": [
+      {
+        "agent_name": "/root/autoridade_e_codigo",
+        "agent_status": "running"
+      }
+    ],
+    "ownPendingChildren": []
+  },
+  "processCensus": {
+    "roots": [
+      "/workspace/scratch/f024a80a7385/tdp-coverage-admission",
+      "/tmp/tdp-coverage-impact-correction-git-fc089a1f"
+    ],
+    "matchingVisibleProcesses": [],
+    "unreadableProcessCount": 10,
+    "examinedNonInspectorProcesses": 13,
+    "inspectorAndAncestorsExcluded": true,
+    "commandArgumentsOrEnvironmentCollected": false,
+    "limit": "Only visible local PID/comm/cwd in the named workspaces. Inaccessible processes are not asserted absent; no global root/Native/external claim is made."
+  },
+  "preservation": {
+    "archiveCommit": "dc7f5e3a22d88256639e6e699f894e9bf82ff268",
+    "archiveTree": "e8792c0e0b1091446fe1747221033c33365c1a34",
+    "wipCount": 112,
+    "verifiedWip": 112,
+    "bundle": {
+      "path": "/workspace/scratch/f024a80a7385/remediation/archives/coverage-voluntary-cumulative-20261031-234946-4cc5b7b2/coverage-stopped-writer-cumulative.bundle",
+      "sha256": "9c54b1ff6b10e28316bf1c680d4c3566ce07ac684313db3c64db0321fbb6c0c6",
+      "bytes": 356061,
+      "prerequisiteSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+      "localVerificationOutput": "The bundle contains this ref:\ndc7f5e3a22d88256639e6e699f894e9bf82ff268 refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\nThe bundle requires this ref:\nfc089a1fcef27e3c39f3c3d27faf4f69b088436b \nThe bundle uses this hash algorithm: sha1\n"
+    },
+    "checks": {
+      "archiveCommitMatchesExpected": true,
+      "archiveTreeMatchesExpected": true,
+      "wipCount112": true,
+      "all112WipBlobsMatch": true,
+      "historyAndProposalMatch": true,
+      "bundleMatchesFrozen": true,
+      "requestMatchesFrozen": true,
+      "completionMatchesFrozen": true
+    },
+    "knownPreviousAuthorReceiptFilesRecorded": 23,
+    "oldFilesModified": false
+  },
+  "newLocalReceipt": {
+    "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-author-stop-reaffirmation-20261101-015300/writer-stop-receipt.json",
+    "sha256": "9beb57847f05a6b2604450cc285d0a7f384abf1983735217cb5d4115e03c2f61",
+    "bytes": 809,
+    "closedTopLevelKeys": [
+      "schemaVersion",
+      "writer",
+      "receipt"
+    ],
+    "published": false,
+    "currentProtocolAdmissionClaimed": false
+  },
+  "supportingEvidence": [
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-author-stop-reaffirmation-20261101-015300/local-state-observation.json",
+      "sha256": "65a1ce2152bded3b904716f9ab8789441a2468db2ee443672d49d9a00cd5e731",
+      "bytes": 10990
+    },
+    {
+      "path": "/workspace/scratch/f024a80a7385/remediation/evidence/coverage-author-stop-reaffirmation-20261101-015300/preserved-evidence-inventory.json",
+      "sha256": "cc68ee36893e0879fcc2e47fa2e99c594c7ce895ed9125fd83879190739537d2",
+      "bytes": 53737
+    }
+  ],
+  "commitment": "Como a mesma autora original, permaneço STOPPED. Não retomarei escrita material, task, claim, histórico operacional, testes, correções ou liberação nesta etapa. Não há comando material, sessão de execução conhecida ou filho próprio pendente sob meu controle. A única atividade desta invocação foi a inspeção e o registro factual externos; suas chamadas síncronas são concluídas antes da resposta STOPPED. Aguardo a coordenação das fontes atuais antes de qualquer novo pedido ou backup.",
+  "limits": [
+    "Ten local processes were unreadable. Zero matches means zero visible matches in the named workspaces, not global absence.",
+    "The author reports only its own known tool calls/sessions and children; root, Native, other accounts/devices and external channels require their own observations.",
+    "No live main, PR, claim, policy or owner-comment recapture was performed by this author. Compatibility of any future request with newly recaptured authority is not asserted here.",
+    "The historical governance channel and all prior receipt times/nonces remain preserved; they are not attributed to this material author or converted into current consent.",
+    "The local closed factual receipt is not a release decision, owner attestation, current protocol admission or authorization to resume material work."
+  ],
+  "newRequestCreated": false,
+  "newNonceCreated": false,
+  "newArchiveCommitRefOrBundleCreated": false,
+  "newChildCreated": false,
+  "materialTaskClaimHistoryOrCodeEdited": false,
+  "testsOrCorrectionsExecuted": false,
+  "releaseExecuted": false,
+  "personalApprovalRequested": false,
+  "remoteMutationPerformed": false,
+  "awaitingCurrentAuthorityCoordination": true
+}

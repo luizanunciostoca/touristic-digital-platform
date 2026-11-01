@@ -1,0 +1,39 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "issue": {
+      "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474",
+      "title": "[TERMUX-JOB] coverage-current-main-prep-inventory-20261101-0155",
+      "issue_number": 3474,
+      "body": "{\"version\":2,\"confirm\":\"EXECUTE\",\"id\":\"coverage-current-main-prep-inventory-20261101-0155\",\"target\":\"termux\",\"cwd\":\"~\",\"timeout_seconds\":120,\"command\":\"set -euo pipefail\\npython3 - <<'CURRENT_PREP_INVENTORY'\\nfrom pathlib import Path\\nimport os,json,subprocess,datetime,hashlib\\nstarted=datetime.datetime.now(datetime.timezone.utc).isoformat()\\nstore=Path.home()/'repos/touristic-digital-platform.git'\\nrepository='luizanunciostoca/touristic-digital-platform'\\nclaim='MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031'\\nbranch='refs/heads/chore/journey-audit-coverage-admission-20261031'\\nexpected_main='693543a39eb4a3923668cc0005883daee9bbc5a0'\\nexpected_backup='dc7f5e3a22d88256639e6e699f894e9bf82ff268'\\nbackup_ref='refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2'\\ndef out(argv):\\n return subprocess.check_output(argv,text=True).strip()\\ndef api(path):\\n return json.loads(out(['gh','api','repos/'+repository+'/'+path]))\\nassert store.is_dir()\\nmain=api('git/ref/heads/main')\\nbackup=api('git/ref/'+backup_ref.removeprefix('refs/'))\\nsource=api('git/ref/'+branch.removeprefix('refs/'))\\nassert main['object']['sha']==expected_main,'MAIN_CHANGED'\\nassert backup['object']['sha']==expected_backup,'PRIOR_BACKUP_CHANGED'\\nassert source['object']['sha']=='fc089a1fcef27e3c39f3c3d27faf4f69b088436b','MATERIAL_SOURCE_CHANGED'\\nworktree_text=out(['git','--git-dir='+str(store),'worktree','list','--porcelain'])\\nmatching_worktrees=[]\\nfor block in worktree_text.split('\\\\n\\\\n'):\\n lines=block.splitlines()\\n if 'branch '+branch in lines:\\n  row=dict(line.split(' ',1) for line in lines if ' ' in line)\\n  row['statusPorcelain']=out(['git','--no-optional-locks','-C',row['worktree'],'status','--porcelain=v1','--untracked-files=all'])\\n  matching_worktrees.append(row)\\ncache=Path.home()/'.cache'\\nwanted=['tdp-retirement-collector-l0o6i3w9','tdp-retirement-collector-31av_ej7','tdp-retirement-proof-u46bb0ys','tdp-retirement-proof-yt7rb4qr']\\nroots=[];records=[]\\nfor name in wanted:\\n root=cache/name\\n if not root.exists():\\n  records.append({'root':str(root),'exists':False});continue\\n assert root.is_dir() and not root.is_symlink()\\n roots.append(str(root))\\n files=[]\\n for p in sorted(root.iterdir()):\\n  if p.is_symlink() or not p.is_file() or p.suffix not in ['.json','.mjs','.bundle','.log']:continue\\n  if any(k in p.name.lower() for k in ['secret','token','credential','private-key']):continue\\n  b=p.read_bytes()\\n  files.append({'name':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})\\n candidate=None;q=root/'frozen-candidate'\\n if q.is_dir():\\n  candidate={'path':str(q),'head':out(['git','-C',str(q),'rev-parse','HEAD']),'tree':out(['git','-C',str(q),'rev-parse','HEAD^{tree}']),'statusPorcelain':out(['git','--no-optional-locks','-C',str(q),'status','--porcelain=v1','--untracked-files=all'])}\\n records.append({'root':str(root),'exists':True,'topLevelFiles':files,'frozenCandidate':candidate,'generatedOutputExists':(root/'generated-output.json').exists()})\\nancestors=set();pid=os.getpid()\\nwhile pid and pid not in ancestors:\\n ancestors.add(pid)\\n try:pid=int(next(x for x in Path('/proc',str(pid),'status').read_text().splitlines() if x.startswith('PPid:')).split()[1])\\n except (OSError,StopIteration,ValueError):break\\nmatched=[];scanned=0;unreadable_cwd=0;unreadable_cmdline=0\\nscope_roots=roots+[x['worktree'] for x in matching_worktrees]\\nmarkers=[claim,branch,'chore/retire-audit-coverage-renewal-20261031-222400-f25b97cd','chore/retire-audit-coverage-cumulative-20261031-234946-4cc5b7b2']+scope_roots\\nfor proc in Path('/proc').iterdir():\\n if not proc.name.isdigit():continue\\n scanned+=1;pid=int(proc.name)\\n if pid in ancestors:continue\\n try:cwd=os.readlink(proc/'cwd')\\n except OSError:cwd=None;unreadable_cwd+=1\\n try:args=(proc/'cmdline').read_bytes().decode('utf8','replace')\\n except OSError:args=None;unreadable_cmdline+=1\\n reasons=[]\\n if cwd and any(cwd==r or cwd.startswith(r+'/') for r in scope_roots):reasons.append('cwd_in_scoped_root')\\n if args and any(m in args for m in markers):reasons.append('exact_claim_branch_or_root_marker')\\n if reasons:\\n  try:name=(proc/'comm').read_text().strip()\\n  except OSError:name=None\\n  matched.append({'pid':pid,'name':name,'cwd':cwd,'matchReasons':reasons,'fullArgumentsOmitted':True})\\npr=api('pulls/1337')\\nfinished=datetime.datetime.now(datetime.timezone.utc).isoformat()\\nresult={'kind':'CURRENT_MAIN_PREPARATION_SCOPED_NATIVE_READ_ONLY_INVENTORY','startedAt':started,'observedAt':finished,'canonicalMainSha':main['object']['sha'],'previousBackup':{'ref':backup_ref,'sha':backup['object']['sha']},'materialSource':{'ref':branch,'sha':source['object']['sha'],'pr':{'number':1337,'state':pr['state'],'draft':pr['draft'],'merged':pr['merged'],'headSha':pr['head']['sha']}},'matchingMaterialWorktrees':matching_worktrees,'preservedHistoricalRoots':records,'processScope':{'enumeratedPidEntries':scanned,'probeAndAncestorPidsExcluded':sorted(ancestors),'unreadableCwdCount':unreadable_cwd,'unreadableCmdlineCount':unreadable_cmdline,'matchingProcesses':matched},'mutationsExecuted':[],'limits':['Known material branch, four historical lifecycle roots, readable cwd and exact markers only; inaccessible processes remain unknown.','No global process or writer absence assertion. Unrelated open Native jobs are not certified drained.','Historical root contents remain untouched; only listed file sizes/hashes and candidate state were read. Full logs are not copied by this inventory.','This read-only controller command is pending until its matching Native result confirms completion. No collector, test, task, claim, candidate, branch, retirement or material write is executed.']}\\ns=json.dumps(result,separators=(',',':'),ensure_ascii=False)\\nassert len(s.encode())<11500,'OUTPUT_BOUND'\\nprint(s)\\n\\nCURRENT_PREP_INVENTORY\\n\"}",
+      "state": "open",
+      "user": {
+        "login": "luizanunciostoca",
+        "name": "luizanunciostoca",
+        "email": null,
+        "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+        "id": 318748875
+      },
+      "assignees": null,
+      "labels": null,
+      "milestone": null,
+      "state_reason": null,
+      "comments": 0,
+      "created_at": "2026-11-01T02:04:24Z",
+      "updated_at": "2026-11-01T02:04:24Z",
+      "closed_at": null,
+      "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474",
+      "display_title": "[TERMUX-JOB] coverage-current-main-prep-inventory-20261101-0155"
+    },
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474",
+    "title": "[TERMUX-JOB] coverage-current-main-prep-inventory-20261101-0155",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3474",
+    "display_title": "[TERMUX-JOB] coverage-current-main-prep-inventory-20261101-0155"
+  },
+  "isError": false
+}

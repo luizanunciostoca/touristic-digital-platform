@@ -1,0 +1,83 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "comments": [
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3470#issuecomment-6551185555",
+        "body": "MORRO_JOB_PREFLIGHT_V3\n\nprotocol_version: 2\nschema: PASS\nrequest_sha256: a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520",
+        "user": {
+          "login": "github-actions[bot]",
+          "name": "github-actions[bot]",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+          "id": 41898282
+        },
+        "id": 6551185555,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_JOB_PREFLIGHT_V3</p>\n<p dir=\"auto\">protocol_version: 2<br>\nschema: PASS<br>\nrequest_sha256: a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3470#issuecomment-6551187535",
+        "body": "MORRO_AGENT_CLAIM_V2 — agent accepted issue #3470 at 2026-11-01T00:29:54Z.",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6551187535,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_CLAIM_V2 — agent accepted issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6141460083\" data-permission-text=\"Title is private\" data-url=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3470\" data-hovercard-type=\"issue\" data-hovercard-url=\"/luizanunciostoca/morro-termux-control/issues/3470/hovercard\" href=\"https://github.com/luizanunciostoca/morro-termux-control/issues/3470\">#3470</a> at 2026-11-01T00:29:54Z.</p>"
+      },
+      {
+        "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3470#issuecomment-6551201347",
+        "body": "MORRO_AGENT_RESULT_V3\n\n- id: coverage-retirement-cumulative-collect-20261101-cf947\n- target: termux\n- exit_code: 1\n- started_at: 2026-11-01T00:29:56Z\n- ended_at: 2026-11-01T00:31:15Z\n- duration_seconds: 79\n- request_sha256: a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520\n\n#### metadata_json\n\\`\\`\\`json\n{\"id\":\"coverage-retirement-cumulative-collect-20261101-cf947\",\"target\":\"termux\",\"started_at\":\"2026-11-01T00:29:56Z\",\"ended_at\":\"2026-11-01T00:31:15Z\",\"duration_seconds\":79,\"exit_code\":1,\"request_sha256\":\"a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520\"}\n\\`\\`\\`\n\n#### stdout (last 12000 bytes)\n\\`\\`\\`text\n\nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: VOLUNTARY_PROVIDER_OBSERVATION_STALE\n    at verifyVoluntaryRelease (file:///data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7/tooling/fabric/claim-retirement-proof.mjs:1353:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7/collector.mjs:12:16 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n\nNode.js v24.17.0\n\\`\\`\\`\n\n#### stderr (last 12000 bytes)\n\\`\\`\\`text\n\n\\`\\`\\`\n\nFull local logs remain on the tablet under:\n/data/data/com.termux/files/home/.morro-termux-agent/results/3470/\n",
+        "user": {
+          "login": "luizanunciostoca",
+          "name": "luizanunciostoca",
+          "email": null,
+          "avatar_url": "https://avatars.githubusercontent.com/u/318748875?v=4",
+          "id": 318748875
+        },
+        "id": 6551201347,
+        "pull_request_review_id": null,
+        "in_reply_to_id": null,
+        "created_at": null,
+        "updated_at": null,
+        "review": null,
+        "side": null,
+        "line": null,
+        "start_line": null,
+        "path": null,
+        "body_html": "<p dir=\"auto\">MORRO_AGENT_RESULT_V3</p>\n<ul dir=\"auto\">\n<li>id: coverage-retirement-cumulative-collect-20261101-cf947</li>\n<li>target: termux</li>\n<li>exit_code: 1</li>\n<li>started_at: 2026-11-01T00:29:56Z</li>\n<li>ended_at: 2026-11-01T00:31:15Z</li>\n<li>duration_seconds: 79</li>\n<li>request_sha256: a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520</li>\n</ul>\n<h4 dir=\"auto\">metadata_json</h4>\n<p dir=\"auto\">```json<br>\n{\"id\":\"coverage-retirement-cumulative-collect-20261101-cf947\",\"target\":\"termux\",\"started_at\":\"2026-11-01T00:29:56Z\",\"ended_at\":\"2026-11-01T00:31:15Z\",\"duration_seconds\":79,\"exit_code\":1,\"request_sha256\":\"a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520\"}<br>\n```</p>\n<h4 dir=\"auto\">stdout (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">node:internal/modules/run_main:107<br>\ntriggerUncaughtException(<br>\n^</p>\n<p dir=\"auto\">AssertionError [ERR_ASSERTION]: VOLUNTARY_PROVIDER_OBSERVATION_STALE<br>\nat verifyVoluntaryRelease (file:///data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7/tooling/fabric/claim-retirement-proof.mjs:1353:10)<br>\nat process.processTicksAndRejections (node:internal/process/task_queues:104:5)<br>\nat async file:///data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7/collector.mjs:12:16 {<br>\ngeneratedMessage: false,<br>\ncode: 'ERR_ASSERTION',<br>\nactual: false,<br>\nexpected: true,<br>\noperator: '==',<br>\ndiff: 'simple'<br>\n}</p>\n<p dir=\"auto\">Node.js v24.17.0<br>\n```</p>\n<h4 dir=\"auto\">stderr (last 12000 bytes)</h4>\n<p dir=\"auto\">```text</p>\n<p dir=\"auto\">```</p>\n<p dir=\"auto\">Full local logs remain on the tablet under:<br>\n/data/data/com.termux/files/home/.morro-termux-agent/results/3470/</p>"
+      }
+    ],
+    "url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3470",
+    "title": "luizanunciostoca/morro-termux-control Issue #3470 comments",
+    "display_url": "https://github.com/luizanunciostoca/morro-termux-control/issues/3470",
+    "display_title": "luizanunciostoca/morro-termux-control Issue #3470 comments"
+  },
+  "isError": false
+}

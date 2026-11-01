@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Action completed."
+    }
+  ],
+  "structuredContent": {
+    "content": "{\"ref\":\"refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\",\"node_id\":\"REF_kwDOT_QyfdoARXJlZnMvaGVhZHMvYXJjaGl2ZS9hdWRpdC1jb3ZlcmFnZS1jdW11bGF0aXZlLTIwMjYxMDMxLTIzNDk0Ni00Y2M1YjdiMg\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\",\"object\":{\"sha\":\"dc7f5e3a22d88256639e6e699f894e9bf82ff268\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/dc7f5e3a22d88256639e6e699f894e9bf82ff268\"}}",
+    "title": "audit-coverage-cumulative-20261031-234946-4cc5b7b2",
+    "modified_date": null,
+    "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2",
+    "display_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2",
+    "display_title": "audit-coverage-cumulative-20261031-234946-4cc5b7b2",
+    "structuredContent": {
+      "title": "audit-coverage-cumulative-20261031-234946-4cc5b7b2",
+      "content": "{\"ref\":\"refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\",\"node_id\":\"REF_kwDOT_QyfdoARXJlZnMvaGVhZHMvYXJjaGl2ZS9hdWRpdC1jb3ZlcmFnZS1jdW11bGF0aXZlLTIwMjYxMDMxLTIzNDk0Ni00Y2M1YjdiMg\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2\",\"object\":{\"sha\":\"dc7f5e3a22d88256639e6e699f894e9bf82ff268\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/dc7f5e3a22d88256639e6e699f894e9bf82ff268\"}}",
+      "display_url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/ref/heads/archive/audit-coverage-cumulative-20261031-234946-4cc5b7b2"
+    }
+  },
+  "isError": false
+}

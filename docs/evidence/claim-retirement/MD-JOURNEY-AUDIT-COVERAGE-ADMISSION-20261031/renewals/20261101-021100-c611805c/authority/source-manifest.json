@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "kind": "CURRENT_MAIN_AUTHORITY_SOURCE_SNAPSHOT",
+  "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "assembledAt": "2026-11-01T02:00:25.138Z",
+  "retrieval": "GitHub connector FETCH/file reads pinned to the immutable commit; live main readback saved separately",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "67ca5a56cf2a8ddecf6228ac0398cc64ae32ac0c",
+      "sha256": "b93ffa8acfd5a809b53b6a19bc61e4d0de32a06d37fb4f8a306d7174031df07e",
+      "bytes": 5447,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/AGENTS.md",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/AGENTS.md",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": "CONSTITUTION.md",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "e6491eeb97c716de4ed4efe124c431c80e4c5c82",
+      "sha256": "8ca561deeb0ea4eda547af204c6e1123083b1227ae1b3b406f6b9be3b6c16fb1",
+      "bytes": 2529,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/CONSTITUTION.md",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/CONSTITUTION.md",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": "tooling/fabric/claim-retirement-proof.mjs",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "d8a0d9e7cae95edaa136d981909737c5e2ab6922",
+      "sha256": "a3d971bd57699554c7eb83c886b616437c20078a93c0fefac9074b149a1c3b8c",
+      "bytes": 51370,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/tooling/fabric/claim-retirement-proof.mjs",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/tooling/fabric/claim-retirement-proof.mjs",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": "tooling/mdctl/claim-lifecycle.mjs",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "3dd52c4c90a6efc4962d618df883e8af3d58c548",
+      "sha256": "2b1253e1fec3ecd505a0f724aec7c1f73bbbcdd82a880b3d8b434ab4381b99ae",
+      "bytes": 23218,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/tooling/mdctl/claim-lifecycle.mjs",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/tooling/mdctl/claim-lifecycle.mjs",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": ".github/morro-control/claims.json",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "48be3e89f141ebef869a9b4877c1672ef71ce21e",
+      "sha256": "ce1f8b359193be21918ab0620d7247d3dad9ef7dd9ae0deccd4bf288a40890b3",
+      "bytes": 5938,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/.github/morro-control/claims.json",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/.github/morro-control/claims.json",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": "tooling/fabric/claim-guard.mjs",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "648832d60a47c63dc512e8b79b3b1f7e3f5430a0",
+      "sha256": "f07b5ad6168d4bd1c6a7bd7649492c8680a3870493e2dd073955100f9f448195",
+      "bytes": 37573,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/tooling/fabric/claim-guard.mjs",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/tooling/fabric/claim-guard.mjs",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": "tooling/mdctl/changeset-v2.mjs",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "2fa5e0e26a7a7bd48e0e3f5d77d44139b7a3bc8e",
+      "sha256": "e0dca84e2b406152712aeadc060e810be4b24fcd9f1596f7a22bd467d4ef9d3d",
+      "bytes": 9824,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/tooling/mdctl/changeset-v2.mjs",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/tooling/mdctl/changeset-v2.mjs",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": "tooling/mdctl/event-ledger.mjs",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "db8e587b2f6ca70bdf0d2de1505d35a1e4a61bc8",
+      "sha256": "cc6e30de529c7280adff6b3590186bb885e3d05972ab1f7b547ea3a814fdf482",
+      "bytes": 5124,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/tooling/mdctl/event-ledger.mjs",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/tooling/mdctl/event-ledger.mjs",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": "tooling/mdctl/mdctl.mjs",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "d4d358d406969d271e7242f38db08d69bf0f6794",
+      "sha256": "f1f7b2892a3cb93166243bd1147ab391c86081856fcbf8da0f77e4acaf383fd6",
+      "bytes": 11022,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/tooling/mdctl/mdctl.mjs",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/tooling/mdctl/mdctl.mjs",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "079f27045544fe6b77b956c4687d67fe2d84b2a8",
+      "sha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+      "bytes": 2234,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/.morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/.morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": ".morro/changesets/MD-RETIREMENT-BLOB-CONCURRENCY-20261101.json",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "157cf1f8506140449a3f91429a5dcff343f926ea",
+      "sha256": "2e8dcc053a100ba7eeabcce1aa764a53307345a061b63489ac95bb20437c5e9b",
+      "bytes": 1818,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/.morro/changesets/MD-RETIREMENT-BLOB-CONCURRENCY-20261101.json",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/.morro/changesets/MD-RETIREMENT-BLOB-CONCURRENCY-20261101.json",
+      "byteAndGitBlobVerification": "MATCH"
+    },
+    {
+      "path": ".github/morro-control/events.ndjson",
+      "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "blobSha": "4a961d51076f1c173f556ef80d4a977863124ebc",
+      "sha256": "2262430a27ee25a402b1a53c7d2b865b953d35813189ba3bb3afbb3f2033805b",
+      "bytes": 515783,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/blob/693543a39eb4a3923668cc0005883daee9bbc5a0/.github/morro-control/events.ndjson",
+      "localPath": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source/.github/morro-control/events.ndjson",
+      "byteAndGitBlobVerification": "MATCH"
+    }
+  ],
+  "readbacks": [
+    {
+      "path": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/readbacks/live-main-ref.json",
+      "bytes": 1469,
+      "sha256": "b902d252e7984d3ebd6a87724a19507d79985beaee35c55b3a02f119fa6ba9d2"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/readbacks/pr1339-info.json",
+      "bytes": 5066,
+      "sha256": "8a01c33f592cd831ad7e28410fa83d84139f18437e3c8433a0641ce852072ce2"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/readbacks/pr1339-patch.json",
+      "bytes": 13520,
+      "sha256": "bd914d22d4592a07135bb01ae6e5c626adb5296adfa4af683b353b8d690220ad"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/readbacks/pr1340-info.json",
+      "bytes": 5363,
+      "sha256": "a6cd1107f814e6e6acefe599a0edf5454a7d8cf5e7cb6ab7c30dcdff1f12c30d"
+    },
+    {
+      "path": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/readbacks/pr1340-patch.json",
+      "bytes": 4874,
+      "sha256": "2a6e33ac9902c7929b779fce45bfaee506017c877a202fd45d34206bee4fe688"
+    }
+  ],
+  "totalSourceBytes": 671880,
+  "verification": "All 12 local source byte counts, SHA256 and Git blob SHA1 identities independently recomputed; no imported or executed repository module."
+}

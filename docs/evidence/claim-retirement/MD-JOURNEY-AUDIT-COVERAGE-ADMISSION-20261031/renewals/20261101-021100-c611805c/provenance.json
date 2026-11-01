@@ -1,0 +1,86 @@
+{
+  "kind": "CURRENT_MAIN_ARCHIVAL_PREPARATION_WITH_ORIGINAL_STOPPED_WRITER",
+  "preparedAt": "2026-11-01T02:11:00.000Z",
+  "canonicalMainSha": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+  "claimId": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+  "materialWriter": {
+    "writerId": "cloud-coverage-authority-worker",
+    "executorIdentity": "CHATGPT-PRO-CONTROL",
+    "controllerIdentity": "CHATGPT-PRO-CONTROL",
+    "sessionId": "/root/autoridade_e_codigo",
+    "jobId": null,
+    "branch": "chore/journey-audit-coverage-admission-20261031",
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "treeSha": "bdf3c005e3ca8ab69e5dd9a79fe0c244238deb04",
+    "commandIds": [
+      "exact-coverage-and-sensitive-boundaries"
+    ]
+  },
+  "originalAuthorAckNotExpanded": true,
+  "authorReceiptExactSourceSha256": "9beb57847f05a6b2604450cc285d0a7f384abf1983735217cb5d4115e03c2f61",
+  "controllerInventorySourceSha256": "b59fe51d7821f609aed81ab6b9ba94de23a55e1a272d46170aee9ee0f4e4b6ff",
+  "historicalLifecycleChannel": {
+    "previousClassification": "ONE_ORIGINAL_MATERIAL_WRITER_WITH_FULLY_DISCLOSED_DISTINCT_HISTORICAL_LIFECYCLE_CHANNEL",
+    "priorDispositionPath": "remediation/evidence/coverage-voluntary-preparation-20261031-2336/controller-classification-disposition.json",
+    "priorArchiveCommit": "dc7f5e3a22d88256639e6e699f894e9bf82ff268",
+    "additionalHistoricalAttempt": {
+      "issue": 3470,
+      "requestSha256": "a6381d1cf666f637c296e5c3c911ba9c182f4be28fd1436b7d7fc5da9d00c520",
+      "exitCode": 1,
+      "durationSeconds": 79,
+      "error": "VOLUNTARY_PROVIDER_OBSERVATION_STALE",
+      "frozenRoot": "/data/data/com.termux/files/home/.cache/tdp-retirement-collector-31av_ej7",
+      "generatedOutputExists": false,
+      "attribution": "historical controller/Native lifecycle collection; never attributed to original material author"
+    }
+  },
+  "historicalOwnerComments": [
+    {
+      "id": 6550135699,
+      "createdAt": "2026-10-31T22:44:06Z",
+      "bodySha256": "cc738de3b6139a9570500616f1e1483631fdfee06a763731d932af9ac85f9a63",
+      "usedForNewRequest": false
+    },
+    {
+      "id": 6551115616,
+      "createdAt": "2026-11-01T00:22:41Z",
+      "bodySha256": "41b7416a24fd01b54a48d02eedcdeff306bcb1c636995937df7288987eb87841",
+      "usedForNewRequest": false
+    }
+  ],
+  "currentAuthorityReview": {
+    "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+    "reviewer": "/root/runtime_evidencias",
+    "status": "PASS_DOCUMENTARY_PREPARATION_ONLY",
+    "sha256": "c95182a3870ea69b30e0ab9c8faa4953113c1410a43040025bed8411f5fa9555"
+  },
+  "currentMaterialPr": {
+    "number": 1337,
+    "state": "closed",
+    "draft": true,
+    "merged": false,
+    "headSha": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b"
+  },
+  "currentNativeInventory": {
+    "issue": 3474,
+    "requestSha256": "03e1e9e4ca0c91c3c2494864d52505b50b27653e29cb5c5c5bd97c394d273263",
+    "resultCommentId": 6552118550,
+    "completedAt": "2026-11-01T02:04:59Z"
+  },
+  "lineage": {
+    "writerHead": "fc089a1fcef27e3c39f3c3d27faf4f69b088436b",
+    "parentArchive": "dc7f5e3a22d88256639e6e699f894e9bf82ff268"
+  },
+  "scope": "PREPARATION_ONLY",
+  "ownerMarkerGenerated": false,
+  "personalApprovalRequested": false,
+  "remoteReadback": "PENDING",
+  "newConsent": "NOT_REQUESTED_NOT_PRESENT",
+  "limits": [
+    "No global writer/process absence is asserted. Current author and Native inventories retain their explicit observation limits.",
+    "Historical lifecycle work and two owner comments retain their original identities and timestamps; neither is transferred as new consent.",
+    "The current main collector change was reviewed from source; no collector or timing proof is executed here.",
+    "The original source, task and four histories remain untouched. No new material authority is granted.",
+    "Only hashes and documentary readbacks of current main are archived; no current source code or raw recursive trees are added."
+  ]
+}

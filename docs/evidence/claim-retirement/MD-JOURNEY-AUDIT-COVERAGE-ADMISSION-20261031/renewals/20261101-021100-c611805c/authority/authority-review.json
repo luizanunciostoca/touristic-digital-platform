@@ -1,0 +1,499 @@
+{
+  "schemaVersion": 1,
+  "kind": "INDEPENDENT_READ_ONLY_AUTHORITY_REVIEW",
+  "status": "PASS_DOCUMENTARY_PREPARATION_ONLY",
+  "reviewer": "/root/runtime_evidencias",
+  "recordedAt": "2026-11-01T02:00:25.138Z",
+  "canonicalSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "scope": {
+    "authorization": "PREPARATION_ONLY",
+    "actionsPerformed": [
+      "Pinned GitHub source/readback retrieval",
+      "Static source and PR diff inspection",
+      "Local byte/Git blob/SHA256 calculations",
+      "Read-only git show of d979 baseline",
+      "Writing new external evidence only"
+    ],
+    "notPerformed": [
+      "Repository module import or execution",
+      "Collector or provider-verification run",
+      "Tests, PREPARE, ADMISSION or CERTIFY",
+      "Lifecycle builder, task, retire or release",
+      "Owner consent comment or approval",
+      "Product/governance edits",
+      "Children or new material writer",
+      "Publication, merge or deploy"
+    ],
+    "newRequestCreated": false,
+    "consentGiven": false,
+    "releaseAuthorizedByThisReview": false
+  },
+  "sourceManifest": {
+    "path": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/source-manifest.json",
+    "bytes": 9618,
+    "sha256": "0f9283cf9b3fd71333fa5c409b56edb853438cf17c3f6afbcc59d872114d8c8d"
+  },
+  "mainReadback": {
+    "ref": "refs/heads/main",
+    "node_id": "REF_kwDOT_Qyfa9yZWZzL2hlYWRzL21haW4",
+    "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/refs/heads/main",
+    "object": {
+      "sha": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "type": "commit",
+      "url": "https://api.github.com/repos/luizanunciostoca/touristic-digital-platform/git/commits/693543a39eb4a3923668cc0005883daee9bbc5a0"
+    }
+  },
+  "pullRequests": [
+    {
+      "number": 1339,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/pull/1339",
+      "title": "fix(governance): bound voluntary retirement blob collection",
+      "state": "closed",
+      "merged": true,
+      "merged_at": "2026-11-01T01:36:44Z",
+      "head_sha": "e81350dda6d6dc852cf21431153dcf3f2c1bcd69",
+      "base_sha": "0acd8053209e80a765723130ec11397fcdb6d9f3",
+      "merge_commit_sha": "65f743f075edb433c10ea2849306fe125229dd43",
+      "changed_files": 5,
+      "additions": 225,
+      "deletions": 14,
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-RETIREMENT-BLOB-CONCURRENCY-20261101.json",
+        "tooling/fabric/claim-retirement-proof.mjs",
+        "tooling/fabric/claim-retirement-proof.test.mjs"
+      ]
+    },
+    {
+      "number": 1340,
+      "url": "https://github.com/luizanunciostoca/touristic-digital-platform/pull/1340",
+      "title": "chore(governance): retire integrated collector concurrency claim",
+      "state": "closed",
+      "merged": true,
+      "merged_at": "2026-11-01T01:45:43Z",
+      "head_sha": "b00445c3044a9caf8f5fcf047c87623c43a67511",
+      "base_sha": "65f743f075edb433c10ea2849306fe125229dd43",
+      "merge_commit_sha": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "changed_files": 3,
+      "additions": 5,
+      "deletions": 18,
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-RETIREMENT-BLOB-CONCURRENCY-20261101.json"
+      ]
+    }
+  ],
+  "governingDocuments": {
+    "AGENTS": "GitHub current main is canonical; executable governance and exact candidate/proof identities apply; no bypass or parallel authority is created by this snapshot.",
+    "CONSTITUTION": "Current live/canonical authority and trusted validator identity control; implementation, integration and proof remain distinct.",
+    "unchangedFromBaseline": true
+  },
+  "collectorDelta": {
+    "source": "tooling/fabric/claim-retirement-proof.mjs",
+    "constantLine": 21,
+    "concurrency": 4,
+    "batchLines": [
+      1114,
+      1137
+    ],
+    "allSettledLine": 1119,
+    "resultValidationOrder": "WIP inventory order after the entire started batch settles",
+    "failureBehavior": "Throw the first inventory-order metadata, transport or byte-integrity failure after draining that batch; no next batch or final backup-ref reread is started after that failure.",
+    "preserved": [
+      "Every WIP inventory row including duplicate blob identities at distinct paths",
+      "Tombstones, historical path status and Git type/mode/blob SHA checks",
+      "Decoded content size and SHA256 checks",
+      "Backup ancestry and refs read before/after successful collection",
+      "Durable stop receipts, owner approval/revocation and main before/after",
+      "HTTP fetch timeout and total freshness windows"
+    ],
+    "notIntroduced": [
+      "Deduplication",
+      "Cache",
+      "Retries",
+      "Clock adjustment",
+      "Deadline extension",
+      "Partial inventory acceptance"
+    ],
+    "transportLimit": "Real asynchronous fetch reads can overlap; the unchanged synchronous gh fallback blocks per read and receives no parallel-HTTP speed guarantee.",
+    "runtimeLimit": "No live collection or timing benchmark was run in this review. Batching does not prove the next cumulative collection will complete within 60 seconds.",
+    "testDefinitionsOnly": "The PR adds two controlled tests for 4/4/1 batching, repeated blob SHA at distinct paths, complete drain, deterministic failure precedence and no later reads; no test was executed or remote result independently re-certified here."
+  },
+  "freshnessAndFormat": {
+    "schemaChanged": false,
+    "validatorRegionComparison": {
+      "byteIdentical": true,
+      "bytes": 7310,
+      "sha256": "50d27eda741f8f2f15577068feb3ae12ef6bca9dba617c9ed412f7ad217fb804",
+      "startDelimiter": "export function validateVoluntaryReleaseRequest(",
+      "endExclusiveDelimiter": "export function voluntaryRetirementPayload(",
+      "includesInterFunctionWhitespace": true
+    },
+    "requestMaxCompactBytes": 65536,
+    "maxWriters": 32,
+    "maxReceipts": 32,
+    "maxWipItems": 512,
+    "maxBackupRefs": 16,
+    "snapshotMaximumAgeMs": 3600000,
+    "drainedAtMaximumAgeMs": 3600000,
+    "receiptTimeOrder": "requestedAt <= acknowledgedAt <= drainedAt <= snapshotAt <= now",
+    "providerObservationMaximumMs": 60000,
+    "providerObservationMeasured": "Collection start to final live-main observation; request freshness is validated at both ends.",
+    "ownerConsentMaximumAgeMs": 1800000,
+    "ownerConsentConditions": "One exact marker on the acquisition PR from the genuine personal OWNER, unedited; created no earlier than snapshot; no matching revocation; comment and list reread; fresh again at final observation.",
+    "fetchHttpTimeoutMs": 15000,
+    "newExpectedBaseSha": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+    "oldExactBaseAndConsentReusable": false,
+    "note": "1h refers to both snapshot and drainedAt freshness, not an extension beginning when this review or a backup is published. The unchanged schema still requires the matching writer/receipt set, closed fields, unique WIP paths, inventory digests, durable refs and nonce not replayed in canonical ledger."
+  },
+  "authorityState": {
+    "coverage": {
+      "id": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+      "presentInActiveRegistry": true,
+      "registryState": "IMPLEMENTING",
+      "canonicalManifestState": "IMPLEMENTING",
+      "baseSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+      "expiresAt": "2026-11-01T23:00:00.000Z",
+      "canonicalClaimDigest": "4d4b0748ae7209892eaa924d17ddc3e2d3ebff7dbee2e42c4a46cd651b5801e0",
+      "registryAndManifestByteIdenticalToD979": true,
+      "releaseEventObservedInCurrentLedger": false
+    },
+    "collectorCorrection": {
+      "id": "MD-RETIREMENT-BLOB-CONCURRENCY-20261101",
+      "presentInActiveRegistry": false,
+      "canonicalManifestState": "MERGED",
+      "manifestBaseSha": "65f743f075edb433c10ea2849306fe125229dd43",
+      "manifestBranch": "chore/retire-blob-concurrency-20261101",
+      "releaseBasis": "GITHUB_MERGED_PR_AND_MAIN_ANCESTRY",
+      "qualifyingPr": 1339,
+      "integrationPr": 1340,
+      "eventObservedAt": "2026-11-01T01:37:37.109Z",
+      "metadataIntegratedAt": "2026-11-01T01:45:43Z"
+    },
+    "relevantEvents": [
+      {
+        "line": 1028,
+        "schemaVersion": 1,
+        "eventId": "evt-20261031165515-md-journey-audit-coverage-admission-20261031-created",
+        "eventType": "CHANGESET_CREATED",
+        "observedAt": "2026-10-31T16:55:15.657Z",
+        "actor": "ORCHESTRATOR",
+        "entity": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "sourceSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+        "payloadVersion": 1,
+        "payload": {
+          "branch": "chore/journey-audit-coverage-admission-20261031",
+          "objective": "register-exact-audit-followup-coverage-and-wire-existing-session-recovery-browser-proof-without-product-or-policy-engine-changes"
+        }
+      },
+      {
+        "line": 1029,
+        "schemaVersion": 1,
+        "eventId": "evt-20261031165515-md-journey-audit-coverage-admission-20261031-acquired",
+        "eventType": "CLAIM_ACQUIRED",
+        "observedAt": "2026-10-31T16:55:15.657Z",
+        "actor": "ORCHESTRATOR",
+        "entity": "MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031",
+        "sourceSha": "c33b7b6ccd20e66f5ec0e75e91b5fc60a249eac9",
+        "payloadVersion": 1,
+        "payload": {
+          "branch": "chore/journey-audit-coverage-admission-20261031",
+          "expiresAt": "2026-11-01T23:00:00.000Z",
+          "risk": "P0"
+        }
+      },
+      {
+        "line": 1030,
+        "schemaVersion": 1,
+        "eventId": "evt-20261101003807-md-retirement-blob-concurrency-20261101-created",
+        "eventType": "CHANGESET_CREATED",
+        "observedAt": "2026-11-01T00:38:07.777Z",
+        "actor": "ORCHESTRATOR",
+        "entity": "MD-RETIREMENT-BLOB-CONCURRENCY-20261101",
+        "sourceSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+        "payloadVersion": 1,
+        "payload": {
+          "branch": "fix/retirement-blob-concurrency-20261101",
+          "objective": "bound-independent-backup-blob-reads-without-changing-retirement-consent-integrity-or-freshness"
+        }
+      },
+      {
+        "line": 1031,
+        "schemaVersion": 1,
+        "eventId": "evt-20261101003807-md-retirement-blob-concurrency-20261101-acquired",
+        "eventType": "CLAIM_ACQUIRED",
+        "observedAt": "2026-11-01T00:38:07.777Z",
+        "actor": "ORCHESTRATOR",
+        "entity": "MD-RETIREMENT-BLOB-CONCURRENCY-20261101",
+        "sourceSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+        "payloadVersion": 1,
+        "payload": {
+          "branch": "fix/retirement-blob-concurrency-20261101",
+          "expiresAt": "2026-11-02T02:00:00.000Z",
+          "risk": "P1"
+        }
+      },
+      {
+        "line": 1032,
+        "schemaVersion": 1,
+        "eventId": "evt-20261101013001-md-retirement-blob-concurrency-20261101-reanchor-0acd8053",
+        "eventType": "CLAIM_RENEWED",
+        "observedAt": "2026-11-01T01:30:01.565Z",
+        "actor": "ORCHESTRATOR",
+        "entity": "MD-RETIREMENT-BLOB-CONCURRENCY-20261101",
+        "sourceSha": "0acd8053209e80a765723130ec11397fcdb6d9f3",
+        "payloadVersion": 1,
+        "payload": {
+          "reason": "PROVEN_TASK_GENERATION_REANCHOR",
+          "previousBaseSha": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+          "currentBaseSha": "0acd8053209e80a765723130ec11397fcdb6d9f3",
+          "currentBranch": "fix/retirement-blob-concurrency-20261101",
+          "authorityScopeChanged": false
+        }
+      },
+      {
+        "line": 1033,
+        "schemaVersion": 1,
+        "eventId": "evt-20261101013737-md-retirement-blob-concurrency-20261101-merged",
+        "eventType": "MERGED",
+        "observedAt": "2026-11-01T01:37:37.109Z",
+        "actor": "ORCHESTRATOR",
+        "entity": "MD-RETIREMENT-BLOB-CONCURRENCY-20261101",
+        "sourceSha": "65f743f075edb433c10ea2849306fe125229dd43",
+        "payloadVersion": 1,
+        "payload": {
+          "basis": "GITHUB_MERGED_PR_AND_MAIN_ANCESTRY",
+          "pullRequest": 1339,
+          "mergeSha": "65f743f075edb433c10ea2849306fe125229dd43"
+        }
+      },
+      {
+        "line": 1034,
+        "schemaVersion": 1,
+        "eventId": "evt-20261101013737-md-retirement-blob-concurrency-20261101-released",
+        "eventType": "CLAIM_RELEASED",
+        "observedAt": "2026-11-01T01:37:37.109Z",
+        "actor": "ORCHESTRATOR",
+        "entity": "MD-RETIREMENT-BLOB-CONCURRENCY-20261101",
+        "sourceSha": "65f743f075edb433c10ea2849306fe125229dd43",
+        "payloadVersion": 1,
+        "payload": {
+          "basis": "GITHUB_MERGED_PR_AND_MAIN_ANCESTRY",
+          "pullRequest": 1339,
+          "mergeSha": "65f743f075edb433c10ea2849306fe125229dd43"
+        }
+      }
+    ]
+  },
+  "pureImportClosure": {
+    "method": "Static import graph only; no import, validator call or syntax/test execution",
+    "entryPoints": [
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/mdctl/claim-lifecycle.mjs"
+    ],
+    "modules": [
+      {
+        "path": "tooling/fabric/claim-retirement-proof.mjs",
+        "relativeImports": [
+          {
+            "specifier": "./claim-guard.mjs",
+            "target": "tooling/fabric/claim-guard.mjs"
+          },
+          {
+            "specifier": "../mdctl/changeset-v2.mjs",
+            "target": "tooling/mdctl/changeset-v2.mjs"
+          },
+          {
+            "specifier": "../mdctl/event-ledger.mjs",
+            "target": "tooling/mdctl/event-ledger.mjs"
+          }
+        ],
+        "builtins": [
+          "node:assert/strict",
+          "node:child_process",
+          "node:crypto",
+          "node:fs",
+          "node:path",
+          "node:url"
+        ],
+        "dynamicImportsObserved": false
+      },
+      {
+        "path": "tooling/fabric/claim-guard.mjs",
+        "relativeImports": [
+          {
+            "specifier": "../mdctl/changeset-v2.mjs",
+            "target": "tooling/mdctl/changeset-v2.mjs"
+          },
+          {
+            "specifier": "../mdctl/event-ledger.mjs",
+            "target": "tooling/mdctl/event-ledger.mjs"
+          }
+        ],
+        "builtins": [
+          "node:assert/strict",
+          "node:child_process",
+          "node:fs",
+          "node:path",
+          "node:url"
+        ],
+        "dynamicImportsObserved": false
+      },
+      {
+        "path": "tooling/mdctl/claim-lifecycle.mjs",
+        "relativeImports": [
+          {
+            "specifier": "../fabric/claim-guard.mjs",
+            "target": "tooling/fabric/claim-guard.mjs"
+          },
+          {
+            "specifier": "../fabric/claim-retirement-proof.mjs",
+            "target": "tooling/fabric/claim-retirement-proof.mjs"
+          },
+          {
+            "specifier": "./event-ledger.mjs",
+            "target": "tooling/mdctl/event-ledger.mjs"
+          },
+          {
+            "specifier": "./changeset-v2.mjs",
+            "target": "tooling/mdctl/changeset-v2.mjs"
+          }
+        ],
+        "builtins": [
+          "node:assert/strict",
+          "node:child_process",
+          "node:fs/promises",
+          "node:path"
+        ],
+        "dynamicImportsObserved": false
+      },
+      {
+        "path": "tooling/mdctl/changeset-v2.mjs",
+        "relativeImports": [],
+        "builtins": [
+          "node:assert/strict",
+          "node:crypto"
+        ],
+        "dynamicImportsObserved": false
+      },
+      {
+        "path": "tooling/mdctl/event-ledger.mjs",
+        "relativeImports": [],
+        "builtins": [
+          "node:assert/strict",
+          "node:crypto",
+          "node:fs/promises"
+        ],
+        "dynamicImportsObserved": false
+      }
+    ],
+    "allRelativeImportsPresent": true,
+    "externalPackageDependenciesObserved": [],
+    "cliGuards": "proof and claim-guard have invokedDirectly guards; lifecycle is a library. mdctl also has a direct-invocation guard.",
+    "mdctlScope": "tooling/mdctl/mdctl.mjs is retained as documentary CLI-routing source, not as a fully materialized import entry point. Its separate scheduler/task/control-state dependency graph was not copied. Future pure request validation should use the five-module closure, not invoke CLI or lifecycle functions."
+  },
+  "baselineComparisons": [
+    {
+      "path": "AGENTS.md",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "b93ffa8acfd5a809b53b6a19bc61e4d0de32a06d37fb4f8a306d7174031df07e",
+      "currentSha256": "b93ffa8acfd5a809b53b6a19bc61e4d0de32a06d37fb4f8a306d7174031df07e"
+    },
+    {
+      "path": "CONSTITUTION.md",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "8ca561deeb0ea4eda547af204c6e1123083b1227ae1b3b406f6b9be3b6c16fb1",
+      "currentSha256": "8ca561deeb0ea4eda547af204c6e1123083b1227ae1b3b406f6b9be3b6c16fb1"
+    },
+    {
+      "path": "tooling/fabric/claim-retirement-proof.mjs",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": false,
+      "baselineSha256": "7b0829145f765bfeb98ca47a50633d6834520ef93dd179ce45b3e44fe186d991",
+      "currentSha256": "a3d971bd57699554c7eb83c886b616437c20078a93c0fefac9074b149a1c3b8c"
+    },
+    {
+      "path": "tooling/fabric/claim-guard.mjs",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "f07b5ad6168d4bd1c6a7bd7649492c8680a3870493e2dd073955100f9f448195",
+      "currentSha256": "f07b5ad6168d4bd1c6a7bd7649492c8680a3870493e2dd073955100f9f448195"
+    },
+    {
+      "path": "tooling/mdctl/claim-lifecycle.mjs",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "2b1253e1fec3ecd505a0f724aec7c1f73bbbcdd82a880b3d8b434ab4381b99ae",
+      "currentSha256": "2b1253e1fec3ecd505a0f724aec7c1f73bbbcdd82a880b3d8b434ab4381b99ae"
+    },
+    {
+      "path": "tooling/mdctl/changeset-v2.mjs",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "e0dca84e2b406152712aeadc060e810be4b24fcd9f1596f7a22bd467d4ef9d3d",
+      "currentSha256": "e0dca84e2b406152712aeadc060e810be4b24fcd9f1596f7a22bd467d4ef9d3d"
+    },
+    {
+      "path": "tooling/mdctl/event-ledger.mjs",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "cc6e30de529c7280adff6b3590186bb885e3d05972ab1f7b547ea3a814fdf482",
+      "currentSha256": "cc6e30de529c7280adff6b3590186bb885e3d05972ab1f7b547ea3a814fdf482"
+    },
+    {
+      "path": "tooling/mdctl/mdctl.mjs",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "f1f7b2892a3cb93166243bd1147ab391c86081856fcbf8da0f77e4acaf383fd6",
+      "currentSha256": "f1f7b2892a3cb93166243bd1147ab391c86081856fcbf8da0f77e4acaf383fd6"
+    },
+    {
+      "path": ".github/morro-control/claims.json",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "ce1f8b359193be21918ab0620d7247d3dad9ef7dd9ae0deccd4bf288a40890b3",
+      "currentSha256": "ce1f8b359193be21918ab0620d7247d3dad9ef7dd9ae0deccd4bf288a40890b3"
+    },
+    {
+      "path": ".morro/changesets/MD-JOURNEY-AUDIT-COVERAGE-ADMISSION-20261031.json",
+      "baselineSHA": "d979b9813c1ab40b96dee64616b9f7d08a7c0d07",
+      "currentSHA": "693543a39eb4a3923668cc0005883daee9bbc5a0",
+      "byteIdentical": true,
+      "baselineSha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5",
+      "currentSha256": "2a6ab15e24b93e63cb8ce8812f9aed0c9d13f2966d0e7ea1dbd520aee401f2c5"
+    }
+  ],
+  "codeDiff": {
+    "path": "remediation/evidence/coverage-voluntary-current-main-20261101-0152/authority-review/claim-retirement-proof-d979-to-693543.diff",
+    "bytes": 2568,
+    "sha256": "1497a3d2ef8cd757edd0e88f8430f60c2bd6887215cae9bc19e61a864a9972be"
+  },
+  "nextPackageReviewCriteria": [
+    "Use current canonical main 693543a39eb4a3923668cc0005883daee9bbc5a0, current claim/manifest/ledger and exact current library bytes; recapture if main changes.",
+    "Obtain a new factual original-author stop/ACK with current inventory of own commands and children, preserving the limitations of each observed process census.",
+    "Preserve all 112 previously frozen WIP items from dc7f5e3a22d88256639e6e699f894e9bf82ff268 byte-for-byte and Git-mode-for-Git-mode in a descendant backup; add current evidence without overwriting prior ACKs, requests, consent or failed results.",
+    "Keep original material writer separate from the fully attributed historical lifecycle controller evidence; do not infer a globally empty queue from a bounded local census.",
+    "Keep the artifact and this review PREPARATION_ONLY; no old marker or renewed ACK constitutes new personal consent or an executed canonical release."
+  ],
+  "limitations": [
+    "Authority assertions are pinned to this captured main and saved readbacks; they are not a perpetual guarantee that main or provider state will stay unchanged.",
+    "No new backup, receipt or request has been verified by this review; the forthcoming package requires its own independent byte/inventory review.",
+    "PR-body test counts are historical declarations, not tests executed by this reviewer.",
+    "No global absence of commands, processes, consent or unobserved WIP is asserted."
+  ],
+  "blockersForPreparingUsingTheseSources": []
+}
