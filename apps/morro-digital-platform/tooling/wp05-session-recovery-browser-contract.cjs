@@ -131,8 +131,7 @@ async function run() {
     }
     status = 200;
     await verifyReferralMutationRecovery(page);
-    await verifyReferralMutationRaces(page);
-    await verifyLaterReferralRefreshes(page);
+    await verifyReferralConcurrency(page);
     assert.deepEqual(errors, []);
     console.log(
       "PASS: affiliate login and return, unavailable affiliation runtime, transient recovery, CRM session expiry and confirmed referral writes with read-only refresh recovery",
@@ -205,7 +204,7 @@ async function verifyReferralMutationRecovery(page) {
     const target = page.locator(
       operation === "create" ? "#referral-create-status" : "#referrals-status",
     );
-    const retry = target.getByRole("button", {
+    const retry = page.locator("#referrals-recovery").getByRole("button", {
       name: "Atualizar lista",
       exact: true,
     });
@@ -223,7 +222,7 @@ async function verifyReferralMutationRecovery(page) {
     );
     assert.match(await target.textContent(), confirmation);
     assert.match(
-      await target.textContent(),
+      await page.locator("#referrals-recovery").textContent(),
       /Não foi possível atualizar a lista/,
     );
     assert.equal(state.writes, 1);
@@ -277,12 +276,32 @@ async function verifyReferralMutationRecovery(page) {
   await page.unroute(referralsApi, route);
 }
 
-// Observe completion of the real async retry listener, not merely its response.
-async function verifyReferralMutationRaces(page) {
+// Capture actual controller/listener Promises without changing their bodies.
+async function installReferralObservation(page) {
   await page.addInitScript(() => {
+    window.__wp06 = { operations: [] };
+    window.__wp06Observe = (kind, result) => {
+      const entry = {
+        kind,
+        done: false,
+        thenable: Boolean(result?.then),
+        error: null,
+      };
+      entry.promise = Promise.resolve(result).then(
+        (value) => {
+          entry.done = true;
+          return value;
+        },
+        (error) => {
+          entry.done = true;
+          entry.error = String(error);
+          throw error;
+        },
+      );
+      window.__wp06.operations.push(entry);
+      return result;
+    };
     const add = EventTarget.prototype.addEventListener;
-    window.__wp06RetryObservations = [];
-    window.__wp06RetrySettlements = [];
     EventTarget.prototype.addEventListener = function (
       type,
       listener,
@@ -291,222 +310,149 @@ async function verifyReferralMutationRaces(page) {
       if (
         type === "click" &&
         this instanceof HTMLButtonElement &&
-        this.textContent === "Atualizar lista" &&
+        ["Atualizar lista", "Tentar novamente"].includes(this.textContent) &&
         typeof listener === "function"
       ) {
         const original = listener;
         listener = function (...args) {
-          const observation = { done: false, thenable: false, error: null };
-          window.__wp06RetryObservations.push(observation);
-          try {
-            const result = original.apply(this, args);
-            observation.thenable = Boolean(
-              result && typeof result.then === "function",
-            );
-            const completion = Promise.resolve(result).then(
-              (value) => {
-                observation.done = true;
-                return value;
-              },
-              (error) => {
-                observation.error = String(error);
-                observation.done = true;
-                throw error;
-              },
-            );
-            window.__wp06RetrySettlements.push(completion);
-            return completion;
-          } catch (error) {
-            observation.error = String(error);
-            observation.done = true;
-            throw error;
-          }
+          return window.__wp06Observe("retry", original.apply(this, args));
         };
       }
       return add.call(this, type, listener, options);
     };
   });
-  const failures = [];
-  for (const variant of [
-    { name: "B409 then stale A200", writeB: 409, readA: 200 },
-    { name: "B409 then stale A500", writeB: 409, readA: 500 },
-    { name: "B200/read500 then stale A200", writeB: 200, readA: 200 },
-  ]) {
-    try {
-      await verifyReferralMutationRace(page, variant);
-    } catch (error) {
-      console.error(`FAIL WP06 race ${variant.name}: ${error.stack}`);
-      failures.push(error);
-    }
-  }
-  if (failures.length)
-    throw new AggregateError(failures, "WP06 stale refresh races failed");
 }
 
-async function verifyReferralMutationRace(page, variant) {
-  const deferred = () => {
-    let resolve;
-    const promise = new Promise((done) => {
-      resolve = done;
-    });
-    return { promise, resolve };
-  };
-  const bounded = async (promise, label) => {
-    let timer;
-    try {
-      return await Promise.race([
-        promise,
-        new Promise((_, reject) => {
-          timer = setTimeout(
-            () => reject(new Error(`Timed out: ${label}`)),
-            15000,
-          );
-        }),
-      ]);
-    } finally {
-      clearTimeout(timer);
-    }
-  };
-  const oldReadCaptured = deferred(),
-    releaseOldRead = deferred();
-  const writeBCaptured = deferred(),
-    releaseWriteB = deferred();
-  const pending = new Set(),
-    unexpected = [];
-  const items = [{ id: 7, status: "pending", referredLeadId: null }];
-  let reads = 0,
-    writes = 0,
-    oldSnapshot;
-  const handle = async (route) => {
-    const request = route.request();
-    try {
-      assert.equal(request.url(), origin + "/api/crm/referrals");
-      if (request.method() === "POST") {
-        writes++;
-        assert.ok(writes <= 2, "retries must never repeat a write");
-        assert.deepEqual(
-          request.postDataJSON(),
-          writes === 1
-            ? { referrerLeadId: 42, referredName: "A confirmado" }
-            : { referrerLeadId: 43, referredName: "B ainda não salvo" },
-        );
-        if (writes === 2) {
-          writeBCaptured.resolve();
-          await releaseWriteB.promise;
-        }
-        const responseStatus = writes === 1 ? 200 : variant.writeB;
-        if (responseStatus === 200)
-          items.push({
-            id: writes === 1 ? 8 : 9,
-            status: "pending",
-            referredLeadId: null,
-          });
-        await route.fulfill({
-          status: responseStatus,
-          json:
-            responseStatus === 200
-              ? { success: true }
-              : { error: "FIXTURE_CONFLICT" },
-        });
-      } else {
-        assert.equal(request.method(), "GET");
-        reads++;
-        if (reads === 3) {
-          oldSnapshot = structuredClone(items);
-          oldReadCaptured.resolve();
-          await releaseOldRead.promise;
-          await route.fulfill({
-            status: variant.readA,
-            json:
-              variant.readA === 200
-                ? { data: oldSnapshot }
-                : { error: "FIXTURE_OLD_READ_FAILED" },
-          });
-        } else if (reads === 2 || (reads === 4 && variant.writeB === 200)) {
-          await route.fulfill({
-            status: 500,
-            json: { error: "FIXTURE_REFRESH_FAILED" },
-          });
-        } else {
-          assert.ok(
-            reads === 1 || (reads === 5 && variant.writeB === 200),
-            "unexpected list refresh",
-          );
-          await route.fulfill({ json: { data: items } });
-        }
-      }
-    } catch (error) {
-      unexpected.push(String(error));
-      await route.fulfill({
-        status: 500,
-        json: { error: "FIXTURE_CONTRACT_FAILED" },
-      });
-    }
-  };
-  const route = async (requestRoute) => {
-    const work = handle(requestRoute);
-    pending.add(work);
-    try {
-      await work;
-    } finally {
-      pending.delete(work);
-    }
-  };
-  await page.route(referralsApi, route);
+async function bounded(promise, label) {
+  let timer;
   try {
-    await page.goto(origin + "/apps/admin-crm/public/referrals.html");
-    await page.getByText("Registro #7", { exact: true }).waitFor();
-    const createStatus = page.locator("#referral-create-status");
-    const createSubmit = page.locator("#referral-create-submit");
-    const retry = createStatus.getByRole("button", {
-      name: "Atualizar lista",
-      exact: true,
-    });
-    await page.locator('[name="referrerLeadId"]').fill("42");
-    await page.locator('[name="referredName"]').fill("A confirmado");
-    await createSubmit.click();
-    await retry.waitFor();
-    assert.match(
-      await createStatus.textContent(),
-      /Salvo\. Não foi possível atualizar a lista/,
-    );
-    assert.equal(await createSubmit.isEnabled(), true);
-    await retry.click();
-    await bounded(oldReadCaptured.promise, "old retry GET captured");
-    assert.deepEqual(
-      oldSnapshot.map((item) => item.id),
-      [7, 8],
-    );
-    assert.deepEqual(
-      await page.evaluate(() => window.__wp06RetryObservations),
-      [{ done: false, thenable: true, error: null }],
-    );
-    await page.locator('[name="referrerLeadId"]').fill("43");
-    await page.locator('[name="referredName"]').fill("B ainda não salvo");
-    await createSubmit.click();
-    await bounded(writeBCaptured.promise, "new POST captured");
-    assert.equal(await createStatus.textContent(), "Salvando…");
-    assert.equal(await createSubmit.isDisabled(), true);
-    releaseWriteB.resolve();
-    if (variant.writeB === 409) {
-      await page.getByText("Falha (409).", { exact: true }).waitFor();
-    } else {
-      await retry.waitFor();
-      assert.match(
-        await createStatus.textContent(),
-        /Salvo\. Não foi possível atualizar a lista/,
-      );
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Fixture barrier: ${label}`)),
+          15000,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function referralScenario(page, options, exercise) {
+  const state = {
+    items: [7, 8].slice(0, options.rows ?? 1).map((id) => ({
+      id,
+      status: "pending",
+      referredLeadId: id === 7 ? (options.initialLead ?? null) : null,
+    })),
+    reads: 0,
+    writes: 0,
+    unexpected: [],
+    pending: new Set(),
+    gates: new Map(),
+  };
+  const gate = (name) => {
+    if (!state.gates.has(name)) {
+      let capture, release;
+      const entered = new Promise((done) => {
+        capture = done;
+      });
+      const released = new Promise((done) => {
+        release = done;
+      });
+      state.gates.set(name, { capture, release, entered, released });
     }
-    assert.equal(await createSubmit.isEnabled(), true);
-    await page.locator('[name="referredLeadId"]').fill("73");
-    const feedbackBefore = await createStatus.textContent();
-    await page.evaluate(() => {
+    return state.gates.get(name);
+  };
+  state.hold = async (name) => {
+    gate(name).capture();
+    await gate(name).released;
+  };
+  state.wait = (name) => bounded(gate(name).entered, name);
+  state.release = (name) => gate(name).release();
+  state.settle = async (kind, index = -1) => {
+    const observed = await bounded(
+      page.evaluate(
+        async ({ kind, index }) => {
+          const entry = window.__wp06.operations
+            .filter((item) => item.kind === kind)
+            .at(index);
+          if (!entry) throw new Error("Missing original operation Promise");
+          await entry.promise;
+          return {
+            done: entry.done,
+            thenable: entry.thenable,
+            error: entry.error,
+          };
+        },
+        { kind, index },
+      ),
+      kind,
+    );
+    assert.deepEqual(observed, { done: true, thenable: true, error: null });
+  };
+  state.create = async (name, lead = "43") => {
+    await page.locator('[name="referrerLeadId"]').fill(lead);
+    await page.locator('[name="referredName"]').fill(name);
+    await page.locator("#referral-create-submit").click();
+  };
+  state.action = (id, action) =>
+    page
+      .locator(
+        `button[data-referral-id="${id}"][data-referral-action="${action}"]`,
+      )
+      .click();
+  state.link = async (id, lead) => {
+    const form = page.locator(`form[data-referral-id="${id}"]`);
+    await form.locator("input").fill(lead);
+    await form.locator("button").click();
+  };
+  state.retry = page
+    .locator("#referrals-recovery")
+    .getByRole("button", { name: "Atualizar lista", exact: true });
+  state.recover = async () => {
+    await state.retry.click();
+    await state.settle("retry");
+  };
+  state.snapshot = () =>
+    page.evaluate(() => ({
+      feedback: document.querySelector("#referrals-status").textContent,
+      created: document.querySelector("#referral-create-status").textContent,
+      createDraft: [
+        ...document.querySelectorAll("#referral-create-form input"),
+      ].map((input) => input.value),
+      createEnabled: !document.querySelector("#referral-create-submit")
+        .disabled,
+      recovery: document.querySelector("#referrals-recovery").textContent,
+      retryEnabled:
+        document.querySelector("#referrals-recovery button")?.disabled ===
+        false,
+      rows: [...document.querySelectorAll("#referrals-list article")].map(
+        (article) => ({
+          id: article.querySelector("form").dataset.referralId,
+          status: article.querySelector("p").textContent,
+          link: article.querySelectorAll("p")[1].textContent,
+          draft: article.querySelector("input").value,
+          baseline: article.querySelector("input").defaultValue,
+          linkDisabled: article.querySelector('button[type="submit"]').disabled,
+          actions: [
+            ...article.querySelectorAll("button[data-referral-action]"),
+          ].map((button) => ({
+            action: button.dataset.referralAction,
+            disabled: button.disabled,
+          })),
+        }),
+      ),
+    }));
+  state.markDom = () =>
+    page.evaluate(() => {
       const list = document.querySelector("#referrals-list");
-      const saved = (window.__wp06RaceDom = {
+      const saved = (window.__wp06.dom = {
         article: list.querySelector("article"),
-        input: list.querySelector('[name="referredLeadId"]'),
-        retry: document.querySelector("#referral-create-status button"),
-        status: document.querySelector("#referrals-status").textContent,
+        input: list.querySelector("input"),
+        retry: document.querySelector("#referrals-recovery button"),
         mutations: 0,
       });
       saved.observer = new MutationObserver((records) => {
@@ -514,202 +460,83 @@ async function verifyReferralMutationRace(page, variant) {
       });
       saved.observer.observe(list, { childList: true, subtree: true });
     });
-    releaseOldRead.resolve();
-    await bounded(
-      page.evaluate(() => {
-        const completion = window.__wp06RetrySettlements[0];
-        if (!completion) throw new Error("Missing original retry promise");
-        return completion;
-      }),
-      "original retry A listener completed",
-    );
+  state.unchangedDom = async () => {
     const observed = await page.evaluate(() => {
-      const saved = window.__wp06RaceDom;
-      const list = document.querySelector("#referrals-list");
-      saved.mutations += saved.observer.takeRecords().length;
+      const saved = window.__wp06.dom,
+        list = document.querySelector("#referrals-list");
+      const mutations = saved.mutations + saved.observer.takeRecords().length;
       saved.observer.disconnect();
       return {
-        listener: window.__wp06RetryObservations[0],
-        feedback: document.querySelector("#referral-create-status").textContent,
-        sameArticle:
+        article:
           saved.article.isConnected &&
           saved.article === list.querySelector("article"),
-        sameInput:
+        input:
           saved.input.isConnected &&
-          saved.input === list.querySelector('[name="referredLeadId"]'),
-        sameRetry:
-          saved.retry ===
-          document.querySelector("#referral-create-status button"),
-        linkDraft: list.querySelector('[name="referredLeadId"]').value,
-        referrerDraft: document.querySelector('[name="referrerLeadId"]').value,
-        nameDraft: document.querySelector('[name="referredName"]').value,
-        statusUnchanged:
-          saved.status ===
-          document.querySelector("#referrals-status").textContent,
-        headings: [...list.querySelectorAll("h2")].map(
-          (node) => node.textContent,
-        ),
-        mutations: saved.mutations,
-        submitEnabled: !document.querySelector("#referral-create-submit")
-          .disabled,
+          saved.input === list.querySelector("input"),
+        retry:
+          saved.retry === document.querySelector("#referrals-recovery button"),
+        mutations,
       };
     });
-    console.log(
-      "WP06_RACE_OBSERVATION " +
-        JSON.stringify({
-          variant: variant.name,
-          reads,
-          writes,
-          oldSnapshot,
-          unexpected,
-          observed,
-        }),
-    );
-    assert.deepEqual(unexpected, []);
-    assert.equal(writes, 2);
-    assert.equal(reads, variant.writeB === 409 ? 3 : 4);
-    assert.deepEqual(observed.listener, {
-      done: true,
-      thenable: true,
-      error: null,
+    assert.deepEqual(observed, {
+      article: true,
+      input: true,
+      retry: true,
+      mutations: 0,
     });
-    assert.equal(
-      observed.feedback,
-      feedbackBefore,
-      "old retry must preserve the newer operation's feedback",
+  };
+  const moduleRoute = async (route) => {
+    const response = await route.fetch();
+    assert.equal(response.status(), 200);
+    let source = await response.text();
+    assert.ok(
+      source.includes('from "/packages/auth-browser/dist/index.js"'),
+      "preserve canonical server imports and CSP",
     );
-    assert.equal(observed.sameArticle, true);
-    assert.equal(observed.sameInput, true);
-    assert.equal(observed.sameRetry, true);
-    assert.equal(observed.mutations, 0, "old read must not rebuild the list");
-    assert.equal(observed.linkDraft, "73");
-    assert.equal(observed.referrerDraft, variant.writeB === 409 ? "43" : "");
-    assert.equal(
-      observed.nameDraft,
-      variant.writeB === 409 ? "B ainda não salvo" : "",
-    );
-    assert.equal(observed.statusUnchanged, true);
-    assert.equal(observed.submitEnabled, true);
-    assert.deepEqual(observed.headings, ["Registro #7"]);
-    if (variant.writeB === 200) {
-      await retry.click();
-      await bounded(
-        page.evaluate(() => {
-          const completion = window.__wp06RetrySettlements[1];
-          if (!completion) throw new Error("Missing newer retry promise");
-          return completion;
-        }),
-        "newer retry B listener completed",
+    for (const [call, kind] of [
+      ["runAction(referralId, action, button)", "action"],
+      ["linkLead(form)", "link"],
+      ["createReferral(event)", "create"],
+      ["start()", "start"],
+    ]) {
+      const original = `void ${call};`;
+      assert.equal(source.split(original).length, 2);
+      source = source.replace(
+        original,
+        `void window.__wp06Observe("${kind}", ${call});`,
       );
-      assert.deepEqual(
-        await page.evaluate(() => window.__wp06RetryObservations[1]),
-        { done: true, thenable: true, error: null },
-      );
-      assert.equal(await createStatus.textContent(), "Salvo.");
-      assert.equal(await retry.count(), 0);
-      assert.deepEqual(
-        await page.locator("#referrals-list h2").allTextContents(),
-        ["Registro #7", "Registro #8", "Registro #9"],
-      );
-      assert.equal(reads, 5);
-      assert.equal(writes, 2);
-      assert.deepEqual(unexpected, []);
     }
-    console.log(
-      `PASS WP06 race ${variant.name}: ${writes} POST, ${reads} GET; actual retry listener settled`,
-    );
-  } finally {
-    releaseWriteB.resolve();
-    releaseOldRead.resolve();
-    await bounded(Promise.all([...pending]), "own fixture routes settled");
-    await page.unroute(referralsApi, route);
-    await page.evaluate(() => window.__wp06RaceDom?.observer.disconnect());
-  }
-}
-
-async function verifyLaterReferralRefreshes(page) {
-  const failures = [];
-  for (const [firstRetryStatus, superseded] of [
-    [200, false],
-    [500, false],
-    [200, true],
-  ]) {
-    try {
-      await verifyLaterReferralRefresh(page, firstRetryStatus, superseded);
-    } catch (error) {
-      console.error(
-        `FAIL WP06 later retry ${firstRetryStatus}/superseded=${superseded}: ${error.stack}`,
-      );
-      failures.push(error);
-    }
-  }
-  if (failures.length)
-    throw new AggregateError(failures, "WP06 later explicit refresh failed");
-}
-
-async function verifyLaterReferralRefresh(page, firstRetryStatus, superseded) {
-  const item = { id: 7, status: "pending", referredLeadId: null };
-  const unexpected = [],
-    pageErrors = [],
-    pending = new Set();
-  const onPageError = (error) => pageErrors.push(error.message);
-  page.on("pageerror", onPageError);
-  let releaseHeld, captureHeld;
-  const heldReadReleased = new Promise((resolve) => {
-    releaseHeld = resolve;
-  });
-  const heldReadCaptured = new Promise((resolve) => {
-    captureHeld = resolve;
-  });
-  const needsSecondRetry = firstRetryStatus === 500 || superseded;
-  let reads = 0,
-    writes = 0;
+    await route.fulfill({ response, body: source });
+  };
   const handle = async (route) => {
     const request = route.request();
     try {
       if (request.method() === "POST") {
-        writes++;
-        if (writes === 1) {
-          assert.equal(request.url(), origin + "/api/crm/referrals/7/contact");
-          assert.equal(request.postData(), null);
-          item.status = "contacted";
-          await route.fulfill({ json: { success: true } });
-        } else {
-          assert.equal(writes, 2, "retry must never repeat either write");
-          assert.equal(request.url(), origin + "/api/crm/referrals");
-          assert.deepEqual(request.postDataJSON(), {
-            referrerLeadId: 43,
-            referredName: "B ainda não salvo",
-          });
-          await route.fulfill({
-            status: 409,
-            json: { error: "FIXTURE_CONFLICT" },
-          });
-        }
+        ++state.writes;
+        assert.ok(
+          state.writes <= (options.maxWrites ?? 2),
+          "recovery never repeats a write",
+        );
+        const status = await options.post(state, request);
+        await route.fulfill({
+          status,
+          json:
+            status === 200 ? { success: true } : { error: "FIXTURE_CONFLICT" },
+        });
       } else {
         assert.equal(request.method(), "GET");
         assert.equal(request.url(), origin + "/api/crm/referrals");
-        reads++;
-        assert.ok(
-          reads <= (needsSecondRetry ? 4 : 3),
-          "unexpected additional list read",
-        );
-        if (superseded && reads === 3) {
-          const snapshot = structuredClone(item);
-          captureHeld();
-          await heldReadReleased;
-          await route.fulfill({ json: { data: [snapshot] } });
-          return;
-        }
-        const fail = reads === 2 || (reads === 3 && firstRetryStatus === 500);
-        await route.fulfill(
-          fail
-            ? { status: 500, json: { error: "FIXTURE_REFRESH_FAILED" } }
-            : { json: { data: [item] } },
-        );
+        ++state.reads;
+        assert.ok(state.reads <= (options.maxReads ?? 5), "bounded list reads");
+        const data = structuredClone(state.items);
+        const status = (await options.read?.(state, data)) ?? 200;
+        await route.fulfill({
+          status,
+          json: status === 200 ? { data } : { error: "FIXTURE_REFRESH_FAILED" },
+        });
       }
     } catch (error) {
-      unexpected.push(String(error));
+      state.unexpected.push(error);
       await route.fulfill({
         status: 500,
         json: { error: "FIXTURE_CONTRACT_FAILED" },
@@ -718,173 +545,509 @@ async function verifyLaterReferralRefresh(page, firstRetryStatus, superseded) {
   };
   const route = async (requestRoute) => {
     const work = handle(requestRoute);
-    pending.add(work);
+    state.pending.add(work);
     try {
       await work;
     } finally {
-      pending.delete(work);
+      state.pending.delete(work);
     }
   };
+  let sessions = 0;
+  const sessionRoute = async (route) => {
+    if (++sessions === 1 && options.initial === "session")
+      await state.hold("initial");
+    await route.fulfill({ json: session });
+  };
+  await page.route("**/apps/admin-crm/public/referrals.js", moduleRoute);
+  await page.route("**/api/dashboard/auth/session", sessionRoute);
   await page.route(referralsApi, route);
   try {
-    await page.goto(origin + "/apps/admin-crm/public/referrals.html");
-    await page.getByText("Registro #7", { exact: true }).waitFor();
-    await page.evaluate(() => {
-      window.__wp06LaterRetryButton = document.querySelector(
-        'button[data-referral-action="contact"]',
-      );
+    await page.goto(origin + "/apps/admin-crm/public/referrals.html", {
+      waitUntil: "domcontentloaded",
     });
-    await page.locator('button[data-referral-action="contact"]').click();
-    const target = page.locator("#referrals-status");
-    const retry = target.getByRole("button", {
-      name: "Atualizar lista",
-      exact: true,
-    });
-    await retry.waitFor();
-    assert.match(
-      await target.textContent(),
-      /Indicação atualizada\. Não foi possível atualizar a lista/,
-    );
-    assert.equal(writes, 1);
-    assert.equal(reads, 2);
-    if (superseded) {
-      await retry.click();
-      await heldReadCaptured;
-      assert.deepEqual(
-        await page.evaluate(() => window.__wp06RetryObservations),
-        [{ done: false, thenable: true, error: null }],
-      );
-    }
-    await page.locator('[name="referrerLeadId"]').fill("43");
-    await page.locator('[name="referredName"]').fill("B ainda não salvo");
-    await page.locator("#referral-create-submit").click();
-    await page.getByText("Falha (409).", { exact: true }).waitFor();
-    assert.equal(writes, 2);
-    assert.equal(reads, superseded ? 3 : 2);
-    for (let attempt = 0; attempt < (needsSecondRetry ? 2 : 1); attempt++) {
-      if (superseded && attempt === 0) {
-        await page.evaluate(() => {
-          window.__wp06LaterMutations = 0;
-          window.__wp06LaterObserver = new MutationObserver((records) => {
-            window.__wp06LaterMutations += records.length;
-          });
-          window.__wp06LaterObserver.observe(
-            document.querySelector("#referrals-list"),
-            { childList: true, subtree: true },
-          );
-        });
-        releaseHeld();
-      } else {
-        await retry.click();
-      }
-      // The R1 instrumentation observes the original listener on every navigation.
-      await page.evaluate((index) => {
-        const completion = window.__wp06RetrySettlements[index];
-        if (!completion)
-          throw new Error("Missing later retry listener promise");
-        return completion;
-      }, attempt);
-      const observed = await page.evaluate((index) => {
-        let mutations = null;
-        if (window.__wp06LaterObserver) {
-          mutations =
-            window.__wp06LaterMutations +
-            window.__wp06LaterObserver.takeRecords().length;
-          window.__wp06LaterObserver.disconnect();
-          window.__wp06LaterObserver = null;
-        }
-        return {
-          mutations,
-          listener: window.__wp06RetryObservations[index],
-          feedbackA: document.querySelector("#referrals-status").textContent,
-          feedbackB: document.querySelector("#referral-create-status")
-            .textContent,
-          referrerDraft: document.querySelector('[name="referrerLeadId"]')
-            .value,
-          nameDraft: document.querySelector('[name="referredName"]').value,
-          retryPresent: Boolean(
-            document.querySelector("#referrals-status button"),
-          ),
-          retryEnabled:
-            document.querySelector("#referrals-status button")?.disabled ===
-            false,
-          rowStatus: document.querySelector("#referrals-list article p")
-            .textContent,
-          originalButtonConnected: window.__wp06LaterRetryButton.isConnected,
-          originalButtonDisabled: window.__wp06LaterRetryButton.disabled,
-          currentContactButtonPresent: Boolean(
-            document.querySelector('button[data-referral-action="contact"]'),
-          ),
-          createSubmitEnabled: !document.querySelector(
-            "#referral-create-submit",
-          ).disabled,
-        };
-      }, attempt);
-      console.log(
-        "WP06_LATER_RETRY_OBSERVATION " +
-          JSON.stringify({
-            firstRetryStatus,
-            superseded,
-            attempt,
-            reads,
-            writes,
-            backendStatus: item.status,
-            unexpected,
-            pageErrors,
-            observed,
-          }),
-      );
-      assert.deepEqual(unexpected, []);
-      assert.deepEqual(pageErrors, []);
-      assert.deepEqual(observed.listener, {
-        done: true,
-        thenable: true,
-        error: null,
-      });
-      assert.equal(writes, 2, "explicit retry must remain read-only");
-      assert.equal(
-        reads,
-        3 + attempt,
-        "a new explicit retry must request a fresh list",
-      );
-      assert.equal(observed.feedbackB, "Falha (409).");
-      assert.equal(observed.referrerDraft, "43");
-      assert.equal(observed.nameDraft, "B ainda não salvo");
-      assert.equal(observed.createSubmitEnabled, true);
-      if (needsSecondRetry && attempt === 0) {
-        assert.match(
-          observed.feedbackA,
-          /Indicação atualizada\. Não foi possível atualizar a lista/,
-        );
-        assert.equal(observed.retryPresent, true);
-        assert.equal(observed.retryEnabled, true);
-        assert.equal(observed.rowStatus, "Status: pending");
-        assert.equal(observed.originalButtonConnected, true);
-        assert.equal(observed.originalButtonDisabled, true);
-        if (superseded)
-          assert.equal(
-            observed.mutations,
-            0,
-            "superseded list read must not render",
-          );
-      } else {
-        assert.equal(observed.feedbackA, "Indicação atualizada.");
-        assert.equal(observed.retryPresent, false);
-        assert.equal(observed.rowStatus, "Status: contacted");
-        assert.equal(observed.originalButtonConnected, false);
-        assert.equal(observed.currentContactButtonPresent, false);
-      }
-    }
-    console.log(
-      `PASS WP06 later retry ${firstRetryStatus}/superseded=${superseded}: ${writes} POST, ${reads} GET; B error and draft preserved`,
-    );
+    if (options.initial) await state.wait("initial");
+    else await state.settle("start");
+    await exercise(state);
+    assert.deepEqual(state.unexpected, []);
   } finally {
-    releaseHeld();
-    await Promise.all([...pending]);
+    for (const entry of state.gates.values()) entry.release();
+    await bounded(
+      Promise.all([...state.pending]),
+      "own fixture routes settled",
+    );
+    await page.evaluate(() => window.__wp06.dom?.observer.disconnect());
     await page.unroute(referralsApi, route);
-    await page.evaluate(() => window.__wp06LaterObserver?.disconnect());
-    page.off("pageerror", onPageError);
+    await page.unroute("**/api/dashboard/auth/session", sessionRoute);
+    await page.unroute("**/apps/admin-crm/public/referrals.js", moduleRoute);
   }
+}
+
+function expectedPost(request, path, body = null) {
+  assert.equal(request.url(), origin + "/api/crm/referrals" + path);
+  assert.deepEqual(
+    body === null ? request.postData() : request.postDataJSON(),
+    body,
+  );
+}
+
+async function verifyReferralConcurrency(page) {
+  await installReferralObservation(page);
+  const cases = [];
+  for (const [writeB, readA, readB = 500] of [
+    [409, 200],
+    [409, 500],
+    [200, 200],
+    [200, 200, 200],
+    [200, 500, 200],
+  ]) {
+    cases.push([
+      `R1 B${writeB}/A${readA}/readB${readB}`,
+      () =>
+        referralScenario(
+          page,
+          {
+            post: async (s, request) => {
+              expectedPost(
+                request,
+                "",
+                s.writes === 1
+                  ? { referrerLeadId: 42, referredName: "A confirmado" }
+                  : { referrerLeadId: 43, referredName: "B ainda não salvo" },
+              );
+              if (s.writes === 2) await s.hold("B");
+              const status = s.writes === 1 ? 200 : writeB;
+              if (status === 200)
+                s.items.push({
+                  id: s.writes === 1 ? 8 : 9,
+                  status: "pending",
+                  referredLeadId: null,
+                });
+              return status;
+            },
+            read: async (s, snapshot) => {
+              if (s.reads === 3) {
+                assert.deepEqual(
+                  snapshot.map((item) => item.id),
+                  [7, 8],
+                );
+                await s.hold("old");
+                return readA;
+              }
+              if (s.reads === 2) return 500;
+              return s.reads === 4 && writeB === 200 ? readB : 200;
+            },
+          },
+          async (s) => {
+            await s.create("A confirmado", "42");
+            await s.settle("create");
+            assert.equal((await s.snapshot()).created, "Salvo.");
+            await s.retry.click();
+            await s.wait("old");
+            await s.create("B ainda não salvo");
+            await s.wait("B");
+            assert.equal((await s.snapshot()).created, "Salvando…");
+            assert.equal((await s.snapshot()).createEnabled, false);
+            s.release("B");
+            await s.settle("create");
+            await page.locator('form[data-referral-id="7"] input').fill("73");
+            const before = await s.snapshot();
+            await s.markDom();
+            s.release("old");
+            await s.settle("retry");
+            await s.unchangedDom();
+            assert.deepEqual(
+              await s.snapshot(),
+              before,
+              "stale response cannot change messages, drafts, controls or list",
+            );
+            assert.equal(
+              before.created,
+              writeB === 409 ? "Falha (409)." : "Salvo.",
+            );
+            assert.deepEqual(
+              before.createDraft,
+              writeB === 409 ? ["43", "B ainda não salvo"] : ["", ""],
+            );
+            assert.equal(before.createEnabled, true);
+            assert.equal(before.rows[0].draft, "73");
+            assert.deepEqual(
+              before.rows.map((row) => row.id),
+              writeB === 200 && readB === 200 ? ["7", "8", "9"] : ["7"],
+            );
+            assert.equal(s.reads, writeB === 409 ? 3 : 4);
+            assert.equal(s.writes, 2);
+            if (writeB === 200 && readB === 200) {
+              assert.equal(
+                await s.retry.count(),
+                0,
+                "stale completion cannot revive resolved recovery",
+              );
+            }
+            if (writeB === 200 && readB === 500) {
+              await s.recover();
+              assert.deepEqual(
+                (await s.snapshot()).rows.map((row) => row.id),
+                ["7", "8", "9"],
+              );
+              assert.equal((await s.snapshot()).created, "Salvo.");
+              assert.equal(await s.retry.count(), 0);
+              assert.equal(s.reads, 5);
+              assert.equal(s.writes, 2);
+            }
+          },
+        ),
+    ]);
+  }
+  for (const [firstRetry, superseded] of [
+    [200, false],
+    [500, false],
+    [200, true],
+  ]) {
+    cases.push([
+      `R2 ${firstRetry}/superseded=${superseded}`,
+      () =>
+        referralScenario(
+          page,
+          {
+            post: async (s, request) => {
+              if (s.writes === 1) {
+                expectedPost(request, "/7/contact");
+                s.items[0].status = "contacted";
+                return 200;
+              }
+              expectedPost(request, "", {
+                referrerLeadId: 43,
+                referredName: "B ainda não salvo",
+              });
+              return 409;
+            },
+            read: async (s) => {
+              if (s.reads === 3 && superseded) await s.hold("old");
+              return s.reads === 2 || (s.reads === 3 && firstRetry === 500)
+                ? 500
+                : 200;
+            },
+          },
+          async (s) => {
+            await page.evaluate(() => {
+              window.__wp06.button = document.querySelector(
+                'button[data-referral-action="contact"]',
+              );
+            });
+            await s.action(7, "contact");
+            await s.settle("action");
+            assert.equal(s.writes, 1);
+            assert.equal(s.reads, 2);
+            if (superseded) {
+              await s.retry.click();
+              await s.wait("old");
+            }
+            await s.create("B ainda não salvo");
+            await s.settle("create");
+            const attempts = firstRetry === 500 || superseded ? 2 : 1;
+            for (let attempt = 0; attempt < attempts; ++attempt) {
+              if (superseded && attempt === 0) {
+                await s.markDom();
+                s.release("old");
+                await s.settle("retry");
+                await s.unchangedDom();
+              } else await s.recover();
+              const observed = await s.snapshot();
+              assert.equal(s.writes, 2);
+              assert.equal(s.reads, 3 + attempt);
+              assert.equal(observed.created, "Falha (409).");
+              assert.deepEqual(observed.createDraft, [
+                "43",
+                "B ainda não salvo",
+              ]);
+              assert.equal(observed.createEnabled, true);
+              assert.equal(observed.feedback, "Indicação atualizada.");
+              const unresolved = attempts === 2 && attempt === 0;
+              assert.equal(observed.retryEnabled, unresolved);
+              assert.equal(
+                observed.rows[0].status,
+                unresolved ? "Status: pending" : "Status: contacted",
+              );
+              assert.equal(
+                await page.evaluate(() => window.__wp06.button.isConnected),
+                unresolved,
+              );
+              if (unresolved)
+                assert.equal(
+                  await page.evaluate(() => window.__wp06.button.disabled),
+                  true,
+                );
+              else
+                assert.equal(
+                  observed.rows[0].actions.some(
+                    (button) => button.action === "contact",
+                  ),
+                  false,
+                );
+            }
+          },
+        ),
+    ]);
+  }
+  cases.push([
+    "R3 shared feedback recovery",
+    () =>
+      referralScenario(
+        page,
+        {
+          rows: 2,
+          post: async (s, request) => {
+            if (s.writes === 1) {
+              expectedPost(request, "/7/link-lead", { referredLeadId: 42 });
+              s.items[0].referredLeadId = 42;
+              return 200;
+            }
+            expectedPost(request, "/8/contact");
+            return 409;
+          },
+          read: (s) => (s.reads === 2 ? 500 : 200),
+        },
+        async (s) => {
+          await s.link(7, "42");
+          await s.settle("link");
+          assert.equal((await s.snapshot()).rows[0].linkDisabled, true);
+          await s.action(8, "contact");
+          await s.settle("action");
+          const failure = "A transição não é permitida para esta indicação.";
+          assert.equal((await s.snapshot()).feedback, failure);
+          assert.equal((await s.snapshot()).retryEnabled, true);
+          await s.recover();
+          const after = await s.snapshot();
+          assert.equal(after.feedback, failure);
+          assert.equal(after.rows[0].link, "Lead indicado vinculado: 42");
+          assert.equal(after.rows[0].linkDisabled, false);
+          assert.equal(after.retryEnabled, false);
+          assert.equal(s.writes, 2);
+          assert.equal(s.reads, 3);
+        },
+      ),
+  ]);
+  for (const draft of ["99", ""]) {
+    cases.push([
+      `R4 row draft ${draft || "empty"}`,
+      () =>
+        referralScenario(
+          page,
+          {
+            initialLead: draft === "" ? 65 : null,
+            post: async (s, request) => {
+              if (s.writes === 1) {
+                expectedPost(request, "", {
+                  referrerLeadId: 43,
+                  referredName: "A confirmado",
+                });
+                s.items.push({
+                  id: 9,
+                  status: "pending",
+                  referredLeadId: null,
+                });
+                return 200;
+              }
+              expectedPost(request, "/7/link-lead", { referredLeadId: 84 });
+              return 409;
+            },
+            read: (s) => (s.reads === 2 ? 500 : 200),
+          },
+          async (s) => {
+            await s.create("A confirmado");
+            await s.settle("create");
+            await s.link(7, "84");
+            await s.settle("link");
+            await page.locator('form[data-referral-id="7"] input').fill(draft);
+            await s.recover();
+            const after = await s.snapshot();
+            assert.equal(after.feedback, "Falha ao vincular Lead (409).");
+            assert.equal(after.rows[0].draft, draft);
+            assert.equal(after.created, "Salvo.");
+            assert.deepEqual(
+              after.rows.map((row) => row.id),
+              ["7", "9"],
+            );
+            assert.equal(s.writes, 2);
+            assert.equal(s.reads, 3);
+          },
+        ),
+    ]);
+  }
+  for (const kind of ["contact", "link-draft", "link-empty", "create-draft"]) {
+    cases.push([
+      `R5 late ${kind}`,
+      () =>
+        referralScenario(
+          page,
+          {
+            rows: 2,
+            post: async (s, request) => {
+              if (s.writes === 1) {
+                expectedPost(
+                  request,
+                  kind === "contact"
+                    ? "/7/contact"
+                    : kind === "create-draft"
+                      ? ""
+                      : "/7/link-lead",
+                  kind === "contact"
+                    ? null
+                    : kind === "create-draft"
+                      ? { referrerLeadId: 43, referredName: "A confirmado" }
+                      : { referredLeadId: 42 },
+                );
+                await s.hold("A");
+                if (kind === "contact") s.items[0].status = "contacted";
+                else if (kind === "create-draft")
+                  s.items.push({
+                    id: 9,
+                    status: "pending",
+                    referredLeadId: null,
+                  });
+                else s.items[0].referredLeadId = 42;
+              } else {
+                expectedPost(request, "/8/convert");
+                s.items[1].status = "converted";
+              }
+              return 200;
+            },
+          },
+          async (s) => {
+            if (kind === "contact") await s.action(7, "contact");
+            else if (kind === "create-draft") await s.create("A confirmado");
+            else await s.link(7, "42");
+            await s.wait("A");
+            const draft = kind === "link-empty" ? "" : "73";
+            if (kind.startsWith("link"))
+              await page
+                .locator('form[data-referral-id="7"] input')
+                .fill(draft);
+            if (kind === "create-draft")
+              await page
+                .locator('[name="referredName"]')
+                .fill("Rascunho posterior");
+            await s.action(8, "convert");
+            await s.settle("action");
+            const before = await s.snapshot();
+            const button =
+              kind === "contact"
+                ? page.locator(
+                    'button[data-referral-id="7"][data-referral-action="contact"]',
+                  )
+                : kind === "create-draft"
+                  ? page.locator("#referral-create-submit")
+                  : page.locator('form[data-referral-id="7"] button');
+            assert.equal(
+              await button.isDisabled(),
+              true,
+              "render cannot re-enable a pending logical control",
+            );
+            await button.evaluate((element) => element.click());
+            assert.equal(
+              s.writes,
+              2,
+              "disabled recreated control cannot submit again",
+            );
+            s.release("A");
+            await s.settle(
+              kind === "contact"
+                ? "action"
+                : kind === "create-draft"
+                  ? "create"
+                  : "link",
+              0,
+            );
+            const after = await s.snapshot();
+            assert.equal(s.reads, 3);
+            assert.equal(s.writes, 2);
+            assert.equal(after.feedback, before.feedback);
+            assert.equal(after.rows[1].status, "Status: converted");
+            if (kind === "contact")
+              assert.equal(after.rows[0].status, "Status: contacted");
+            else if (kind === "create-draft") {
+              assert.deepEqual(after.createDraft, ["43", "Rascunho posterior"]);
+              assert.equal(after.created, "Salvo.");
+              assert.equal(after.rows[2].id, "9");
+            } else {
+              assert.equal(before.rows[0].draft, draft);
+              assert.equal(after.rows[0].draft, draft);
+              assert.equal(after.rows[0].baseline, "42");
+              assert.equal(after.rows[0].link, "Lead indicado vinculado: 42");
+            }
+          },
+        ),
+    ]);
+  }
+  for (const initial of ["get", "session"]) {
+    cases.push([
+      `R6 initial ${initial}`,
+      () =>
+        referralScenario(
+          page,
+          {
+            initial,
+            maxWrites: 1,
+            post: async (s, request) => {
+              expectedPost(request, "", {
+                referrerLeadId: 43,
+                referredName: "B ainda não salvo",
+              });
+              return 409;
+            },
+            read: async (s) => {
+              if (initial === "get" && s.reads === 1) await s.hold("initial");
+              return 200;
+            },
+          },
+          async (s) => {
+            await s.create("B ainda não salvo");
+            if (initial === "get") await s.settle("create");
+            s.release("initial");
+            await s.settle("start");
+            await s.settle("create");
+            const observed = await s.snapshot();
+            assert.equal(observed.created, "Falha (409).");
+            assert.deepEqual(observed.createDraft, ["43", "B ainda não salvo"]);
+            assert.ok(
+              observed.rows.length || observed.retryEnabled,
+              "startup must apply data or retain usable recovery",
+            );
+            assert.doesNotMatch(
+              observed.feedback,
+              /Carregando/,
+              "startup loading indicator must finish",
+            );
+            if (!observed.rows.length) await s.recover();
+            const after = await s.snapshot();
+            assert.deepEqual(
+              after.rows.map((row) => row.id),
+              ["7"],
+            );
+            assert.equal(after.created, observed.created);
+            assert.deepEqual(after.createDraft, observed.createDraft);
+            assert.equal(after.createEnabled, true);
+            assert.equal(s.writes, 1);
+            assert.equal(s.reads, initial === "get" ? 2 : 1);
+          },
+        ),
+    ]);
+  }
+  const failures = [];
+  for (const [name, exercise] of cases) {
+    try {
+      await exercise();
+      console.log(`PASS WP06 ${name}`);
+    } catch (error) {
+      failures.push(error);
+      console.error(`FAIL WP06 ${name}`);
+    }
+  }
+  if (failures.length)
+    throw new AggregateError(
+      failures,
+      "WP06 referral concurrency contract failed",
+    );
 }
 
 registerReferralMutationTests();
@@ -908,11 +1071,14 @@ function registerReferralMutationTests() {
         await fixture.mutate(operation);
         const target = fixture.feedback(operation);
         assert.match(target.textContent, fixture.confirmation(operation));
-        assert.match(target.textContent, /Não foi possível atualizar a lista/);
+        assert.match(
+          fixture.recovery().textContent,
+          /Não foi possível atualizar a lista/,
+        );
         assert.equal(fixture.writes(), 1);
         assert.equal(fixture.reads(), 1);
         assert.equal(fixture.form.resets, operation === "create" ? 1 : 0);
-        const retry = target.querySelector("button");
+        const retry = fixture.recovery().querySelector("button");
         assert.ok(retry, "confirmed write must offer a list refresh");
         assert.equal(retry.textContent, "Atualizar lista");
         assert.equal(retry.style.minHeight, "44px");
@@ -921,11 +1087,11 @@ function registerReferralMutationTests() {
         assert.equal(fixture.reads(), 2);
         assert.match(target.textContent, fixture.confirmation(operation));
         fixture.state.readFailure = null;
-        await target.querySelector("button").click();
+        await fixture.recovery().querySelector("button").click();
         assert.equal(fixture.writes(), 1);
         assert.equal(fixture.reads(), 3);
         assert.match(target.textContent, fixture.confirmation(operation));
-        assert.equal(target.querySelector("button"), null);
+        assert.equal(fixture.recovery().querySelector("button"), null);
         assert.equal(fixture.form.resets, operation === "create" ? 1 : 0);
       });
     }
@@ -937,7 +1103,7 @@ function registerReferralMutationTests() {
         assert.equal(fixture.writes(), 1);
         assert.equal(fixture.reads(), 0);
         assert.equal(fixture.form.resets, 0);
-        assert.equal(fixture.feedback(operation).querySelector("button"), null);
+        assert.equal(fixture.recovery().querySelector("button"), null);
         assert.doesNotMatch(
           fixture.feedback(operation).textContent,
           fixture.confirmation(operation),
@@ -955,7 +1121,7 @@ function registerReferralMutationTests() {
         fixture.feedback(operation).textContent,
         /Falha|Não foi possível/,
       );
-      assert.equal(fixture.feedback(operation).querySelector("button"), null);
+      assert.equal(fixture.recovery().querySelector("button"), null);
     });
   }
 }
@@ -973,6 +1139,29 @@ async function referralFixture() {
       this.listeners = new Map();
       this.disabled = false;
       this.text = "";
+    }
+    setAttribute(name, value) {
+      this[name] = String(value);
+    }
+    after(element) {
+      nodes.set("#" + element.id, element);
+    }
+    querySelectorAll(selector) {
+      const found = [];
+      for (const child of this.children) {
+        if (
+          (selector.startsWith("button") &&
+            child instanceof Button &&
+            (!selector.includes("data-referral-key") ||
+              child.dataset.referralKey)) ||
+          (selector.startsWith("form") &&
+            child instanceof Form &&
+            child.dataset.referralLinkForm)
+        )
+          found.push(child);
+        found.push(...(child.querySelectorAll?.(selector) ?? []));
+      }
+      return found;
     }
     set textContent(value) {
       this.text = String(value);
@@ -1089,10 +1278,10 @@ async function referralFixture() {
     HTMLFormElement: Form,
     FormData: class {
       constructor(form) {
-        this.form = form;
+        this.fields = { ...form.fields };
       }
       get(name) {
-        return this.form.fields[name];
+        return this.fields[name];
       }
     },
     Error,
@@ -1130,6 +1319,7 @@ async function referralFixture() {
           ? "#referral-create-status"
           : "#referrals-status",
       ),
+    recovery: () => nodes.get("#referrals-recovery"),
     confirmation: (operation) =>
       operation === "create"
         ? /Salvo\./
