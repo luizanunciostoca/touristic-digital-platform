@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-JOURNEY-AUDIT-BROWSER-ROUTING-20261101",
   "objective": "route-exact-journey-audit-paths-to-declared-browser-workflows-and-prove-existing-event-contracts",
-  "baseSha": "0a2281083c4f8f70a5ffcbd3ce5498cdfc88c740",
-  "branch": "chore/journey-audit-browser-routing-20261101",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "84669e553ec803ea36489e3d6c706c98a8908713",
+  "branch": "chore/retire-journey-browser-routing-20261101",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
