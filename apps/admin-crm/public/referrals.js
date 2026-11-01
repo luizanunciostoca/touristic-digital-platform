@@ -123,7 +123,9 @@ function linkLeadForm(item, draft) {
   input.step = "1";
   input.required = true;
   input.defaultValue = String(item.referredLeadId ?? "");
-  input.value = draft && draft.value !== draft.baseline
+  const pending = pendingControls.get(`${item.id}:link`);
+  input.value = draft &&
+    (draft.value !== draft.baseline || pending?.confirmed === false)
     ? draft.value
     : input.defaultValue;
   label.append(input);

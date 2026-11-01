@@ -874,9 +874,17 @@ async function verifyReferralConcurrency(page) {
         ),
     ]);
   }
-  for (const kind of ["contact", "link-draft", "link-empty", "create-draft"]) {
+  for (const kind of [
+    "contact",
+    "link-draft",
+    "link-empty",
+    "create-draft",
+    "link-committed-empty",
+  ]) {
     cases.push([
-      `R5 late ${kind}`,
+      kind === "link-committed-empty"
+        ? "R7 link committed before response"
+        : `R5 late ${kind}`,
       () =>
         referralScenario(
           page,
@@ -897,6 +905,8 @@ async function verifyReferralConcurrency(page) {
                       ? { referrerLeadId: 43, referredName: "A confirmado" }
                       : { referredLeadId: 42 },
                 );
+                if (kind === "link-committed-empty")
+                  s.items[0].referredLeadId = 42;
                 await s.hold("A");
                 if (kind === "contact") s.items[0].status = "contacted";
                 else if (kind === "create-draft")
@@ -918,7 +928,7 @@ async function verifyReferralConcurrency(page) {
             else if (kind === "create-draft") await s.create("A confirmado");
             else await s.link(7, "42");
             await s.wait("A");
-            const draft = kind === "link-empty" ? "" : "73";
+            const draft = kind.includes("empty") ? "" : "73";
             if (kind.startsWith("link"))
               await page
                 .locator('form[data-referral-id="7"] input')
@@ -974,6 +984,14 @@ async function verifyReferralConcurrency(page) {
               assert.equal(after.rows[0].draft, draft);
               assert.equal(after.rows[0].baseline, "42");
               assert.equal(after.rows[0].link, "Lead indicado vinculado: 42");
+              if (kind === "link-committed-empty") {
+                assert.equal(
+                  before.rows[0].link,
+                  "Lead indicado vinculado: 42",
+                );
+                assert.equal(before.rows[0].baseline, "42");
+                assert.equal(after.rows[0].linkDisabled, false);
+              }
             }
           },
         ),
