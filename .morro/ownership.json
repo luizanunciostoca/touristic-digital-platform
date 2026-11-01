@@ -70,7 +70,20 @@
         "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
         "apps/morro-digital-platform/src/ux/premium-ux-mode.test.ts",
         "apps/morro-digital-platform/src/ux/profile-settings-row-visibility-contract.test.ts",
-        "apps/morro-digital-platform/src/ux/css-cascade-contract.ts"
+        "apps/morro-digital-platform/src/ux/css-cascade-contract.ts",
+        "packages/assistant/src/intent-engine.ts",
+        "packages/assistant/src/intent-engine.more-info-i18n.test.ts",
+        "packages/assistant/src/dialog-controller.test.ts",
+        "packages/assistant/src/dialog-controller.ts",
+        "packages/assistant/src/dialog-controller.presentation-language.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts",
+        "apps/morro-digital-platform/src/config/tour-catalog.ts",
+        "apps/morro-digital-platform/src/config/tour-catalog.test.ts",
+        "apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts",
+        "apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts"
       ],
       "contracts": []
     },
@@ -86,7 +99,8 @@
         "services/ticketing/",
         "tooling/ticketing/",
         "apps/morro-digital-platform/tooling/ticketing-api.mjs",
-        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
+        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs",
+        "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs"
       ],
       "contracts": ["ticket-fulfillment"]
     },
@@ -178,7 +192,9 @@
         "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
         "apps/control-center/public/control-center-home-overview-v1.js",
         "apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs",
-        "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs"
+        "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs",
+        "apps/morro-digital-platform/tooling/auth-api.mjs",
+        "apps/morro-digital-platform/tooling/auth-api-logout.test.mjs"
       ],
       "contracts": ["platform-authz"]
     },

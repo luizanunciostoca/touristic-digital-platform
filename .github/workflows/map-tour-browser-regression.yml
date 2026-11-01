@@ -32,6 +32,25 @@ on:
       - apps/morro-digital-platform/public/index.html
       - package.json
       - pnpm-lock.yaml
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop1_base.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop2_quarta_quinta_praia.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop3_mata_atlantica.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop4_mirante_zimbo.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop5_garapua.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop1_fonte_grande.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop2_porto_cima.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop3_ponta_pedra.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop4_paredao_argila.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop5_gamboa.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop1_terceira_praia.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop2_garapua.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop3_morere.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop4_cueira_boipeba.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop5_rio_inferno.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop6_ostras.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop7_cairu.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop8_por_do_sol.jpg
+      - apps/morro-digital-platform/src/config/tour-catalog.test.ts
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
@@ -58,6 +77,25 @@ on:
       - apps/morro-digital-platform/public/index.html
       - package.json
       - pnpm-lock.yaml
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop1_base.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop2_quarta_quinta_praia.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop3_mata_atlantica.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop4_mirante_zimbo.jpg
+      - apps/morro-digital-platform/public/images/tours/quadriciclo_stop5_garapua.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop1_fonte_grande.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop2_porto_cima.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop3_ponta_pedra.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop4_paredao_argila.jpg
+      - apps/morro-digital-platform/public/images/tours/trilha_gamboa_stop5_gamboa.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop1_terceira_praia.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop2_garapua.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop3_morere.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop4_cueira_boipeba.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop5_rio_inferno.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop6_ostras.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop7_cairu.jpg
+      - apps/morro-digital-platform/public/images/tours/volta_ilha_stop8_por_do_sol.jpg
+      - apps/morro-digital-platform/src/config/tour-catalog.test.ts
 
 permissions:
   contents: read

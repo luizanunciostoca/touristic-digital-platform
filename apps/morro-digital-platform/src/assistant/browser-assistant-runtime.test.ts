@@ -5,9 +5,12 @@ import {
   createAssistantContextManager,
   createAssistantDialogController,
   createDefaultAssistantContext,
+  normalizeAssistantVoiceLanguage,
   type AssistantDialogResponse,
   type AssistantActiveTourContext,
+  type AssistantDialogIntentHandler,
 } from "@touristic/assistant";
+import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import ts from "typescript";
 import { resolveExploreLocationCount } from "./assistant-contextual-state.js";
 import { assistantUiStateStatus } from "./assistant-ui-state.js";
@@ -28,6 +31,11 @@ function runtimeClosure(name: string): string {
 function failureFixture(
   language = "pt-BR",
   styleLoader: typeof ensureFeatureStyles = ensureFeatureStyles,
+  domainHandlers: Partial<Record<string, AssistantDialogIntentHandler>> = {
+    help: () => {
+      throw new Error("handler failed");
+    },
+  },
 ) {
   class Input {
     value = "ajuda";
@@ -58,6 +66,7 @@ function failureFixture(
     ensureFeatureStyles: styleLoader,
     assistantUiStateStatus,
     createAssistantDialogController,
+    normalizeAssistantVoiceLanguage,
     createAssistantLlmHandler: () => async () => null,
     context: {
       getContext: () => state,
@@ -67,11 +76,7 @@ function failureFixture(
       addToHistory: vi.fn(),
     },
     profile: undefined,
-    domainHandlers: {
-      help: () => {
-        throw new Error("handler failed");
-      },
-    },
+    domainHandlers,
     intelligenceHandlers: {},
     navigationHandlers: {},
     dispatchAssistantUiState: (_: unknown, value: string) => events.push(value),
@@ -85,6 +90,7 @@ function failureFixture(
   const declarations = [
     "runtimeErrorResponse",
     "isRuntimeErrorResponse",
+    "withPresentationLanguage",
     "controller",
     "processInputTurn",
     "processInput",
@@ -168,6 +174,66 @@ const failedResponse: AssistantDialogResponse = {
   text: "failed",
   metadata: { domain: "assistant_runtime", state: "error" },
 };
+
+describe("assistant presentation language at the real handler boundary", () => {
+  it("keeps Portuguese weather text and actions for a Portuguese question with shared words", async () => {
+    const fetchWeather = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            temperatureCelsius: 28,
+            temperatureMaxCelsius: 31,
+            temperatureMinCelsius: 24,
+            humidityPercent: 78,
+            windSpeedKph: 18,
+            rainChancePercent: 10,
+            weatherCode: 2,
+            isDay: true,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+    );
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchWeather,
+    });
+    const f = failureFixture("pt-BR", ensureFeatureStyles, handlers);
+
+    const response = await f.processInput("Como está o tempo amanhã?");
+
+    expect(response.metadata).toEqual(
+      expect.objectContaining({ language: "pt" }),
+    );
+    expect(response.text).toContain("Agora em Morro de São Paulo");
+    expect(response.options?.[0]?.label).toBe("Temperatura agora");
+    expect(fetchWeather).toHaveBeenCalledExactlyOnceWith(
+      "/api/weather",
+      expect.any(Object),
+    );
+  });
+
+  it("reads the current preference for each turn without changing the submitted text", async () => {
+    const handler = vi.fn<AssistantDialogIntentHandler>((request) => ({
+      text: request.intent.entities.language ?? "missing",
+    }));
+    const f = failureFixture("es", ensureFeatureStyles, { weather: handler });
+    const input = "Como está o tempo amanhã?";
+
+    for (const [locale, expected] of [
+      ["es", "es"],
+      ["pt-BR", "pt"],
+      ["en-US", "en"],
+      ["he-IL", "he"],
+      ["pt-BR", "pt"],
+    ] as const) {
+      f.document.documentElement.lang = locale;
+      const response = await f.processInput(input);
+      expect(response.text).toBe(expected);
+      expect(handler).toHaveBeenLastCalledWith(
+        expect.objectContaining({ input }),
+      );
+    }
+  });
+});
 function deferredTurn() {
   let resolve!: (response: AssistantDialogResponse) => void;
   let reject!: (error: Error) => void;

@@ -27,6 +27,7 @@ on:
       - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs"
   push:
     branches: [main]
     paths:
@@ -52,6 +53,7 @@ on:
       - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs"
 
 permissions:
   contents: read

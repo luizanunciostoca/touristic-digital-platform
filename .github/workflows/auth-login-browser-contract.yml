@@ -8,6 +8,8 @@ on:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/auth-login-browser-contract.yml"
       - "dashboard/**"
+      - "apps/admin-crm/public/referrals.js"
+      - "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs"
       - "apps/morro-digital-platform/src/business-login-entry.ts"
       - "apps/morro-digital-platform/src/business-dashboard-*.ts"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
@@ -33,6 +35,8 @@ on:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/auth-login-browser-contract.yml"
       - "dashboard/**"
+      - "apps/admin-crm/public/referrals.js"
+      - "apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs"
       - "apps/morro-digital-platform/src/business-login-entry.ts"
       - "apps/morro-digital-platform/src/business-dashboard-*.ts"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
@@ -191,6 +195,15 @@ jobs:
             process.exit(1);
           });
           NODE
+      - name: Validate session recovery and CRM feedback
+        timeout-minutes: 4
+        shell: bash
+        env:
+          CONTROL_CENTER_ORIGIN: http://127.0.0.1:4187
+          PLAYWRIGHT_MODULE: /tmp/pw/node_modules/playwright
+        run: |
+          set -euo pipefail
+          node apps/morro-digital-platform/tooling/wp05-session-recovery-browser-contract.cjs 2>&1 | tee /tmp/wp05-session-recovery-browser-contract.log
       - name: Show diagnostics
         if: failure()
         run: cat /tmp/m66-auth-login-server.log || true
@@ -198,7 +211,9 @@ jobs:
         if: always()
         with:
           name: auth-login-browser-evidence
-          path: /tmp/m66-auth-login-evidence.json
+          path: |
+            /tmp/m66-auth-login-evidence.json
+            /tmp/wp05-session-recovery-browser-contract.log
           retention-days: 1
           if-no-files-found: ignore
       - name: Stop runtime

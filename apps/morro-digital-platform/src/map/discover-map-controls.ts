@@ -1,4 +1,47 @@
 /** Discover-only controls. Provider success is committed only after acknowledgement. */
+type DiscoverControlKind = "perspective" | "layer" | "location";
+
+const CONTROL_COPY = {
+  pt: {
+    perspective: { label: "Alternar perspectiva 3D", tooltip: "Visão 3D" },
+    layer: { label: "Alternar camada do mapa", tooltip: "Mapa" },
+    location: {
+      label: "Mostrar minha localização",
+      tooltip: "Minha localização",
+    },
+  },
+  en: {
+    perspective: { label: "Toggle 3D perspective", tooltip: "3D view" },
+    layer: { label: "Switch map layer", tooltip: "Map" },
+    location: { label: "Show my location", tooltip: "My location" },
+  },
+  es: {
+    perspective: { label: "Alternar perspectiva 3D", tooltip: "Vista 3D" },
+    layer: { label: "Cambiar capa del mapa", tooltip: "Mapa" },
+    location: { label: "Mostrar mi ubicación", tooltip: "Mi ubicación" },
+  },
+  he: {
+    perspective: { label: "שינוי זווית תלת־ממד", tooltip: "תצוגת תלת־ממד" },
+    layer: { label: "החלפת שכבת מפה", tooltip: "מפה" },
+    location: { label: "הצג את המיקום שלי", tooltip: "המיקום שלי" },
+  },
+} as const;
+
+export function renderDiscoverControlLabel(
+  document: Document,
+  button: HTMLElement,
+  kind: DiscoverControlKind,
+): void {
+  const language = (document.documentElement?.lang ?? "pt")
+    .slice(0, 2)
+    .toLowerCase() as keyof typeof CONTROL_COPY;
+  const copy = (CONTROL_COPY[language] ?? CONTROL_COPY.pt)[kind];
+  button.setAttribute("title", copy.label);
+  button.setAttribute("aria-label", copy.label);
+  const tooltip = button.querySelector<HTMLElement>(".control-tooltip");
+  if (tooltip) tooltip.textContent = copy.tooltip;
+}
+
 type Copy = {
   standard: string;
   satellite: string;
@@ -129,10 +172,7 @@ export function installDiscoverLayer({
     button.setAttribute("aria-busy", String(pending));
     button.classList.toggle("active", known && satellite);
     button.setAttribute("aria-pressed", known ? String(satellite) : "mixed");
-    button.setAttribute(
-      "aria-label",
-      copyFor(document)[satellite ? "standard" : "satellite"],
-    );
+    renderDiscoverControlLabel(document, button, "layer");
     element?.setAttribute(
       "data-map-layer",
       known ? (satellite ? "satellite" : "standard") : "unknown",
@@ -207,6 +247,14 @@ export function installDiscoverLocation({
   const map = document.getElementById("map");
   if (!(button instanceof HTMLButtonElement)) return () => {};
   const status = feedback(document, button);
+  const renderLabel = () =>
+    renderDiscoverControlLabel(document, button, "location");
+  const labelObserver = new MutationObserver(renderLabel);
+  labelObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
+  renderLabel();
   let destroyed = false,
     generation = 0;
   const report = (
@@ -261,6 +309,7 @@ export function installDiscoverLocation({
   return () => {
     destroyed = true;
     generation++;
+    labelObserver.disconnect();
     button.removeEventListener("click", click);
     button.removeAttribute("aria-busy");
     status.destroy();
@@ -290,6 +339,10 @@ export function installDiscoverLayersGroup(document: Document): () => void {
   parent.insertBefore(group, anchors[0]!);
   for (const button of buttons) group.append(button!);
   const render = () => {
+    renderDiscoverControlLabel(document, buttons[0]!, "perspective");
+    renderDiscoverControlLabel(document, buttons[1]!, "layer");
+    const location = document.getElementById("recenter-map-control");
+    if (location) renderDiscoverControlLabel(document, location, "location");
     group.setAttribute(
       "aria-label",
       { pt: "Camadas", en: "Layers", es: "Capas", he: "שכבות" }[

@@ -4,6 +4,7 @@ import {
   createAssistantDialogController,
   createAssistantUserProfileManager,
   normalizeAssistantVoiceLanguage,
+  type AssistantDialogIntentHandler,
   type AssistantDialogResponse,
   type AssistantInterestCategory,
   type AssistantNavigationRuntimePhase,
@@ -774,17 +775,39 @@ export function installBrowserAssistantRuntime(
   const isRuntimeErrorResponse = (response: AssistantDialogResponse): boolean =>
     response.metadata?.domain === "assistant_runtime" &&
     response.metadata.state === "error";
+  const withPresentationLanguage =
+    (handler: AssistantDialogIntentHandler): AssistantDialogIntentHandler =>
+    (request) =>
+      handler({
+        ...request,
+        intent: {
+          ...request.intent,
+          entities: {
+            ...request.intent.entities,
+            language: normalizeAssistantVoiceLanguage(
+              options.document.documentElement.lang,
+            ),
+          },
+        },
+      });
   const controller = createAssistantDialogController({
     context,
     profile,
-    handlers: {
-      ...domainHandlers,
-      ...intelligenceHandlers,
-      ...navigationHandlers,
-    },
-    llm: createAssistantLlmHandler({
-      ...(options.fetch ? { fetch: options.fetch } : {}),
-    }),
+    handlers: Object.fromEntries(
+      Object.entries({
+        ...domainHandlers,
+        ...intelligenceHandlers,
+        ...navigationHandlers,
+      }).map(([intent, handler]) => [
+        intent,
+        handler ? withPresentationLanguage(handler) : undefined,
+      ]),
+    ),
+    llm: withPresentationLanguage(
+      createAssistantLlmHandler({
+        ...(options.fetch ? { fetch: options.fetch } : {}),
+      }),
+    ),
     errorResponse: runtimeErrorResponse,
   });
 

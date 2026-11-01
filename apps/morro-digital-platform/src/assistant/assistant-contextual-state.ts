@@ -665,7 +665,12 @@ export function installAssistantContextualMessaging(
         "navigation",
       );
     } else if (detail?.phase === "failed") {
-      publish("provider_error", {}, "navigation");
+      if (detail.isActive === true) {
+        publish("provider_error", {}, "navigation");
+      } else {
+        removeNavigationContext();
+        publish("provider_error");
+      }
     } else if (
       detail?.phase === "ended" ||
       detail?.phase === "arrived" ||
