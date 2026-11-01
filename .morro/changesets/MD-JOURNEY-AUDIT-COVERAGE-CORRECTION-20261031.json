@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-JOURNEY-AUDIT-COVERAGE-CORRECTION-20261031",
   "objective": "register-exact-audit-followup-coverage-and-wire-existing-session-recovery-browser-proof-without-product-or-policy-engine-changes",
-  "baseSha": "07368717de0f4fc8eaefa4ba3cf1ed53911d2c4f",
-  "branch": "chore/journey-audit-coverage-correction-20261031",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "c6d7df43960d47c2056c4531f88c1c5866a45b8a",
+  "branch": "chore/retire-journey-audit-coverage-correction-20261101",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
