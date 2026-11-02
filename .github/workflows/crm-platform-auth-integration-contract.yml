@@ -103,7 +103,18 @@ jobs:
           assert.equal(report.numPassedTests, results.length);
           for (const result of results) assert.equal(result.status, 'passed');
           assert.deepEqual(composition.map(result => result.title).sort(), expected.sort());
-          const proof = {kind: 'CRM_A_CAPABILITY_BOUNDARY_PROOF', status: 'PASS', requiredCases: expected.length, passed: results.length};
+          const globalHost = results.filter(result => result.ancestorTitles.includes('CRM-B1 global HTTP boundary'));
+          const businessRoles = ['BUSINESS_OWNER', 'BUSINESS_MANAGER', 'BUSINESS_VIEWER', 'owner', 'manager', 'viewer'];
+          const canonicalBusiness = ['BUSINESS_OWNER', 'BUSINESS_MANAGER', 'BUSINESS_VIEWER', 'BUSINESS_OWNER', 'BUSINESS_MANAGER', 'BUSINESS_VIEWER'];
+          const expectedGlobal = businessRoles.map((role, index) => 'denies ' + role + ' (' + canonicalBusiness[index] + ') with global_scope_required before every private request effect');
+          expectedGlobal.push('denies AFFILIATE (AFFILIATE) with capability_denied before every private request effect');
+          expectedGlobal.push(...['PLATFORM_OWNER', 'PLATFORM_ADMIN', 'admin', 'SUPPORT', 'AUDITOR'].map(role => 'admits global ' + role + ' reads without Business membership'));
+          expectedGlobal.push(...['PLATFORM_OWNER', 'PLATFORM_ADMIN', 'admin'].map(role => 'admits global writer ' + role + ' after mutation security'));
+          expectedGlobal.push(...['SUPPORT', 'AUDITOR'].map(role => 'retains the real Lead readonly audit for ' + role + ' after security'));
+          expectedGlobal.push(...businessRoles.map(role => 'preserves public token transport authority for ' + role));
+          assert.equal(expectedGlobal.length, 23);
+          assert.deepEqual(globalHost.map(result => result.title).sort(), expectedGlobal.sort());
+          const proof = {kind: 'CRM_B1_CAPABILITY_GLOBAL_BOUNDARY_PROOF', status: 'PASS', requiredCases: expected.length, requiredGlobalHostCases: expectedGlobal.length, passed: results.length};
           writeFileSync('/tmp/crm-auth-composition-proof.json', JSON.stringify(proof) + '\n');
           console.log(JSON.stringify(proof));
           NODE
@@ -115,14 +126,14 @@ jobs:
           : "${CRM_CONTRACT_DATABASE_URL:?isolated contract database required}"
           node --input-type=module - <<'NODE'
           const database = new URL(process.env.CRM_CONTRACT_DATABASE_URL);
-          const fixtures = { '3306': '/morro_crm', '33386': '/crm_capability_a' };
+          const fixtures = { '3306': '/morro_crm', '33386': '/crm_capability_a', '33387': '/crm_global_boundary_b1' };
           if (database.protocol !== 'mysql:' || database.hostname !== '127.0.0.1' || database.search || database.hash || fixtures[database.port] !== database.pathname) throw new Error('ISOLATED_CRM_FIXTURE_REQUIRED');
           NODE
           ORIGIN="http://127.0.0.1:${PORT}"
           SECRET="0123456789abcdef0123456789abcdef"
           PASSWORD="correct horse battery staple"
           HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
-          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",role:"owner"},{id:"viewer-1",email:"viewer@example.com",role:"viewer"},{id:"affiliate-1",email:"affiliate@example.com",role:"AFFILIATE"},...["SUPPORT","AUDITOR","BUSINESS_VIEWER"].map(role=>({id:`readonly-${role}`,email:`${role.toLowerCase()}@example.com`,role}))].map(user=>({...user,passwordHash:process.argv[1],businessIds:user.role==="AFFILIATE"?[]:["toca-do-morcego"]}))))' "$HASH")
+          USERS=$(node -e 'const businessRoles=["BUSINESS_OWNER","BUSINESS_MANAGER","BUSINESS_VIEWER","owner","manager","viewer"]; console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",role:"PLATFORM_OWNER",businessIds:[]},{id:"viewer-1",email:"viewer@example.com",role:"AUDITOR",businessIds:[]},{id:"affiliate-1",email:"affiliate@example.com",role:"AFFILIATE",businessIds:[]},...["SUPPORT","AUDITOR"].map(role=>({id:"readonly-"+role,email:role.toLowerCase()+"@example.com",role,businessIds:[]})),...["PLATFORM_ADMIN","admin"].map(role=>({id:"global-"+role,email:"global-"+role.toLowerCase()+"@example.com",role,businessIds:[]})),...businessRoles.map(role=>({id:"business-"+role,email:"business-"+role.toLowerCase()+"@example.com",role,businessIds:["toca-do-morcego"]}))].map(user=>({...user,passwordHash:process.argv[1]}))))' "$HASH")
           : > /tmp/crm-auth-http-case-ledger.jsonl
           case_pass() {
             node -e 'require("node:fs").appendFileSync("/tmp/crm-auth-http-case-ledger.jsonl",JSON.stringify({id:process.argv[1],status:"PASS"})+"\n")' "$1"
@@ -164,7 +175,7 @@ jobs:
           EXPIRED_TOKEN=$(node --input-type=module - "$SECRET" <<'NODE'
           import { createSessionToken, verifySessionToken } from './services/auth/dist/index.js';
           const issued = Math.floor(Date.now() / 1000) - 600;
-          const token = createSessionToken({subject: 'owner-1', email: 'owner@example.com', role: 'owner', businessIds: ['toca-do-morcego']}, process.argv[2], {nowEpochSeconds: issued, ttlSeconds: 300});
+          const token = createSessionToken({subject: 'owner-1', email: 'owner@example.com', role: 'PLATFORM_OWNER', businessIds: []}, process.argv[2], {nowEpochSeconds: issued, ttlSeconds: 300});
           if (!token || !verifySessionToken(token, process.argv[2], issued) || verifySessionToken(token, process.argv[2])) throw new Error('EXPIRED_SIGNED_FIXTURE_REQUIRED');
           console.log(token);
           NODE
@@ -179,34 +190,37 @@ jobs:
             case_pass "cookie:$cookie_case"
           done
 
-          MEETING_UNAUTH=$(curl --silent --output /tmp/meeting-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/meetings")
-          assert_http "$MEETING_UNAUTH" 401 /tmp/meeting-unauth.json unauthenticated-meeting-read
-          grep -q 'AUTH_REQUIRED' /tmp/meeting-unauth.json
+          MEETING_UNAUTH=$(curl --silent --output /tmp/crm-meeting-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/meetings")
+          assert_http "$MEETING_UNAUTH" 401 /tmp/crm-meeting-unauth.json unauthenticated-meeting-read
+          grep -q 'AUTH_REQUIRED' /tmp/crm-meeting-unauth.json
 
-          PROPOSAL_UNAUTH=$(curl --silent --output /tmp/proposal-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/proposals")
-          assert_http "$PROPOSAL_UNAUTH" 401 /tmp/proposal-unauth.json unauthenticated-proposal-read
-          grep -q 'AUTH_REQUIRED' /tmp/proposal-unauth.json
+          PROPOSAL_UNAUTH=$(curl --silent --output /tmp/crm-proposal-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/proposals")
+          assert_http "$PROPOSAL_UNAUTH" 401 /tmp/crm-proposal-unauth.json unauthenticated-proposal-read
+          grep -q 'AUTH_REQUIRED' /tmp/crm-proposal-unauth.json
 
-          LOGIN=$(curl --silent --output /tmp/owner-login.json --cookie-jar /tmp/owner.cookies --write-out '%{http_code}' \
+          LOGIN=$(curl --silent --output /tmp/crm-owner-login.json --cookie-jar /tmp/crm-owner.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
-          assert_http "$LOGIN" 200 /tmp/owner-login.json owner-login
+          assert_http "$LOGIN" 200 /tmp/crm-owner-login.json owner-login
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/owner-login.json'))
-          open('/tmp/owner-csrf.txt','w').write(data['csrfToken'])
+          data=json.load(open('/tmp/crm-owner-login.json'))
+          open('/tmp/crm-owner-csrf.txt','w').write(data['csrfToken'])
           PY
-          OWNER_CSRF=$(cat /tmp/owner-csrf.txt)
+          OWNER_CSRF=$(cat /tmp/crm-owner-csrf.txt)
+          SESSION_STATUS=$(curl --silent --output /tmp/crm-b1-owner-1-session.json --write-out '%{http_code}' --cookie /tmp/crm-owner.cookies "$ORIGIN/api/dashboard/auth/session")
+          assert_http "$SESSION_STATUS" 200 /tmp/crm-b1-owner-1-session.json real-PLATFORM_OWNER-session
+          node -e 'const assert=require("node:assert/strict"),s=require("/tmp/crm-b1-owner-1-session.json"); assert.equal(s.authenticated,true); assert.equal(s.user.id,"owner-1"); assert.equal(s.user.role,"PLATFORM_OWNER"); assert.equal(s.user.canonicalRole,"PLATFORM_OWNER"); assert.deepEqual(s.user.businessIds,[]); assert.equal(s.csrfToken,process.argv[1]); assert.ok(s.csrfToken)' "$OWNER_CSRF"
 
-          AFFILIATE_LOGIN=$(curl --silent --output /tmp/affiliate-login.json --cookie-jar /tmp/affiliate.cookies --write-out '%{http_code}' \
+          AFFILIATE_LOGIN=$(curl --silent --output /tmp/crm-affiliate-login.json --cookie-jar /tmp/crm-affiliate.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"affiliate@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
-          assert_http "$AFFILIATE_LOGIN" 200 /tmp/affiliate-login.json affiliate-login
-          AFFILIATE_CSRF=$(node -p 'require("/tmp/affiliate-login.json").csrfToken')
+          assert_http "$AFFILIATE_LOGIN" 200 /tmp/crm-affiliate-login.json affiliate-login
+          AFFILIATE_CSRF=$(node -p 'require("/tmp/crm-affiliate-login.json").csrfToken')
           AFFILIATE_SESSION=$(curl --silent --output /tmp/crm-affiliate-session.json --write-out '%{http_code}' \
-            --cookie /tmp/affiliate.cookies "$ORIGIN/api/dashboard/auth/session")
+            --cookie /tmp/crm-affiliate.cookies "$ORIGIN/api/dashboard/auth/session")
           assert_http "$AFFILIATE_SESSION" 200 /tmp/crm-affiliate-session.json affiliate-session-valid
           node -e 'const s=require("/tmp/crm-affiliate-session.json"); if(s.authenticated!==true || s.user?.role!=="AFFILIATE" || typeof s.csrfToken!=="string" || !s.csrfToken || s.csrfToken!==process.argv[1]) process.exit(1)' "$AFFILIATE_CSRF"
           AFFILIATE_DENIALS=0
@@ -215,7 +229,7 @@ jobs:
             if [ "$family" = lead-detail ]; then resource=leads/1/detail; fi
             if [ "$family" = metrics ]; then resource=metrics/funnel; fi
             AFFILIATE_READ=$(curl --silent --output /tmp/crm-affiliate-read.json --write-out '%{http_code}' \
-              --cookie /tmp/affiliate.cookies "$ORIGIN/api/crm/$resource")
+              --cookie /tmp/crm-affiliate.cookies "$ORIGIN/api/crm/$resource")
             assert_http "$AFFILIATE_READ" 403 /tmp/crm-affiliate-read.json "affiliate-read-$resource"
             node -e 'const r=require(process.argv[1]); if(r.error!=="ACCESS_DENIED" || r.reason!=="capability_denied" || "data" in r) process.exit(1)' /tmp/crm-affiliate-read.json
             AFFILIATE_DENIALS=$((AFFILIATE_DENIALS + 1))
@@ -225,7 +239,7 @@ jobs:
             resource="$family"
             if [ "$family" = lead-detail ]; then resource=leads/1/interactions; fi
             AFFILIATE_WRITE=$(curl --silent --output /tmp/crm-affiliate-write.json --write-out '%{http_code}' \
-              --cookie /tmp/affiliate.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $AFFILIATE_CSRF" \
+              --cookie /tmp/crm-affiliate.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $AFFILIATE_CSRF" \
               --header 'Content-Type: application/json' --data '{"companyName":"Affiliate blocked","leadId":1,"title":"Blocked fixture","type":"note"}' \
               "$ORIGIN/api/crm/$resource")
             assert_http "$AFFILIATE_WRITE" 403 /tmp/crm-affiliate-write.json "affiliate-write-$family-valid-csrf"
@@ -235,7 +249,7 @@ jobs:
           done
 
           BAD_CSRF=$(curl --silent --output /tmp/crm-bad-csrf.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+            --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
             --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' \
             "$ORIGIN/api/crm/leads")
           assert_http "$BAD_CSRF" 403 /tmp/crm-bad-csrf.json invalid-csrf
@@ -243,7 +257,7 @@ jobs:
           case_pass security:owner:csrf
 
           CROSS=$(curl --silent --output /tmp/crm-cross.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $OWNER_CSRF" \
+            --cookie /tmp/crm-owner.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' \
             "$ORIGIN/api/crm/leads")
           assert_http "$CROSS" 403 /tmp/crm-cross.json cross-origin
@@ -251,7 +265,7 @@ jobs:
           case_pass security:owner:origin
 
           CREATE=$(curl --silent --output /tmp/crm-create.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Toca do Morcego","segment":"events"}' \
             "$ORIGIN/api/crm/leads")
           assert_http "$CREATE" 200 /tmp/crm-create.json owner-create
@@ -260,13 +274,13 @@ jobs:
           data=json.load(open('/tmp/crm-create.json'))
           assert data['data']['companyName'] == 'Toca do Morcego'
           assert data['data']['id'] > 0
-          open('/tmp/lead-id.txt','w').write(str(data['data']['id']))
+          open('/tmp/crm-lead-id.txt','w').write(str(data['data']['id']))
           PY
-          LEAD_ID=$(cat /tmp/lead-id.txt)
+          LEAD_ID=$(cat /tmp/crm-lead-id.txt)
           case_pass owner:mutation
 
           LIST=$(curl --silent --output /tmp/crm-list.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads?search=Toca&limit=25&offset=0")
+            --cookie /tmp/crm-owner.cookies "$ORIGIN/api/crm/leads?search=Toca&limit=25&offset=0")
           assert_http "$LIST" 200 /tmp/crm-list.json owner-list
           python3 - <<'PY'
           import json
@@ -275,117 +289,142 @@ jobs:
           assert data['data'][0]['companyName'] == 'Toca do Morcego'
           PY
 
-          MEETING_BAD_CSRF=$(curl --silent --output /tmp/meeting-bad-csrf.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+          MEETING_BAD_CSRF=$(curl --silent --output /tmp/crm-meeting-bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
             --header 'Content-Type: application/json' \
             --data "{\"leadId\":$LEAD_ID,\"title\":\"Blocked\",\"scheduledAt\":\"2026-08-25T17:30:00.000Z\",\"modality\":\"online\"}" \
             "$ORIGIN/api/crm/meetings")
-          assert_http "$MEETING_BAD_CSRF" 403 /tmp/meeting-bad-csrf.json meeting-invalid-csrf
-          grep -q 'INVALID_CSRF' /tmp/meeting-bad-csrf.json
+          assert_http "$MEETING_BAD_CSRF" 403 /tmp/crm-meeting-bad-csrf.json meeting-invalid-csrf
+          grep -q 'INVALID_CSRF' /tmp/crm-meeting-bad-csrf.json
 
-          MEETING_CREATE=$(curl --silent --output /tmp/meeting-create.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          MEETING_CREATE=$(curl --silent --output /tmp/crm-meeting-create.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' \
             --data "{\"leadId\":$LEAD_ID,\"title\":\"Diagnóstico comercial\",\"scheduledAt\":\"2026-08-25T17:30:00.000Z\",\"modality\":\"in_person\",\"location\":\"Morro de São Paulo\"}" \
             "$ORIGIN/api/crm/meetings")
-          assert_http "$MEETING_CREATE" 200 /tmp/meeting-create.json meeting-create
+          assert_http "$MEETING_CREATE" 200 /tmp/crm-meeting-create.json meeting-create
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/meeting-create.json'))
+          data=json.load(open('/tmp/crm-meeting-create.json'))
           assert data['data']['title'] == 'Diagnóstico comercial'
           assert data['data']['status'] == 'scheduled'
           assert data['data']['modality'] == 'in_person'
-          open('/tmp/meeting-id.txt','w').write(str(data['data']['id']))
+          open('/tmp/crm-meeting-id.txt','w').write(str(data['data']['id']))
           PY
-          MEETING_ID=$(cat /tmp/meeting-id.txt)
+          MEETING_ID=$(cat /tmp/crm-meeting-id.txt)
 
-          MEETING_LIST=$(curl --silent --output /tmp/meeting-list.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/meetings?leadId=$LEAD_ID")
-          assert_http "$MEETING_LIST" 200 /tmp/meeting-list.json meeting-list
+          MEETING_LIST=$(curl --silent --output /tmp/crm-meeting-list.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-owner.cookies "$ORIGIN/api/crm/meetings?leadId=$LEAD_ID")
+          assert_http "$MEETING_LIST" 200 /tmp/crm-meeting-list.json meeting-list
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/meeting-list.json'))
+          data=json.load(open('/tmp/crm-meeting-list.json'))
           assert len(data['data']) == 1
           assert data['data'][0]['title'] == 'Diagnóstico comercial'
           PY
 
-          MEETING_UPDATE=$(curl --silent --output /tmp/meeting-update.json --write-out '%{http_code}' \
-            --request PATCH --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          MEETING_UPDATE=$(curl --silent --output /tmp/crm-meeting-update.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"status":"done"}' \
             "$ORIGIN/api/crm/meetings/$MEETING_ID")
-          assert_http "$MEETING_UPDATE" 200 /tmp/meeting-update.json meeting-update
-          grep -q '"status":"done"' /tmp/meeting-update.json
+          assert_http "$MEETING_UPDATE" 200 /tmp/crm-meeting-update.json meeting-update
+          grep -q '"status":"done"' /tmp/crm-meeting-update.json
 
-          PROPOSAL_BAD_CSRF=$(curl --silent --output /tmp/proposal-bad-csrf.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+          PROPOSAL_BAD_CSRF=$(curl --silent --output /tmp/crm-proposal-bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
             --header 'Content-Type: application/json' \
             --data "{\"leadId\":$LEAD_ID,\"title\":\"Blocked\",\"monthlyValue\":\"10.00\"}" \
             "$ORIGIN/api/crm/proposals")
-          assert_http "$PROPOSAL_BAD_CSRF" 403 /tmp/proposal-bad-csrf.json proposal-invalid-csrf
-          grep -q 'INVALID_CSRF' /tmp/proposal-bad-csrf.json
+          assert_http "$PROPOSAL_BAD_CSRF" 403 /tmp/crm-proposal-bad-csrf.json proposal-invalid-csrf
+          grep -q 'INVALID_CSRF' /tmp/crm-proposal-bad-csrf.json
 
-          PROPOSAL_CREATE=$(curl --silent --output /tmp/proposal-create.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          PROPOSAL_CREATE=$(curl --silent --output /tmp/crm-proposal-create.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' \
             --data "{\"leadId\":$LEAD_ID,\"title\":\"Proposta Comercial — Morro Digital\",\"planName\":\"Plano Essencial\",\"monthlyValue\":\"299.00\",\"setupFee\":\"99.90\",\"trialDays\":14,\"features\":[\"Página personalizada\",\"Mapa interativo\"]}" \
             "$ORIGIN/api/crm/proposals")
-          assert_http "$PROPOSAL_CREATE" 200 /tmp/proposal-create.json proposal-create
+          assert_http "$PROPOSAL_CREATE" 200 /tmp/crm-proposal-create.json proposal-create
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/proposal-create.json'))
+          data=json.load(open('/tmp/crm-proposal-create.json'))
           assert data['data']['title'] == 'Proposta Comercial — Morro Digital'
           assert data['data']['status'] == 'draft'
           assert data['data']['monthlyValue'] == '299.00'
-          open('/tmp/proposal-id.txt','w').write(str(data['data']['id']))
+          open('/tmp/crm-proposal-id.txt','w').write(str(data['data']['id']))
           PY
-          PROPOSAL_ID=$(cat /tmp/proposal-id.txt)
+          PROPOSAL_ID=$(cat /tmp/crm-proposal-id.txt)
 
-          PROPOSAL_LIST=$(curl --silent --output /tmp/proposal-list.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/proposals?leadId=$LEAD_ID")
-          assert_http "$PROPOSAL_LIST" 200 /tmp/proposal-list.json proposal-list
+          PROPOSAL_LIST=$(curl --silent --output /tmp/crm-proposal-list.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-owner.cookies "$ORIGIN/api/crm/proposals?leadId=$LEAD_ID")
+          assert_http "$PROPOSAL_LIST" 200 /tmp/crm-proposal-list.json proposal-list
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/proposal-list.json'))
+          data=json.load(open('/tmp/crm-proposal-list.json'))
           assert len(data['data']) == 1
           assert data['data'][0]['title'] == 'Proposta Comercial — Morro Digital'
           assert data['data'][0]['status'] == 'draft'
           PY
 
-          PROPOSAL_SEND=$(curl --silent --output /tmp/proposal-send.json --write-out '%{http_code}' \
-            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          PROPOSAL_SEND=$(curl --silent --output /tmp/crm-proposal-send.json --write-out '%{http_code}' \
+            --request POST --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' \
             "$ORIGIN/api/crm/proposals/$PROPOSAL_ID/send")
-          assert_http "$PROPOSAL_SEND" 200 /tmp/proposal-send.json proposal-send
-          grep -q '"status":"sent"' /tmp/proposal-send.json
+          assert_http "$PROPOSAL_SEND" 200 /tmp/crm-proposal-send.json proposal-send
+          grep -q '"status":"sent"' /tmp/crm-proposal-send.json
 
-          PROPOSAL_RESPOND=$(curl --silent --output /tmp/proposal-respond.json --write-out '%{http_code}' \
-            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          PROPOSAL_RESPOND=$(curl --silent --output /tmp/crm-proposal-respond.json --write-out '%{http_code}' \
+            --request POST --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"accepted":true}' \
             "$ORIGIN/api/crm/proposals/$PROPOSAL_ID/respond")
-          assert_http "$PROPOSAL_RESPOND" 200 /tmp/proposal-respond.json proposal-respond
-          grep -q '"status":"accepted"' /tmp/proposal-respond.json
+          assert_http "$PROPOSAL_RESPOND" 200 /tmp/crm-proposal-respond.json proposal-respond
+          grep -q '"status":"accepted"' /tmp/crm-proposal-respond.json
 
-          PROPOSAL_ACCEPTED=$(curl --silent --output /tmp/proposal-accepted.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/proposals/accepted?leadId=$LEAD_ID")
-          assert_http "$PROPOSAL_ACCEPTED" 200 /tmp/proposal-accepted.json proposal-accepted
+          PROPOSAL_ACCEPTED=$(curl --silent --output /tmp/crm-proposal-accepted.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-owner.cookies "$ORIGIN/api/crm/proposals/accepted?leadId=$LEAD_ID")
+          assert_http "$PROPOSAL_ACCEPTED" 200 /tmp/crm-proposal-accepted.json proposal-accepted
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/proposal-accepted.json'))
+          data=json.load(open('/tmp/crm-proposal-accepted.json'))
           assert data['data']['status'] == 'accepted'
           assert data['data']['id'] > 0
           PY
 
+          # Seed actual target IDs through the global owner's real CRM API.
+          # Trial is created before contract send so the existing final stage proof stays contract_sent.
+          (
+            cd services/crm
+            ORIGIN="$ORIGIN" OWNER_CSRF="$OWNER_CSRF" LEAD_ID="$LEAD_ID" node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const fields = readFileSync('/tmp/crm-owner.cookies', 'utf8').split('\n').map(line => line.split('\t')).find(row => row[5] === 'md_dashboard_session');
+          assert.ok(fields?.[6]);
+          const cookie = fields[5] + '=' + fields[6];
+          const leadId = Number(process.env.LEAD_ID);
+          for (const [family, body] of [
+            ['follow-ups', {leadId, scheduledAt: new Date(Date.now() + 86400000).toISOString(), attemptNumber: 1}],
+            ['trials', {leadId, durationDays: 14, startDate: new Date().toISOString()}],
+            ['referrals', {referrerLeadId: leadId, referredName: 'Global scope sentinel', referredPhone: '557530000001'}],
+          ]) {
+            const response = await fetch(process.env.ORIGIN + '/api/crm/' + family, {method: 'POST', headers: {Cookie: cookie, Origin: process.env.ORIGIN, 'X-CSRF-Token': process.env.OWNER_CSRF, 'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+            assert.equal(response.status, 200, 'global owner seed ' + family);
+            const payload = await response.json();
+            assert.ok(Number.isSafeInteger(payload.data?.id) && payload.data.id > 0);
+            writeFileSync('/tmp/crm-b1-seed-' + family + '.json', JSON.stringify({id: payload.data.id}) + '\n');
+          }
+          NODE
+          )
+
           CONTRACT_CREATE=$(curl --silent --output /tmp/crm-contract-create.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' \
-            --data "{\"leadId\":$LEAD_ID,\"proposalId\":$PROPOSAL_ID,\"title\":\"CRM token fixture\",\"content\":\"Contrato exclusivo para a prova isolada CRM-A.\",\"monthlyValue\":\"299.00\"}" \
+            --data "{\"leadId\":$LEAD_ID,\"proposalId\":$PROPOSAL_ID,\"title\":\"CRM token fixture\",\"content\":\"Contrato exclusivo para a prova isolada CRM-B1.\",\"monthlyValue\":\"299.00\"}" \
             "$ORIGIN/api/crm/contracts")
           assert_http "$CONTRACT_CREATE" 200 /tmp/crm-contract-create.json contract-create
           CONTRACT_ID=$(node -p 'require("/tmp/crm-contract-create.json").data.id')
           CONTRACT_TOKEN=$(node -p 'require("/tmp/crm-contract-create.json").data.shareToken')
-          PROPOSAL_TOKEN=$(node -p 'require("/tmp/proposal-create.json").data.shareToken')
+          PROPOSAL_TOKEN=$(node -p 'require("/tmp/crm-proposal-create.json").data.shareToken')
           CONTRACT_SEND=$(curl --silent --output /tmp/crm-contract-send.json --write-out '%{http_code}' \
-            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --request POST --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             "$ORIGIN/api/crm/contracts/$CONTRACT_ID/send")
           assert_http "$CONTRACT_SEND" 200 /tmp/crm-contract-send.json contract-send
           PUBLIC_TOKEN_READS=0
@@ -399,72 +438,269 @@ jobs:
               "$ORIGIN/api/crm/public/$family/$PUBLIC_TOKEN")
             assert_http "$PUBLIC_ANONYMOUS" 200 /tmp/crm-public-anonymous.json "public-$family-without-session"
             PUBLIC_AFFILIATE=$(curl --silent --output /tmp/crm-public-affiliate.json --write-out '%{http_code}' \
-              --cookie /tmp/affiliate.cookies "$ORIGIN/api/crm/public/$family/$PUBLIC_TOKEN")
+              --cookie /tmp/crm-affiliate.cookies "$ORIGIN/api/crm/public/$family/$PUBLIC_TOKEN")
             assert_http "$PUBLIC_AFFILIATE" 200 /tmp/crm-public-affiliate.json "public-$family-affiliate-cookie"
             node -e 'const a=require("/tmp/crm-public-anonymous.json"), b=require("/tmp/crm-public-affiliate.json"); if(a.data?.title!==process.argv[1] || a.data?.status!==process.argv[2] || JSON.stringify(a)!==JSON.stringify(b) || "shareToken" in a.data) process.exit(1)' "$PUBLIC_TITLE" "$PUBLIC_STATUS"
+            cp /tmp/crm-public-anonymous.json "/tmp/crm-b1-public-$family-baseline.json"
             PUBLIC_TOKEN_READS=$((PUBLIC_TOKEN_READS + 2))
             case_pass "public:$family"
           done
 
-          VIEWER_LOGIN=$(curl --silent --output /tmp/viewer-login.json --cookie-jar /tmp/viewer.cookies --write-out '%{http_code}' \
+          # Real Auth + administrative adapter + CRM host + MySQL; no policy or session doubles.
+          (
+            cd services/crm
+            ORIGIN="$ORIGIN" PASSWORD="$PASSWORD" OWNER_CSRF="$OWNER_CSRF" LEAD_ID="$LEAD_ID" MEETING_ID="$MEETING_ID" PROPOSAL_ID="$PROPOSAL_ID" CONTRACT_ID="$CONTRACT_ID" node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import { createHash } from 'node:crypto';
+          import { execFileSync } from 'node:child_process';
+          import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+          import { canonicalAuthRole, isPlatformWideAuthRole } from '@touristic/auth';
+          import mysql from 'mysql2/promise';
+          const origin = process.env.ORIGIN;
+          const businessRoles = ['BUSINESS_OWNER', 'BUSINESS_MANAGER', 'BUSINESS_VIEWER', 'owner', 'manager', 'viewer'];
+          const families = ['leads', 'lead-detail', 'contracts', 'follow-ups', 'meetings', 'metrics', 'proposals', 'referrals', 'trials'];
+          const json = path => JSON.parse(readFileSync(path, 'utf8'));
+          const pass = id => appendFileSync('/tmp/crm-auth-http-case-ledger.jsonl', JSON.stringify({id, status: 'PASS'}) + '\n');
+          const sessionRoles = [];
+          const cookieField = readFileSync('/tmp/crm-owner.cookies', 'utf8').split('\n').map(line => line.split('\t')).find(row => row[5] === 'md_dashboard_session');
+          assert.ok(cookieField?.[6]);
+          const owner = {cookie: cookieField[5] + '=' + cookieField[6], csrf: process.env.OWNER_CSRF};
+          async function request(session, path, method = 'GET', body) {
+            const response = await fetch(origin + path, {method, headers: {Cookie: session.cookie, Origin: origin, 'X-CSRF-Token': session.csrf, 'Content-Type': 'application/json'}, ...(body === undefined ? {} : {body: JSON.stringify(body)})});
+            return {status: response.status, body: await response.json(), cookies: response.headers.getSetCookie()};
+          }
+          async function login(role, business) {
+            // Two real loopback clients preserve Auth's 10-login/IP limiter unchanged.
+            // Existing curl actors use 127.0.0.1; these eight distinct actors use 127.0.0.2.
+            const prefix = business ? 'business-' : 'global-';
+            const payload = JSON.stringify({email: prefix + role.toLowerCase() + '@example.com', password: process.env.PASSWORD});
+            const loginFile = '/tmp/crm-b1-login-' + role + '.json';
+            const headersFile = '/tmp/crm-b1-login-' + role + '.headers';
+            const status = execFileSync('curl', ['--interface', '127.0.0.2', '--silent', '--show-error', '--dump-header', headersFile, '--output', loginFile, '--write-out', '%{http_code}', '--header', 'Origin: ' + origin, '--header', 'Content-Type: application/json', '--data', payload, origin + '/api/dashboard/auth/login'], {encoding: 'utf8'});
+            assert.equal(status, '200', 'real login ' + role);
+            const response = {body: json(loginFile)};
+            const cookieLine = readFileSync(headersFile, 'utf8').split(/\r?\n/).find(value => /^set-cookie: md_dashboard_session=/i.test(value));
+            const cookie = cookieLine?.slice(cookieLine.indexOf(':') + 1).trim().split(';')[0];
+            assert.ok(cookie);
+            const session = {cookie, csrf: response.body.csrfToken};
+            assert.ok(typeof session.csrf === 'string' && session.csrf.length > 0);
+            const current = await request(session, '/api/dashboard/auth/session');
+            assert.equal(current.status, 200);
+            assert.equal(current.body.authenticated, true);
+            assert.equal(current.body.csrfToken, session.csrf);
+            assert.equal(current.body.user.id, prefix + role);
+            assert.equal(current.body.user.role, role);
+            assert.equal(current.body.user.canonicalRole, canonicalAuthRole(role));
+            assert.equal(isPlatformWideAuthRole(current.body.user.role), !business);
+            assert.deepEqual(current.body.user.businessIds, business ? ['toca-do-morcego'] : []);
+            sessionRoles.push({subject: current.body.user.id, role, canonicalRole: current.body.user.canonicalRole, businessIds: current.body.user.businessIds});
+            return session;
+          }
+          const leadId = Number(process.env.LEAD_ID);
+          const targetIds = {leadId, meetingId: Number(process.env.MEETING_ID), proposalId: Number(process.env.PROPOSAL_ID), contractId: Number(process.env.CONTRACT_ID),
+            followUpId: json('/tmp/crm-b1-seed-follow-ups.json').id, trialId: json('/tmp/crm-b1-seed-trials.json').id, referralId: json('/tmp/crm-b1-seed-referrals.json').id};
+          const detail = await request(owner, '/api/crm/leads/' + leadId + '/detail');
+          assert.equal(detail.status, 200);
+          targetIds.checklistId = detail.body.data.checklist[0].id;
+          for (const value of Object.values(targetIds)) assert.ok(Number.isSafeInteger(value) && value > 0);
+          const mutations = [
+            ['leads', 'PATCH', '/leads/' + leadId, {companyName: 'Forbidden edit'}],
+            ['lead-detail', 'PATCH', '/leads/' + leadId + '/checklist/' + targetIds.checklistId, {completed: true}],
+            ['meetings', 'PATCH', '/meetings/' + targetIds.meetingId, {status: 'cancelled'}],
+            ['proposals', 'POST', '/proposals/' + targetIds.proposalId + '/respond', {accepted: false}],
+            ['contracts', 'POST', '/contracts/' + targetIds.contractId + '/cancel', {reason: 'Forbidden cancellation'}],
+            ['follow-ups', 'POST', '/follow-ups/' + targetIds.followUpId + '/sent', {}],
+            ['trials', 'POST', '/trials/' + targetIds.trialId + '/cancel', {}],
+            ['referrals', 'POST', '/referrals/' + targetIds.referralId + '/contact', {}],
+          ];
+          const pool = mysql.createPool(process.env.CRM_CONTRACT_DATABASE_URL);
+          async function snapshot() {
+            const [tables] = await pool.query("SELECT TABLE_NAME AS name FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'");
+            const names = tables.map(row => row.name).filter(name => /^crm_[a-z_]+$/.test(name)).sort();
+            for (const name of ['crm_leads', 'crm_checklist_items', 'crm_meetings', 'crm_proposals', 'crm_contracts', 'crm_follow_ups', 'crm_trials', 'crm_referrals', 'crm_interactions', 'crm_audit_events']) assert.ok(names.includes(name), name);
+            const result = {};
+            for (const name of names) {
+              const [rows] = await pool.query('SELECT * FROM ' + name);
+              const serialized = JSON.stringify(rows.map(row => JSON.stringify(row)).sort());
+              result[name] = {rows: rows.length, sha256: createHash('sha256').update(serialized).digest('hex')};
+            }
+            return result;
+          }
+          const sessions = new Map();
+          try {
+            for (const role of businessRoles) sessions.set(role, await login(role, true));
+            const before = await snapshot();
+            for (const [role, session] of sessions) {
+              for (const family of families) {
+                const resource = family === 'lead-detail' ? 'leads/' + leadId + '/detail' : family === 'metrics' ? 'metrics/funnel' : family;
+                const response = await request(session, '/api/crm/' + resource + '?leadId=' + leadId + '&referrerLeadId=' + leadId + '&businessId=toca-do-morcego');
+                assert.equal(response.status, 403, role + ' GET ' + family);
+                assert.deepEqual(response.body, {error: 'ACCESS_DENIED', reason: 'global_scope_required'});
+                pass('scope:' + role + ':GET:' + family);
+              }
+              for (const [family, method, path, body] of mutations) {
+                const response = await request(session, '/api/crm' + path, method, {...body, leadId, businessId: 'toca-do-morcego'});
+                assert.equal(response.status, 403, role + ' ' + method + ' ' + family);
+                assert.deepEqual(response.body, {error: 'ACCESS_DENIED', reason: 'global_scope_required'});
+                pass('scope:' + role + ':' + method + ':' + family);
+              }
+              const admin = await request(session, '/api/admin/v1/crm/leads?effectiveUserId=owner-1&role=PLATFORM_OWNER&businessId=toca-do-morcego');
+              assert.equal(admin.status, 403);
+              assert.equal(admin.body.error, 'ADMIN_SURFACE_DENIED');
+              assert.equal(admin.body.reason, 'platform_admin_surface_required');
+              assert.ok(!('data' in admin.body));
+              pass('admin:business:' + role);
+            }
+            // The administrative lookup is positive before delegation; an empty search alone proves nothing.
+            const baselineSearch = await request(owner, '/api/admin/v1/search?q=Toca');
+            assert.equal(baselineSearch.status, 200);
+            assert.ok(baselineSearch.body.results.some(row => row.type === 'crm-lead' && row.id === String(leadId)));
+            let delegated = owner;
+            let supportStarted = false;
+            let supportEnded = false;
+            try {
+              const started = await request(owner, '/api/admin/v1/support/session', 'POST', {effectiveUserId: 'business-BUSINESS_OWNER', reason: 'Isolated CRM-B1 delegation boundary proof'});
+              assert.equal(started.status, 201);
+              supportStarted = true;
+              const supportCookie = started.cookies.find(value => value.startsWith('md_control_support='))?.split(';')[0];
+              assert.ok(supportCookie);
+              delegated = {...owner, cookie: owner.cookie + '; ' + supportCookie};
+              const context = await request(delegated, '/api/admin/v1/support/session');
+              assert.equal(context.status, 200);
+              assert.equal(context.body.support.actor.id, 'owner-1');
+              assert.equal(context.body.support.actor.role, 'PLATFORM_OWNER');
+              assert.equal(context.body.support.effectiveUser.id, 'business-BUSINESS_OWNER');
+              assert.equal(context.body.support.effectiveUser.role, 'BUSINESS_OWNER');
+              const denied = await request(delegated, '/api/admin/v1/crm/leads?effectiveUserId=owner-1&role=PLATFORM_OWNER');
+              assert.equal(denied.status, 403);
+              assert.deepEqual(denied.body, {error: 'ACCESS_DENIED', reason: 'global_scope_required'});
+              pass('delegation:crm-read');
+              const search = await request(delegated, '/api/admin/v1/search?q=Toca');
+              assert.equal(search.status, 200);
+              assert.ok(!search.body.results.some(row => row.type === 'crm-lead' || row.domain === 'crm'));
+              pass('delegation:crm-search');
+            } finally {
+              // Canonical end and readback also run on a failed delegated assertion.
+              const ended = await request(delegated, '/api/admin/v1/support/session', 'DELETE');
+              assert.equal(ended.status, 200);
+              assert.equal(ended.body.success, true);
+              assert.ok(ended.cookies.some(value => value.startsWith('md_control_support=') && value.includes('Max-Age=0')));
+              const context = await request(owner, '/api/admin/v1/support/session');
+              assert.equal(context.status, 200);
+              assert.equal(context.body.support, null);
+              const restored = await request(owner, '/api/admin/v1/crm/leads');
+              assert.equal(restored.status, 200);
+              assert.ok(restored.body.data.some(row => row.id === leadId));
+              supportEnded = true;
+            }
+            assert.equal(supportStarted, true);
+            assert.equal(supportEnded, true);
+            const after = await snapshot();
+            assert.deepEqual(after, before, 'all CRM rows and audit records unchanged by denied business/delegated requests');
+            for (const [role, session] of sessions) {
+              for (const family of ['contracts', 'proposals']) {
+                const token = json(family === 'contracts' ? '/tmp/crm-contract-create.json' : '/tmp/crm-proposal-create.json').data.shareToken;
+                const response = await request(session, '/api/crm/public/' + family + '/' + token);
+                assert.equal(response.status, 200);
+                assert.deepEqual(response.body, json('/tmp/crm-b1-public-' + family + '-baseline.json'));
+                assert.ok(!('shareToken' in response.body.data));
+                pass('scope-public:' + role + ':' + family);
+              }
+            }
+            for (const role of ['PLATFORM_ADMIN', 'admin']) {
+              const session = await login(role, false);
+              const listed = await request(session, '/api/crm/leads');
+              assert.equal(listed.status, 200);
+              assert.ok(listed.body.data.some(row => row.id === leadId));
+              const notes = 'Global ' + role + ' SQL proof';
+              const updated = await request(session, '/api/crm/leads/' + leadId, 'PATCH', {notes});
+              assert.equal(updated.status, 200);
+              const [[row]] = await pool.query('SELECT notes FROM crm_leads WHERE id = ?', [leadId]);
+              assert.equal(row.notes, notes);
+              pass('global:' + role);
+              const admin = await request(session, '/api/admin/v1/crm/leads?effectiveUserId=business-BUSINESS_OWNER');
+              assert.equal(admin.status, 200);
+              assert.ok(admin.body.data.some(row => row.id === leadId));
+              const search = await request(session, '/api/admin/v1/search?q=Toca&effectiveUserId=business-BUSINESS_OWNER');
+              assert.equal(search.status, 200);
+              assert.ok(search.body.results.some(row => row.type === 'crm-lead' && row.id === String(leadId)));
+              pass('admin:global:' + role);
+            }
+            const proof = {kind: 'CRM_B1_REAL_GLOBAL_SCOPE_SQL_PROOF', status: 'PASS', businessRoles, families, sessionRoles, targetIds,
+              globalScopeDenials: 102, businessAdminSurfaceDenials: 6, delegatedCases: 2, businessPublicReads: 12,
+              globalWritersWithSqlReadback: 2, globalAdminAdapterReads: 2, queryParametersProvideNoAuthority: true,
+              supportStartReadback: true, supportEndReadback: true, crmRowsUnchangedDuringDenials: true, before, after,
+              authAndControlCenterStateExcludedFromCrmRowComparison: true, newActorLoginClient: '127.0.0.2', existingActorLoginClient: '127.0.0.1',
+              scope: 'isolated dummy fixture; Control Center audit uses its existing non-production runtime store'};
+            writeFileSync('/tmp/crm-b1-global-scope-proof.json', JSON.stringify(proof) + '\n');
+          } finally {
+            await pool.end();
+          }
+          NODE
+          )
+          PUBLIC_TOKEN_READS=$((PUBLIC_TOKEN_READS + 12))
+
+          VIEWER_LOGIN=$(curl --silent --output /tmp/crm-viewer-login.json --cookie-jar /tmp/crm-viewer.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
-          assert_http "$VIEWER_LOGIN" 200 /tmp/viewer-login.json viewer-login
+          assert_http "$VIEWER_LOGIN" 200 /tmp/crm-viewer-login.json viewer-login
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/viewer-login.json'))
-          open('/tmp/viewer-csrf.txt','w').write(data['csrfToken'])
+          data=json.load(open('/tmp/crm-viewer-login.json'))
+          open('/tmp/crm-viewer-csrf.txt','w').write(data['csrfToken'])
           PY
-          VIEWER_CSRF=$(cat /tmp/viewer-csrf.txt)
+          VIEWER_CSRF=$(cat /tmp/crm-viewer-csrf.txt)
+          SESSION_STATUS=$(curl --silent --output /tmp/crm-b1-viewer-1-session.json --write-out '%{http_code}' --cookie /tmp/crm-viewer.cookies "$ORIGIN/api/dashboard/auth/session")
+          assert_http "$SESSION_STATUS" 200 /tmp/crm-b1-viewer-1-session.json real-AUDITOR-session
+          node -e 'const assert=require("node:assert/strict"),s=require("/tmp/crm-b1-viewer-1-session.json"); assert.equal(s.authenticated,true); assert.equal(s.user.id,"viewer-1"); assert.equal(s.user.role,"AUDITOR"); assert.equal(s.user.canonicalRole,"AUDITOR"); assert.deepEqual(s.user.businessIds,[]); assert.equal(s.csrfToken,process.argv[1]); assert.ok(s.csrfToken)' "$VIEWER_CSRF"
 
           VIEWER_BAD_CSRF=$(curl --silent --output /tmp/crm-viewer-bad-csrf.json --write-out '%{http_code}' \
-            --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+            --cookie /tmp/crm-viewer.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
             --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' "$ORIGIN/api/crm/leads")
           assert_http "$VIEWER_BAD_CSRF" 403 /tmp/crm-viewer-bad-csrf.json viewer-invalid-csrf
           grep -q 'INVALID_CSRF' /tmp/crm-viewer-bad-csrf.json
           case_pass security:viewer:csrf
           VIEWER_CROSS=$(curl --silent --output /tmp/crm-viewer-cross.json --write-out '%{http_code}' \
-            --cookie /tmp/viewer.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --cookie /tmp/crm-viewer.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $VIEWER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' "$ORIGIN/api/crm/leads")
           assert_http "$VIEWER_CROSS" 403 /tmp/crm-viewer-cross.json viewer-cross-origin
           grep -q 'ORIGIN_DENIED' /tmp/crm-viewer-cross.json
           case_pass security:viewer:origin
 
           VIEWER_WRITE=$(curl --silent --output /tmp/crm-viewer.json --write-out '%{http_code}' \
-            --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --cookie /tmp/crm-viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Viewer blocked"}' \
             "$ORIGIN/api/crm/leads")
           assert_http "$VIEWER_WRITE" 403 /tmp/crm-viewer.json viewer-write
           grep -q 'READ_ONLY_ROLE' /tmp/crm-viewer.json
 
-          MEETING_VIEWER_WRITE=$(curl --silent --output /tmp/meeting-viewer.json --write-out '%{http_code}' \
-            --request PATCH --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+          MEETING_VIEWER_WRITE=$(curl --silent --output /tmp/crm-meeting-viewer.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/crm-viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
             --header 'Content-Type: application/json' --data '{"status":"cancelled"}' \
             "$ORIGIN/api/crm/meetings/$MEETING_ID")
-          assert_http "$MEETING_VIEWER_WRITE" 403 /tmp/meeting-viewer.json meeting-viewer-write
-          grep -q 'READ_ONLY_ROLE' /tmp/meeting-viewer.json
+          assert_http "$MEETING_VIEWER_WRITE" 403 /tmp/crm-meeting-viewer.json meeting-viewer-write
+          grep -q 'READ_ONLY_ROLE' /tmp/crm-meeting-viewer.json
 
-          PROPOSAL_VIEWER_WRITE=$(curl --silent --output /tmp/proposal-viewer.json --write-out '%{http_code}' \
-            --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+          PROPOSAL_VIEWER_WRITE=$(curl --silent --output /tmp/crm-proposal-viewer.json --write-out '%{http_code}' \
+            --cookie /tmp/crm-viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
             --header 'Content-Type: application/json' \
             --data "{\"leadId\":$LEAD_ID,\"title\":\"Viewer blocked\",\"monthlyValue\":\"10.00\"}" \
             "$ORIGIN/api/crm/proposals")
-          assert_http "$PROPOSAL_VIEWER_WRITE" 403 /tmp/proposal-viewer.json proposal-viewer-write
-          grep -q 'READ_ONLY_ROLE' /tmp/proposal-viewer.json
+          assert_http "$PROPOSAL_VIEWER_WRITE" 403 /tmp/crm-proposal-viewer.json proposal-viewer-write
+          grep -q 'READ_ONLY_ROLE' /tmp/crm-proposal-viewer.json
 
-          for readonly_role in SUPPORT AUDITOR BUSINESS_VIEWER viewer; do
-            READONLY_COOKIE=/tmp/viewer.cookies
-            READONLY_CSRF="$VIEWER_CSRF"
-            if [ "$readonly_role" != viewer ]; then
-              READONLY_EMAIL=$(node -e 'console.log(process.argv[1].toLowerCase()+"@example.com")' "$readonly_role")
-              READONLY_LOGIN=$(curl --silent --output /tmp/crm-readonly-login.json --cookie-jar /tmp/crm-readonly.cookies --write-out '%{http_code}' \
-                --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
-                --data "{\"email\":\"$READONLY_EMAIL\",\"password\":\"$PASSWORD\"}" "$ORIGIN/api/dashboard/auth/login")
-              assert_http "$READONLY_LOGIN" 200 /tmp/crm-readonly-login.json "readonly-login-$readonly_role"
-              READONLY_COOKIE=/tmp/crm-readonly.cookies
-              READONLY_CSRF=$(node -p 'require("/tmp/crm-readonly-login.json").csrfToken')
-            fi
+          for readonly_role in SUPPORT AUDITOR; do
+            READONLY_EMAIL=$(node -e 'console.log(process.argv[1].toLowerCase()+"@example.com")' "$readonly_role")
+            READONLY_LOGIN=$(curl --silent --output /tmp/crm-readonly-login.json --cookie-jar /tmp/crm-readonly.cookies --write-out '%{http_code}' \
+              --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
+              --data "{\"email\":\"$READONLY_EMAIL\",\"password\":\"$PASSWORD\"}" "$ORIGIN/api/dashboard/auth/login")
+            assert_http "$READONLY_LOGIN" 200 /tmp/crm-readonly-login.json "readonly-login-$readonly_role"
+            READONLY_COOKIE=/tmp/crm-readonly.cookies
+            READONLY_CSRF=$(node -p 'require("/tmp/crm-readonly-login.json").csrfToken')
+            READONLY_SESSION=$(curl --silent --output /tmp/crm-b1-readonly-session.json --write-out '%{http_code}' --cookie "$READONLY_COOKIE" "$ORIGIN/api/dashboard/auth/session")
+            assert_http "$READONLY_SESSION" 200 /tmp/crm-b1-readonly-session.json "real-readonly-session-$readonly_role"
+            node -e 'const a=require("node:assert/strict"),s=require("/tmp/crm-b1-readonly-session.json"),r=process.argv[1]; a.equal(s.authenticated,true); a.equal(s.user.id,"readonly-"+r); a.equal(s.user.role,r); a.equal(s.user.canonicalRole,r); a.deepEqual(s.user.businessIds,[]); a.equal(s.csrfToken,process.argv[2]); a.ok(s.csrfToken)' "$readonly_role" "$READONLY_CSRF"
             READONLY_READ=$(curl --silent --output /tmp/crm-readonly-read.json --write-out '%{http_code}' \
               --cookie "$READONLY_COOKIE" "$ORIGIN/api/crm/leads")
             assert_http "$READONLY_READ" 200 /tmp/crm-readonly-read.json "readonly-read-$readonly_role"
@@ -478,16 +714,16 @@ jobs:
           done
 
           BEFORE_LOGOUT=$(curl --silent --output /tmp/crm-before-logout.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads")
+            --cookie /tmp/crm-owner.cookies "$ORIGIN/api/crm/leads")
           assert_http "$BEFORE_LOGOUT" 200 /tmp/crm-before-logout.json owner-before-logout
-          OWNER_COOKIE_HASH=$(sha256sum /tmp/owner.cookies)
+          OWNER_COOKIE_HASH=$(sha256sum /tmp/crm-owner.cookies)
           LOGOUT=$(curl --silent --output /tmp/crm-logout.json --write-out '%{http_code}' \
-            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --request POST --cookie /tmp/crm-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             "$ORIGIN/api/dashboard/auth/logout")
           assert_http "$LOGOUT" 200 /tmp/crm-logout.json owner-logout
-          test "$OWNER_COOKIE_HASH" = "$(sha256sum /tmp/owner.cookies)"
+          test "$OWNER_COOKIE_HASH" = "$(sha256sum /tmp/crm-owner.cookies)"
           AFTER_LOGOUT=$(curl --silent --output /tmp/crm-after-logout.json --write-out '%{http_code}' \
-            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads")
+            --cookie /tmp/crm-owner.cookies "$ORIGIN/api/crm/leads")
           assert_http "$AFTER_LOGOUT" 401 /tmp/crm-after-logout.json owner-cookie-after-logout
           grep -q 'AUTH_REQUIRED' /tmp/crm-after-logout.json
           case_pass session:logout
@@ -512,31 +748,47 @@ jobs:
           const [audits] = await pool.query("SELECT operation, reason, actor_subject FROM crm_audit_events WHERE reason = 'read_only_role'");
           if (!audits.some((row) => row.actor_subject === 'viewer-1' && row.operation === 'meeting.update')) process.exit(1);
           if (!audits.some((row) => row.actor_subject === 'viewer-1' && row.operation === 'proposal.create')) process.exit(1);
-          for (const actor of ['readonly-SUPPORT', 'readonly-AUDITOR', 'readonly-BUSINESS_VIEWER', 'viewer-1']) {
+          for (const actor of ['readonly-SUPPORT', 'readonly-AUDITOR', 'viewer-1']) {
             if (!audits.some(row => row.actor_subject === actor && row.operation === 'lead.create')) throw new Error('READONLY_SQL_AUDIT_MISSING');
           }
           const [contracts] = await pool.query('SELECT lead_id, proposal_id, status, created_by_subject FROM crm_contracts WHERE id = ?', [Number(process.env.CONTRACT_ID)]);
           if (contracts.length !== 1 || contracts[0].lead_id !== Number(process.env.LEAD_ID) || contracts[0].proposal_id !== Number(process.env.PROPOSAL_ID) || contracts[0].created_by_subject !== 'owner-1' || contracts[0].status !== 'sent') process.exit(1);
           const [affiliateAudits] = await pool.query('SELECT id FROM crm_audit_events WHERE actor_subject = ?', ['affiliate-1']);
           if (affiliateAudits.length !== 0) throw new Error('PRIVATE_CAPABILITY_DENIAL_REACHED_CRM_BOUNDARY');
-          const expectedRows = {crm_leads: 1, crm_meetings: 1, crm_proposals: 1, crm_contracts: 1, crm_follow_ups: 0, crm_trials: 0, crm_referrals: 0};
+          const expectedRows = {crm_leads: 1, crm_meetings: 1, crm_proposals: 1, crm_contracts: 1, crm_follow_ups: 1, crm_trials: 1, crm_referrals: 1};
           for (const [table, count] of Object.entries(expectedRows)) {
             const [[row]] = await pool.query(`SELECT COUNT(*) AS total FROM ${table}`);
             assert.equal(Number(row.total), count, `Unexpected business mutation in ${table}`);
           }
           const privateCapabilityDenials = Number(process.env.AFFILIATE_DENIALS);
           const publicTokenReads = Number(process.env.PUBLIC_TOKEN_READS);
-          if (privateCapabilityDenials !== 17 || publicTokenReads !== 4) throw new Error('CRM_REQUIRED_HTTP_CASES_MISSING');
+          if (privateCapabilityDenials !== 17 || publicTokenReads !== 16) throw new Error('CRM_REQUIRED_HTTP_CASES_MISSING');
           const cases = readFileSync('/tmp/crm-auth-http-case-ledger.jsonl', 'utf8').trim().split('\n').map(line => JSON.parse(line));
           const families = ['leads', 'lead-detail', 'contracts', 'follow-ups', 'meetings', 'metrics', 'proposals', 'referrals', 'trials'];
           const expected = families.flatMap(family => (family === 'metrics' ? ['GET'] : ['GET', 'POST']).map(method => `affiliate:${method}:${family}`));
-          expected.push(...['SUPPORT', 'AUDITOR', 'BUSINESS_VIEWER', 'viewer'].map(role => `readonly:${role}`));
+          expected.push(...['SUPPORT', 'AUDITOR'].map(role => 'readonly:' + role));
           expected.push('owner:mutation', ...['owner', 'viewer'].flatMap(role => ['csrf', 'origin'].map(guard => `security:${role}:${guard}`)));
           expected.push(...['missing', 'malformed', 'expired'].map(mode => `cookie:${mode}`), 'session:logout', 'public:contracts', 'public:proposals');
-          assert.equal(expected.length, 32);
+          const businessRoles = ['BUSINESS_OWNER', 'BUSINESS_MANAGER', 'BUSINESS_VIEWER', 'owner', 'manager', 'viewer'];
+          const mutationMethods = {leads: 'PATCH', 'lead-detail': 'PATCH', meetings: 'PATCH', proposals: 'POST', contracts: 'POST', 'follow-ups': 'POST', trials: 'POST', referrals: 'POST'};
+          for (const role of businessRoles) {
+            for (const family of families) expected.push('scope:' + role + ':GET:' + family);
+            for (const [family, method] of Object.entries(mutationMethods)) expected.push('scope:' + role + ':' + method + ':' + family);
+            expected.push('admin:business:' + role, 'scope-public:' + role + ':contracts', 'scope-public:' + role + ':proposals');
+          }
+          expected.push(...['PLATFORM_ADMIN', 'admin'].flatMap(role => ['global:' + role, 'admin:global:' + role]), 'delegation:crm-read', 'delegation:crm-search');
+          assert.equal(expected.length, 156);
+          const globalScope = JSON.parse(readFileSync('/tmp/crm-b1-global-scope-proof.json', 'utf8'));
+          assert.equal(globalScope.kind, 'CRM_B1_REAL_GLOBAL_SCOPE_SQL_PROOF');
+          assert.equal(globalScope.status, 'PASS');
+          assert.deepEqual(globalScope.businessRoles, businessRoles);
+          assert.deepEqual(globalScope.families, families);
+          for (const [key, value] of Object.entries({globalScopeDenials: 102, businessAdminSurfaceDenials: 6, delegatedCases: 2, businessPublicReads: 12, globalWritersWithSqlReadback: 2, globalAdminAdapterReads: 2, crmRowsUnchangedDuringDenials: true, supportStartReadback: true, supportEndReadback: true, queryParametersProvideNoAuthority: true})) assert.equal(globalScope[key], value, key);
+          assert.equal(globalScope.sessionRoles.length, 8);
+          assert.deepEqual(globalScope.after, globalScope.before);
           assert.deepEqual(cases.map(entry => entry.id).sort(), expected.sort());
           for (const entry of cases) assert.equal(entry.status, 'PASS');
-          const proof = {kind: 'CRM_A_REAL_HTTP_SQL_PROOF', status: 'PASS', requiredHttpCases: expected.length, passedHttpCases: cases.length, privateCapabilityDenials, publicTokenReads, sqlReadback: true, readonlyAuditPreserved: true};
+          const proof = {kind: 'CRM_B1_REAL_HTTP_SQL_PROOF', status: 'PASS', requiredHttpCases: expected.length, passedHttpCases: cases.length, privateCapabilityDenials, globalScopeDenials: globalScope.globalScopeDenials, businessAdminSurfaceDenials: globalScope.businessAdminSurfaceDenials, delegatedCases: globalScope.delegatedCases, publicTokenReads, sqlReadback: true, readonlyAuditPreserved: true};
           writeFileSync('/tmp/crm-auth-http-sql-proof.json', JSON.stringify(proof) + '\n');
           console.log(JSON.stringify(proof));
           await pool.end();
@@ -551,4 +803,5 @@ jobs:
             /tmp/crm-auth-composition-proof.json
             /tmp/crm-auth-http-sql-proof.json
             /tmp/crm-auth-http-case-ledger.jsonl
+            /tmp/crm-b1-global-scope-proof.json
           if-no-files-found: error

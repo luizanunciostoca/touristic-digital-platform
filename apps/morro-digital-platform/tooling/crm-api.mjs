@@ -1,6 +1,7 @@
 import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomBytes } from "node:crypto";
 
+import { isPlatformWideAuthRole } from "@touristic/auth";
 import { authorizeCrmAccess } from "@touristic/crm/authorization";
 import { CrmContractServerBoundary } from "@touristic/crm/contracts-boundary";
 import { CrmContractPublicBoundary } from "@touristic/crm/contracts-public-boundary";
@@ -276,6 +277,14 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
           json(response, authenticationRequired ? 401 : 403, {
             error: authenticationRequired ? "AUTH_REQUIRED" : "ACCESS_DENIED",
             reason: access.reason,
+          });
+          return;
+        }
+        // This HTTP surface serves the platform-wide CRM prospect pipeline.
+        if (!isPlatformWideAuthRole(session.role)) {
+          json(response, 403, {
+            error: "ACCESS_DENIED",
+            reason: "global_scope_required",
           });
           return;
         }

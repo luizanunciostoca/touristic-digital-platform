@@ -116,7 +116,7 @@ jobs:
           SECRET="0123456789abcdef0123456789abcdef"
           PASSWORD="correct horse battery staple"
           HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 13))))" "$PASSWORD")
-          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$HASH")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"AUDITOR",businessIds:[]}]))' "$HASH")
           DASHBOARD_AUTH_SECRET="$SECRET" \
           DASHBOARD_USERS_JSON="$USERS" \
           CRM_DATABASE_URL="mysql://root:crm-pass@127.0.0.1:3306/morro_crm" \
@@ -162,6 +162,24 @@ jobs:
             "$ORIGIN/api/dashboard/auth/login")
           assert_http "$OWNER_LOGIN" 200 /tmp/m140-owner-login.json owner-login
           OWNER_CSRF=$(jq -r '.csrfToken' /tmp/m140-owner-login.json)
+          SESSION=$(request /tmp/crm-b1-m140-owner-session.json --cookie /tmp/m140-owner.cookies "$ORIGIN/api/dashboard/auth/session")
+          assert_http "$SESSION" 200 /tmp/crm-b1-m140-owner-session.json owner-real-PLATFORM_OWNER-session
+          OWNER_CSRF="$OWNER_CSRF" node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+          const current = JSON.parse(readFileSync('/tmp/crm-b1-m140-owner-session.json', 'utf8'));
+          assert.equal(current.authenticated, true);
+          assert.equal(current.user.id, 'owner-1');
+          assert.equal(current.user.role, 'PLATFORM_OWNER');
+          assert.equal(current.user.canonicalRole, 'PLATFORM_OWNER');
+          assert.deepEqual(current.user.businessIds, []);
+          assert.equal(current.csrfToken, process.env.OWNER_CSRF);
+          assert.ok(current.csrfToken);
+          const path = '/tmp/crm-m140-auth-role-proof.json';
+          const proof = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {kind: 'CRM_B1_BROWSER_FIXTURE_AUTH_ROLES', source: 'REAL_AUTH_SESSION_HTTP', actors: {}};
+          proof.actors.writer = {subject: current.user.id, role: current.user.role, canonicalRole: current.user.canonicalRole, businessIds: current.user.businessIds};
+          writeFileSync(path, JSON.stringify(proof) + '\n');
+          NODE
 
           CREATE=$(request /tmp/m140-create.json --cookie /tmp/m140-owner.cookies \
             --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
@@ -193,6 +211,24 @@ jobs:
             "$ORIGIN/api/dashboard/auth/login")
           assert_http "$VIEWER_LOGIN" 200 /tmp/m140-viewer-login.json viewer-login
           VIEWER_CSRF=$(jq -r '.csrfToken' /tmp/m140-viewer-login.json)
+          SESSION=$(request /tmp/crm-b1-m140-viewer-session.json --cookie /tmp/m140-viewer.cookies "$ORIGIN/api/dashboard/auth/session")
+          assert_http "$SESSION" 200 /tmp/crm-b1-m140-viewer-session.json viewer-real-AUDITOR-session
+          VIEWER_CSRF="$VIEWER_CSRF" node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+          const current = JSON.parse(readFileSync('/tmp/crm-b1-m140-viewer-session.json', 'utf8'));
+          assert.equal(current.authenticated, true);
+          assert.equal(current.user.id, 'viewer-1');
+          assert.equal(current.user.role, 'AUDITOR');
+          assert.equal(current.user.canonicalRole, 'AUDITOR');
+          assert.deepEqual(current.user.businessIds, []);
+          assert.equal(current.csrfToken, process.env.VIEWER_CSRF);
+          assert.ok(current.csrfToken);
+          const path = '/tmp/crm-m140-auth-role-proof.json';
+          const proof = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {kind: 'CRM_B1_BROWSER_FIXTURE_AUTH_ROLES', source: 'REAL_AUTH_SESSION_HTTP', actors: {}};
+          proof.actors.readonly = {subject: current.user.id, role: current.user.role, canonicalRole: current.user.canonicalRole, businessIds: current.user.businessIds};
+          writeFileSync(path, JSON.stringify(proof) + '\n');
+          NODE
 
           VIEWER_READ=$(request /tmp/m140-viewer-read.json --cookie /tmp/m140-viewer.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
           assert_http "$VIEWER_READ" 200 /tmp/m140-viewer-read.json viewer-detail
@@ -272,7 +308,9 @@ jobs:
         if: always()
         with:
           name: crm-m140-lead-detail-evidence
-          path: /tmp/crm-m140-browser-evidence.json
+          path: |
+            /tmp/crm-m140-browser-evidence.json
+            /tmp/crm-m140-auth-role-proof.json
           retention-days: 1
           if-no-files-found: ignore
 
