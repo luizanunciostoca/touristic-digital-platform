@@ -11,10 +11,6 @@ export default defineConfig({
         ).pathname,
       },
       {
-        find: "@touristic/auth-server",
-        replacement: new URL("../auth/src/index.ts", import.meta.url).pathname,
-      },
-      {
         find: "@touristic/crm-server",
         replacement: new URL("./src/index.ts", import.meta.url).pathname,
       },

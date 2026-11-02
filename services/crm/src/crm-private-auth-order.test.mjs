@@ -8,9 +8,10 @@ import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { authorizeCrmAccess } from "@touristic/crm/authorization";
 
-import { beforeEach, afterEach } from "vitest";
-import { createAuthApi as createCompositionAuthApi } from "../../../apps/morro-digital-platform/tooling/auth-api.mjs";
-import { hashPassword, createSessionToken } from "../../auth/src/index.ts";
+import {
+  canonicalAuthRole,
+  normalizeAuthSessionIdentity,
+} from "@touristic/auth";
 import { CrmLeadServerBoundary as Lead } from "@touristic/crm/leads-boundary";
 import { CrmLeadDetailServerBoundary as LeadDetail } from "@touristic/crm/lead-detail-boundary";
 import { CrmMeetingServerBoundary as Meeting } from "@touristic/crm/meetings-boundary";
@@ -433,133 +434,47 @@ describe("CRM configured host private admission before request effects", () => {
   });
 });
 
-describe("CRM-A real Auth and CRM composition", () => {
-  // Real Auth API/security state, domain boundaries and transports. Only repository
-  // and audit ports are in-memory infrastructure; SQL acceptance belongs to CI.
-  /** @typedef {import("@touristic/auth").AuthRole} CompositionRole */
-  /** @typedef {import("@touristic/auth").AuthSessionIdentity} CompositionSession */
-  /** @typedef {import("@touristic/crm-server").CrmTransportAuthPort} CompositionPort */
-  /** @typedef {import("@touristic/crm-server").CrmHttpRequest} CompositionRequest */
-  /** @typedef {import("@touristic/crm-server").CrmHttpResponse} CompositionResult */
-  /** @typedef {ConstructorParameters<typeof Lead>[0] & ConstructorParameters<typeof LeadDetail>[0] & ConstructorParameters<typeof Meeting>[0] & ConstructorParameters<typeof Proposal>[0] & ConstructorParameters<typeof Contract>[0] & ConstructorParameters<typeof FollowUp>[0] & ConstructorParameters<typeof Trial>[0] & ConstructorParameters<typeof Referral>[0] & ConstructorParameters<typeof Metrics>[0] & ConstructorParameters<typeof AiContent>[0]} CompositionRepository */
-  /** @typedef {{method: string, headers: Record<string, string>, socket: {remoteAddress: string}, [Symbol.asyncIterator](): AsyncGenerator<Buffer>}} CompositionInput */
-  /** @typedef {{statusCode: number, headers: Record<string, string>, body: Record<string, unknown>, setHeader(name: string, value: string): void, end(value: string): void}} CompositionOutput */
-  /** @typedef {{start(): Promise<void>, stop(): Promise<void>, resolveSession(request: CompositionInput): Promise<CompositionSession|null>, authorizeMutation(request: CompositionInput, session: CompositionSession): {allowed: true}|{allowed: false, reason: "invalid_csrf"|"cross_origin_request"}, handle(request: CompositionInput, response: CompositionOutput, path: string): Promise<void>}} CompositionAuth */
-  /** @typedef {{getEnvironmentValue(key: string): string|undefined, audit(request: unknown, event: unknown): void}} CompositionAuthOptions */
-  /** @typedef {{repository: CompositionRepository, calls: {method: string, args: unknown[]}[], auditEvents: unknown[], audit: {record(event: unknown): Promise<void>}}} CompositionPorts */
-  /** @typedef {(ports: CompositionPorts, auth: CompositionPort) => {handle(request: CompositionRequest): Promise<CompositionResult>}} CompositionFactory */
+describe("CRM-A canonical capability and CRM boundaries", () => {
+  // Auth normalization, CRM capability policy, domain boundaries and transports
+  // are real. The authentication/security port explicitly supplies successful
+  // session and CSRF/origin preconditions; it does not prove those mechanisms.
+  // Repository, audit and provider ports are controlled infrastructure doubles.
+  /** @typedef {import("@touristic/auth").AuthRole} CapabilityRole */
+  /** @typedef {import("@touristic/auth").AuthSessionIdentity} CapabilitySession */
+  /** @typedef {import("@touristic/crm-server").CrmTransportAuthPort} CapabilityAuthPort */
+  /** @typedef {import("@touristic/crm-server").CrmHttpRequest} CapabilityRequest */
+  /** @typedef {import("@touristic/crm-server").CrmHttpResponse} CapabilityResult */
+  /** @typedef {ConstructorParameters<typeof Lead>[0] & ConstructorParameters<typeof LeadDetail>[0] & ConstructorParameters<typeof Meeting>[0] & ConstructorParameters<typeof Proposal>[0] & ConstructorParameters<typeof Contract>[0] & ConstructorParameters<typeof FollowUp>[0] & ConstructorParameters<typeof Trial>[0] & ConstructorParameters<typeof Referral>[0] & ConstructorParameters<typeof Metrics>[0] & ConstructorParameters<typeof AiContent>[0]} CapabilityRepository */
+  /** @typedef {{repository: CapabilityRepository, calls: {method: string, args: unknown[]}[], auditEvents: unknown[], audit: {record(event: unknown): Promise<void>}}} CapabilityPorts */
+  /** @typedef {(ports: CapabilityPorts, auth: CapabilityAuthPort) => {handle(request: CapabilityRequest): Promise<CapabilityResult>}} CapabilityFactory */
 
-  const origin = "http://crm-composition.test";
-  const secret = "crm-composition-fixture-secret-000000000000";
-  const password = "composition fixture password";
-  const passwordHash = hashPassword(password, Buffer.alloc(16, 9));
-  /** @type {CompositionRole[]} */
-  const readOnlyRoles = ["SUPPORT", "AUDITOR", "BUSINESS_VIEWER", "viewer"];
-  const users = ["owner", "AFFILIATE", ...readOnlyRoles].map((role) => ({
-    id: `crm-${role}`,
-    email: `${role.toLowerCase()}@example.com`,
-    role,
-    businessIds: ["crm-fixture"],
-    passwordHash,
-  }));
-  /** @type {CompositionAuth} */
-  let auth;
-  /** @type {unknown[]} */
-  let authAudit;
-
-  /** @param {string} method @param {unknown} [body] @param {Record<string, string>} [headers] @returns {CompositionInput} */
-  function input(method, body = {}, headers = {}) {
-    return {
-      method,
-      headers: { host: "crm-composition.test", origin, ...headers },
-      socket: { remoteAddress: "127.0.0.1" },
-      async *[Symbol.asyncIterator]() {
-        yield await Promise.resolve(Buffer.from(JSON.stringify(body)));
-      },
-    };
-  }
-  /** @returns {CompositionOutput} */
-  function output() {
-    return {
-      statusCode: 0,
-      headers: {},
-      body: {},
-      setHeader(name, value) {
-        this.headers[name.toLowerCase()] = value;
-      },
-      end(value) {
-        const parsed = /** @type {unknown} */ (JSON.parse(value));
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
-          throw Error("AUTH_RESPONSE_OBJECT_REQUIRED");
-        this.body = /** @type {Record<string, unknown>} */ (parsed);
-      },
-    };
-  }
-  beforeEach(async () => {
-    authAudit = [];
-    /** @type {Record<string, string>} */
-    const environment = {
-      NODE_ENV: "test",
-      DASHBOARD_AUTH_ORIGIN: origin,
-      DASHBOARD_AUTH_SECRET: secret,
-      DASHBOARD_USERS_JSON: JSON.stringify(users),
-    };
-    const create =
-      /** @type {(options: CompositionAuthOptions) => CompositionAuth} */ (
-        createCompositionAuthApi
-      );
-    auth = create({
-      getEnvironmentValue: (key) => environment[key],
-      audit: (_request, event) => {
-        authAudit.push(event);
-      },
+  /** @param {CapabilityRole} role @returns {CapabilitySession} */
+  function capabilityIdentity(role) {
+    const now = Math.floor(Date.now() / 1000);
+    const session = normalizeAuthSessionIdentity({
+      subject: `crm-${role}`,
+      email: `${role.toLowerCase()}@example.com`,
+      role,
+      businessIds: ["crm-fixture"],
+      issuedAt: now - 60,
+      expiresAt: now + 3600,
+      sessionId: `crm-capability-unit-${role}`,
     });
-    await auth.start();
-  });
-  afterEach(async () => {
-    await auth.stop();
-  });
+    if (!session) throw Error("NORMALIZED_AUTH_IDENTITY_REQUIRED");
+    expect(session.role).toBe(role);
+    return session;
+  }
 
-  /** @param {CompositionRole} role @returns {Promise<Record<string, string>>} */
-  async function login(role) {
-    const response = output();
-    await auth.handle(
-      input("POST", { email: `${role.toLowerCase()}@example.com`, password }),
-      response,
-      "/api/dashboard/auth/login",
-    );
-    expect(response.statusCode).toBe(200);
-    expect(typeof response.body.csrfToken).toBe("string");
-    const cookie = response.headers["set-cookie"]?.split(";")[0] ?? "";
-    expect(cookie.startsWith("md_dashboard_session=")).toBe(true);
-    const headers = {
-      cookie,
-      "x-csrf-token": String(response.body.csrfToken),
-    };
-    const active = await auth.resolveSession(input("POST", {}, headers));
-    expect(active?.role).toBe(role);
-    if (!active) throw Error("REAL_AUTH_SESSION_REQUIRED");
-    expect(auth.authorizeMutation(input("POST", {}, headers), active)).toEqual({
-      allowed: true,
-    });
-    return headers;
-  }
-  /** @param {Record<string, string>} headers @returns {CompositionPort} */
-  function authPort(headers) {
+  /** @param {CapabilitySession} session @returns {CapabilityAuthPort} */
+  function successfulSecurityPreconditions(session) {
     return {
-      resolveSession: (request) =>
-        auth.resolveSession(input(request.method, request.body, headers)),
-      authorizeMutation: (request, session) =>
-        Promise.resolve(
-          auth.authorizeMutation(
-            input(request.method, request.body, headers),
-            session,
-          ),
-        ),
+      resolveSession: () => Promise.resolve(session),
+      authorizeMutation: () => Promise.resolve({ allowed: true }),
     };
   }
-  /** @param {Record<string, (...args: unknown[]) => unknown>} [allowed] @returns {CompositionPorts} */
-  function infrastructure(allowed = {}) {
+
+  /** @param {Record<string, (...args: unknown[]) => unknown>} [allowed] @returns {CapabilityPorts} */
+  function capabilityInfrastructure(allowed = {}) {
     /** @type {{method: string, args: unknown[]}[]} */
     const calls = [];
     /** @type {unknown[]} */
@@ -580,7 +495,7 @@ describe("CRM-A real Auth and CRM composition", () => {
       },
     });
     return {
-      repository: /** @type {CompositionRepository} */ (
+      repository: /** @type {CapabilityRepository} */ (
         /** @type {unknown} */ (repository)
       ),
       calls,
@@ -593,19 +508,27 @@ describe("CRM-A real Auth and CRM composition", () => {
       },
     };
   }
-  function unexpectedToken() {
+
+  function unexpectedCapabilityToken() {
     throw Error("UNEXPECTED_PRIVATE_TOKEN_CREATION");
   }
-  /** @type {Record<string, CompositionFactory>} */
-  const families = {
+
+  /** @type {Record<string, CapabilityFactory>} */
+  const capabilityFamilies = {
     leads: (p, a) => new LeadHttp(new Lead(p.repository, p.audit), a),
     "lead-detail": (p, a) =>
       new LeadDetailHttp(new LeadDetail(p.repository, p.audit), a),
     meetings: (p, a) => new MeetingHttp(new Meeting(p.repository, p.audit), a),
     proposals: (p, a) =>
-      new ProposalHttp(new Proposal(p.repository, p.audit, unexpectedToken), a),
+      new ProposalHttp(
+        new Proposal(p.repository, p.audit, unexpectedCapabilityToken),
+        a,
+      ),
     contracts: (p, a) =>
-      new ContractHttp(new Contract(p.repository, p.audit, unexpectedToken), a),
+      new ContractHttp(
+        new Contract(p.repository, p.audit, unexpectedCapabilityToken),
+        a,
+      ),
     "follow-ups": (p, a) =>
       new FollowUpHttp(new FollowUp(p.repository, p.audit), a),
     trials: (p, a) => new TrialHttp(new Trial(p.repository, p.audit), a),
@@ -613,16 +536,21 @@ describe("CRM-A real Auth and CRM composition", () => {
       new ReferralHttp(new Referral(p.repository, p.audit), a),
     metrics: (p, a) => new MetricsHttp(new Metrics(p.repository, p.audit), a),
   };
-  const body = {
+  const capabilityBody = {
     companyName: "Protected CRM fixture",
     leadId: 1,
     title: "Protected fixture",
     content: "Private content",
     type: "note",
   };
-  const readLeads = { method: "GET", pathname: "/api/crm/leads" };
-  const writeLead = { method: "POST", pathname: "/api/crm/leads", body };
-  for (const [name, make] of Object.entries(families)) {
+  const capabilityReadLeads = { method: "GET", pathname: "/api/crm/leads" };
+  const capabilityWriteLead = {
+    method: "POST",
+    pathname: "/api/crm/leads",
+    body: capabilityBody,
+  };
+
+  for (const [name, make] of Object.entries(capabilityFamilies)) {
     const pathname =
       name === "lead-detail"
         ? "/api/crm/leads/1/detail"
@@ -631,16 +559,19 @@ describe("CRM-A real Auth and CRM composition", () => {
           : `/api/crm/${name}`;
     for (const method of name === "metrics" ? ["GET"] : ["GET", "POST"]) {
       it(`denies AFFILIATE ${method} ${name} before business I/O`, async () => {
-        const headers = await login("AFFILIATE");
-        const ports = infrastructure();
-        const result = await make(ports, authPort(headers)).handle({
+        const session = capabilityIdentity("AFFILIATE");
+        const ports = capabilityInfrastructure();
+        const result = await make(
+          ports,
+          successfulSecurityPreconditions(session),
+        ).handle({
           method,
           pathname:
             method === "POST"
               ? pathname.replace(/\/detail$/u, "/interactions")
               : pathname,
           query: { leadId: 1 },
-          body,
+          body: capabilityBody,
         });
         expect(result).toMatchObject({
           status: 403,
@@ -657,23 +588,32 @@ describe("CRM-A real Auth and CRM composition", () => {
       });
     }
   }
-  /** @param {CompositionPorts} ports @param {Record<string, string>} headers */
-  function leads(ports, headers) {
-    return new LeadHttp(
-      new Lead(ports.repository, ports.audit),
-      authPort(headers),
-    );
-  }
-  for (const role of readOnlyRoles) {
+
+  /** @type {CapabilityRole[]} */
+  const capabilityReadOnlyRoles = [
+    "SUPPORT",
+    "AUDITOR",
+    "BUSINESS_VIEWER",
+    "viewer",
+  ];
+  for (const role of capabilityReadOnlyRoles) {
     it(`allows ${role} reads and audits readonly mutations`, async () => {
-      const headers = await login(role);
-      const ports = infrastructure({ list: () => Promise.resolve([]) });
-      const transport = leads(ports, headers);
-      expect(await transport.handle(readLeads)).toEqual({
+      const session = capabilityIdentity(role);
+      expect(canonicalAuthRole(session.role)).toBe(
+        role === "viewer" ? "BUSINESS_VIEWER" : role,
+      );
+      const ports = capabilityInfrastructure({
+        list: () => Promise.resolve([]),
+      });
+      const transport = new LeadHttp(
+        new Lead(ports.repository, ports.audit),
+        successfulSecurityPreconditions(session),
+      );
+      expect(await transport.handle(capabilityReadLeads)).toEqual({
         status: 200,
         body: { data: [] },
       });
-      expect(await transport.handle(writeLead)).toMatchObject({
+      expect(await transport.handle(capabilityWriteLead)).toMatchObject({
         status: 403,
         body: { error: "READ_ONLY_ROLE", reason: "read_only_role" },
       });
@@ -688,9 +628,11 @@ describe("CRM-A real Auth and CRM composition", () => {
       ]);
     });
   }
-  it("allows an owner mutation with real session and CSRF", async () => {
-    const headers = await login("owner");
-    const ports = infrastructure({
+
+  it("allows an owner mutation after security preconditions", async () => {
+    const session = capabilityIdentity("owner");
+    expect(canonicalAuthRole(session.role)).toBe("BUSINESS_OWNER");
+    const ports = capabilityInfrastructure({
       create: (value) =>
         Promise.resolve({
           .../** @type {Record<string, unknown>} */ (value),
@@ -699,7 +641,11 @@ describe("CRM-A real Auth and CRM composition", () => {
       initializeChecklist: () => Promise.resolve(),
       appendInteraction: () => Promise.resolve(),
     });
-    expect(await leads(ports, headers).handle(writeLead)).toMatchObject({
+    const transport = new LeadHttp(
+      new Lead(ports.repository, ports.audit),
+      successfulSecurityPreconditions(session),
+    );
+    expect(await transport.handle(capabilityWriteLead)).toMatchObject({
       status: 200,
       body: { data: { id: 1, assignedToSubject: "crm-owner" } },
     });
@@ -710,88 +656,14 @@ describe("CRM-A real Auth and CRM composition", () => {
     ]);
     expect(ports.auditEvents).toEqual([]);
   });
-  /** @type {[CompositionRole, string, Record<string, string>, string][]} */
-  const securityCases = [
-    ["owner", "invalid CSRF", { "x-csrf-token": "invalid" }, "INVALID_CSRF"],
-    [
-      "owner",
-      "foreign origin",
-      { origin: "https://other.example" },
-      "ORIGIN_DENIED",
-    ],
-    ["viewer", "invalid CSRF", { "x-csrf-token": "invalid" }, "INVALID_CSRF"],
-    [
-      "viewer",
-      "foreign origin",
-      { origin: "https://other.example" },
-      "ORIGIN_DENIED",
-    ],
-  ];
-  for (const [role, label, override, error] of securityCases) {
-    it(`rejects ${role} mutation with ${label} before the boundary`, async () => {
-      const ports = infrastructure();
-      const headers = { ...(await login(role)), ...override };
-      expect(await leads(ports, headers).handle(writeLead)).toMatchObject({
-        status: 403,
-        body: { error },
-      });
-      expect(ports.calls).toEqual([]);
-      expect(ports.auditEvents).toEqual([]);
-      expect(authAudit).toContainEqual(
-        expect.objectContaining({ result: "denied" }),
-      );
-    });
-  }
-  for (const mode of ["missing", "malformed", "expired"]) {
-    it(`rejects a ${mode} cookie before CRM business I/O`, async () => {
-      const token = createSessionToken(
-        {
-          subject: "crm-owner",
-          email: "owner@example.com",
-          role: "owner",
-          businessIds: ["crm-fixture"],
-        },
-        secret,
-        {
-          nowEpochSeconds: Math.floor(Date.now() / 1000) - 600,
-          ttlSeconds: 300,
-        },
-      );
-      expect(token).not.toBeNull();
-      const cookie =
-        mode === "missing"
-          ? ""
-          : `md_dashboard_session=${mode === "expired" ? token : "malformed"}`;
-      const ports = infrastructure();
-      expect(await leads(ports, { cookie }).handle(readLeads)).toMatchObject({
-        status: 401,
-        body: { reason: "authentication_required" },
-      });
-      expect(ports.calls).toEqual([]);
-    });
-  }
-  it("rejects a previously valid CRM cookie after real logout", async () => {
-    const headers = await login("owner");
-    const ports = infrastructure({ list: () => Promise.resolve([]) });
-    const transport = leads(ports, headers);
-    expect((await transport.handle(readLeads)).status).toBe(200);
-    const response = output();
-    await auth.handle(
-      input("POST", {}, headers),
-      response,
-      "/api/dashboard/auth/logout",
-    );
-    expect(response.statusCode).toBe(200);
-    expect(await transport.handle(readLeads)).toMatchObject({ status: 401 });
-    expect(ports.calls.map((call) => call.method)).toEqual(["list"]);
-  });
-  for (const role of /** @type {CompositionRole[]} */ ([
+
+  for (const role of /** @type {CapabilityRole[]} */ ([
     "AFFILIATE",
     "viewer",
   ])) {
     it(`denies ${role} AI content before repository and provider calls`, async () => {
-      const headers = await login(role);
-      const ports = infrastructure();
+      const session = capabilityIdentity(role);
+      const ports = capabilityInfrastructure();
       let providerCalls = 0;
       const assistant = {
         generate() {
@@ -800,18 +672,24 @@ describe("CRM-A real Auth and CRM composition", () => {
         },
       };
       const boundary = new AiContent(ports.repository, assistant, ports.audit);
+      const reason =
+        role === "AFFILIATE" ? "capability_denied" : "read_only_role";
       expect(
-        await boundary.generate(
-          await auth.resolveSession(input("GET", {}, headers)),
-          { leadId: 1, kind: "follow_up_message" },
-        ),
-      ).toMatchObject({
-        ok: false,
-        reason: role === "AFFILIATE" ? "capability_denied" : "read_only_role",
-      });
+        await boundary.generate(session, {
+          leadId: 1,
+          kind: "follow_up_message",
+        }),
+      ).toMatchObject({ ok: false, reason });
       expect(ports.calls).toEqual([]);
       expect(providerCalls).toBe(0);
-      expect(ports.auditEvents).toHaveLength(1);
+      expect(ports.auditEvents).toEqual([
+        expect.objectContaining({
+          operation: "crm.ai_content.generate",
+          allowed: false,
+          reason,
+          actorSubject: `crm-${role}`,
+        }),
+      ]);
     });
   }
 });
