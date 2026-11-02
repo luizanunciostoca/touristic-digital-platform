@@ -1323,6 +1323,34 @@ export function createTicketingApi({
         return;
       }
       const method = String(request.method || "GET").toUpperCase();
+      if (
+        method === "POST" &&
+        requestUrl.pathname === `${ticketingHttpPrefix}/operator/check-in`
+      ) {
+        const authorization = await createTicketingAuthorizationPort({
+          authApi,
+        }).authorize(request, { mutation: true, admin: true });
+        if (!authorization.allowed) {
+          const errors = {
+            authentication_required: "AUTH_REQUIRED",
+            admin_required: "ADMIN_REQUIRED",
+            read_only_role: "READ_ONLY_ROLE",
+            invalid_csrf: "INVALID_CSRF",
+            cross_origin_request: "ORIGIN_DENIED",
+          };
+          sendJson(
+            response,
+            {
+              status:
+                authorization.reason === "authentication_required" ? 401 : 403,
+              headers: {},
+              body: { error: errors[authorization.reason] },
+            },
+            correlationId,
+          );
+          return;
+        }
+      }
       let body;
       if (method === "POST") {
         const contentType = header(request, "content-type")
