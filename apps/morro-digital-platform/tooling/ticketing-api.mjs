@@ -561,27 +561,57 @@ export function createTicketingAuthorizationPort({ authApi }) {
           });
         }
       }
-      const transportRole =
+      const platformOperator =
         isPlatformWideAuthRole(active.role) &&
-        hasAuthCapability(active.role, "ticketing.manage")
-          ? "admin"
-          : isReadOnlyAuthRole(active.role)
-            ? "viewer"
-            : "editor";
+        hasAuthCapability(active.role, "ticketing.manage");
+      const businessIds = Object.freeze([...(active.businessIds ?? [])]);
+      const transportRole = platformOperator
+        ? "admin"
+        : isReadOnlyAuthRole(active.role)
+          ? "viewer"
+          : "editor";
       return Object.freeze({
         allowed: true,
         actor: Object.freeze({
           subject: active.subject,
           role: transportRole,
-          businessIds: Object.freeze([...(active.businessIds ?? [])]),
+          businessIds,
+          operatorAuthority: Object.freeze({
+            subject: active.subject,
+            capabilities: Object.freeze(
+              hasAuthCapability(active.role, "ticketing.manage")
+                ? ["ticketing.manage"]
+                : [],
+            ),
+            scope: Object.freeze(
+              platformOperator
+                ? { kind: "platform" }
+                : { kind: "business", businessIds },
+            ),
+          }),
         }),
       });
     },
   });
 }
 
+export function createTicketingOperatorOwnerPort({ getPlacePlatformRuntime }) {
+  function owner() {
+    const runtime = getPlacePlatformRuntime?.();
+    if (!runtime) throw new Error("TICKETING_OWNER_UNAVAILABLE");
+    return runtime;
+  }
+  return Object.freeze({
+    findBusiness: (businessId, destinationId) =>
+      owner().findTicketingBusinessOwner(businessId, destinationId),
+    findPlace: (placeId) => owner().findTicketingPlaceOwner(placeId),
+    findOffer: (offerId) => owner().findTicketingOfferOwner(offerId),
+  });
+}
+
 export function createTicketingApi({
   authApi,
+  getPlacePlatformRuntime = () => null,
   getEnvironmentValue = (key) => process.env[key] ?? "",
   audit = (event) => console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
   publicTransport: injectedPublicTransport,
@@ -678,6 +708,7 @@ export function createTicketingApi({
         createTicketReservationApplicationService,
         createTicketReservationFulfillmentService,
         createTicketingApplicationService,
+        createTicketingOperatorAuthorization,
         createTicketingMySqlPoolFromEnvironment,
         createVerifiedFinancialResultProcessor,
         createVerifiedPaymentTicketFulfillmentHandler,
@@ -833,6 +864,12 @@ export function createTicketingApi({
         transactions,
         signingSecret,
         clock: systemCheckoutClock,
+        operatorAuthorization: createTicketingOperatorAuthorization({
+          bindings,
+          reservations,
+          businessInventory,
+          owner: createTicketingOperatorOwnerPort({ getPlacePlatformRuntime }),
+        }),
       });
       const confirmationAuthority =
         createOrderingFinancialReservationConfirmationAuthority({

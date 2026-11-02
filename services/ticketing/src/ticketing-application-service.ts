@@ -29,6 +29,12 @@ import {
 } from "@touristic/ticketing";
 
 import type { TicketingTransactionalCommandPort } from "./mysql-ticketing-transaction.js";
+import {
+  requireTicketingOperatorAuthority,
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
+  type TicketingOperatorAuthorizationPort,
+} from "./operator-authorization.js";
 
 export type TicketingApplicationErrorCode =
   | "TICKETING_ORDER_NOT_FOUND"
@@ -67,13 +73,15 @@ export interface TicketingApplicationService {
   issueTicket(input: TicketIssueRequest): Promise<TicketingIssueResult>;
   checkInByQr(input: {
     readonly qrPayload: unknown;
-    readonly operatorReference: unknown;
+    readonly operatorAuthority: TicketingOperatorAuthority;
+    readonly operatorReference?: unknown;
     readonly occurredAt: unknown;
   }): Promise<TicketingCheckInResult>;
   checkInByCode(input: {
     readonly code: unknown;
     readonly result: unknown;
-    readonly operatorReference: unknown;
+    readonly operatorAuthority: TicketingOperatorAuthority;
+    readonly operatorReference?: unknown;
     readonly occurredAt: unknown;
   }): Promise<TicketingCheckInResult>;
   syncOfflineEnvelope(input: {
@@ -92,6 +100,7 @@ export interface TicketingApplicationServiceDependencies {
     findById(envelopeId: string): Promise<TicketOfflineEnvelope | null>;
   };
   readonly transactions: TicketingTransactionalCommandPort;
+  readonly operatorAuthorization: TicketingOperatorAuthorizationPort;
   readonly signingSecret: TicketSigningSecret;
   readonly clock: { now(): string };
 }
@@ -218,6 +227,11 @@ function assertTicketAcceptsNewCheckIn(
 export function createTicketingApplicationService(
   dependencies: TicketingApplicationServiceDependencies,
 ): TicketingApplicationService {
+  if (typeof dependencies.operatorAuthorization?.authorize !== "function") {
+    throw new TicketingOperatorAuthorizationError(
+      "TICKETING_OPERATOR_UNAVAILABLE",
+    );
+  }
   const secret = normalizeTicketSigningSecret(dependencies.signingSecret);
   if (!secret) throw new Error("TICKETING_SIGNING_SECRET_INVALID");
 
@@ -307,9 +321,14 @@ export function createTicketingApplicationService(
 
     async checkInByQr(input: {
       readonly qrPayload: unknown;
-      readonly operatorReference: unknown;
+      readonly operatorAuthority: TicketingOperatorAuthority;
+      readonly operatorReference?: unknown;
       readonly occurredAt: unknown;
     }): Promise<TicketingCheckInResult> {
+      const authority = requireTicketingOperatorAuthority(
+        input?.operatorAuthority,
+        input?.operatorReference,
+      );
       const verified = verifyTicketQrPayload(input.qrPayload, secret);
       if (!verified) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
@@ -318,6 +337,7 @@ export function createTicketingApplicationService(
       if (!ticket) {
         throw new TicketingApplicationError("TICKETING_TICKET_NOT_FOUND");
       }
+      await dependencies.operatorAuthorization.authorize(ticket, authority);
       const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
       if (!occurredAt) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
@@ -348,7 +368,7 @@ export function createTicketingApplicationService(
         ticketId: ticket.id,
         result,
         channel: "online",
-        operatorReference: input.operatorReference,
+        operatorReference: authority.subject,
         occurredAt: canonicalOccurredAt,
         recordedAt,
       });
@@ -365,13 +385,19 @@ export function createTicketingApplicationService(
     async checkInByCode(input: {
       readonly code: unknown;
       readonly result: unknown;
-      readonly operatorReference: unknown;
+      readonly operatorAuthority: TicketingOperatorAuthority;
+      readonly operatorReference?: unknown;
       readonly occurredAt: unknown;
     }): Promise<TicketingCheckInResult> {
+      const authority = requireTicketingOperatorAuthority(
+        input?.operatorAuthority,
+        input?.operatorReference,
+      );
       const ticket = await dependencies.tickets.findByCode(input.code as never);
       if (!ticket) {
         throw new TicketingApplicationError("TICKETING_TICKET_NOT_FOUND");
       }
+      await dependencies.operatorAuthorization.authorize(ticket, authority);
       const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
       const result = typeof input.result === "string" ? input.result : null;
       if (!occurredAt || !result) {
@@ -402,7 +428,7 @@ export function createTicketingApplicationService(
         ticketId: ticket.id,
         result,
         channel: "online",
-        operatorReference: input.operatorReference,
+        operatorReference: authority.subject,
         occurredAt: canonicalOccurredAt,
         recordedAt,
       });

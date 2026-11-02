@@ -33,9 +33,7 @@ function fixture({
     if (sql.includes("FROM business_places WHERE business_id")) {
       return [row ? [row] : []];
     }
-    if (
-      sql.includes("SELECT * FROM business_places WHERE place_id = ? LIMIT 1")
-    ) {
+    if (sql.includes("FROM business_places WHERE place_id = ? LIMIT 1")) {
       return [row ? [row] : []];
     }
     if (
@@ -99,6 +97,45 @@ const draft = {
 };
 
 describe("Business CMS persisted runtime invariants", () => {
+  it("resolves Ticketing ownership by explicit Business, destination, Place and Offer IDs", async () => {
+    const owner = {
+      business_id: "business-a",
+      destination_id: "morro-de-sao-paulo",
+    };
+    const { runtime, executed } = fixture({
+      row: { ...owner, place_id: "place-explicit-second" },
+      cmsRows: [owner],
+    });
+    expect(await runtime.start()).toBe(true);
+    executed.length = 0;
+    await expect(
+      runtime.findTicketingBusinessOwner("business-a", "morro-de-sao-paulo"),
+    ).resolves.toEqual({
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+    });
+    await expect(
+      runtime.findTicketingPlaceOwner("place-explicit-second"),
+    ).resolves.toEqual({
+      id: "place-explicit-second",
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+    });
+    await expect(
+      runtime.findTicketingOfferOwner("offer-explicit"),
+    ).resolves.toBeNull();
+    expect(executed.map(({ params }) => params)).toEqual([
+      ["business-a", "morro-de-sao-paulo"],
+      ["place-explicit-second"],
+      ["offer-explicit"],
+    ]);
+    expect(executed[1].sql).not.toContain("ORDER BY");
+    await runtime.stop();
+    await expect(
+      runtime.findTicketingPlaceOwner("place-explicit-second"),
+    ).rejects.toThrow("PLACE_PLATFORM_UNAVAILABLE");
+  });
+
   it("rejects a duplicate Business atomically without renaming the existing owner", async () => {
     const { runtime, executed, transaction, connection } = fixture({
       duplicate: true,

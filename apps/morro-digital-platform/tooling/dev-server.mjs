@@ -373,6 +373,7 @@ const ticketingNotificationsBridge = createTicketingNotificationsBridge({
 const { createTicketingApi } = await import("./ticketing-api.mjs");
 const ticketingApi = createTicketingApi({
   authApi,
+  getPlacePlatformRuntime: () => placePlatformRuntime,
   getEnvironmentValue,
   notificationBridge: ticketingNotificationsBridge,
 });

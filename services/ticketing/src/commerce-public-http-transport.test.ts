@@ -92,6 +92,76 @@ function signedSessionCookie(claims: Record<string, unknown>): string {
 }
 
 describe("TicketingCommerceHttpTransport security boundary", () => {
+  it("passes authenticated authority intact and ignores authority supplied in the body", async () => {
+    const operatorAuthority = {
+      subject: "operator_001",
+      capabilities: ["ticketing.manage"],
+      scope: { kind: "business", businessIds: ["business-a"] },
+    };
+    const authorize = vi.fn().mockResolvedValue({
+      allowed: true,
+      actor: {
+        subject: operatorAuthority.subject,
+        role: "editor",
+        operatorAuthority,
+      },
+    });
+    const deps = dependencies({ authorize });
+    const checkInByQr = vi.fn().mockResolvedValue({ replayed: false });
+    deps.ticketing.checkInByQr = checkInByQr;
+    const result = await new TicketingCommerceHttpTransport(deps).handle(
+      request(
+        "/api/ticketing/v1/operator/check-in",
+        "POST",
+        {},
+        {
+          qrPayload: "qr",
+          subject: "forged",
+          businessId: "business-b",
+          operatorAuthority: { scope: { kind: "platform" } },
+        },
+      ),
+    );
+    expect(result.status).toBe(200);
+    expect(authorize).toHaveBeenCalledWith(expect.anything(), {
+      mutation: true,
+      admin: true,
+    });
+    expect(checkInByQr).toHaveBeenCalledWith({
+      qrPayload: "qr",
+      operatorAuthority,
+      occurredAt: now,
+    });
+  });
+
+  it.each([
+    undefined,
+    { subject: "other", capabilities: ["ticketing.manage"] },
+  ])(
+    "rejects missing or malformed operator authority before calling the service: %j",
+    async (operatorAuthority) => {
+      const deps = dependencies({
+        authorize: vi.fn().mockResolvedValue({
+          allowed: true,
+          actor: { subject: "operator_001", role: "editor", operatorAuthority },
+        }),
+      });
+      const checkInByQr = vi.fn().mockResolvedValue({ replayed: false });
+      deps.ticketing.checkInByQr = checkInByQr;
+      const result = await new TicketingCommerceHttpTransport(deps).handle(
+        request(
+          "/api/ticketing/v1/operator/check-in",
+          "POST",
+          {},
+          { qrPayload: "qr" },
+        ),
+      );
+      expect(result.status).toBe(403);
+      expect(result.body.error).toBe("TICKETING_OPERATOR_FORBIDDEN");
+      expect(checkInByQr).not.toHaveBeenCalled();
+    },
+  );
+
   it("issues an HttpOnly Strict Secure guest session only for same-origin HTTPS", async () => {
     const transport = new TicketingCommerceHttpTransport(dependencies());
     const result = await transport.handle(

@@ -1,5 +1,14 @@
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
+export {
+  createTicketingOperatorAuthorization,
+  requireTicketingOperatorAuthority,
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
+  type TicketingOperatorAuthorizationPort,
+  type TicketingOperatorOwnerPort,
+} from "./operator-authorization.js";
+
 import {
   MySqlTicketingBusinessInventoryRepository,
   type MorroProInventoryOffer,

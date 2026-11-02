@@ -43,6 +43,11 @@ import {
   TicketingApplicationError,
   type TicketingApplicationService,
 } from "./ticketing-application-service.js";
+import {
+  requireTicketingOperatorAuthority,
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
+} from "./operator-authorization.js";
 
 export const ticketingHttpPrefix = "/api/ticketing/v1";
 const HOLD_TTL_MS = 10 * 60 * 1_000;
@@ -67,6 +72,7 @@ export interface TicketingHttpResponse {
 export interface TicketingHttpActor {
   readonly subject: string;
   readonly role: "admin" | "editor" | "viewer";
+  readonly operatorAuthority?: TicketingOperatorAuthority;
 }
 
 export type TicketingHttpAuthorizationDecision =
@@ -330,6 +336,14 @@ function checkoutDescriptor(
 }
 
 function errorStatus(error: unknown): { status: number; code: string } {
+  if (error instanceof TicketingOperatorAuthorizationError) {
+    if (error.code === "TICKETING_OPERATOR_FORBIDDEN") {
+      return { status: 403, code: error.code };
+    }
+    return error.code === "TICKETING_OPERATOR_NOT_FOUND"
+      ? { status: 404, code: "NOT_FOUND" }
+      : { status: 503, code: "TICKETING_UNAVAILABLE" };
+  }
   const message = error instanceof Error ? error.message : "";
   if (
     message.includes("INVALID") ||
@@ -425,7 +439,9 @@ export class TicketingPublicHttpTransport {
     }
 
     const mutation = method !== "GET";
-    const admin = relative.startsWith("/operator/offline-devices");
+    const admin =
+      relative.startsWith("/operator/offline-devices") ||
+      (relative === "/operator/check-in" && method === "POST");
     const authorization = await this.dependencies.authorization.authorize(
       request,
       {
@@ -735,12 +751,16 @@ export class TicketingPublicHttpTransport {
       }
 
       if (relative === "/operator/check-in" && method === "POST") {
+        const operatorAuthority = requireTicketingOperatorAuthority(
+          actor.operatorAuthority,
+          actor.subject,
+        );
         const body = record(request.body);
         if (!body)
           return response(400, { error: "INVALID_CHECKIN" }, correlation);
         const result = await this.dependencies.ticketing.checkInByQr({
           qrPayload: body.qrPayload,
-          operatorReference: actor.subject,
+          operatorAuthority,
           occurredAt: canonicalNow(this.dependencies.clock),
         });
         return response(200, { data: result }, correlation);

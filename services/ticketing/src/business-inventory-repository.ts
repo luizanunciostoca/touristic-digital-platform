@@ -42,6 +42,12 @@ export interface TicketingCatalogOfferBinding {
 }
 
 export interface TicketingBusinessInventoryRepositoryPort {
+  findByInventoryId(
+    inventoryId: string,
+  ): Promise<MorroProInventoryOffer | null>;
+  findCatalogBindingByInventoryId(
+    inventoryId: string,
+  ): Promise<TicketingCatalogOfferBinding | null>;
   listByBusiness(
     businessId: string,
   ): Promise<readonly MorroProInventoryOffer[]>;
@@ -387,6 +393,27 @@ async function bindCatalogOfferWithConnection(
 
 export class MySqlTicketingBusinessInventoryRepository implements TicketingBusinessInventoryRepositoryPort {
   constructor(private readonly pool: Pool) {}
+
+  async findByInventoryId(
+    inventoryId: string,
+  ): Promise<MorroProInventoryOffer | null> {
+    const [rows] = await this.pool.execute<BusinessInventoryRow[]>(
+      `${SELECT_OWNED} WHERE i.inventory_id = ?`,
+      [inventoryId],
+    );
+    return rows[0] ? fromRow(rows[0]) : null;
+  }
+
+  async findCatalogBindingByInventoryId(
+    inventoryId: string,
+  ): Promise<TicketingCatalogOfferBinding | null> {
+    const [rows] = await this.pool.execute<CatalogBindingRow[]>(
+      `SELECT inventory_id, business_id, offer_id
+         FROM ticketing_inventory_catalog_bindings WHERE inventory_id = ?`,
+      [inventoryId],
+    );
+    return rows[0] ? bindingFromRow(rows[0]) : null;
+  }
 
   async listByBusiness(
     businessIdInput: string,

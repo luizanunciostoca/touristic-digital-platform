@@ -1924,6 +1924,44 @@ export function createPlacePlatformRuntime({
     return { businessId: String(place.businessId), placeId: String(place.id) };
   }
 
+  async function findTicketingBusinessOwner(businessId, destinationId) {
+    assertReady();
+    const [rows] = await pool.execute(
+      `SELECT b.id AS business_id, d.destination_id FROM business_entities b
+       JOIN business_destinations d ON d.business_id = b.id
+       WHERE b.id = ? AND d.destination_id = ? LIMIT 1`,
+      [businessId, destinationId],
+    );
+    const row = rows[0];
+    return row
+      ? {
+          businessId: String(row.business_id),
+          destinationId: String(row.destination_id),
+        }
+      : null;
+  }
+
+  async function findTicketingPlaceOwner(placeId) {
+    assertReady();
+    const [rows] = await pool.execute(
+      `SELECT place_id, business_id, destination_id FROM business_places WHERE place_id = ? LIMIT 1`,
+      [placeId],
+    );
+    const row = rows[0];
+    return row
+      ? {
+          id: String(row.place_id),
+          businessId: String(row.business_id),
+          destinationId: String(row.destination_id),
+        }
+      : null;
+  }
+
+  async function findTicketingOfferOwner(offerId) {
+    assertReady();
+    return catalogRuntime.repository.getOffer(offerId);
+  }
+
   async function getBusinessLocationPlace(businessId) {
     assertReady();
     const normalizedBusinessId = clean(businessId, 160);
@@ -2101,6 +2139,9 @@ export function createPlacePlatformRuntime({
     updateLegacyBusinessProfile,
     getCmsDetail,
     createDraft,
+    findTicketingBusinessOwner,
+    findTicketingPlaceOwner,
+    findTicketingOfferOwner,
     getBusinessLocationPlace,
     listLocationDiscoveryPlaces,
     updateProfile,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   createMoney,
@@ -28,6 +28,21 @@ import {
 
 import { createTicketingApplicationService } from "./ticketing-application-service.js";
 import type { TicketingTransactionalCommandPort } from "./mysql-ticketing-transaction.js";
+import {
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
+  type TicketingOperatorAuthorizationPort,
+} from "./operator-authorization.js";
+
+function operatorAuthority(
+  subject = "operator_001",
+): TicketingOperatorAuthority {
+  return {
+    subject,
+    capabilities: ["ticketing.manage"],
+    scope: { kind: "business", businessIds: ["business-a"] },
+  };
+}
 
 class MemoryOrders implements OrderRepositoryPort {
   constructor(private readonly current: Order | null) {}
@@ -200,11 +215,30 @@ function fixtures() {
   return { order, payment, amount, secret };
 }
 
-function harness() {
+function harness(operatorPort?: TicketingOperatorAuthorizationPort | null) {
   const fixture = fixtures();
   const tickets = new MemoryTickets();
   const checkIns = new MemoryCheckIns();
   const offline = new MemoryOffline();
+  const transactions = new MemoryTransactions(tickets, checkIns, offline);
+  const operatorAuthorization =
+    operatorPort === undefined
+      ? {
+          authorize: vi.fn(
+            async (ticket: Ticket, authority: TicketingOperatorAuthority) => {
+              if (
+                ticket.orderId !== fixture.order.id ||
+                authority.scope.kind !== "business" ||
+                !authority.scope.businessIds.includes("business-a")
+              ) {
+                throw new TicketingOperatorAuthorizationError(
+                  "TICKETING_OPERATOR_NOT_FOUND",
+                );
+              }
+            },
+          ),
+        }
+      : operatorPort;
   let tick = 0;
   const service = createTicketingApplicationService({
     orders: new MemoryOrders(fixture.order),
@@ -212,7 +246,9 @@ function harness() {
     tickets,
     checkIns,
     offline,
-    transactions: new MemoryTransactions(tickets, checkIns, offline),
+    transactions,
+    operatorAuthorization:
+      operatorAuthorization as TicketingOperatorAuthorizationPort,
     signingSecret: fixture.secret,
     clock: {
       now: () =>
@@ -221,7 +257,15 @@ function harness() {
         ).toISOString(),
     },
   });
-  return { service, tickets, checkIns, offline, fixture };
+  return {
+    service,
+    tickets,
+    checkIns,
+    offline,
+    fixture,
+    operatorAuthorization,
+    transactions,
+  };
 }
 
 function issueInput(fixture: ReturnType<typeof fixtures>) {
@@ -238,6 +282,105 @@ function issueInput(fixture: ReturnType<typeof fixtures>) {
 }
 
 describe("M148 transactional ticketing application", () => {
+  it.each([
+    undefined,
+    { ...operatorAuthority(), capabilities: [] },
+    { ...operatorAuthority(), subject: "another-operator" },
+  ])(
+    "requires operator authority before probing QR or code resources: %j",
+    async (authority) => {
+      const { service, tickets, checkIns } = harness();
+      const byId = vi.spyOn(tickets, "findById");
+      const byCode = vi.spyOn(tickets, "findByCode");
+      for (const operation of [
+        () =>
+          service.checkInByQr({
+            qrPayload: "invalid",
+            operatorReference: "operator_001",
+            operatorAuthority: authority,
+            occurredAt: "2026-08-15T10:30:00Z",
+          } as Parameters<typeof service.checkInByQr>[0]),
+        () =>
+          service.checkInByCode({
+            code: "missing",
+            result: "validated",
+            operatorReference: "operator_001",
+            operatorAuthority: authority,
+            occurredAt: "2026-08-15T10:30:00Z",
+          } as Parameters<typeof service.checkInByCode>[0]),
+      ]) {
+        await expect(operation()).rejects.toThrow(
+          "TICKETING_OPERATOR_FORBIDDEN",
+        );
+      }
+      expect(byId).not.toHaveBeenCalled();
+      expect(byCode).not.toHaveBeenCalled();
+      expect(checkIns.values).toEqual([]);
+    },
+  );
+
+  it("requires an operational authorization port at construction", () => {
+    expect(() => harness(null)).toThrow("TICKETING_OPERATOR_UNAVAILABLE");
+  });
+
+  it.each(["qr", "code"] as const)(
+    "checks current scope before early and transactional %s replay",
+    async (method) => {
+      const {
+        service,
+        fixture,
+        tickets,
+        checkIns,
+        operatorAuthorization,
+        transactions,
+      } = harness();
+      const issued = await service.issueTicket(issueInput(fixture));
+      const invoke = (authority: TicketingOperatorAuthority) => {
+        const input = {
+          operatorAuthority: authority,
+          occurredAt: "2026-08-15T10:30:00Z",
+        };
+        return method === "qr"
+          ? service.checkInByQr({ ...input, qrPayload: issued.qrPayload })
+          : service.checkInByCode({
+              ...input,
+              code: issued.ticket.code,
+              result: "validated",
+            });
+      };
+      const authorized = vi.spyOn(operatorAuthorization!, "authorize");
+      const commit = vi.spyOn(transactions, "commitCheckIn");
+      const first = await invoke(operatorAuthority());
+      expect(first.checkIn.operatorReference).toBe("operator_001");
+      const replayRead = vi.spyOn(checkIns, "listByTicketId");
+      await expect(
+        invoke({
+          ...operatorAuthority(),
+          scope: { kind: "business", businessIds: ["business-b"] },
+        }),
+      ).rejects.toThrow("TICKETING_OPERATOR_NOT_FOUND");
+      expect(replayRead).not.toHaveBeenCalled();
+      expect(commit).toHaveBeenCalledTimes(1);
+      await expect(invoke(operatorAuthority())).resolves.toMatchObject({
+        replayed: true,
+      });
+      // Reproduce a transaction winning after this caller read its issued snapshot.
+      vi.spyOn(
+        tickets,
+        method === "qr" ? "findById" : "findByCode",
+      ).mockResolvedValue(issued.ticket);
+      replayRead.mockResolvedValue([]);
+      await expect(invoke(operatorAuthority())).resolves.toMatchObject({
+        replayed: true,
+      });
+      expect(authorized.mock.invocationCallOrder.at(-1)).toBeLessThan(
+        commit.mock.invocationCallOrder.at(-1)!,
+      );
+      expect(checkIns.values).toHaveLength(1);
+      expect(tickets.values.get(issued.ticket.id)?.status).toBe("validated");
+    },
+  );
+
   it("issues only from persisted financial authority and replays issuance", async () => {
     const { service, fixture } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
@@ -278,7 +421,7 @@ describe("M148 transactional ticketing application", () => {
     const issued = await service.issueTicket(issueInput(fixture));
     const request = {
       qrPayload: issued.qrPayload,
-      operatorReference: "operator_001",
+      operatorAuthority: operatorAuthority("operator_001"),
       occurredAt: "2026-08-15T10:30:00Z",
     };
     const first = await service.checkInByQr(request);
@@ -295,12 +438,12 @@ describe("M148 transactional ticketing application", () => {
     const issued = await service.issueTicket(issueInput(fixture));
     const validated = await service.checkInByQr({
       qrPayload: issued.qrPayload,
-      operatorReference: "operator_001",
+      operatorAuthority: operatorAuthority("operator_001"),
       occurredAt: "2026-08-15T10:30:00Z",
     });
     const used = await service.checkInByQr({
       qrPayload: issued.qrPayload,
-      operatorReference: "operator_001",
+      operatorAuthority: operatorAuthority("operator_001"),
       occurredAt: "2026-08-15T10:31:00Z",
     });
 
@@ -309,32 +452,77 @@ describe("M148 transactional ticketing application", () => {
     await expect(
       service.checkInByQr({
         qrPayload: issued.qrPayload,
-        operatorReference: "operator_001",
+        operatorAuthority: operatorAuthority("operator_001"),
         occurredAt: "2026-08-15T10:32:00Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_TICKET_ALREADY_USED" });
     expect(checkIns.values).toHaveLength(2);
   });
 
-  it("rejects QR check-in after the ticket has been revoked", async () => {
-    const { service, fixture, checkIns } = harness();
-    const issued = await service.issueTicket(issueInput(fixture));
-    await service.checkInByCode({
-      code: issued.ticket.code,
-      result: "cancelled",
-      operatorReference: "operator_001",
-      occurredAt: "2026-08-15T10:30:00Z",
-    });
-
-    await expect(
-      service.checkInByQr({
-        qrPayload: issued.qrPayload,
-        operatorReference: "operator_001",
-        occurredAt: "2026-08-15T10:31:00Z",
-      }),
-    ).rejects.toMatchObject({ code: "TICKETING_TICKET_REVOKED" });
-    expect(checkIns.values).toHaveLength(1);
-  });
+  it.each(["qr", "code"] as const)(
+    "replays historical %s after cancellation only under current authority",
+    async (method) => {
+      const { service, fixture, tickets, checkIns, transactions } = harness();
+      const issued = await service.issueTicket(issueInput(fixture));
+      const invoke = (
+        authority = operatorAuthority(),
+        occurredAt = "2026-08-15T10:29:00Z",
+      ) => {
+        const input = { operatorAuthority: authority, occurredAt };
+        return method === "qr"
+          ? service.checkInByQr({ ...input, qrPayload: issued.qrPayload })
+          : service.checkInByCode({
+              ...input,
+              code: issued.ticket.code,
+              result: "validated",
+            });
+      };
+      const first = await invoke();
+      await service.checkInByCode({
+        code: issued.ticket.code,
+        result: "cancelled",
+        operatorAuthority: operatorAuthority(),
+        occurredAt: "2026-08-15T10:30:00Z",
+      });
+      const cancelled = tickets.values.get(issued.ticket.id);
+      const history = [...checkIns.values];
+      const replayRead = vi.spyOn(checkIns, "listByTicketId");
+      const commit = vi.spyOn(transactions, "commitCheckIn");
+      await expect(
+        invoke({ ...operatorAuthority(), capabilities: [] }),
+      ).rejects.toThrow("TICKETING_OPERATOR_FORBIDDEN");
+      await expect(
+        invoke({
+          ...operatorAuthority(),
+          scope: { kind: "business", businessIds: ["business-b"] },
+        }),
+      ).rejects.toThrow("TICKETING_OPERATOR_NOT_FOUND");
+      expect(replayRead).not.toHaveBeenCalled();
+      expect(commit).not.toHaveBeenCalled();
+      await expect(
+        invoke(operatorAuthority(), "2026-08-15T10:31:00Z"),
+      ).rejects.toThrow("TICKETING_TICKET_REVOKED");
+      await expect(invoke()).resolves.toMatchObject({
+        replayed: true,
+        ticket: { status: "cancelled" },
+        checkIn: first.checkIn,
+      });
+      expect(commit).not.toHaveBeenCalled();
+      // An issued snapshot racing the same history must return the same cancelled state.
+      vi.spyOn(
+        tickets,
+        method === "qr" ? "findById" : "findByCode",
+      ).mockResolvedValue(issued.ticket);
+      replayRead.mockResolvedValue([]);
+      await expect(invoke()).resolves.toMatchObject({
+        replayed: true,
+        ticket: { status: "cancelled" },
+        checkIn: first.checkIn,
+      });
+      expect(tickets.values.get(issued.ticket.id)).toEqual(cancelled);
+      expect(checkIns.values).toEqual(history);
+    },
+  );
 
   it("preserves exact code replay but rejects a new attempt after use", async () => {
     const { service, fixture, checkIns } = harness();
@@ -342,13 +530,13 @@ describe("M148 transactional ticketing application", () => {
     await service.checkInByCode({
       code: issued.ticket.code,
       result: "validated",
-      operatorReference: "operator_003",
+      operatorAuthority: operatorAuthority("operator_003"),
       occurredAt: "2026-08-15T10:20:00Z",
     });
     const useRequest = {
       code: issued.ticket.code,
       result: "used",
-      operatorReference: "operator_003",
+      operatorAuthority: operatorAuthority("operator_003"),
       occurredAt: "2026-08-15T10:21:00Z",
     };
     const used = await service.checkInByCode(useRequest);
@@ -496,7 +684,7 @@ describe("M148 transactional ticketing application", () => {
     await expect(
       service.checkInByQr({
         qrPayload: issued.qrPayload,
-        operatorReference: "operator_expiry_qr",
+        operatorAuthority: operatorAuthority("operator_expiry_qr"),
         occurredAt: "2026-08-15T11:00:00Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_TICKET_EXPIRED" });
@@ -514,7 +702,7 @@ describe("M148 transactional ticketing application", () => {
       service.checkInByCode({
         code: issued.ticket.code,
         result: "validated",
-        operatorReference: "operator_expiry_code",
+        operatorAuthority: operatorAuthority("operator_expiry_code"),
         occurredAt: "2026-08-15T11:00:00.001Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_TICKET_EXPIRED" });
@@ -568,7 +756,7 @@ describe("M148 transactional ticketing application", () => {
       service.checkInByCode({
         code: issued.ticket.code,
         result: "cancelled",
-        operatorReference: "refund_authority",
+        operatorAuthority: operatorAuthority("refund_authority"),
         occurredAt: "2026-08-15T11:30:00Z",
       }),
     ).resolves.toMatchObject({
@@ -583,7 +771,7 @@ describe("M148 transactional ticketing application", () => {
     const firstRequest = {
       code: issued.ticket.code,
       result: "validated",
-      operatorReference: "operator_duplicate_code",
+      operatorAuthority: operatorAuthority("operator_duplicate_code"),
       occurredAt: "2026-08-15T10:20:00Z",
     } as const;
 
@@ -658,7 +846,7 @@ describe("M148 transactional ticketing application", () => {
     await expect(
       service.checkInByQr({
         qrPayload: issued.qrPayload,
-        operatorReference: "operator_backdated_qr",
+        operatorAuthority: operatorAuthority("operator_backdated_qr"),
         occurredAt: "2026-08-15T09:59:59.999Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_CHECKIN_INVALID" });

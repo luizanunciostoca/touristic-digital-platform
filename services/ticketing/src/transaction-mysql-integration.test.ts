@@ -20,6 +20,9 @@ import {
   MySqlTicketingTransactionalCommand,
   applyTicketingM147Schema,
   createTicketingMySqlPoolFromEnvironment,
+  createTicketingApplicationService,
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
 } from "./index.js";
 
 const databaseUrl = process.env.TICKETING_DATABASE_URL;
@@ -99,6 +102,136 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
     await pool?.query("DROP TRIGGER IF EXISTS ticketing_m148_fail_checkin");
     await pool?.end();
   });
+
+  it.each(["qr", "code"] as const)(
+    "enforces current operator authority before SQL %s mutation and replay",
+    async (method) => {
+      const { ticket, secret } = fixture();
+      const unexpectedLookup = () =>
+        Promise.reject(new Error("UNEXPECTED_NON_CHECKIN_LOOKUP"));
+      // This contract exercises service + SQL transactions; the composed app contract
+      // separately exercises the full canonical owner chain against SQL.
+      const service = createTicketingApplicationService({
+        orders: {
+          findById: unexpectedLookup,
+          findByRequestKey: unexpectedLookup,
+          save: unexpectedLookup,
+        },
+        payments: { findById: unexpectedLookup, save: unexpectedLookup },
+        tickets: new MySqlTicketRepository(pool),
+        checkIns: new MySqlTicketCheckInRepository(pool),
+        offline: new MySqlTicketOfflineEnvelopeRepository(pool),
+        transactions: new MySqlTicketingTransactionalCommand(pool),
+        operatorAuthorization: {
+          async authorize(current, authority) {
+            if (
+              current.orderId !== ticket.orderId ||
+              current.destinationId !== ticket.destinationId ||
+              authority.scope.kind !== "business" ||
+              !authority.scope.businessIds.includes("business-a")
+            ) {
+              throw new TicketingOperatorAuthorizationError(
+                "TICKETING_OPERATOR_NOT_FOUND",
+              );
+            }
+          },
+        },
+        signingSecret: secret,
+        clock: { now: () => "2026-08-15T11:30:01Z" },
+      });
+      const authority: TicketingOperatorAuthority = {
+        subject: "operator_m148",
+        capabilities: ["ticketing.manage"],
+        scope: { kind: "business", businessIds: ["business-a"] },
+      };
+      const invoke = (
+        operatorAuthority: TicketingOperatorAuthority,
+        occurredAt = "2026-08-15T11:30:00Z",
+      ) => {
+        const input = { operatorAuthority, occurredAt };
+        return method === "qr"
+          ? service.checkInByQr({
+              ...input,
+              qrPayload: createTicketQrPayload(ticket.id, secret),
+            })
+          : service.checkInByCode({
+              ...input,
+              code: ticket.code,
+              result: "validated",
+            });
+      };
+      const outside: TicketingOperatorAuthority = {
+        ...authority,
+        scope: { kind: "business", businessIds: ["business-b"] },
+      };
+      async function assertStored(status: string, historyCount: number) {
+        const [tickets] = await pool.execute<RowDataPacket[]>(
+          "SELECT status FROM ticketing_tickets WHERE ticket_id = ?",
+          [ticket.id],
+        );
+        const [history] = await pool.execute<RowDataPacket[]>(
+          "SELECT COUNT(*) AS total FROM ticketing_checkins WHERE ticket_id = ?",
+          [ticket.id],
+        );
+        expect(tickets[0]?.status).toBe(status);
+        expect(Number(history[0]?.total)).toBe(historyCount);
+      }
+      await expect(invoke({ ...authority, capabilities: [] })).rejects.toThrow(
+        "TICKETING_OPERATOR_FORBIDDEN",
+      );
+      await assertStored("issued", 0);
+      await expect(invoke(outside)).rejects.toThrow(
+        "TICKETING_OPERATOR_NOT_FOUND",
+      );
+      await assertStored("issued", 0);
+      const first = await invoke(authority);
+      expect(first.checkIn.operatorReference).toBe(authority.subject);
+      await assertStored("validated", 1);
+      await expect(invoke(outside)).rejects.toThrow(
+        "TICKETING_OPERATOR_NOT_FOUND",
+      );
+      await assertStored("validated", 1);
+      await expect(invoke(authority)).resolves.toMatchObject({
+        replayed: true,
+        checkIn: first.checkIn,
+      });
+      await assertStored("validated", 1);
+      await service.checkInByCode({
+        code: ticket.code,
+        result: "cancelled",
+        operatorAuthority: authority,
+        occurredAt: "2026-08-15T11:31:00Z",
+      });
+      await assertStored("cancelled", 2);
+      const readPersisted = async () => {
+        const [current] = await pool.execute<RowDataPacket[]>(
+          "SELECT * FROM ticketing_tickets WHERE ticket_id = ?",
+          [ticket.id],
+        );
+        const [history] = await pool.execute<RowDataPacket[]>(
+          "SELECT * FROM ticketing_checkins WHERE ticket_id = ? ORDER BY checkin_id",
+          [ticket.id],
+        );
+        return { current, history };
+      };
+      const cancelledSnapshot = await readPersisted();
+      await expect(invoke({ ...authority, capabilities: [] })).rejects.toThrow(
+        "TICKETING_OPERATOR_FORBIDDEN",
+      );
+      await expect(invoke(outside)).rejects.toThrow(
+        "TICKETING_OPERATOR_NOT_FOUND",
+      );
+      await expect(invoke(authority, "2026-08-15T11:32:00Z")).rejects.toThrow(
+        "TICKETING_TICKET_REVOKED",
+      );
+      await expect(invoke(authority)).resolves.toMatchObject({
+        replayed: true,
+        ticket: { status: "cancelled" },
+        checkIn: first.checkIn,
+      });
+      expect(await readPersisted()).toEqual(cancelledSnapshot);
+    },
+  );
 
   function onlineCommand() {
     const { ticket } = fixture();
