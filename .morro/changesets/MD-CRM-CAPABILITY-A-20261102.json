@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CRM-CAPABILITY-A-20261102",
   "objective": "enforce-canonical-crm-capabilities-before-private-access-and-prove-real-auth-composition",
-  "baseSha": "f4e151096cd40824dd6ef41ac139ffe1ed15cd7c",
+  "baseSha": "bcb533fffd277a7aae42097a6482847031b5485b",
   "branch": "fix/crm-capability-a-20261102",
   "state": "IMPLEMENTING",
   "risk": "critical",
