@@ -46,6 +46,8 @@ jobs:
   crm-auth-contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      CRM_CONTRACT_DATABASE_URL: mysql://root:crm-pass@127.0.0.1:3306/morro_crm
     services:
       mysql:
         image: mysql:8.4
@@ -78,16 +80,53 @@ jobs:
           pnpm --filter @touristic/crm-server test
       - name: Build workspace
         run: pnpm -w build
+      - name: Require CRM boundary capability cases
+        run: |
+          pnpm --filter @touristic/crm-server exec vitest run src/crm-private-auth-order.test.mjs \
+            --reporter=json --outputFile=/tmp/crm-auth-composition.json
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync('/tmp/crm-auth-composition.json', 'utf8'));
+          const results = report.testResults.flatMap(suite => suite.assertionResults);
+          const composition = results.filter(result => result.ancestorTitles.includes('CRM-A canonical capability and CRM boundaries'));
+          const families = ['leads', 'lead-detail', 'meetings', 'proposals', 'contracts', 'follow-ups', 'trials', 'referrals', 'metrics'];
+          const expected = families.flatMap(name => (name === 'metrics' ? ['GET'] : ['GET', 'POST'])
+            .map(method => `denies AFFILIATE ${method} ${name} before business I/O`));
+          expected.push(...['SUPPORT', 'AUDITOR', 'BUSINESS_VIEWER', 'viewer'].map(role => `allows ${role} reads and audits readonly mutations`));
+          expected.push('allows an owner mutation after security preconditions');
+          expected.push(...['AFFILIATE', 'viewer'].map(role => `denies ${role} AI content before repository and provider calls`));
+          assert.equal(expected.length, 24);
+          assert.equal(report.success, true);
+          for (const field of ['numFailedTests', 'numPendingTests', 'numFailedTestSuites']) assert.equal(report[field], 0);
+          assert.equal(report.numTotalTests, results.length);
+          assert.equal(report.numPassedTests, results.length);
+          for (const result of results) assert.equal(result.status, 'passed');
+          assert.deepEqual(composition.map(result => result.title).sort(), expected.sort());
+          const proof = {kind: 'CRM_A_CAPABILITY_BOUNDARY_PROOF', status: 'PASS', requiredCases: expected.length, passed: results.length};
+          writeFileSync('/tmp/crm-auth-composition-proof.json', JSON.stringify(proof) + '\n');
+          console.log(JSON.stringify(proof));
+          NODE
       - name: Validate real cookie/session/origin/CSRF/MySQL contract
         shell: bash
         run: |
           set -euo pipefail
-          PORT=4176
+          PORT="${CRM_CONTRACT_PORT:-4176}"
+          : "${CRM_CONTRACT_DATABASE_URL:?isolated contract database required}"
+          node --input-type=module - <<'NODE'
+          const database = new URL(process.env.CRM_CONTRACT_DATABASE_URL);
+          const fixtures = { '3306': '/morro_crm', '33386': '/crm_capability_a' };
+          if (database.protocol !== 'mysql:' || database.hostname !== '127.0.0.1' || database.search || database.hash || fixtures[database.port] !== database.pathname) throw new Error('ISOLATED_CRM_FIXTURE_REQUIRED');
+          NODE
           ORIGIN="http://127.0.0.1:${PORT}"
           SECRET="0123456789abcdef0123456789abcdef"
           PASSWORD="correct horse battery staple"
           HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
-          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$HASH")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",role:"owner"},{id:"viewer-1",email:"viewer@example.com",role:"viewer"},{id:"affiliate-1",email:"affiliate@example.com",role:"AFFILIATE"},...["SUPPORT","AUDITOR","BUSINESS_VIEWER"].map(role=>({id:`readonly-${role}`,email:`${role.toLowerCase()}@example.com`,role}))].map(user=>({...user,passwordHash:process.argv[1],businessIds:user.role==="AFFILIATE"?[]:["toca-do-morcego"]}))))' "$HASH")
+          : > /tmp/crm-auth-http-case-ledger.jsonl
+          case_pass() {
+            node -e 'require("node:fs").appendFileSync("/tmp/crm-auth-http-case-ledger.jsonl",JSON.stringify({id:process.argv[1],status:"PASS"})+"\n")' "$1"
+          }
 
           assert_http() {
             local actual="$1"
@@ -105,7 +144,7 @@ jobs:
 
           DASHBOARD_AUTH_SECRET="$SECRET" \
           DASHBOARD_USERS_JSON="$USERS" \
-          CRM_DATABASE_URL="mysql://root:crm-pass@127.0.0.1:3306/morro_crm" \
+          CRM_DATABASE_URL="$CRM_CONTRACT_DATABASE_URL" \
           PORT="$PORT" \
           HOST="127.0.0.1" \
           node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/crm-platform-server.log 2>&1 &
@@ -120,6 +159,25 @@ jobs:
           UNAUTH=$(curl --silent --output /tmp/crm-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/leads")
           assert_http "$UNAUTH" 401 /tmp/crm-unauth.json unauthenticated-read
           grep -q 'AUTH_REQUIRED' /tmp/crm-unauth.json
+          case_pass cookie:missing
+
+          EXPIRED_TOKEN=$(node --input-type=module - "$SECRET" <<'NODE'
+          import { createSessionToken, verifySessionToken } from './services/auth/dist/index.js';
+          const issued = Math.floor(Date.now() / 1000) - 600;
+          const token = createSessionToken({subject: 'owner-1', email: 'owner@example.com', role: 'owner', businessIds: ['toca-do-morcego']}, process.argv[2], {nowEpochSeconds: issued, ttlSeconds: 300});
+          if (!token || !verifySessionToken(token, process.argv[2], issued) || verifySessionToken(token, process.argv[2])) throw new Error('EXPIRED_SIGNED_FIXTURE_REQUIRED');
+          console.log(token);
+          NODE
+          )
+          for cookie_case in malformed expired; do
+            COOKIE_VALUE=malformed-session
+            if [ "$cookie_case" = expired ]; then COOKIE_VALUE="$EXPIRED_TOKEN"; fi
+            COOKIE_STATUS=$(curl --silent --output /tmp/crm-invalid-cookie.json --write-out '%{http_code}' \
+              --cookie "md_dashboard_session=$COOKIE_VALUE" "$ORIGIN/api/crm/leads")
+            assert_http "$COOKIE_STATUS" 401 /tmp/crm-invalid-cookie.json "cookie-$cookie_case"
+            grep -q 'AUTH_REQUIRED' /tmp/crm-invalid-cookie.json
+            case_pass "cookie:$cookie_case"
+          done
 
           MEETING_UNAUTH=$(curl --silent --output /tmp/meeting-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/meetings")
           assert_http "$MEETING_UNAUTH" 401 /tmp/meeting-unauth.json unauthenticated-meeting-read
@@ -141,12 +199,48 @@ jobs:
           PY
           OWNER_CSRF=$(cat /tmp/owner-csrf.txt)
 
+          AFFILIATE_LOGIN=$(curl --silent --output /tmp/affiliate-login.json --cookie-jar /tmp/affiliate.cookies --write-out '%{http_code}' \
+            --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
+            --data "{\"email\":\"affiliate@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          assert_http "$AFFILIATE_LOGIN" 200 /tmp/affiliate-login.json affiliate-login
+          AFFILIATE_CSRF=$(node -p 'require("/tmp/affiliate-login.json").csrfToken')
+          AFFILIATE_SESSION=$(curl --silent --output /tmp/crm-affiliate-session.json --write-out '%{http_code}' \
+            --cookie /tmp/affiliate.cookies "$ORIGIN/api/dashboard/auth/session")
+          assert_http "$AFFILIATE_SESSION" 200 /tmp/crm-affiliate-session.json affiliate-session-valid
+          node -e 'const s=require("/tmp/crm-affiliate-session.json"); if(s.authenticated!==true || s.user?.role!=="AFFILIATE" || typeof s.csrfToken!=="string" || !s.csrfToken || s.csrfToken!==process.argv[1]) process.exit(1)' "$AFFILIATE_CSRF"
+          AFFILIATE_DENIALS=0
+          for family in leads lead-detail contracts follow-ups meetings metrics proposals referrals trials; do
+            resource="$family"
+            if [ "$family" = lead-detail ]; then resource=leads/1/detail; fi
+            if [ "$family" = metrics ]; then resource=metrics/funnel; fi
+            AFFILIATE_READ=$(curl --silent --output /tmp/crm-affiliate-read.json --write-out '%{http_code}' \
+              --cookie /tmp/affiliate.cookies "$ORIGIN/api/crm/$resource")
+            assert_http "$AFFILIATE_READ" 403 /tmp/crm-affiliate-read.json "affiliate-read-$resource"
+            node -e 'const r=require(process.argv[1]); if(r.error!=="ACCESS_DENIED" || r.reason!=="capability_denied" || "data" in r) process.exit(1)' /tmp/crm-affiliate-read.json
+            AFFILIATE_DENIALS=$((AFFILIATE_DENIALS + 1))
+            case_pass "affiliate:GET:$family"
+          done
+          for family in leads lead-detail contracts follow-ups meetings proposals referrals trials; do
+            resource="$family"
+            if [ "$family" = lead-detail ]; then resource=leads/1/interactions; fi
+            AFFILIATE_WRITE=$(curl --silent --output /tmp/crm-affiliate-write.json --write-out '%{http_code}' \
+              --cookie /tmp/affiliate.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $AFFILIATE_CSRF" \
+              --header 'Content-Type: application/json' --data '{"companyName":"Affiliate blocked","leadId":1,"title":"Blocked fixture","type":"note"}' \
+              "$ORIGIN/api/crm/$resource")
+            assert_http "$AFFILIATE_WRITE" 403 /tmp/crm-affiliate-write.json "affiliate-write-$family-valid-csrf"
+            node -e 'const r=require(process.argv[1]); if(r.error!=="ACCESS_DENIED" || r.reason!=="capability_denied" || "data" in r) process.exit(1)' /tmp/crm-affiliate-write.json
+            AFFILIATE_DENIALS=$((AFFILIATE_DENIALS + 1))
+            case_pass "affiliate:POST:$family"
+          done
+
           BAD_CSRF=$(curl --silent --output /tmp/crm-bad-csrf.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
             --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' \
             "$ORIGIN/api/crm/leads")
           assert_http "$BAD_CSRF" 403 /tmp/crm-bad-csrf.json invalid-csrf
           grep -q 'INVALID_CSRF' /tmp/crm-bad-csrf.json
+          case_pass security:owner:csrf
 
           CROSS=$(curl --silent --output /tmp/crm-cross.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $OWNER_CSRF" \
@@ -154,6 +248,7 @@ jobs:
             "$ORIGIN/api/crm/leads")
           assert_http "$CROSS" 403 /tmp/crm-cross.json cross-origin
           grep -q 'ORIGIN_DENIED' /tmp/crm-cross.json
+          case_pass security:owner:origin
 
           CREATE=$(curl --silent --output /tmp/crm-create.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
@@ -168,6 +263,7 @@ jobs:
           open('/tmp/lead-id.txt','w').write(str(data['data']['id']))
           PY
           LEAD_ID=$(cat /tmp/lead-id.txt)
+          case_pass owner:mutation
 
           LIST=$(curl --silent --output /tmp/crm-list.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads?search=Toca&limit=25&offset=0")
@@ -279,6 +375,37 @@ jobs:
           assert data['data']['id'] > 0
           PY
 
+          CONTRACT_CREATE=$(curl --silent --output /tmp/crm-contract-create.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --data "{\"leadId\":$LEAD_ID,\"proposalId\":$PROPOSAL_ID,\"title\":\"CRM token fixture\",\"content\":\"Contrato exclusivo para a prova isolada CRM-A.\",\"monthlyValue\":\"299.00\"}" \
+            "$ORIGIN/api/crm/contracts")
+          assert_http "$CONTRACT_CREATE" 200 /tmp/crm-contract-create.json contract-create
+          CONTRACT_ID=$(node -p 'require("/tmp/crm-contract-create.json").data.id')
+          CONTRACT_TOKEN=$(node -p 'require("/tmp/crm-contract-create.json").data.shareToken')
+          PROPOSAL_TOKEN=$(node -p 'require("/tmp/proposal-create.json").data.shareToken')
+          CONTRACT_SEND=$(curl --silent --output /tmp/crm-contract-send.json --write-out '%{http_code}' \
+            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            "$ORIGIN/api/crm/contracts/$CONTRACT_ID/send")
+          assert_http "$CONTRACT_SEND" 200 /tmp/crm-contract-send.json contract-send
+          PUBLIC_TOKEN_READS=0
+          for family in contracts proposals; do
+            if [ "$family" = contracts ]; then
+              PUBLIC_TOKEN="$CONTRACT_TOKEN"; PUBLIC_TITLE="CRM token fixture"; PUBLIC_STATUS="sent"
+            else
+              PUBLIC_TOKEN="$PROPOSAL_TOKEN"; PUBLIC_TITLE="Proposta Comercial — Morro Digital"; PUBLIC_STATUS="accepted"
+            fi
+            PUBLIC_ANONYMOUS=$(curl --silent --output /tmp/crm-public-anonymous.json --write-out '%{http_code}' \
+              "$ORIGIN/api/crm/public/$family/$PUBLIC_TOKEN")
+            assert_http "$PUBLIC_ANONYMOUS" 200 /tmp/crm-public-anonymous.json "public-$family-without-session"
+            PUBLIC_AFFILIATE=$(curl --silent --output /tmp/crm-public-affiliate.json --write-out '%{http_code}' \
+              --cookie /tmp/affiliate.cookies "$ORIGIN/api/crm/public/$family/$PUBLIC_TOKEN")
+            assert_http "$PUBLIC_AFFILIATE" 200 /tmp/crm-public-affiliate.json "public-$family-affiliate-cookie"
+            node -e 'const a=require("/tmp/crm-public-anonymous.json"), b=require("/tmp/crm-public-affiliate.json"); if(a.data?.title!==process.argv[1] || a.data?.status!==process.argv[2] || JSON.stringify(a)!==JSON.stringify(b) || "shareToken" in a.data) process.exit(1)' "$PUBLIC_TITLE" "$PUBLIC_STATUS"
+            PUBLIC_TOKEN_READS=$((PUBLIC_TOKEN_READS + 2))
+            case_pass "public:$family"
+          done
+
           VIEWER_LOGIN=$(curl --silent --output /tmp/viewer-login.json --cookie-jar /tmp/viewer.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
@@ -290,6 +417,19 @@ jobs:
           open('/tmp/viewer-csrf.txt','w').write(data['csrfToken'])
           PY
           VIEWER_CSRF=$(cat /tmp/viewer-csrf.txt)
+
+          VIEWER_BAD_CSRF=$(curl --silent --output /tmp/crm-viewer-bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+            --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' "$ORIGIN/api/crm/leads")
+          assert_http "$VIEWER_BAD_CSRF" 403 /tmp/crm-viewer-bad-csrf.json viewer-invalid-csrf
+          grep -q 'INVALID_CSRF' /tmp/crm-viewer-bad-csrf.json
+          case_pass security:viewer:csrf
+          VIEWER_CROSS=$(curl --silent --output /tmp/crm-viewer-cross.json --write-out '%{http_code}' \
+            --cookie /tmp/viewer.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' "$ORIGIN/api/crm/leads")
+          assert_http "$VIEWER_CROSS" 403 /tmp/crm-viewer-cross.json viewer-cross-origin
+          grep -q 'ORIGIN_DENIED' /tmp/crm-viewer-cross.json
+          case_pass security:viewer:origin
 
           VIEWER_WRITE=$(curl --silent --output /tmp/crm-viewer.json --write-out '%{http_code}' \
             --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
@@ -313,10 +453,51 @@ jobs:
           assert_http "$PROPOSAL_VIEWER_WRITE" 403 /tmp/proposal-viewer.json proposal-viewer-write
           grep -q 'READ_ONLY_ROLE' /tmp/proposal-viewer.json
 
+          for readonly_role in SUPPORT AUDITOR BUSINESS_VIEWER viewer; do
+            READONLY_COOKIE=/tmp/viewer.cookies
+            READONLY_CSRF="$VIEWER_CSRF"
+            if [ "$readonly_role" != viewer ]; then
+              READONLY_EMAIL=$(node -e 'console.log(process.argv[1].toLowerCase()+"@example.com")' "$readonly_role")
+              READONLY_LOGIN=$(curl --silent --output /tmp/crm-readonly-login.json --cookie-jar /tmp/crm-readonly.cookies --write-out '%{http_code}' \
+                --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
+                --data "{\"email\":\"$READONLY_EMAIL\",\"password\":\"$PASSWORD\"}" "$ORIGIN/api/dashboard/auth/login")
+              assert_http "$READONLY_LOGIN" 200 /tmp/crm-readonly-login.json "readonly-login-$readonly_role"
+              READONLY_COOKIE=/tmp/crm-readonly.cookies
+              READONLY_CSRF=$(node -p 'require("/tmp/crm-readonly-login.json").csrfToken')
+            fi
+            READONLY_READ=$(curl --silent --output /tmp/crm-readonly-read.json --write-out '%{http_code}' \
+              --cookie "$READONLY_COOKIE" "$ORIGIN/api/crm/leads")
+            assert_http "$READONLY_READ" 200 /tmp/crm-readonly-read.json "readonly-read-$readonly_role"
+            node -e 'const r=require("/tmp/crm-readonly-read.json"); if(r.data?.length!==1 || r.data[0].id!==Number(process.argv[1])) process.exit(1)' "$LEAD_ID"
+            READONLY_WRITE=$(curl --silent --output /tmp/crm-readonly-write.json --write-out '%{http_code}' \
+              --cookie "$READONLY_COOKIE" --header "Origin: $ORIGIN" --header "X-CSRF-Token: $READONLY_CSRF" \
+              --header 'Content-Type: application/json' --data '{"companyName":"Readonly blocked"}' "$ORIGIN/api/crm/leads")
+            assert_http "$READONLY_WRITE" 403 /tmp/crm-readonly-write.json "readonly-write-$readonly_role"
+            node -e 'const r=require("/tmp/crm-readonly-write.json"); if(r.error!=="READ_ONLY_ROLE" || r.reason!=="read_only_role") process.exit(1)'
+            case_pass "readonly:$readonly_role"
+          done
+
+          BEFORE_LOGOUT=$(curl --silent --output /tmp/crm-before-logout.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads")
+          assert_http "$BEFORE_LOGOUT" 200 /tmp/crm-before-logout.json owner-before-logout
+          OWNER_COOKIE_HASH=$(sha256sum /tmp/owner.cookies)
+          LOGOUT=$(curl --silent --output /tmp/crm-logout.json --write-out '%{http_code}' \
+            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            "$ORIGIN/api/dashboard/auth/logout")
+          assert_http "$LOGOUT" 200 /tmp/crm-logout.json owner-logout
+          test "$OWNER_COOKIE_HASH" = "$(sha256sum /tmp/owner.cookies)"
+          AFTER_LOGOUT=$(curl --silent --output /tmp/crm-after-logout.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads")
+          assert_http "$AFTER_LOGOUT" 401 /tmp/crm-after-logout.json owner-cookie-after-logout
+          grep -q 'AUTH_REQUIRED' /tmp/crm-after-logout.json
+          case_pass session:logout
+
           cd services/crm
-          LEAD_ID="$LEAD_ID" MEETING_ID="$MEETING_ID" PROPOSAL_ID="$PROPOSAL_ID" node --input-type=module - <<'NODE'
+          LEAD_ID="$LEAD_ID" MEETING_ID="$MEETING_ID" PROPOSAL_ID="$PROPOSAL_ID" CONTRACT_ID="$CONTRACT_ID" AFFILIATE_DENIALS="$AFFILIATE_DENIALS" PUBLIC_TOKEN_READS="$PUBLIC_TOKEN_READS" node --input-type=module - <<'NODE'
           import mysql from 'mysql2/promise';
-          const pool = mysql.createPool('mysql://root:crm-pass@127.0.0.1:3306/morro_crm');
+          import assert from 'node:assert/strict';
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const pool = mysql.createPool(process.env.CRM_CONTRACT_DATABASE_URL);
           const [leads] = await pool.query('SELECT company_name, assigned_to_subject, stage FROM crm_leads');
           if (leads.length !== 1 || leads[0].company_name !== 'Toca do Morcego' || leads[0].assigned_to_subject !== 'owner-1' || leads[0].stage !== 'contract_sent') process.exit(1);
           const [meetings] = await pool.query('SELECT lead_id, title, status, created_by_subject FROM crm_meetings WHERE id = ?', [Number(process.env.MEETING_ID)]);
@@ -331,5 +512,43 @@ jobs:
           const [audits] = await pool.query("SELECT operation, reason, actor_subject FROM crm_audit_events WHERE reason = 'read_only_role'");
           if (!audits.some((row) => row.actor_subject === 'viewer-1' && row.operation === 'meeting.update')) process.exit(1);
           if (!audits.some((row) => row.actor_subject === 'viewer-1' && row.operation === 'proposal.create')) process.exit(1);
+          for (const actor of ['readonly-SUPPORT', 'readonly-AUDITOR', 'readonly-BUSINESS_VIEWER', 'viewer-1']) {
+            if (!audits.some(row => row.actor_subject === actor && row.operation === 'lead.create')) throw new Error('READONLY_SQL_AUDIT_MISSING');
+          }
+          const [contracts] = await pool.query('SELECT lead_id, proposal_id, status, created_by_subject FROM crm_contracts WHERE id = ?', [Number(process.env.CONTRACT_ID)]);
+          if (contracts.length !== 1 || contracts[0].lead_id !== Number(process.env.LEAD_ID) || contracts[0].proposal_id !== Number(process.env.PROPOSAL_ID) || contracts[0].created_by_subject !== 'owner-1' || contracts[0].status !== 'sent') process.exit(1);
+          const [affiliateAudits] = await pool.query('SELECT id FROM crm_audit_events WHERE actor_subject = ?', ['affiliate-1']);
+          if (affiliateAudits.length !== 0) throw new Error('PRIVATE_CAPABILITY_DENIAL_REACHED_CRM_BOUNDARY');
+          const expectedRows = {crm_leads: 1, crm_meetings: 1, crm_proposals: 1, crm_contracts: 1, crm_follow_ups: 0, crm_trials: 0, crm_referrals: 0};
+          for (const [table, count] of Object.entries(expectedRows)) {
+            const [[row]] = await pool.query(`SELECT COUNT(*) AS total FROM ${table}`);
+            assert.equal(Number(row.total), count, `Unexpected business mutation in ${table}`);
+          }
+          const privateCapabilityDenials = Number(process.env.AFFILIATE_DENIALS);
+          const publicTokenReads = Number(process.env.PUBLIC_TOKEN_READS);
+          if (privateCapabilityDenials !== 17 || publicTokenReads !== 4) throw new Error('CRM_REQUIRED_HTTP_CASES_MISSING');
+          const cases = readFileSync('/tmp/crm-auth-http-case-ledger.jsonl', 'utf8').trim().split('\n').map(line => JSON.parse(line));
+          const families = ['leads', 'lead-detail', 'contracts', 'follow-ups', 'meetings', 'metrics', 'proposals', 'referrals', 'trials'];
+          const expected = families.flatMap(family => (family === 'metrics' ? ['GET'] : ['GET', 'POST']).map(method => `affiliate:${method}:${family}`));
+          expected.push(...['SUPPORT', 'AUDITOR', 'BUSINESS_VIEWER', 'viewer'].map(role => `readonly:${role}`));
+          expected.push('owner:mutation', ...['owner', 'viewer'].flatMap(role => ['csrf', 'origin'].map(guard => `security:${role}:${guard}`)));
+          expected.push(...['missing', 'malformed', 'expired'].map(mode => `cookie:${mode}`), 'session:logout', 'public:contracts', 'public:proposals');
+          assert.equal(expected.length, 32);
+          assert.deepEqual(cases.map(entry => entry.id).sort(), expected.sort());
+          for (const entry of cases) assert.equal(entry.status, 'PASS');
+          const proof = {kind: 'CRM_A_REAL_HTTP_SQL_PROOF', status: 'PASS', requiredHttpCases: expected.length, passedHttpCases: cases.length, privateCapabilityDenials, publicTokenReads, sqlReadback: true, readonlyAuditPreserved: true};
+          writeFileSync('/tmp/crm-auth-http-sql-proof.json', JSON.stringify(proof) + '\n');
+          console.log(JSON.stringify(proof));
           await pool.end();
           NODE
+      - name: Upload CRM authorization proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: crm-auth-capability-proof
+          path: |
+            /tmp/crm-auth-composition.json
+            /tmp/crm-auth-composition-proof.json
+            /tmp/crm-auth-http-sql-proof.json
+            /tmp/crm-auth-http-case-ledger.jsonl
+          if-no-files-found: error

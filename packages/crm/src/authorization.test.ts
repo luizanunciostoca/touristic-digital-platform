@@ -6,6 +6,21 @@ import { authorizeCrmAccess } from "./authorization.js";
 
 const now = 2_000;
 
+const roleExpectations = [
+  ["PLATFORM_OWNER", "allowed", "allowed"],
+  ["PLATFORM_ADMIN", "allowed", "allowed"],
+  ["SUPPORT", "allowed", "read_only_role"],
+  ["AUDITOR", "allowed", "read_only_role"],
+  ["BUSINESS_OWNER", "allowed", "allowed"],
+  ["BUSINESS_MANAGER", "allowed", "allowed"],
+  ["BUSINESS_VIEWER", "allowed", "read_only_role"],
+  ["AFFILIATE", "capability_denied", "capability_denied"],
+  ["owner", "allowed", "allowed"],
+  ["manager", "allowed", "allowed"],
+  ["viewer", "allowed", "read_only_role"],
+  ["admin", "allowed", "allowed"],
+] as const;
+
 function session(role: AuthRole, expiresAt = 3_000): AuthSessionIdentity {
   return {
     subject: `crm-${role}`,
@@ -19,6 +34,45 @@ function session(role: AuthRole, expiresAt = 3_000): AuthSessionIdentity {
 }
 
 describe("CRM M69 authorization policy", () => {
+  it.each(roleExpectations)(
+    "%s reads require the canonical crm.read capability",
+    (role, readReason) => {
+      expect(
+        authorizeCrmAccess(session(role), { nowEpochSeconds: now }),
+      ).toEqual({ allowed: readReason === "allowed", reason: readReason });
+    },
+  );
+
+  it.each(roleExpectations)(
+    "%s mutations preserve read-only denial before crm.manage",
+    (role, _readReason, mutationReason) => {
+      expect(
+        authorizeCrmAccess(session(role), {
+          mutation: true,
+          nowEpochSeconds: now,
+        }),
+      ).toEqual({
+        allowed: mutationReason === "allowed",
+        reason: mutationReason,
+      });
+    },
+  );
+
+  it.each([false, true])(
+    "checks authentication and expiry before capability denial (mutation=%s)",
+    (mutation) => {
+      const options = { mutation, nowEpochSeconds: now };
+      expect(authorizeCrmAccess(null, options)).toEqual({
+        allowed: false,
+        reason: "authentication_required",
+      });
+      expect(authorizeCrmAccess(session("AFFILIATE", now), options)).toEqual({
+        allowed: false,
+        reason: "session_expired",
+      });
+    },
+  );
+
   it("fails closed when authentication is missing", () => {
     expect(authorizeCrmAccess(null, { nowEpochSeconds: now })).toEqual({
       allowed: false,

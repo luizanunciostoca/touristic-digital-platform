@@ -10,6 +10,20 @@ export default defineConfig({
           import.meta.url,
         ).pathname,
       },
+      {
+        find: "@touristic/crm-server",
+        replacement: new URL("./src/index.ts", import.meta.url).pathname,
+      },
+      {
+        find: /^@touristic\/crm\/(.+)$/u,
+        replacement: new URL("../../packages/crm/src/$1.ts", import.meta.url)
+          .pathname,
+      },
+      {
+        find: "@touristic/crm",
+        replacement: new URL("../../packages/crm/src/index.ts", import.meta.url)
+          .pathname,
+      },
     ],
   },
   test: {
