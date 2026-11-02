@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/crm-global-boundary-b1-20261102",
-      "baseSha": "371d42776378ed608c493a2100aabca0466c3b85",
+      "baseSha": "6ed59552b5204dfa5b2469e6bf97b41277a3e39a",
       "paths": [
         "apps/morro-digital-platform/tooling/crm-api.mjs",
         "services/crm/src/crm-private-auth-order.test.mjs",

@@ -10,6 +10,7 @@ import { authorizeCrmAccess } from "@touristic/crm/authorization";
 
 import {
   canonicalAuthRole,
+  isPlatformWideAuthRole,
   normalizeAuthSessionIdentity,
 } from "@touristic/auth";
 import { CrmLeadServerBoundary as Lead } from "@touristic/crm/leads-boundary";
@@ -46,9 +47,9 @@ const root = resolve(import.meta.dirname, "../../..");
 /** @typedef {(options: HostOptions) => Host} CreateHost */
 
 /** @param {import("@touristic/auth").AuthRole} [role] */
-function identity(role = "BUSINESS_OWNER") {
+function identity(role = "PLATFORM_OWNER") {
   const now = Math.floor(Date.now() / 1000);
-  return {
+  const session = normalizeAuthSessionIdentity({
     subject: `order-${role}`,
     email: `${role}@example.com`,
     role,
@@ -56,20 +57,34 @@ function identity(role = "BUSINESS_OWNER") {
     issuedAt: now - 60,
     expiresAt: now + 3600,
     sessionId: `order-session-${role}`,
-  };
+  });
+  if (!session) throw Error("NORMALIZED_AUTH_IDENTITY_REQUIRED");
+  return session;
 }
 
 // Execute the actual host, canonical policy, public and private lead transports.
-// Infrastructure and boundaries are explicit doubles, not MySQL acceptance.
-/** @param {{session?: Session, schemaFailure?: boolean, configured?: boolean, mutationDecision?: MutationDecision}} [options] */
+// Infrastructure and default boundaries are explicit doubles, not MySQL acceptance.
+// realLeadBoundary retains the canonical domain readonly audit with a recording port.
+/** @param {{session?: Session, schemaFailure?: boolean, configured?: boolean, mutationDecision?: MutationDecision, realLeadBoundary?: boolean}} [options] */
 function harness({
   session = null,
   schemaFailure = false,
   configured = true,
   mutationDecision = { allowed: true },
+  realLeadBoundary = false,
 } = {}) {
   /** @type {string[][]} */
   const calls = [];
+  /** @type {unknown[]} */
+  const auditEvents = [];
+  class Audit {
+    /** @param {unknown} event */
+    record(event) {
+      calls.push(["audit"]);
+      auditEvents.push(event);
+      return Promise.resolve();
+    }
+  }
   class Empty {}
   class PublicBoundary {
     /** @param {string} token */
@@ -121,10 +136,13 @@ function harness({
       if (name === "node:crypto") return crypto;
       if (name === "./database-schema-mode.mjs")
         return { shouldApplyRuntimeSchema: () => true };
+      if (name === "@touristic/auth") return { isPlatformWideAuthRole };
       if (name === "@touristic/crm/authorization")
         return { authorizeCrmAccess };
       if (name === "@touristic/crm/leads-boundary")
-        return { CrmLeadServerBoundary: LeadBoundary };
+        return {
+          CrmLeadServerBoundary: realLeadBoundary ? Lead : LeadBoundary,
+        };
       if (name.startsWith("@touristic/crm/"))
         return new Proxy({}, { get: () => PublicBoundary });
       if (name === "@touristic/crm-server")
@@ -157,6 +175,7 @@ function harness({
                 };
               if (key === "applyCrmCommerceSchema")
                 return () => Promise.resolve(calls.push(["commerce.schema"]));
+              if (key === "MySqlCrmLeadAuditPort") return Audit;
               if (key === "CrmLeadHttpTransport")
                 return load(
                   resolve(root, "services/crm/src/leads-http-transport.ts"),
@@ -237,7 +256,7 @@ function harness({
     await api.handle(input, response, new URL(`http://localhost${path}`));
     return response;
   }
-  return { api, calls, request };
+  return { api, calls, auditEvents, request };
 }
 
 describe("CRM configured host private admission before request effects", () => {
@@ -323,7 +342,11 @@ describe("CRM configured host private admission before request effects", () => {
   );
   it("denies an expired identity before schema or body", async () => {
     const h = harness({
-      session: { ...identity(), expiresAt: 1 },
+      session: normalizeAuthSessionIdentity({
+        ...identity(),
+        issuedAt: 0,
+        expiresAt: 1,
+      }),
       schemaFailure: true,
     });
     expect(await h.request("/api/crm/leads", "POST")).toMatchObject({
@@ -332,25 +355,33 @@ describe("CRM configured host private admission before request effects", () => {
     });
     expect(h.calls).toEqual([["auth"]]);
   });
-  it.each(
-    /** @type {const} */ (["SUPPORT", "AUDITOR", "BUSINESS_VIEWER", "viewer"]),
-  )("retains mutation security for readonly %s with crm.read", async (role) => {
-    const h = harness({
-      session: identity(role),
-      mutationDecision: { allowed: false, reason: "invalid_csrf" },
-    });
-    expect(await h.request("/api/crm/leads", "POST")).toMatchObject({
-      statusCode: 403,
-      body: { error: "INVALID_CSRF", reason: "invalid_csrf" },
-    });
-    expect(h.calls).toEqual([
-      ["auth"],
-      ["schema"],
-      ["commerce.schema"],
-      ["body"],
-      ["mutation"],
-    ]);
-  });
+  it.each(/** @type {const} */ (["SUPPORT", "AUDITOR"]))(
+    "retains mutation security before global readonly %s audit",
+    async (role) => {
+      for (const [reason, error] of [
+        ["invalid_csrf", "INVALID_CSRF"],
+        ["cross_origin_request", "ORIGIN_DENIED"],
+      ]) {
+        const h = harness({
+          session: identity(role),
+          realLeadBoundary: true,
+          mutationDecision: { allowed: false, reason },
+        });
+        expect(await h.request("/api/crm/leads", "POST")).toMatchObject({
+          statusCode: 403,
+          body: { error, reason },
+        });
+        expect(h.calls).toEqual([
+          ["auth"],
+          ["schema"],
+          ["commerce.schema"],
+          ["body"],
+          ["mutation"],
+        ]);
+        expect(h.auditEvents).toEqual([]);
+      }
+    },
+  );
   it.each(["contracts", "proposals"])(
     "preserves public %s token GET without session",
     async (family) => {
@@ -431,6 +462,188 @@ describe("CRM configured host private admission before request effects", () => {
     const h = harness({ configured: false });
     expect((await h.request("/api/crm/leads")).statusCode).toBe(503);
     expect(h.calls).toEqual([]);
+  });
+});
+
+describe("CRM-B1 global HTTP boundary", () => {
+  /** @param {import("@touristic/auth").AuthRole} role @param {string[]} [businessIds] */
+  function normalizedIdentity(role, businessIds = ["crm-fixture"]) {
+    const session = normalizeAuthSessionIdentity({
+      ...identity(role),
+      businessIds,
+    });
+    if (!session) throw Error("NORMALIZED_AUTH_IDENTITY_REQUIRED");
+    expect(session.role).toBe(role);
+    return session;
+  }
+
+  // Nine private families, collection/actions/IDs and public-prefix lookalikes.
+  // Every method must be rejected before schema, body, mutation or private I/O,
+  // including unsupported methods and invalid IDs that otherwise reveal routing.
+  const privatePaths = [
+    "/api/crm/contracts",
+    "/api/crm/contracts/1/sign",
+    "/api/crm/follow-ups",
+    "/api/crm/follow-ups/settings",
+    "/api/crm/follow-ups/1/sent",
+    "/api/crm/leads",
+    "/api/crm/leads/1",
+    "/api/crm/leads/not-an-id",
+    "/api/crm/leads/1/stage",
+    "/api/crm/leads/1/detail",
+    "/api/crm/leads/1/checklist/1",
+    "/api/crm/leads/1/interactions",
+    "/api/crm/meetings",
+    "/api/crm/meetings/1",
+    "/api/crm/metrics/funnel",
+    "/api/crm/proposals",
+    "/api/crm/proposals/accepted",
+    "/api/crm/proposals/1/respond",
+    "/api/crm/referrals",
+    "/api/crm/referrals/1",
+    "/api/crm/referrals/1/contact",
+    "/api/crm/trials",
+    "/api/crm/trials/1/convert",
+    "/api/crm/trials/not-an-id/cancel",
+    "/api/crm/public/contracts",
+    "/api/crm/public/proposals/token/wrong",
+    "/api/crm/public/contracts-extra/token",
+  ];
+  it.each(
+    /** @type {const} */ ([
+      ["BUSINESS_OWNER", "BUSINESS_OWNER", "global_scope_required"],
+      ["BUSINESS_MANAGER", "BUSINESS_MANAGER", "global_scope_required"],
+      ["BUSINESS_VIEWER", "BUSINESS_VIEWER", "global_scope_required"],
+      ["owner", "BUSINESS_OWNER", "global_scope_required"],
+      ["manager", "BUSINESS_MANAGER", "global_scope_required"],
+      ["viewer", "BUSINESS_VIEWER", "global_scope_required"],
+      ["AFFILIATE", "AFFILIATE", "capability_denied"],
+    ]),
+  )(
+    "denies %s (%s) with %s before every private request effect",
+    async (role, canonical, reason) => {
+      const session = normalizedIdentity(role);
+      expect(canonicalAuthRole(session.role)).toBe(canonical);
+      const h = harness({ session, schemaFailure: true });
+      for (const pathname of privatePaths) {
+        for (const method of [
+          "GET",
+          "HEAD",
+          "POST",
+          "PUT",
+          "PATCH",
+          "DELETE",
+          "OPTIONS",
+        ]) {
+          h.calls.length = 0;
+          expect(
+            await h.request(pathname, method),
+            `${method} ${pathname}`,
+          ).toMatchObject({
+            statusCode: 403,
+            body: { error: "ACCESS_DENIED", reason },
+          });
+          expect(h.calls, `${method} ${pathname}`).toEqual([["auth"]]);
+        }
+      }
+    },
+  );
+  it.each(
+    /** @type {const} */ ([
+      "PLATFORM_OWNER",
+      "PLATFORM_ADMIN",
+      "admin",
+      "SUPPORT",
+      "AUDITOR",
+    ]),
+  )("admits global %s reads without Business membership", async (role) => {
+    const h = harness({ session: normalizedIdentity(role, []) });
+    expect(await h.request("/api/crm/leads")).toMatchObject({
+      statusCode: 200,
+      body: { data: { synthetic: true } },
+    });
+    expect(h.calls).toContainEqual(["private.handle"]);
+  });
+
+  it.each(/** @type {const} */ (["PLATFORM_OWNER", "PLATFORM_ADMIN", "admin"]))(
+    "admits global writer %s after mutation security",
+    async (role) => {
+      const h = harness({ session: normalizedIdentity(role, []) });
+      expect(await h.request("/api/crm/leads", "POST")).toMatchObject({
+        statusCode: 200,
+        body: { data: { synthetic: true } },
+      });
+      expect(h.calls).toEqual([
+        ["auth"],
+        ["schema"],
+        ["commerce.schema"],
+        ["body"],
+        ["mutation"],
+        ["private.create"],
+      ]);
+    },
+  );
+
+  it.each(/** @type {const} */ (["SUPPORT", "AUDITOR"]))(
+    "retains the real Lead readonly audit for %s after security",
+    async (role) => {
+      const session = normalizedIdentity(role, []);
+      const h = harness({ session, realLeadBoundary: true });
+      expect(await h.request("/api/crm/leads", "POST")).toMatchObject({
+        statusCode: 403,
+        body: { error: "READ_ONLY_ROLE", reason: "read_only_role" },
+      });
+      expect(h.calls).toEqual([
+        ["auth"],
+        ["schema"],
+        ["commerce.schema"],
+        ["body"],
+        ["mutation"],
+        ["audit"],
+      ]);
+      expect(h.auditEvents).toEqual([
+        {
+          operation: "lead.create",
+          allowed: false,
+          reason: "read_only_role",
+          actorSubject: session.subject,
+          leadId: null,
+        },
+      ]);
+    },
+  );
+
+  it.each(
+    /** @type {const} */ ([
+      "BUSINESS_OWNER",
+      "BUSINESS_MANAGER",
+      "BUSINESS_VIEWER",
+      "owner",
+      "manager",
+      "viewer",
+    ]),
+  )("preserves public token transport authority for %s", async (role) => {
+    const h = harness({
+      session: normalizedIdentity(role),
+      mutationDecision: { allowed: false, reason: "invalid_csrf" },
+    });
+    for (const family of ["contracts", "proposals"]) {
+      expect(
+        (await h.request(`/api/crm/public/${family}/token`)).statusCode,
+      ).toBe(404);
+    }
+    expect(
+      (await h.request("/api/crm/public/contracts/token/sign", "POST"))
+        .statusCode,
+    ).toBe(400);
+    expect(
+      (await h.request("/api/crm/public/proposals/token/respond", "POST"))
+        .statusCode,
+    ).toBe(409);
+    expect(h.calls.filter(([name]) => name === "public.view")).toHaveLength(2);
+    expect(h.calls).toContainEqual(["public.sign"]);
+    expect(h.calls).toContainEqual(["public.respond"]);
+    expect(h.calls.some(([name]) => name.startsWith("private."))).toBe(false);
   });
 });
 
