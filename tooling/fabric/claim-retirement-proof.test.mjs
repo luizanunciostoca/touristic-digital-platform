@@ -1763,6 +1763,122 @@ function voluntaryFixture(state = "LOCAL_PROVEN", overrides = {}) {
   };
 }
 
+function sharedWorkspaceFixture(distinctSnapshots = false) {
+  const f = voluntaryFixture("IMPLEMENTING", { baseSha: MERGE });
+  const originalWriter = f.request.writerInventory[0];
+  const { receiptRef, receiptSha256, ...originalFacts } =
+    f.request.stopAckReceipts[0];
+  const material = f.request.wipInventory[0];
+  const manifestPath = ".morro/changesets/MD-ONE.json";
+  const manifestBlob = f.blob(JSON.stringify(f.context.canonicalManifest));
+  const manifest = {
+    ...preservedFile(manifestPath, manifestBlob, f.hash),
+    status: "tracked",
+  };
+  const headTree = "e".repeat(40);
+  const snapshots = [];
+  f.request.writerInventory = [];
+  f.request.stopAckReceipts = [];
+  f.request.wipInventory = [];
+  f.request.backupRefs = [];
+
+  // The acquisition HEAD contains the manifesto; the earlier claim base does not.
+  f.routes.set(`/git/commits/${MERGE}`, {
+    sha: MERGE,
+    tree: { sha: headTree },
+  });
+  f.routes.set(`/git/trees/${headTree}?recursive=1`, {
+    sha: headTree,
+    truncated: false,
+    tree: [
+      {
+        path: manifestPath,
+        type: "blob",
+        mode: manifest.modeGit,
+        sha: manifest.blobSha,
+      },
+    ],
+  });
+  f.routes.set(`/git/blobs/${manifest.blobSha}`, manifestBlob);
+  f.routes.set(`/compare/${MERGE}...${MERGE}`, {
+    ...ancestorResponse(MERGE),
+    status: "identical",
+  });
+
+  for (let index = 0; index < 3; index++) {
+    const writer = {
+      ...originalWriter,
+      writerId: `writer-${index + 1}`,
+      executorIdentity:
+        index === 0 ? originalWriter.executorIdentity : `executor-${index + 1}`,
+      sessionId: `session-${index + 1}`,
+      commandIds: [`command-${index + 1}`],
+      headSha: MERGE,
+      treeSha: headTree,
+    };
+    const facts = { ...originalFacts, writerId: writer.writerId };
+    const receiptBlob = f.blob(
+      JSON.stringify({ schemaVersion: 1, writer, receipt: facts }),
+    );
+    const receiptFile = preservedFile(
+      `receipt-${writer.writerId}.json`,
+      receiptBlob,
+      f.hash,
+    );
+    const snapshotIndex = distinctSnapshots ? index : 0;
+    const backup = {
+      repository: f.request.repository,
+      ref: `refs/heads/shared-backup-${index}`,
+      commitSha: String(snapshotIndex + 4).repeat(40),
+      treeSha: String(snapshotIndex + 7).repeat(40),
+      writerId: writer.writerId,
+    };
+    const snapshot = snapshots[snapshotIndex] ?? {
+      sha: backup.treeSha,
+      truncated: false,
+      tree: [],
+    };
+    snapshots[index] = snapshot;
+    let writerMaterial = material;
+    if (distinctSnapshots) {
+      const blob = f.blob(`preserved material from writer ${index + 1}\n`);
+      writerMaterial = preservedFile(material.path, blob, f.hash);
+      f.routes.set(`/git/blobs/${blob.sha}`, blob);
+    }
+    for (const file of [manifest, writerMaterial, receiptFile]) {
+      f.request.wipInventory.push({ ...file, backupIndex: index });
+      if (!snapshot.tree.some((entry) => entry.path === file.path)) {
+        snapshot.tree.push({
+          path: file.path,
+          type: "blob",
+          mode: file.modeGit,
+          sha: file.blobSha,
+        });
+      }
+    }
+    f.request.writerInventory.push(writer);
+    f.request.stopAckReceipts.push({
+      ...facts,
+      receiptRef: `https://api.github.com/repos/owner/repo/git/blobs/${receiptBlob.sha}`,
+      receiptSha256: receiptFile.sha256,
+    });
+    f.request.backupRefs.push(backup);
+    f.routes.set(`/git/blobs/${receiptBlob.sha}`, receiptBlob);
+    f.routes.set(`/git/ref/heads/shared-backup-${index}`, backupRef(backup));
+    f.routes.set(`/git/commits/${backup.commitSha}`, {
+      sha: backup.commitSha,
+      tree: { sha: backup.treeSha },
+    });
+    f.routes.set(`/git/trees/${backup.treeSha}?recursive=1`, snapshot);
+    f.routes.set(
+      `/compare/${MERGE}...${backup.commitSha}`,
+      ancestorResponse(MERGE),
+    );
+  }
+  f.refresh();
+  return { ...f, snapshots };
+}
+
 function voluntaryBatchFixture() {
   const f = voluntaryFixture();
   for (let index = 2; index < 9; index++) {
@@ -2444,6 +2560,166 @@ test("a receipt must be durably backed by its own writer snapshot", async () => 
   });
   f.refresh();
   await assert.rejects(f.collect(), /VOLUNTARY_RECEIPT_NOT_DURABLY_BACKED/u);
+});
+
+for (const distinctSnapshots of [false, true]) {
+  test(`VOLUNTARY shared workspace preserves three writers (distinct snapshots: ${distinctSnapshots})`, async () => {
+    const f = sharedWorkspaceFixture(distinctSnapshots);
+    const calls = [];
+    const evidence = await f.collect({
+      fetchImpl: (url, init) => {
+        calls.push(new URL(url).pathname);
+        return f.fetchImpl(url, init);
+      },
+    });
+    assert.equal(evidence.reason, "VOLUNTARY");
+    assert.equal(evidence.requestDigest, f.digest(f.request));
+    assert.equal(
+      evidence.decisionRequest.preservedMaterialState,
+      "IMPLEMENTING",
+    );
+    assert.equal(evidence.decisionRequest.completionClaimed, false);
+    assert.equal(evidence.decisionRequest.writerInventory.length, 3);
+    assert.equal(evidence.decisionRequest.stopAckReceipts.length, 3);
+    assert.equal(evidence.decisionRequest.wipInventory.length, 9);
+    assert.equal(
+      new Set(f.request.writerInventory.map((writer) => writer.headSha)).size,
+      1,
+    );
+    assert.equal(
+      new Set(f.request.backupRefs.map((backup) => backup.commitSha)).size,
+      distinctSnapshots ? 3 : 1,
+    );
+    const expectedReads = new Map();
+    for (const file of f.request.wipInventory) {
+      expectedReads.set(
+        file.blobSha,
+        (expectedReads.get(file.blobSha) ?? 0) + 1,
+      );
+    }
+    for (const receipt of f.request.stopAckReceipts) {
+      const sha = receipt.receiptRef.split("/").at(-1);
+      expectedReads.set(sha, expectedReads.get(sha) + 1);
+    }
+    for (const [sha, count] of expectedReads) {
+      assert.equal(
+        calls.filter((path) => path.endsWith(`/git/blobs/${sha}`)).length,
+        count,
+      );
+    }
+    assert.equal(
+      calls.filter((path) => path.endsWith("/commits/main")).length,
+      2,
+    );
+    assert.equal(
+      calls.filter((path) => path.includes("/git/ref/heads/shared-backup-"))
+        .length,
+      6,
+    );
+  });
+}
+
+for (const backupIndex of [0, 1, 2]) {
+  test(`VOLUNTARY shared workspace rejects duplicate paths within backup ${backupIndex}`, async () => {
+    for (const changeBlob of [false, true]) {
+      const f = sharedWorkspaceFixture();
+      const duplicate = {
+        ...f.request.wipInventory.find(
+          (file) => file.backupIndex === backupIndex,
+        ),
+      };
+      if (changeBlob) duplicate.blobSha = "9".repeat(40);
+      f.request.wipInventory.push(duplicate);
+      f.refresh();
+      await assert.rejects(f.collect(), /VOLUNTARY_DUPLICATE/u);
+    }
+  });
+  for (const path of [".morro/changesets/MD-ONE.json", "tooling/example.mjs"]) {
+    test(`VOLUNTARY shared workspace rejects omitted ${path} in backup ${backupIndex}`, async () => {
+      const f = sharedWorkspaceFixture();
+      f.request.wipInventory = f.request.wipInventory.filter(
+        (file) => !(file.backupIndex === backupIndex && file.path === path),
+      );
+      f.refresh();
+      await assert.rejects(f.collect(), /VOLUNTARY_WIP_PATH_OMITTED/u);
+    });
+  }
+}
+
+test("VOLUNTARY shared workspace rejects a receipt preserved by another writer only", async () => {
+  const f = sharedWorkspaceFixture();
+  f.request.wipInventory.find(
+    (file) => file.path === "receipt-writer-2.json",
+  ).backupIndex = 0;
+  f.refresh();
+  await assert.rejects(f.collect(), /VOLUNTARY_RECEIPT_NOT_DURABLY_BACKED/u);
+});
+
+test("VOLUNTARY shared workspace rejects validly hashed receipt facts from another writer", async () => {
+  const f = sharedWorkspaceFixture();
+  const receipt = f.request.stopAckReceipts[1];
+  const { receiptRef, receiptSha256, ...facts } = receipt;
+  const blob = f.blob(
+    JSON.stringify({
+      schemaVersion: 1,
+      writer: f.request.writerInventory[0],
+      receipt: facts,
+    }),
+  );
+  const file = f.request.wipInventory.find(
+    (row) => row.backupIndex === 1 && row.path === "receipt-writer-2.json",
+  );
+  Object.assign(file, {
+    ...preservedFile(file.path, blob, f.hash),
+    backupIndex: 1,
+  });
+  Object.assign(receipt, {
+    receiptRef: `https://api.github.com/repos/owner/repo/git/blobs/${blob.sha}`,
+    receiptSha256: file.sha256,
+  });
+  f.snapshots[1].tree.find((row) => row.path === file.path).sha = blob.sha;
+  f.routes.set(`/git/blobs/${blob.sha}`, blob);
+  f.refresh();
+  await assert.rejects(f.collect(), /VOLUNTARY_RECEIPT_FACTS_MISMATCH/u);
+});
+
+test("VOLUNTARY shared workspace requires every writer's ACK", async () => {
+  const f = sharedWorkspaceFixture();
+  f.request.stopAckReceipts.pop();
+  f.refresh();
+  await assert.rejects(f.collect(), /VOLUNTARY_ACK_SET_MISMATCH/u);
+});
+
+test("VOLUNTARY shared workspace checks the hash of each repeated path", async () => {
+  const f = sharedWorkspaceFixture();
+  f.request.wipInventory.find(
+    (file) => file.backupIndex === 1 && file.path === "tooling/example.mjs",
+  ).sha256 = "0".repeat(64);
+  f.refresh();
+  await assert.rejects(f.collect(), /VOLUNTARY_BACKUP_CONTENT_MISMATCH/u);
+});
+
+test("VOLUNTARY shared workspace retains inventory and request size limits", () => {
+  for (const [field, count] of [
+    ["writerInventory", 33],
+    ["stopAckReceipts", 33],
+    ["wipInventory", 513],
+    ["backupRefs", 17],
+  ]) {
+    const f = sharedWorkspaceFixture();
+    f.request[field] = Array.from({ length: count }, () => ({}));
+    f.refresh();
+    assert.throws(
+      () => validateVoluntaryReleaseRequest(f.request, f.context),
+      /VOLUNTARY_ARRAY_INVALID/u,
+    );
+  }
+  const f = sharedWorkspaceFixture();
+  f.request.decisionNonce = "x".repeat(65536);
+  assert.throws(
+    () => validateVoluntaryReleaseRequest(f.request, f.context),
+    /VOLUNTARY_REQUEST_TOO_LARGE/u,
+  );
 });
 
 test("VOLUNTARY accepts only absent/null pin representation differences", async () => {

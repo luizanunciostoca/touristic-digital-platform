@@ -145,7 +145,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/retirement-writer-inventory-20261102",
-      "baseSha": "e805721e4fbffb07c1bebf4f1f77bcd187ec5cd8",
+      "baseSha": "717739d5950a135449042dd2c100abe17de3f813",
       "paths": [
         "tooling/fabric/claim-retirement-proof.mjs",
         "tooling/fabric/claim-retirement-proof.test.mjs",

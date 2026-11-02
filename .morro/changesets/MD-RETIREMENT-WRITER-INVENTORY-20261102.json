@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RETIREMENT-WRITER-INVENTORY-20261102",
   "objective": "preserve-distinct-writer-snapshots-with-scoped-wip-path-uniqueness",
-  "baseSha": "e805721e4fbffb07c1bebf4f1f77bcd187ec5cd8",
+  "baseSha": "717739d5950a135449042dd2c100abe17de3f813",
   "branch": "fix/retirement-writer-inventory-20261102",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

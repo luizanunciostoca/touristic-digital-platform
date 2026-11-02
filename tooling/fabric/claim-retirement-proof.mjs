@@ -233,7 +233,11 @@ export function validateVoluntaryReleaseRequest(
       "VOLUNTARY_RECEIPT_REF_INVALID",
     );
   }
-  unique(request.wipInventory.map((file) => file.path));
+  unique(
+    request.wipInventory.map((file) =>
+      JSON.stringify([file.backupIndex, file.path]),
+    ),
+  );
   for (const file of request.wipInventory) {
     closed(file, "path modeGit status blobSha sha256 bytes backupIndex");
     relativePath(file.path);
