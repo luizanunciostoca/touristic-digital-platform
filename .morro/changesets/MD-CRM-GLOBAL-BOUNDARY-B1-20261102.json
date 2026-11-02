@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CRM-GLOBAL-BOUNDARY-B1-20261102",
   "objective": "enforce-canonical-platform-scope-on-current-global-crm-http-surface-before-private-effects",
-  "baseSha": "6ed59552b5204dfa5b2469e6bf97b41277a3e39a",
-  "branch": "fix/crm-global-boundary-b1-20261102",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "bbba96376c64c0ec98708fc924f9c0594e2fe725",
+  "branch": "chore/retire-crm-global-boundary-b1-20261102",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
