@@ -1,6 +1,7 @@
 import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomBytes } from "node:crypto";
 
+import { authorizeCrmAccess } from "@touristic/crm/authorization";
 import { CrmContractServerBoundary } from "@touristic/crm/contracts-boundary";
 import { CrmContractPublicBoundary } from "@touristic/crm/contracts-public-boundary";
 import { CrmFollowUpServerBoundary } from "@touristic/crm/followups-boundary";
@@ -258,12 +259,26 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         transport.matches(requestUrl.pathname),
       );
       const session = await authApi.resolveSession(request);
-      if (!publicRoute && !session) {
-        json(response, 401, {
-          error: "AUTH_REQUIRED",
-          reason: "authentication_required",
+      if (!publicRoute) {
+        const admission = authorizeCrmAccess(session, {
+          mutation: request.method !== "GET" && request.method !== "HEAD",
         });
-        return;
+        // The boundary must retain its audited readonly denial. Continuing
+        // requires crm.read and preserves the original session and mutation.
+        const access =
+          admission.reason === "read_only_role"
+            ? authorizeCrmAccess(session)
+            : admission;
+        if (!access.allowed) {
+          const authenticationRequired =
+            access.reason === "authentication_required" ||
+            access.reason === "session_expired";
+          json(response, authenticationRequired ? 401 : 403, {
+            error: authenticationRequired ? "AUTH_REQUIRED" : "ACCESS_DENIED",
+            reason: access.reason,
+          });
+          return;
+        }
       }
       await ensureSchema();
       let body;

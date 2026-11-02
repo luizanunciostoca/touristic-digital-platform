@@ -1,11 +1,16 @@
 import {
+  hasAuthCapability,
   isAuthSessionActive,
   isReadOnlyAuthRole,
   type AuthSessionIdentity,
 } from "@touristic/auth";
 
 export type CrmAuthorizationReason =
-  "allowed" | "authentication_required" | "session_expired" | "read_only_role";
+  | "allowed"
+  | "authentication_required"
+  | "session_expired"
+  | "read_only_role"
+  | "capability_denied";
 
 export interface CrmAuthorizationDecision {
   readonly allowed: boolean;
@@ -40,6 +45,11 @@ export function authorizeCrmAccess(
 
   if (options.mutation && isReadOnlyAuthRole(session.role)) {
     return decision(false, "read_only_role");
+  }
+
+  const capability = options.mutation ? "crm.manage" : "crm.read";
+  if (!hasAuthCapability(session.role, capability)) {
+    return decision(false, "capability_denied");
   }
 
   return decision(true, "allowed");

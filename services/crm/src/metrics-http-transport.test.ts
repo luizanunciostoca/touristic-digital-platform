@@ -4,7 +4,7 @@ import {
   type CrmDashboardMetrics,
   type CrmMetricsAuditEvent,
 } from "@touristic/crm/metrics-boundary";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   CrmMetricsHttpTransport,
@@ -14,15 +14,18 @@ import { MySqlCrmMetricsAuditPort } from "./mysql-metrics-audit-port.js";
 
 const now = new Date("2026-08-15T05:00:00.000Z");
 
-function session(): AuthSessionIdentity {
+function session(
+  role: AuthSessionIdentity["role"] = "viewer",
+): AuthSessionIdentity {
+  const label = role.toLowerCase();
   return {
-    subject: "crm-viewer",
-    email: "viewer@example.com",
-    role: "viewer",
+    subject: `crm-${label}`,
+    email: `${label}@example.com`,
+    role,
     businessIds: [],
     issuedAt: Math.floor(now.getTime() / 1000) - 60,
     expiresAt: Math.floor(now.getTime() / 1000) + 3600,
-    sessionId: "session-viewer",
+    sessionId: `session-${label}`,
   };
 }
 
@@ -58,24 +61,52 @@ const snapshot: CrmDashboardMetrics = {
   recentInteractions: [],
 };
 
-function fixture(authenticated: boolean) {
+function fixture(
+  authenticated: boolean,
+  role: AuthSessionIdentity["role"] = "viewer",
+) {
   const audits: CrmMetricsAuditEvent[] = [];
+  const readSnapshot = vi.fn(async () => snapshot);
   const boundary = new CrmMetricsServerBoundary(
-    { readSnapshot: async () => snapshot },
+    { readSnapshot },
     { record: async (event) => void audits.push(event) },
     () => now,
   );
   const auth: CrmTransportAuthPort = {
-    resolveSession: async () => (authenticated ? session() : null),
+    resolveSession: async () => (authenticated ? session(role) : null),
     authorizeMutation: async () => ({ allowed: true }),
   };
   return {
     audits,
+    readSnapshot,
     transport: new CrmMetricsHttpTransport(boundary, auth),
   };
 }
 
 describe("CRM M138 dashboard metrics HTTP transport", () => {
+  it("denies AFFILIATE with 403 and audits before reading metrics", async () => {
+    const { transport, audits, readSnapshot } = fixture(true, "AFFILIATE");
+    const result = await transport.handle({
+      method: "GET",
+      pathname: "/api/crm/metrics/funnel",
+    });
+    expect(result.status).toBe(403);
+    expect(result.body).toEqual({
+      error: "ACCESS_DENIED",
+      reason: "capability_denied",
+    });
+    expect(readSnapshot).not.toHaveBeenCalled();
+    expect(audits).toEqual([
+      {
+        operation: "dashboard.metrics.read",
+        allowed: false,
+        reason: "capability_denied",
+        actorSubject: "crm-affiliate",
+        leadId: null,
+      },
+    ]);
+  });
+
   it("requires the shared platform session for the frozen metrics endpoint", async () => {
     const { transport, audits } = fixture(false);
     const result = await transport.handle({
