@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-CAPABILITY-A-20261102",
+  "objective": "enforce-canonical-crm-capabilities-before-private-access-and-prove-real-auth-composition",
+  "baseSha": "f4e151096cd40824dd6ef41ac139ffe1ed15cd7c",
+  "branch": "fix/crm-capability-a-20261102",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "packages/crm/src/authorization.ts",
+      "packages/crm/src/authorization.test.ts",
+      "apps/morro-digital-platform/tooling/crm-api.mjs",
+      "services/crm/src/crm-private-auth-order.test.mjs",
+      "services/crm/src/crm-auth-composition.test.mjs",
+      "services/crm/vitest.config.mjs",
+      ".github/workflows/crm-platform-auth-integration-contract.yml",
+      "services/crm/src/contracts-http-transport.ts",
+      "services/crm/src/followups-http-transport.ts",
+      "services/crm/src/lead-detail-http-transport.ts",
+      "services/crm/src/leads-http-transport.ts",
+      "services/crm/src/meetings-http-transport.ts",
+      "services/crm/src/proposals-http-transport.ts",
+      "services/crm/src/referrals-http-transport.ts",
+      "services/crm/src/trials-http-transport.ts",
+      "services/crm/src/metrics-http-transport.test.ts",
+      ".morro/changesets/MD-CRM-CAPABILITY-A-20261102.json"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-CRM-PRIVATE-AUTH-ORDER-20261017",
+    "MD-WP06-CRM-FEEDBACK-20261031",
+    "MD-D01-SELF-LOGOUT-RECOVERY-20261102"
+  ],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-and-claim-invariants",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
