@@ -10,6 +10,8 @@ on:
       - "services/business/**"
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api-logout.test.mjs"
+      - "apps/morro-digital-platform/vitest.config.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -25,6 +27,8 @@ on:
       - "services/business/**"
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api-logout.test.mjs"
+      - "apps/morro-digital-platform/vitest.config.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -41,6 +45,18 @@ concurrency:
 jobs:
   auth-contract:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: d01-isolated-fixture
+        ports:
+          - 33385:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pd01-isolated-fixture"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -62,6 +78,48 @@ jobs:
           pnpm --filter @touristic/auth-browser test
       - name: Build workspace
         run: pnpm -w build
+      - name: Prove durable authenticated self-logout
+        env:
+          MORRO_TEST_AUTH_DATABASE_URL: mysql://root:d01-isolated-fixture@127.0.0.1:33385/auth_826_d01
+        run: |
+          node --input-type=module <<'NODE'
+          import { createCrmMySqlPoolFromEnvironment } from './services/crm/dist/index.js';
+          const url = new URL(process.env.MORRO_TEST_AUTH_DATABASE_URL);
+          url.pathname = '/mysql';
+          const pool = createCrmMySqlPoolFromEnvironment({ CRM_DATABASE_URL: url.toString() });
+          try { await pool.query('CREATE DATABASE IF NOT EXISTS auth_826_d01 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); }
+          finally { await pool.end(); }
+          NODE
+          pnpm --filter @touristic/morro-digital-platform exec vitest run --config vitest.config.mjs \
+            tooling/auth-api-logout.test.mjs \
+            --no-file-parallelism --reporter=json --outputFile=/tmp/auth-self-logout-sql.json
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync('/tmp/auth-self-logout-sql.json', 'utf8'));
+          const results = report.testResults.flatMap(suite => suite.assertionResults);
+          const expected = ['SUPPORT', 'AUDITOR', 'BUSINESS_VIEWER']
+            .map(role => `D01 SQL ${role}: self-logout revokes durably`);
+          assert.equal(report.success, true);
+          for (const field of ['numFailedTests', 'numPendingTests', 'numFailedTestSuites']) assert.equal(report[field], 0);
+          assert.equal(report.numTotalTests, 26);
+          assert.equal(report.numPassedTests, 26);
+          assert.equal(results.length, 26);
+          for (const result of results) assert.equal(result.status, 'passed');
+          for (const name of expected) {
+            const matches = results.filter(result => result.fullName.endsWith(name));
+            assert.equal(matches.length, 1, `Missing or duplicate SQL proof: ${name}`);
+            assert.equal(matches[0].status, 'passed', `SQL proof did not pass: ${name}`);
+          }
+          console.log(JSON.stringify({ contract: 'D01-DURABLE-SELF-LOGOUT', requiredSqlCases: expected.length, passed: report.numPassedTests }));
+          NODE
+      - name: Upload durable self-logout proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: auth-self-logout-sql
+          path: /tmp/auth-self-logout-sql.json
+          if-no-files-found: error
       - name: Validate real Auth, RBAC, tenant and static-boundary HTTP contract
         shell: bash
         run: |
