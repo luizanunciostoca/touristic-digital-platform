@@ -131,6 +131,24 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
+    },
+    "MD-CRM-GLOBAL-BOUNDARY-B1-20261102": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/crm-global-boundary-b1-20261102",
+      "baseSha": "371d42776378ed608c493a2100aabca0466c3b85",
+      "paths": [
+        "apps/morro-digital-platform/tooling/crm-api.mjs",
+        "services/crm/src/crm-private-auth-order.test.mjs",
+        ".github/workflows/crm-platform-auth-integration-contract.yml",
+        ".github/workflows/crm-lead-detail-browser-contract.yml",
+        ".github/workflows/crm-equivalence-browser-contract.yml",
+        ".morro/changesets/MD-CRM-GLOBAL-BOUNDARY-B1-20261102.json"
+      ],
+      "domains": ["auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-02T14:49:59.128Z"
     }
   }
 }
