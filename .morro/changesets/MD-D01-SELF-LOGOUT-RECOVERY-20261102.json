@@ -14,14 +14,10 @@
       ".github/workflows/auth-integration-contract.yml",
       ".morro/changesets/MD-D01-SELF-LOGOUT-RECOVERY-20261102.json"
     ],
-    "contracts": [
-      "platform-authz"
-    ]
+    "contracts": ["platform-authz"]
   },
   "reads": {
-    "contracts": [
-      "TDP-CONTROL-PLANE-V3.2"
-    ]
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
   },
   "produces": {
     "events": [],
