@@ -4,7 +4,7 @@
   "objective": "require-existing-ticketing-manage-before-online-qr-checkin-body-and-business-effects",
   "baseSha": "b9d4aca3661cd8d91d8ee48c9bd77aa9efb8233c",
   "branch": "fix/d02-online-checkin-capability-r2-20261102",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
