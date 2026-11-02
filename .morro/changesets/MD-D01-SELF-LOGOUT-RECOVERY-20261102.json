@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-D01-SELF-LOGOUT-RECOVERY-20261102",
   "objective": "restore-authenticated-self-logout-with-durable-revocation-and-preserved-business-authorization",
-  "baseSha": "39a151dc9dad9d7cd8c90087a55e53284db5a7d6",
-  "branch": "fix/d01-self-logout-recovery-20261102",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "d31730f3b5ade3b0795e44df6082ec459bd1718f",
+  "branch": "infra/retire-d01-completed-20261102",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
