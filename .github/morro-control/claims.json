@@ -131,6 +131,24 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
+    },
+    "MD-D02-ONLINE-CHECKIN-CAPABILITY-R2-20261102": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/d02-online-checkin-capability-r2-20261102",
+      "baseSha": "c9b66c5078df9bc449c1223095e792c2cfcaec6d",
+      "paths": [
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+        "services/ticketing/src/public-http-transport.ts",
+        "services/ticketing/src/public-http-transport-validity.test.ts",
+        "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs",
+        ".github/workflows/auth-integration-contract.yml",
+        ".morro/changesets/MD-D02-ONLINE-CHECKIN-CAPABILITY-R2-20261102.json"
+      ],
+      "domains": ["ticketing", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-03T09:58:12.660Z"
     }
   }
 }
