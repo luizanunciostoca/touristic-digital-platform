@@ -140,21 +140,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T03:07:11.483Z"
-    },
-    "MD-RETIREMENT-WRITER-INVENTORY-20261102": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/retirement-writer-inventory-20261102",
-      "baseSha": "717739d5950a135449042dd2c100abe17de3f813",
-      "paths": [
-        "tooling/fabric/claim-retirement-proof.mjs",
-        "tooling/fabric/claim-retirement-proof.test.mjs",
-        ".morro/changesets/MD-RETIREMENT-WRITER-INVENTORY-20261102.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-02T04:04:29.491Z"
     }
   }
 }
