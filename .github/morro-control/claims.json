@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/d02-online-checkin-capability-r2-20261102",
-      "baseSha": "c9b66c5078df9bc449c1223095e792c2cfcaec6d",
+      "baseSha": "b9d4aca3661cd8d91d8ee48c9bd77aa9efb8233c",
       "paths": [
         "apps/morro-digital-platform/tooling/ticketing-api.mjs",
         "services/ticketing/src/public-http-transport.ts",
