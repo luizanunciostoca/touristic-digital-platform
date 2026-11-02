@@ -390,16 +390,25 @@ jobs:
           PY
 
           # Seed actual target IDs through the global owner's real CRM API.
-          # Trial is created before contract send so the existing final stage proof stays contract_sent.
+          # Proposal acceptance sets contract_sent; the later trial seed advances the lead to trial.
           (
             cd services/crm
             ORIGIN="$ORIGIN" OWNER_CSRF="$OWNER_CSRF" LEAD_ID="$LEAD_ID" node --input-type=module - <<'NODE'
           import assert from 'node:assert/strict';
+          import mysql from 'mysql2/promise';
           import { readFileSync, writeFileSync } from 'node:fs';
           const fields = readFileSync('/tmp/crm-owner.cookies', 'utf8').split('\n').map(line => line.split('\t')).find(row => row[5] === 'md_dashboard_session');
           assert.ok(fields?.[6]);
           const cookie = fields[5] + '=' + fields[6];
           const leadId = Number(process.env.LEAD_ID);
+          const seedPool = mysql.createPool(process.env.CRM_CONTRACT_DATABASE_URL);
+          try {
+            const [acceptedLeads] = await seedPool.query('SELECT stage FROM crm_leads WHERE id = ?', [leadId]);
+            assert.equal(acceptedLeads.length, 1, 'Accepted proposal lead must exist');
+            assert.equal(acceptedLeads[0].stage, 'contract_sent', 'Accepted proposal must advance the lead before trial seed');
+          } finally {
+            await seedPool.end();
+          }
           for (const [family, body] of [
             ['follow-ups', {leadId, scheduledAt: new Date(Date.now() + 86400000).toISOString(), attemptNumber: 1}],
             ['trials', {leadId, durationDays: 14, startDate: new Date().toISOString()}],
@@ -737,7 +746,8 @@ jobs:
           import { readFileSync, writeFileSync } from 'node:fs';
           const pool = mysql.createPool(process.env.CRM_CONTRACT_DATABASE_URL);
           const [leads] = await pool.query('SELECT company_name, assigned_to_subject, stage FROM crm_leads');
-          if (leads.length !== 1 || leads[0].company_name !== 'Toca do Morcego' || leads[0].assigned_to_subject !== 'owner-1' || leads[0].stage !== 'contract_sent') process.exit(1);
+          if (leads.length !== 1 || leads[0].company_name !== 'Toca do Morcego' || leads[0].assigned_to_subject !== 'owner-1') process.exit(1);
+          assert.equal(leads[0].stage, 'trial', 'Trial seed must advance the accepted lead; contract send must preserve trial');
           const [meetings] = await pool.query('SELECT lead_id, title, status, created_by_subject FROM crm_meetings WHERE id = ?', [Number(process.env.MEETING_ID)]);
           if (meetings.length !== 1 || meetings[0].lead_id !== Number(process.env.LEAD_ID) || meetings[0].title !== 'Diagnóstico comercial' || meetings[0].status !== 'done' || meetings[0].created_by_subject !== 'owner-1') process.exit(1);
           const [proposals] = await pool.query('SELECT lead_id, title, status, created_by_subject, share_token FROM crm_proposals WHERE id = ?', [Number(process.env.PROPOSAL_ID)]);
