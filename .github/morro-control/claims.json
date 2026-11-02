@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/d01-self-logout-recovery-20261102",
-      "baseSha": "d9ca0da791774e7078d4de8643e670f7d3e5a1a8",
+      "baseSha": "39a151dc9dad9d7cd8c90087a55e53284db5a7d6",
       "paths": [
         "apps/morro-digital-platform/tooling/auth-api.mjs",
         "apps/morro-digital-platform/tooling/auth-api-logout.test.mjs",

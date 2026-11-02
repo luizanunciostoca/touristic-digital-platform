@@ -6,7 +6,6 @@ import {
   capabilitiesForRole,
   hasAuthCapability,
   isPlatformWideAuthRole,
-  isReadOnlyAuthRole,
 } from "@touristic/auth";
 import {
   authenticateConfiguredUser,
@@ -815,18 +814,6 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       json(response, 403, {
         error: "ORIGIN_DENIED",
         message: "Origem da solicitação não autorizada.",
-      });
-      return;
-    }
-    if (isReadOnlyAuthRole(active.role)) {
-      audit(request, {
-        action: "dashboard.mutation",
-        result: "denied",
-        reason: "read_only_role",
-      });
-      json(response, 403, {
-        error: "READ_ONLY_ROLE",
-        message: "Este usuário possui acesso somente para leitura.",
       });
       return;
     }
