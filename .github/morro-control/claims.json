@@ -131,6 +131,35 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
+    },
+    "MD-CRM-CAPABILITY-A-20261102": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/crm-capability-a-20261102",
+      "baseSha": "f4e151096cd40824dd6ef41ac139ffe1ed15cd7c",
+      "paths": [
+        "packages/crm/src/authorization.ts",
+        "packages/crm/src/authorization.test.ts",
+        "apps/morro-digital-platform/tooling/crm-api.mjs",
+        "services/crm/src/crm-private-auth-order.test.mjs",
+        "services/crm/src/crm-auth-composition.test.mjs",
+        "services/crm/vitest.config.mjs",
+        ".github/workflows/crm-platform-auth-integration-contract.yml",
+        "services/crm/src/contracts-http-transport.ts",
+        "services/crm/src/followups-http-transport.ts",
+        "services/crm/src/lead-detail-http-transport.ts",
+        "services/crm/src/leads-http-transport.ts",
+        "services/crm/src/meetings-http-transport.ts",
+        "services/crm/src/proposals-http-transport.ts",
+        "services/crm/src/referrals-http-transport.ts",
+        "services/crm/src/trials-http-transport.ts",
+        "services/crm/src/metrics-http-transport.test.ts",
+        ".morro/changesets/MD-CRM-CAPABILITY-A-20261102.json"
+      ],
+      "domains": ["auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-02T11:19:14.613Z"
     }
   }
 }
