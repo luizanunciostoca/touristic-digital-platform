@@ -294,7 +294,7 @@ describeMySql.sequential("Ticketing ownership and online SQL", () => {
         paymentId: reservation.paymentId,
         destinationId: reservation.destinationId,
         product: reservation.product,
-        holderName: "P202 fixture",
+        holderName: "Ownership Fixture",
         quantity: reservation.quantity,
         amount: {
           minorUnits: reservation.unitAmount.minorUnits * reservation.quantity,
