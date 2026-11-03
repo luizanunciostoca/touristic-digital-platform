@@ -131,6 +131,22 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
+    },
+    "MD-ASSISTANT-CI-PRECONDITIONS-20261103": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/assistant-ci-preconditions-20261103",
+      "baseSha": "971463adbdb4589db51c85a701f1ca755ec72837",
+      "paths": [
+        ".github/workflows/assistant-conversation-continuity-browser-contract.yml",
+        ".github/workflows/assistant-modal-reading-order.yml",
+        "tooling/ci/assistant-workflow-preconditions.test.mjs",
+        ".morro/changesets/MD-ASSISTANT-CI-PRECONDITIONS-20261103.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-04T19:33:00.292Z"
     }
   }
 }
