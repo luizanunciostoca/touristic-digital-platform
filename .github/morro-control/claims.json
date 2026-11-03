@@ -131,27 +131,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
-    },
-    "MD-STAGING-BROWSER-RUNNER-COMPAT-20261103": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-browser-runner-compat-20261103",
-      "baseSha": "b8197beacd5ac3285da971811b9becf8b974cce9",
-      "paths": [
-        ".github/workflows/pwa-offline-browser-contract.yml",
-        ".github/workflows/v1-tour-assistant-visibility-browser-regression.yml",
-        ".github/workflows/mapbox-visual-contract-regression.yml",
-        ".github/workflows/v1-home-parity-browser-regression.yml",
-        ".github/workflows/navigation-visual-baseline.yml",
-        ".github/workflows/map-provider-regression.yml",
-        ".github/workflows/home-first-run-browser-regression.yml",
-        ".github/workflows/map-tour-browser-regression.yml",
-        ".morro/changesets/MD-STAGING-BROWSER-RUNNER-COMPAT-20261103.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-04T07:30:00.000Z"
     }
   }
 }
