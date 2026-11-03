@@ -2,17 +2,20 @@ import { readFileSync } from "node:fs";
 import { compileFunction } from "node:vm";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { morroV1SearchCatalog } from "@touristic/search";
+import { morroV1SearchCatalog, normalizeSearchText } from "@touristic/search";
 
 import {
   appliedMapFilterSummary,
   createExploreLocationDetailsCommand,
   type ExternalTourMapPreparation,
+  type ExploreSearchResult,
   getAssistantCategoryButtonId,
   getExploreLocationsCategories,
   getExploreLocationsForCategory,
 } from "./explore-locations-control.js";
 import { groupProjectedMarkers } from "./explore-marker-grouping.js";
+import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
+import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
 
 const EXPECTED_CATEGORY_COUNTS = Object.freeze({
   beaches: 8,
@@ -375,5 +378,258 @@ describe("external tour criteria publication", () => {
     expect(producer.snapshot().criteria).toEqual([
       { kind: "category", value: "beaches" },
     ]);
+  });
+});
+
+interface PlaceDetailConsumer {
+  select(location: ExploreSearchResult): Promise<void>;
+  click(value: string): void;
+  rails: Array<Array<{ label: string; value: string }>>;
+  messages: Array<{ name: string; description: string }>;
+  events: Array<{ type: string; detail: Record<string, unknown> }>;
+  snapshot(): {
+    place: string | undefined;
+    stage: string;
+    generation: number;
+    mapCalls: number;
+    detailRequests: number;
+  };
+}
+
+function actualPlaceDetailConsumer(
+  locale: "pt" | "en" | "es" | "he",
+  getDetail: (placeId: string) => unknown,
+): PlaceDetailConsumer {
+  const sourcePath = new URL("./explore-locations-control.ts", import.meta.url);
+  const ast = ts.createSourceFile(
+    sourcePath.pathname,
+    readFileSync(sourcePath, "utf8"),
+    ts.ScriptTarget.Latest,
+  );
+  const names = new Set([
+    "readActivePlaceDetail",
+    "handlePlaceAction",
+    "renderPlaceActionsRail",
+    "selectLocation",
+  ]);
+  const declarations: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isVariableDeclaration(node) && names.has(node.name.getText(ast))) {
+      declarations.push(`const ${node.getText(ast)};`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  if (declarations.length !== names.size)
+    throw new Error("Expected the four actual place detail consumer functions");
+
+  // Run the production consumers together. Only browser/network boundaries
+  // are fixtures; the ID, generation, copy and dispatch decisions are real.
+  const javascript = ts.transpileModule(
+    `
+      const {locale,getDetail,normalizeSearchText,getV1ExploreLabel,getV1ExploreUiCopy,getV1ExplorePlaceActionOptions}=dependencies;
+      let activePlace,activePlaceLocation,activePlaceDetail,activeStage="menu",interactionGeneration=0;
+      let activePlaceActionValues=[],datasetCriteria=[],mapCalls=0,detailRequests=0;
+      const messages=[],events=[],rails=[];
+      class HTMLButtonElement {}
+      class CustomEvent { constructor(type,init) { this.type=type;this.detail=init.detail; } }
+      const document={documentElement:{lang:locale},activeElement:null,
+        defaultView:{fetch() { throw Error("Unexpected direct network access"); }},
+        getElementById:()=>({dataset:{exploreState:"ready"}}),
+        dispatchEvent:event=>events.push(event)};
+      const currentLocale=()=>locale,currentCategories=()=>[];
+      const contextualRailScroll=null,exploreFlowBottomSheet={hide(){}};
+      const UNREGISTERED_COMMERCIAL_ACTION_IDS=new Set();
+      const removeAssistantFlowResults=()=>{},requestAssistantOpen=()=>{};
+      const renderPlaceDetailMessage=(location,_category,description)=>messages.push({name:location.name,description});
+      const renderContextualRail=(_stage,_label,options)=>{rails.push(options);return null;};
+      const createPublicPlaceMapClient=()=>({getDetail:(id)=>{detailRequests+=1;return getDetail(id);}});
+      const renderLocationsOnMap=async()=>{mapCalls+=1;};
+      const setExploreRuntimeStatus=()=>{},emitStateChange=()=>{};
+      const shareActivePlace=()=>{},tourTicketingUrl=()=>null,startImmersiveTour=()=>{},returnFromPlaceDetail=()=>{};
+      ${declarations.join("\n")}
+      return {select:selectLocation,click:handlePlaceAction,rails,messages,events,
+        snapshot:()=>({place:activePlace,stage:activeStage,generation:interactionGeneration,mapCalls,detailRequests})};
+    `,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  const dependencies = {
+    locale,
+    getDetail,
+    normalizeSearchText,
+    getV1ExploreLabel,
+    getV1ExploreUiCopy,
+    getV1ExplorePlaceActionOptions,
+  };
+  const execute = compileFunction(javascript, ["dependencies"]) as (
+    context: typeof dependencies,
+  ) => PlaceDetailConsumer;
+  return execute(dependencies);
+}
+
+const canonicalLocation = (placeId: string): ExploreSearchResult => ({
+  name: "Same place name",
+  category: "beaches",
+  latitude: -13.38,
+  longitude: -38.91,
+  source: "canonical",
+  placeId,
+});
+
+function canonicalDetail(placeId: string, description = "Full place details") {
+  return {
+    profile: {
+      id: placeId,
+      name: "Same place name",
+      description,
+      shortDescription: "",
+    },
+    actions: {
+      placeId,
+      primaryAction: null,
+      secondaryActions: [
+        {
+          id: "info",
+          label: "Saiba mais",
+          value: `place-action:info:${placeId}`,
+          disabled: false,
+        },
+        {
+          id: "photos",
+          label: "Photo channel label",
+          value: "ver fotos",
+          disabled: false,
+        },
+      ],
+    },
+  };
+}
+
+describe("selected canonical place detail action", () => {
+  it.each([
+    ["pt", "Ver detalhes"],
+    ["en", "View details"],
+    ["es", "Ver detalles"],
+    ["he", "הצגת פרטים"],
+  ] as const)(
+    "labels only the handled canonical rail in %s",
+    async (locale, label) => {
+      const consumer = actualPlaceDetailConsumer(locale, () =>
+        canonicalDetail("place-a"),
+      );
+      await consumer.select(canonicalLocation("place-a"));
+      expect(consumer.rails.at(-1)).toContainEqual(
+        expect.objectContaining({ label, value: "place-action:info:place-a" }),
+      );
+      expect(consumer.rails.at(-1)).toContainEqual(
+        expect.objectContaining({
+          label: "Photo channel label",
+          value: "ver fotos",
+        }),
+      );
+      expect(consumer.rails[0]).toContainEqual(
+        expect.objectContaining({
+          label: `ℹ️ ${getV1ExploreLabel("learnMore", locale)}`,
+          value: "saiba mais",
+        }),
+      );
+      const before = consumer.snapshot();
+      consumer.click("place-action:info:place-a");
+      expect(consumer.messages.at(-1)?.description).toBe("Full place details");
+      expect(consumer.events).toEqual([]);
+      expect(consumer.snapshot()).toEqual(before);
+    },
+  );
+
+  it.each(["profile", "actions"] as const)(
+    "rejects a mismatched %s ID without a free-text query",
+    async (field) => {
+      const detail = canonicalDetail("place-a");
+      if (field === "profile") detail.profile.id = "place-b";
+      else detail.actions.placeId = "place-b";
+      const consumer = actualPlaceDetailConsumer("pt", () => detail);
+      await consumer.select(canonicalLocation("place-a"));
+      const count = consumer.messages.length;
+      consumer.click("place-action:info:place-a");
+      consumer.click("place-action:info:place-b");
+      expect(consumer.messages).toHaveLength(count);
+      expect(consumer.events).toEqual([]);
+      expect(
+        consumer.rails
+          .at(-1)
+          ?.some(({ value }) => value.startsWith("place-action:info:")),
+      ).toBe(false);
+    },
+  );
+
+  it("omits details when both descriptions are empty, but accepts a real short description", async () => {
+    const empty = canonicalDetail("place-a", "  ");
+    const consumer = actualPlaceDetailConsumer("pt", () => empty);
+    await consumer.select(canonicalLocation("place-a"));
+    expect(
+      consumer.rails
+        .at(-1)
+        ?.some(({ value }) => value.startsWith("place-action:info:")),
+    ).toBe(false);
+    const count = consumer.messages.length;
+    consumer.click("place-action:info:place-a");
+    expect(consumer.messages).toHaveLength(count);
+    expect(consumer.events).toEqual([]);
+
+    empty.profile.shortDescription = "Short description from the profile";
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.click("place-action:info:place-a");
+    expect(consumer.messages.at(-1)?.description).toBe(
+      empty.profile.shortDescription,
+    );
+  });
+
+  it("ignores a late response for another ID with the same name", async () => {
+    let resolveFirst!: (detail: ReturnType<typeof canonicalDetail>) => void;
+    const first = new Promise<ReturnType<typeof canonicalDetail>>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const consumer = actualPlaceDetailConsumer("pt", (id) =>
+      id === "place-a" ? first : canonicalDetail("place-b", "Details for B"),
+    );
+    const waiting = consumer.select(canonicalLocation("place-a"));
+    await consumer.select(canonicalLocation("place-b"));
+    resolveFirst(canonicalDetail("place-a", "Late details for A"));
+    await waiting;
+    const count = consumer.messages.length;
+    consumer.click("place-action:info:place-a");
+    expect(consumer.messages).toHaveLength(count);
+    consumer.click("place-action:info:place-b");
+    expect(consumer.messages.at(-1)?.description).toBe("Details for B");
+    expect(consumer.rails.at(-1)).toContainEqual(
+      expect.objectContaining({ value: "place-action:info:place-b" }),
+    );
+    expect(consumer.events).toEqual([]);
+  });
+
+  it("consumes info safely on a failed request and preserves other action channels", async () => {
+    const consumer = actualPlaceDetailConsumer("pt", () =>
+      Promise.reject(new Error("unavailable")),
+    );
+    await consumer.select(canonicalLocation("place-a"));
+    const count = consumer.messages.length;
+    consumer.click("place-action:info:place-a");
+    expect(consumer.messages).toHaveLength(count);
+    expect(consumer.events).toEqual([]);
+    consumer.click("saiba mais");
+    consumer.click("ver fotos");
+    consumer.click("como chegar");
+    expect(consumer.events.map(({ type }) => type)).toEqual([
+      "morro:assistant-option-selected",
+      "morro:assistant-option-selected",
+      "morro:navigation-requested",
+    ]);
+    expect(consumer.events[0]?.detail.value).toBe("saiba mais");
+    expect(consumer.events[1]?.detail.value).toBe("ver fotos");
+    expect(consumer.events[2]?.detail.destination).toMatchObject({
+      name: "Same place name",
+      latitude: -13.38,
+      longitude: -38.91,
+    });
   });
 });

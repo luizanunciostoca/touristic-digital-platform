@@ -545,6 +545,14 @@ export function installExploreLocationsControl({
   let activeCategory: ExploreLocationsCategory | undefined;
   let activePlace: string | undefined;
   let activePlaceLocation: ExploreMapLocation | undefined;
+  let activePlaceDetail:
+    | Readonly<{
+        placeId: string;
+        location: ExploreMapLocation;
+        categoryLabel: string;
+        description: string;
+      }>
+    | undefined;
   let activePlaceActionValues: readonly string[] = Object.freeze([]);
   let activeStage: ExploreStage = "menu";
   let visibleLocations: readonly ExploreMapLocation[] = Object.freeze([]);
@@ -1519,7 +1527,30 @@ export function installExploreLocationsControl({
     })();
   };
 
+  const readActivePlaceDetail = (value: string) => {
+    if (
+      activeStage !== "detail" ||
+      !activePlaceDetail ||
+      activePlaceDetail.location !== activePlaceLocation ||
+      value !== `place-action:info:${activePlaceDetail.placeId}`
+    ) {
+      return undefined;
+    }
+    return activePlaceDetail;
+  };
+
   const handlePlaceAction = (value: string): void => {
+    if (value.startsWith("place-action:info:")) {
+      const detail = readActivePlaceDetail(value);
+      if (detail) {
+        renderPlaceDetailMessage(
+          detail.location,
+          detail.categoryLabel,
+          detail.description,
+        );
+      }
+      return;
+    }
     const normalized = normalizeSearchText(value);
     const location = activePlaceLocation;
     if (normalized === "compartilhar" || normalized === "share") {
@@ -1618,6 +1649,11 @@ export function installExploreLocationsControl({
     placeName: string,
     locale: AssistantLocale,
   ): HTMLButtonElement | null => {
+    if (primaryAction?.actionId === "info") {
+      primaryAction = readActivePlaceDetail(primaryAction.value)
+        ? { ...primaryAction, label: getV1ExploreLabel("viewDetails", locale) }
+        : null;
+    }
     const options: Array<{
       label: string;
       value: string;
@@ -1626,6 +1662,8 @@ export function installExploreLocationsControl({
     }> = [];
     let primaryReplaced = false;
     for (const action of placeActions) {
+      if (action.actionId === "info" && !readActivePlaceDetail(action.value))
+        continue;
       if (primaryAction && action.actionId === primaryAction.actionId) {
         primaryReplaced = true;
         options.push({
@@ -1637,7 +1675,10 @@ export function installExploreLocationsControl({
         continue;
       }
       options.push({
-        label: action.label,
+        label:
+          action.actionId === "info"
+            ? getV1ExploreLabel("viewDetails", locale)
+            : action.label,
         value: action.value,
         action: action.action,
         ...(action.disabled === true ? { disabled: true } : {}),
@@ -1715,6 +1756,7 @@ export function installExploreLocationsControl({
         ?.label ?? category;
     activePlace = presentationLocation.name;
     activePlaceLocation = presentationLocation;
+    activePlaceDetail = undefined;
     activeStage = "detail";
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
@@ -1770,7 +1812,23 @@ export function installExploreLocationsControl({
         ) {
           return;
         }
-        if (detail) {
+        if (
+          detail &&
+          detail.profile.id === canonicalPlaceId &&
+          detail.actions.placeId === canonicalPlaceId
+        ) {
+          const detailDescription = [
+            detail.profile.description,
+            detail.profile.shortDescription,
+          ].find((text) => typeof text === "string" && text.trim());
+          if (detailDescription) {
+            activePlaceDetail = Object.freeze({
+              placeId: canonicalPlaceId,
+              location: presentationLocation,
+              categoryLabel,
+              description: detailDescription.trim(),
+            });
+          }
           const canonicalActions = detail.actions.secondaryActions.map(
             (action) =>
               Object.freeze({

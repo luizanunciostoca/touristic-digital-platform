@@ -124,7 +124,8 @@ export function createAppShellMarkup(): string {
         id="assistant-messages"
         class="md-assistant-dialog md-assistant-message-region"
         role="region"
-        aria-label="Morro Digital assistant"
+        aria-label="Assistente do Morro Digital"
+        data-i18n-aria="assistant_region_label"
         aria-hidden="false"
         aria-describedby="assistant-dialog-status"
         tabindex="-1"
@@ -132,7 +133,7 @@ export function createAppShellMarkup(): string {
       >
         <button class="minimize-button md-icon-button" type="button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
         <p id="assistant-dialog-status" class="md-assistant-status" hidden role="status" aria-live="polite" aria-atomic="true">Assistente pronto.</p>
-        <div class="messages-area md-assistant-messages" role="region" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions text">
+        <div class="messages-area md-assistant-messages" role="region" aria-label="Conversa com o assistente" data-i18n-aria="assistant_conversation_label" aria-live="polite" aria-relevant="additions text">
           <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
             Bem-vindo ao Morro Digital!
 Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
