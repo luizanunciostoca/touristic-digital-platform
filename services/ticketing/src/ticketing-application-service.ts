@@ -29,6 +29,12 @@ import {
 } from "@touristic/ticketing";
 
 import type { TicketingTransactionalCommandPort } from "./mysql-ticketing-transaction.js";
+import {
+  requireTicketingOperatorAuthority,
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
+  type TicketingOperatorAuthorizationPort,
+} from "./operator-authorization.js";
 
 export type TicketingApplicationErrorCode =
   | "TICKETING_ORDER_NOT_FOUND"
@@ -41,6 +47,8 @@ export type TicketingApplicationErrorCode =
   | "TICKETING_TICKET_ALREADY_VALIDATED"
   | "TICKETING_TICKET_REVOKED"
   | "TICKETING_TICKET_EXPIRED"
+  | "TICKETING_DESTINATION_SUSPENDED"
+  | "TICKETING_CHECKIN_REPLAY_CONFLICT"
   | "TICKETING_CHECKIN_INVALID"
   | "TICKETING_OFFLINE_ENVELOPE_INVALID";
 
@@ -68,12 +76,14 @@ export interface TicketingApplicationService {
   checkInByQr(input: {
     readonly qrPayload: unknown;
     readonly operatorReference: unknown;
+    readonly operatorAuthority: unknown;
     readonly occurredAt: unknown;
   }): Promise<TicketingCheckInResult>;
   checkInByCode(input: {
     readonly code: unknown;
     readonly result: unknown;
     readonly operatorReference: unknown;
+    readonly operatorAuthority: unknown;
     readonly occurredAt: unknown;
   }): Promise<TicketingCheckInResult>;
   syncOfflineEnvelope(input: {
@@ -92,6 +102,7 @@ export interface TicketingApplicationServiceDependencies {
     findById(envelopeId: string): Promise<TicketOfflineEnvelope | null>;
   };
   readonly transactions: TicketingTransactionalCommandPort;
+  readonly operatorAuthorization: TicketingOperatorAuthorizationPort;
   readonly signingSecret: TicketSigningSecret;
   readonly clock: { now(): string };
 }
@@ -181,12 +192,56 @@ async function findCheckInReplay(
   dependencies: TicketingApplicationServiceDependencies,
   ticket: Ticket,
   checkInId: string,
+  authority: TicketingOperatorAuthority,
+  occurredAt: string,
+  result?: string,
 ): Promise<TicketCheckIn | null> {
-  return (
+  const replay =
     (await dependencies.checkIns.listByTicketId(ticket.id)).find(
       (entry) => entry.id === checkInId,
-    ) ?? null
-  );
+    ) ?? null;
+  if (
+    replay &&
+    (replay.ticketId !== ticket.id ||
+      replay.channel !== "online" ||
+      replay.operatorReference !== authority.subject ||
+      replay.occurredAt !== occurredAt ||
+      (result === undefined
+        ? replay.result !== "validated" && replay.result !== "used"
+        : replay.result !== result))
+  ) {
+    throw new TicketingApplicationError("TICKETING_CHECKIN_REPLAY_CONFLICT");
+  }
+  return replay;
+}
+
+async function currentReplayResult(
+  dependencies: TicketingApplicationServiceDependencies,
+  authorizedTicket: Ticket,
+  checkIn: TicketCheckIn,
+): Promise<TicketingCheckInResult> {
+  const ticket = await dependencies.tickets.findById(authorizedTicket.id);
+  if (!ticket) {
+    throw new TicketingApplicationError("TICKETING_TICKET_NOT_FOUND");
+  }
+  if (!sameTicketAuthority(ticket, authorizedTicket)) {
+    throw new TicketingApplicationError("TICKETING_CHECKIN_REPLAY_CONFLICT");
+  }
+  return Object.freeze({ ticket, checkIn, replayed: true });
+}
+
+function authorizeOnlineTicket(
+  dependencies: TicketingApplicationServiceDependencies,
+  ticket: Ticket,
+  authority: TicketingOperatorAuthority,
+) {
+  if (typeof dependencies.operatorAuthorization?.authorize !== "function") {
+    throw new TicketingOperatorAuthorizationError(
+      "TICKETING_OPERATOR_UNAVAILABLE",
+      "DEPENDENCY_UNAVAILABLE",
+    );
+  }
+  return dependencies.operatorAuthorization.authorize(ticket, authority);
 }
 
 function assertTicketAcceptsNewCheckIn(
@@ -308,8 +363,13 @@ export function createTicketingApplicationService(
     async checkInByQr(input: {
       readonly qrPayload: unknown;
       readonly operatorReference: unknown;
+      readonly operatorAuthority: unknown;
       readonly occurredAt: unknown;
     }): Promise<TicketingCheckInResult> {
+      const authority = requireTicketingOperatorAuthority(
+        input.operatorAuthority,
+        input.operatorReference ?? null,
+      );
       const verified = verifyTicketQrPayload(input.qrPayload, secret);
       if (!verified) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
@@ -318,6 +378,11 @@ export function createTicketingApplicationService(
       if (!ticket) {
         throw new TicketingApplicationError("TICKETING_TICKET_NOT_FOUND");
       }
+      const facts = await authorizeOnlineTicket(
+        dependencies,
+        ticket,
+        authority,
+      );
       const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
       if (!occurredAt) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
@@ -328,12 +393,21 @@ export function createTicketingApplicationService(
         "qr",
         canonicalOccurredAt,
       );
-      const replay = await findCheckInReplay(dependencies, ticket, checkInId);
+      const replay = await findCheckInReplay(
+        dependencies,
+        ticket,
+        checkInId,
+        authority,
+        canonicalOccurredAt,
+      );
       if (replay) {
-        return Object.freeze({ ticket, checkIn: replay, replayed: true });
+        return currentReplayResult(dependencies, ticket, replay);
       }
       const result = ticket.status === "issued" ? "validated" : "used";
       assertTicketAcceptsNewCheckIn(ticket, canonicalOccurredAt, result);
+      if (facts.destinationStatus !== "active") {
+        throw new TicketingApplicationError("TICKETING_DESTINATION_SUSPENDED");
+      }
       const updated = applyTicketCheckIn(ticket, {
         result,
         occurredAt: canonicalOccurredAt,
@@ -348,7 +422,7 @@ export function createTicketingApplicationService(
         ticketId: ticket.id,
         result,
         channel: "online",
-        operatorReference: input.operatorReference,
+        operatorReference: authority.subject,
         occurredAt: canonicalOccurredAt,
         recordedAt,
       });
@@ -366,12 +440,22 @@ export function createTicketingApplicationService(
       readonly code: unknown;
       readonly result: unknown;
       readonly operatorReference: unknown;
+      readonly operatorAuthority: unknown;
       readonly occurredAt: unknown;
     }): Promise<TicketingCheckInResult> {
+      const authority = requireTicketingOperatorAuthority(
+        input.operatorAuthority,
+        input.operatorReference ?? null,
+      );
       const ticket = await dependencies.tickets.findByCode(input.code as never);
       if (!ticket) {
         throw new TicketingApplicationError("TICKETING_TICKET_NOT_FOUND");
       }
+      const facts = await authorizeOnlineTicket(
+        dependencies,
+        ticket,
+        authority,
+      );
       const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
       const result = typeof input.result === "string" ? input.result : null;
       if (!occurredAt || !result) {
@@ -383,11 +467,21 @@ export function createTicketingApplicationService(
         `code:${result}`,
         canonicalOccurredAt,
       );
-      const replay = await findCheckInReplay(dependencies, ticket, checkInId);
+      const replay = await findCheckInReplay(
+        dependencies,
+        ticket,
+        checkInId,
+        authority,
+        canonicalOccurredAt,
+        result,
+      );
       if (replay) {
-        return Object.freeze({ ticket, checkIn: replay, replayed: true });
+        return currentReplayResult(dependencies, ticket, replay);
       }
       assertTicketAcceptsNewCheckIn(ticket, canonicalOccurredAt, result);
+      if (result !== "cancelled" && facts.destinationStatus !== "active") {
+        throw new TicketingApplicationError("TICKETING_DESTINATION_SUSPENDED");
+      }
       const updated = applyTicketCheckIn(ticket, {
         result,
         occurredAt: canonicalOccurredAt,
@@ -402,7 +496,7 @@ export function createTicketingApplicationService(
         ticketId: ticket.id,
         result,
         channel: "online",
-        operatorReference: input.operatorReference,
+        operatorReference: authority.subject,
         occurredAt: canonicalOccurredAt,
         recordedAt,
       });

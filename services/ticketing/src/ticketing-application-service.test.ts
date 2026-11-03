@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   createMoney,
@@ -26,8 +26,16 @@ import {
   type TicketRepositoryPort,
 } from "@touristic/ticketing";
 
-import { createTicketingApplicationService } from "./ticketing-application-service.js";
+import {
+  createTicketingApplicationService,
+  type TicketingIssueResult,
+} from "./ticketing-application-service.js";
 import type { TicketingTransactionalCommandPort } from "./mysql-ticketing-transaction.js";
+import {
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
+  type TicketingOperatorAuthorizationPort,
+} from "./operator-authorization.js";
 
 class MemoryOrders implements OrderRepositoryPort {
   constructor(private readonly current: Order | null) {}
@@ -205,23 +213,77 @@ function harness() {
   const tickets = new MemoryTickets();
   const checkIns = new MemoryCheckIns();
   const offline = new MemoryOffline();
+  const authorizationState: { destinationStatus: "active" | "suspended" } = {
+    destinationStatus: "active",
+  };
+  const authorize = vi.fn<TicketingOperatorAuthorizationPort["authorize"]>(
+    async (ticket, authority) => ({
+      subject: authority.subject,
+      businessId: "business-a",
+      destinationId: ticket.destinationId,
+      destinationStatus: authorizationState.destinationStatus,
+    }),
+  );
+  const transactions = new MemoryTransactions(tickets, checkIns, offline);
+  const commit = vi.spyOn(transactions, "commitCheckIn");
   let tick = 0;
-  const service = createTicketingApplicationService({
+  const dependencies = {
     orders: new MemoryOrders(fixture.order),
     payments: new MemoryPayments(fixture.payment),
     tickets,
     checkIns,
     offline,
-    transactions: new MemoryTransactions(tickets, checkIns, offline),
+    transactions,
+    operatorAuthorization: { authorize },
     signingSecret: fixture.secret,
     clock: {
-      now: () =>
+      now: vi.fn(() =>
         new Date(
           Date.parse("2026-08-15T10:00:00Z") + tick++ * 1000,
         ).toISOString(),
+      ),
     },
-  });
-  return { service, tickets, checkIns, offline, fixture };
+  };
+  const service = createTicketingApplicationService(dependencies);
+  const snapshot = () =>
+    JSON.stringify({
+      tickets: [...tickets.values],
+      checkIns: checkIns.values,
+      offline: [...offline.values],
+    });
+  return {
+    service,
+    tickets,
+    checkIns,
+    offline,
+    fixture,
+    dependencies,
+    authorize,
+    authorizationState,
+    commit,
+    snapshot,
+  };
+}
+
+function operatorAuthority(
+  subject = "operator_001",
+): TicketingOperatorAuthority {
+  return {
+    subject,
+    capabilities: ["ticketing.manage"],
+    scope: { kind: "business", businessIds: ["business-a"] },
+  };
+}
+
+function onlineRequest(issued: TicketingIssueResult, subject = "operator_001") {
+  return {
+    qrPayload: issued.qrPayload,
+    code: issued.ticket.code,
+    result: "validated",
+    operatorReference: subject,
+    operatorAuthority: operatorAuthority(subject),
+    occurredAt: "2026-08-15T10:30:00Z",
+  };
 }
 
 function issueInput(fixture: ReturnType<typeof fixtures>) {
@@ -279,6 +341,7 @@ describe("M148 transactional ticketing application", () => {
     const request = {
       qrPayload: issued.qrPayload,
       operatorReference: "operator_001",
+      operatorAuthority: operatorAuthority("operator_001"),
       occurredAt: "2026-08-15T10:30:00Z",
     };
     const first = await service.checkInByQr(request);
@@ -296,11 +359,13 @@ describe("M148 transactional ticketing application", () => {
     const validated = await service.checkInByQr({
       qrPayload: issued.qrPayload,
       operatorReference: "operator_001",
+      operatorAuthority: operatorAuthority("operator_001"),
       occurredAt: "2026-08-15T10:30:00Z",
     });
     const used = await service.checkInByQr({
       qrPayload: issued.qrPayload,
       operatorReference: "operator_001",
+      operatorAuthority: operatorAuthority("operator_001"),
       occurredAt: "2026-08-15T10:31:00Z",
     });
 
@@ -310,6 +375,7 @@ describe("M148 transactional ticketing application", () => {
       service.checkInByQr({
         qrPayload: issued.qrPayload,
         operatorReference: "operator_001",
+        operatorAuthority: operatorAuthority("operator_001"),
         occurredAt: "2026-08-15T10:32:00Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_TICKET_ALREADY_USED" });
@@ -323,6 +389,7 @@ describe("M148 transactional ticketing application", () => {
       code: issued.ticket.code,
       result: "cancelled",
       operatorReference: "operator_001",
+      operatorAuthority: operatorAuthority("operator_001"),
       occurredAt: "2026-08-15T10:30:00Z",
     });
 
@@ -330,6 +397,7 @@ describe("M148 transactional ticketing application", () => {
       service.checkInByQr({
         qrPayload: issued.qrPayload,
         operatorReference: "operator_001",
+        operatorAuthority: operatorAuthority("operator_001"),
         occurredAt: "2026-08-15T10:31:00Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_TICKET_REVOKED" });
@@ -343,12 +411,14 @@ describe("M148 transactional ticketing application", () => {
       code: issued.ticket.code,
       result: "validated",
       operatorReference: "operator_003",
+      operatorAuthority: operatorAuthority("operator_003"),
       occurredAt: "2026-08-15T10:20:00Z",
     });
     const useRequest = {
       code: issued.ticket.code,
       result: "used",
       operatorReference: "operator_003",
+      operatorAuthority: operatorAuthority("operator_003"),
       occurredAt: "2026-08-15T10:21:00Z",
     };
     const used = await service.checkInByCode(useRequest);
@@ -366,7 +436,7 @@ describe("M148 transactional ticketing application", () => {
   });
 
   it("syncs one offline envelope exactly once", async () => {
-    const { service, fixture, checkIns } = harness();
+    const { service, fixture, checkIns, authorize } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
     const queuedAt = "2026-08-15T10:45:00Z";
     const signature = createTicketOfflineEnvelopeSignature(
@@ -397,6 +467,7 @@ describe("M148 transactional ticketing application", () => {
     expect(first.ticket.status).toBe("validated");
     expect(replay.replayed).toBe(true);
     expect(checkIns.values).toHaveLength(1);
+    expect(authorize).not.toHaveBeenCalled();
   });
 
   it("rejects a new offline use envelope after the ticket is consumed", async () => {
@@ -497,6 +568,7 @@ describe("M148 transactional ticketing application", () => {
       service.checkInByQr({
         qrPayload: issued.qrPayload,
         operatorReference: "operator_expiry_qr",
+        operatorAuthority: operatorAuthority("operator_expiry_qr"),
         occurredAt: "2026-08-15T11:00:00Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_TICKET_EXPIRED" });
@@ -515,6 +587,7 @@ describe("M148 transactional ticketing application", () => {
         code: issued.ticket.code,
         result: "validated",
         operatorReference: "operator_expiry_code",
+        operatorAuthority: operatorAuthority("operator_expiry_code"),
         occurredAt: "2026-08-15T11:00:00.001Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_TICKET_EXPIRED" });
@@ -569,6 +642,7 @@ describe("M148 transactional ticketing application", () => {
         code: issued.ticket.code,
         result: "cancelled",
         operatorReference: "refund_authority",
+        operatorAuthority: operatorAuthority("refund_authority"),
         occurredAt: "2026-08-15T11:30:00Z",
       }),
     ).resolves.toMatchObject({
@@ -584,6 +658,7 @@ describe("M148 transactional ticketing application", () => {
       code: issued.ticket.code,
       result: "validated",
       operatorReference: "operator_duplicate_code",
+      operatorAuthority: operatorAuthority("operator_duplicate_code"),
       occurredAt: "2026-08-15T10:20:00Z",
     } as const;
 
@@ -659,9 +734,267 @@ describe("M148 transactional ticketing application", () => {
       service.checkInByQr({
         qrPayload: issued.qrPayload,
         operatorReference: "operator_backdated_qr",
+        operatorAuthority: operatorAuthority("operator_backdated_qr"),
         occurredAt: "2026-08-15T09:59:59.999Z",
       }),
     ).rejects.toMatchObject({ code: "TICKETING_CHECKIN_INVALID" });
     expect(checkIns.values).toHaveLength(0);
   });
 });
+
+describe.each(["checkInByQr", "checkInByCode"] as const)(
+  "D02 current authority for %s",
+  (method) => {
+    it.each([
+      { operatorAuthority: undefined },
+      { operatorAuthority: operatorAuthority("other-operator") },
+      { operatorReference: undefined },
+      { operatorAuthority: { ...operatorAuthority(), capabilities: [] } },
+    ])(
+      "denies invalid trusted context before ticket lookup: %j",
+      async (override) => {
+        const h = harness();
+        const issued = await h.service.issueTicket(issueInput(h.fixture));
+        const before = h.snapshot();
+        const byId = vi.spyOn(h.tickets, "findById");
+        const byCode = vi.spyOn(h.tickets, "findByCode");
+        await expect(
+          h.service[method]({ ...onlineRequest(issued), ...override }),
+        ).rejects.toMatchObject({ code: "TICKETING_OPERATOR_FORBIDDEN" });
+        expect(byId).not.toHaveBeenCalled();
+        expect(byCode).not.toHaveBeenCalled();
+        expect(h.authorize).not.toHaveBeenCalled();
+        expect(h.commit).not.toHaveBeenCalled();
+        expect(h.snapshot()).toBe(before);
+      },
+    );
+
+    it("fails closed without an online owner port while preserving issuance", async () => {
+      const h = harness();
+      const service = createTicketingApplicationService({
+        ...h.dependencies,
+        operatorAuthorization:
+          undefined as unknown as TicketingOperatorAuthorizationPort,
+      });
+      const issued = await service.issueTicket(issueInput(h.fixture));
+      const before = h.snapshot();
+      await expect(
+        service[method](onlineRequest(issued)),
+      ).rejects.toMatchObject({
+        code: "TICKETING_OPERATOR_UNAVAILABLE",
+      });
+      expect(h.commit).not.toHaveBeenCalled();
+      expect(h.snapshot()).toBe(before);
+    });
+
+    it.each([
+      ["TICKETING_OPERATOR_FORBIDDEN", "BUSINESS_SCOPE_MISMATCH"],
+      ["TICKETING_OPERATOR_NOT_FOUND", "DESTINATION_MISSING"],
+      ["TICKETING_OPERATOR_UNAVAILABLE", "DEPENDENCY_UNAVAILABLE"],
+    ] as const)(
+      "rechecks %s before replay and new operations",
+      async (code, reason) => {
+        const h = harness();
+        const issued = await h.service.issueTicket(issueInput(h.fixture));
+        const request = onlineRequest(issued);
+        await h.service[method](request);
+        const before = h.snapshot();
+        h.authorize.mockRejectedValue(
+          new TicketingOperatorAuthorizationError(code, reason),
+        );
+        for (const occurredAt of [request.occurredAt, "2026-08-15T10:31:00Z"]) {
+          await expect(
+            h.service[method]({ ...request, occurredAt }),
+          ).rejects.toMatchObject({ code });
+          expect(h.snapshot()).toBe(before);
+        }
+        expect(h.authorize).toHaveBeenCalledTimes(3);
+        expect(h.commit).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("blocks new admission while suspended but permits authorized cancellation and historical replay", async () => {
+      const h = harness();
+      const issued = await h.service.issueTicket({
+        ...issueInput(h.fixture),
+        validUntil: "2026-08-15T11:00:00Z",
+      });
+      const request = onlineRequest(issued);
+      h.authorizationState.destinationStatus = "suspended";
+      const initial = h.snapshot();
+      await expect(h.service[method](request)).rejects.toMatchObject({
+        code: "TICKETING_DESTINATION_SUSPENDED",
+      });
+      expect(h.snapshot()).toBe(initial);
+      h.authorizationState.destinationStatus = "active";
+      const first = await h.service[method](request);
+      h.authorizationState.destinationStatus = "suspended";
+      const validated = h.snapshot();
+      expect(await h.service[method](request)).toMatchObject({
+        replayed: true,
+        ticket: { status: "validated" },
+        checkIn: first.checkIn,
+      });
+      await expect(
+        h.service[method]({
+          ...request,
+          result: "used",
+          occurredAt: "2026-08-15T10:31:00Z",
+        }),
+      ).rejects.toMatchObject({ code: "TICKETING_DESTINATION_SUSPENDED" });
+      expect(h.snapshot()).toBe(validated);
+      h.dependencies.clock.now.mockReturnValue("2026-08-15T12:00:00Z");
+      const cancelled = await h.service.checkInByCode({
+        ...request,
+        result: "cancelled",
+        occurredAt: "2026-08-15T12:00:00Z",
+      });
+      expect(cancelled.ticket.status).toBe("cancelled");
+      const afterCancellation = h.snapshot();
+      expect(await h.service[method](request)).toEqual({
+        ticket: cancelled.ticket,
+        checkIn: first.checkIn,
+        replayed: true,
+      });
+      expect(h.snapshot()).toBe(afterCancellation);
+      expect(h.authorize).toHaveBeenCalledTimes(6);
+      expect(h.commit).toHaveBeenCalledTimes(2);
+    });
+
+    it("preserves the used-ticket cancellation guard while suspended", async () => {
+      const h = harness();
+      const issued = await h.service.issueTicket(issueInput(h.fixture));
+      const request = onlineRequest(issued);
+      const validated = await h.service[method](request);
+      const used = await h.service[method]({
+        ...request,
+        result: "used",
+        occurredAt: "2026-08-15T10:31:00Z",
+      });
+      h.authorizationState.destinationStatus = "suspended";
+      const before = h.snapshot();
+      await expect(
+        h.service.checkInByCode({
+          ...request,
+          result: "cancelled",
+          occurredAt: "2026-08-15T10:32:00Z",
+        }),
+      ).rejects.toMatchObject({ code: "TICKETING_TICKET_ALREADY_USED" });
+      expect(await h.service[method](request)).toEqual({
+        ticket: used.ticket,
+        checkIn: validated.checkIn,
+        replayed: true,
+      });
+      expect(h.snapshot()).toBe(before);
+      expect(h.commit).toHaveBeenCalledTimes(2);
+    });
+
+    it("rejects a different currently authorized operator colliding with an existing attempt", async () => {
+      const h = harness();
+      const issued = await h.service.issueTicket(issueInput(h.fixture));
+      await h.service[method](onlineRequest(issued));
+      const before = h.snapshot();
+      await expect(
+        h.service[method](onlineRequest(issued, "operator_002")),
+      ).rejects.toMatchObject({ code: "TICKETING_CHECKIN_REPLAY_CONFLICT" });
+      expect(h.authorize).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: "validated" }),
+        operatorAuthority("operator_002"),
+      );
+      expect(h.snapshot()).toBe(before);
+      expect(h.commit).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns the current Ticket when a concurrent attempt commits during authorization", async () => {
+      const h = harness();
+      const issued = await h.service.issueTicket(issueInput(h.fixture));
+      const request = onlineRequest(issued);
+      const authorize = h.authorize.getMockImplementation()!;
+      let entered!: () => void;
+      let release!: () => void;
+      const arrived = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      const blocked = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      h.authorize.mockImplementationOnce(async (ticket, authority) => {
+        entered();
+        await blocked;
+        return authorize(ticket, authority);
+      });
+      const pending = h.service[method](request).finally(entered);
+      try {
+        await arrived;
+        const applied = await h.service[method](request);
+        expect(applied.replayed).toBe(false);
+        const beforeReplay = h.snapshot();
+        release();
+        expect(await pending).toEqual({
+          ticket: applied.ticket,
+          checkIn: applied.checkIn,
+          replayed: true,
+        });
+        expect(h.snapshot()).toBe(beforeReplay);
+        expect(h.commit).toHaveBeenCalledTimes(1);
+      } finally {
+        release();
+        await pending.catch(() => undefined);
+      }
+    });
+
+    it("denies replay if the current Ticket disappeared or changed immutable authority", async () => {
+      const h = harness();
+      const issued = await h.service.issueTicket(issueInput(h.fixture));
+      const request = onlineRequest(issued);
+      const first = await h.service[method](request);
+      const before = h.snapshot();
+      const lookup = vi.spyOn(h.tickets, "findById");
+      for (const current of [
+        null,
+        {
+          ...first.ticket,
+          destinationId: "itacare" as Ticket["destinationId"],
+        },
+      ]) {
+        if (method === "checkInByQr")
+          lookup.mockResolvedValueOnce(first.ticket);
+        lookup.mockResolvedValueOnce(current);
+        await expect(h.service[method](request)).rejects.toMatchObject({
+          code: current
+            ? "TICKETING_CHECKIN_REPLAY_CONFLICT"
+            : "TICKETING_TICKET_NOT_FOUND",
+        });
+        expect(h.snapshot()).toBe(before);
+      }
+      expect(h.authorize).toHaveBeenCalledTimes(3);
+      expect(h.commit).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects contradictory persisted replay identity without effects", async () => {
+      const h = harness();
+      const issued = await h.service.issueTicket(issueInput(h.fixture));
+      const request = onlineRequest(issued);
+      const first = await h.service[method](request);
+      const before = h.snapshot();
+      const changes: Partial<TicketCheckIn>[] = [
+        { ticketId: "tck_other_ticket_0001" as Ticket["id"] },
+        { channel: "offline_sync" },
+        { operatorReference: "operator_002" },
+        { occurredAt: "2026-08-15T10:31:00.000Z" },
+      ];
+      changes.push({
+        result: method === "checkInByQr" ? "cancelled" : "used",
+      });
+      const history = vi.spyOn(h.checkIns, "listByTicketId");
+      for (const change of changes) {
+        history.mockResolvedValue([{ ...first.checkIn, ...change }]);
+        await expect(h.service[method](request)).rejects.toMatchObject({
+          code: "TICKETING_CHECKIN_REPLAY_CONFLICT",
+        });
+        expect(h.snapshot()).toBe(before);
+      }
+      expect(h.commit).toHaveBeenCalledTimes(1);
+    });
+  },
+);

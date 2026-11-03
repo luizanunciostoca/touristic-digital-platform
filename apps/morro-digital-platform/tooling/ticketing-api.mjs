@@ -1,6 +1,7 @@
 import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomUUID } from "node:crypto";
 import {
+  capabilitiesForRole,
   hasAuthCapability,
   isPlatformWideAuthRole,
   isReadOnlyAuthRole,
@@ -561,27 +562,69 @@ export function createTicketingAuthorizationPort({ authApi }) {
           });
         }
       }
-      const transportRole =
+      const platformScope =
         isPlatformWideAuthRole(active.role) &&
-        hasAuthCapability(active.role, "ticketing.manage")
-          ? "admin"
-          : isReadOnlyAuthRole(active.role)
-            ? "viewer"
-            : "editor";
+        hasAuthCapability(active.role, "ticketing.manage");
+      const businessIds = Object.freeze([...(active.businessIds ?? [])]);
+      const transportRole = platformScope
+        ? "admin"
+        : isReadOnlyAuthRole(active.role)
+          ? "viewer"
+          : "editor";
       return Object.freeze({
         allowed: true,
         actor: Object.freeze({
           subject: active.subject,
           role: transportRole,
-          businessIds: Object.freeze([...(active.businessIds ?? [])]),
+          businessIds,
+          operatorAuthority: Object.freeze({
+            subject: active.subject,
+            capabilities: Object.freeze([...capabilitiesForRole(active.role)]),
+            scope: Object.freeze(
+              platformScope
+                ? { kind: "platform" }
+                : { kind: "business", businessIds },
+            ),
+          }),
         }),
       });
     },
   });
 }
 
+export function createTicketingOwnershipPorts({
+  getPlacePlatformRuntime = () => null,
+  getDestinationService = () => null,
+} = {}) {
+  const callPlace = (method, args) => {
+    const runtime = getPlacePlatformRuntime();
+    if (!runtime) throw new Error("TICKETING_OWNER_UNAVAILABLE");
+    return runtime[method](...args);
+  };
+  return {
+    owner: {
+      findBusiness: (...args) => callPlace("findTicketingBusinessOwner", args),
+      findPlace: (...args) => callPlace("findTicketingPlaceOwner", args),
+      findOffer: (...args) => callPlace("findTicketingOfferOwner", args),
+      findProduct: (...args) => callPlace("findTicketingProductOwner", args),
+    },
+    destinations: {
+      async findDestination(id) {
+        const service = getDestinationService();
+        if (!service) throw new Error("TICKETING_DESTINATION_UNAVAILABLE");
+        const result = await service.read(id);
+        return result?.status === "found"
+          ? { id: result.data.id, status: result.data.status }
+          : null;
+      },
+    },
+  };
+}
+
 export function createTicketingApi({
   authApi,
+  getPlacePlatformRuntime,
+  getDestinationService,
   getEnvironmentValue = (key) => process.env[key] ?? "",
   audit = (event) => console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
   publicTransport: injectedPublicTransport,
@@ -678,6 +721,7 @@ export function createTicketingApi({
         createTicketReservationApplicationService,
         createTicketReservationFulfillmentService,
         createTicketingApplicationService,
+        createTicketingOperatorAuthorization,
         createTicketingMySqlPoolFromEnvironment,
         createVerifiedFinancialResultProcessor,
         createVerifiedPaymentTicketFulfillmentHandler,
@@ -831,6 +875,15 @@ export function createTicketingApi({
         checkIns,
         offline,
         transactions,
+        operatorAuthorization: createTicketingOperatorAuthorization({
+          bindings,
+          reservations,
+          businessInventory,
+          ...createTicketingOwnershipPorts({
+            getPlacePlatformRuntime,
+            getDestinationService,
+          }),
+        }),
         signingSecret,
         clock: systemCheckoutClock,
       });

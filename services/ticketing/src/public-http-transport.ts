@@ -40,6 +40,11 @@ import type {
 import type { MySqlTicketingPublicReadRepository } from "./mysql-ticketing-public-read-repository.js";
 import type { TicketOfflineDeviceSyncService } from "./offline-device-sync.js";
 import {
+  requireTicketingOperatorAuthority,
+  TicketingOperatorAuthorizationError,
+  type TicketingOperatorAuthority,
+} from "./operator-authorization.js";
+import {
   TicketingApplicationError,
   type TicketingApplicationService,
 } from "./ticketing-application-service.js";
@@ -67,6 +72,7 @@ export interface TicketingHttpResponse {
 export interface TicketingHttpActor {
   readonly subject: string;
   readonly role: "admin" | "editor" | "viewer";
+  readonly operatorAuthority?: TicketingOperatorAuthority;
 }
 
 export type TicketingHttpAuthorizationDecision =
@@ -330,6 +336,23 @@ function checkoutDescriptor(
 }
 
 function errorStatus(error: unknown): { status: number; code: string } {
+  if (error instanceof TicketingOperatorAuthorizationError) {
+    return {
+      status:
+        error.code === "TICKETING_OPERATOR_FORBIDDEN"
+          ? 403
+          : error.code === "TICKETING_OPERATOR_NOT_FOUND"
+            ? 404
+            : 503,
+      code: error.code,
+    };
+  }
+  if (
+    error instanceof TicketingApplicationError &&
+    error.code === "TICKETING_DESTINATION_SUSPENDED"
+  ) {
+    return { status: 409, code: error.code };
+  }
   const message = error instanceof Error ? error.message : "";
   if (
     message.includes("INVALID") ||
@@ -737,12 +760,17 @@ export class TicketingPublicHttpTransport {
       }
 
       if (relative === "/operator/check-in" && method === "POST") {
+        const operatorAuthority = requireTicketingOperatorAuthority(
+          actor.operatorAuthority,
+          actor.subject ?? null,
+        );
         const body = record(request.body);
         if (!body)
           return response(400, { error: "INVALID_CHECKIN" }, correlation);
         const result = await this.dependencies.ticketing.checkInByQr({
           qrPayload: body.qrPayload,
           operatorReference: actor.subject,
+          operatorAuthority,
           occurredAt: canonicalNow(this.dependencies.clock),
         });
         return response(200, { data: result }, correlation);

@@ -40,6 +40,7 @@ vi.mock("@touristic/financial-server", async (importOriginal) => {
 
 import {
   createTicketingApi,
+  createTicketingOwnershipPorts,
   sanitizeTicketingFinancialFailure,
   sanitizeTicketingStartupFailure,
   isStagingOrderingSchemaReadbackService,
@@ -53,6 +54,66 @@ function authApi() {
     authorizeMutation: () => ({ allowed: false }),
   };
 }
+
+it("resolves ownership runtimes lazily and preserves their exact facts", async () => {
+  let place = null;
+  let destination = null;
+  const getPlacePlatformRuntime = vi.fn(() => place);
+  const getDestinationService = vi.fn(() => destination);
+  const ports = createTicketingOwnershipPorts({
+    getPlacePlatformRuntime,
+    getDestinationService,
+  });
+  expect(getPlacePlatformRuntime).not.toHaveBeenCalled();
+  expect(getDestinationService).not.toHaveBeenCalled();
+  expect(() => ports.owner.findBusiness("business-a", "destination-a")).toThrow(
+    "TICKETING_OWNER_UNAVAILABLE",
+  );
+  await expect(
+    ports.destinations.findDestination("destination-a"),
+  ).rejects.toThrow("TICKETING_DESTINATION_UNAVAILABLE");
+  const methods = {
+    findBusiness: "findTicketingBusinessOwner",
+    findPlace: "findTicketingPlaceOwner",
+    findOffer: "findTicketingOfferOwner",
+    findProduct: "findTicketingProductOwner",
+  };
+  const fact = {
+    id: "exact-id",
+    businessId: "business-a",
+    placeId: null,
+    destinationId: null,
+  };
+  place = Object.fromEntries(
+    Object.values(methods).map((name) => [name, vi.fn(async () => fact)]),
+  );
+  for (const [port, method] of Object.entries(methods)) {
+    const args =
+      port === "findBusiness" ? ["business-a", "destination-a"] : ["exact-id"];
+    await expect(ports.owner[port](...args)).resolves.toBe(fact);
+    expect(place[method]).toHaveBeenCalledTimes(1);
+    expect(place[method]).toHaveBeenCalledWith(...args);
+  }
+  destination = {
+    read: vi.fn(async () => ({
+      status: "found",
+      data: { id: "returned-destination", status: "suspended" },
+    })),
+  };
+  await expect(
+    ports.destinations.findDestination("requested-destination"),
+  ).resolves.toEqual({ id: "returned-destination", status: "suspended" });
+  expect(destination.read).toHaveBeenCalledTimes(1);
+  expect(destination.read).toHaveBeenCalledWith("requested-destination");
+  destination.read.mockResolvedValueOnce({ status: "not_found" });
+  await expect(
+    ports.destinations.findDestination("missing"),
+  ).resolves.toBeNull();
+  destination.read.mockRejectedValueOnce(new Error("OWNER_READ_UNAVAILABLE"));
+  await expect(ports.destinations.findDestination("failed")).rejects.toThrow(
+    "OWNER_READ_UNAVAILABLE",
+  );
+});
 
 describe("ticketing startup configuration", () => {
   it("starts in a safe disabled state when the feature flag is omitted", async () => {
