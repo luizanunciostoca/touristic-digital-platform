@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-D02-ONLINE-OWNERSHIP-ENFORCEMENT-20261102",
   "objective": "enforce-current-operator-and-canonical-ticket-ownership-before-online-checkin-and-replay",
-  "baseSha": "d02059609ad40b35333c85c071c99b3c5c5c09db",
-  "branch": "feat/d02-online-ownership-enforcement-20261102",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "77e2f9baa0c42a40d9a3e8a4f15a80c6b176c6da",
+  "branch": "chore/retire-d02-online-ownership-enforcement-20261103",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
