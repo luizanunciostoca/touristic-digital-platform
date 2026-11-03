@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-D02-AUTH-PROOF-INVENTORY-20261103",
   "objective": "preserve-exact-auth-sql-proof-inventories-across-d02-ownership-enforcement",
-  "baseSha": "5d73990340f9f3569c66c27e6e5360f721c9b23e",
+  "baseSha": "a99125363980734d2cff66883c7a5a0b79b63a44",
   "branch": "feat/d02-auth-proof-inventory-20261103",
   "state": "IMPLEMENTING",
   "risk": "high",
