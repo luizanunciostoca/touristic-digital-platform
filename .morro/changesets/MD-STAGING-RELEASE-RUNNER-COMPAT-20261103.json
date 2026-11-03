@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-RELEASE-RUNNER-COMPAT-20261103",
   "objective": "complete-staging-release-browser-runner-compatibility",
-  "baseSha": "a6fd1bcf563e097349219c70b13f25c34eff4971",
+  "baseSha": "7af21635ea437dbe94536c0b113878f68853917b",
   "branch": "fix/staging-release-runner-compat-20261103",
   "state": "IMPLEMENTING",
   "risk": "high",
