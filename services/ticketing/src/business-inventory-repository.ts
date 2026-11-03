@@ -4,6 +4,7 @@ import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
 import {
   normalizeTicketAdmissionProfile,
+  normalizeTicketInventoryId,
   type TicketAdmissionProfile,
 } from "@touristic/ticketing/reservations";
 
@@ -39,6 +40,29 @@ export interface TicketingCatalogOfferBinding {
   readonly inventoryId: string;
   readonly businessId: string;
   readonly offerId: string;
+}
+
+export interface TicketingInventoryOwnership {
+  readonly inventoryId: string;
+  readonly businessId: string;
+}
+
+export interface TicketingInventoryAdmissionProfile {
+  readonly inventoryId: string;
+  readonly admission: TicketAdmissionProfile;
+}
+
+// Separate reads preserve missing ownership/profile/binding as distinct facts.
+export interface TicketingInventoryOwnershipReadPort {
+  findOwnershipByInventoryId(
+    inventoryId: string,
+  ): Promise<TicketingInventoryOwnership | null>;
+  findCatalogBindingByInventoryId(
+    inventoryId: string,
+  ): Promise<TicketingCatalogOfferBinding | null>;
+  findAdmissionProfileByInventoryId(
+    inventoryId: string,
+  ): Promise<TicketingInventoryAdmissionProfile | null>;
 }
 
 export interface TicketingBusinessInventoryRepositoryPort {
@@ -79,6 +103,26 @@ interface CatalogBindingRow extends RowDataPacket {
   inventory_id: string;
   business_id: string;
   offer_id: string;
+}
+
+interface InventoryOwnershipRow extends RowDataPacket {
+  inventory_id: string;
+  business_id: string;
+}
+
+interface InventoryAdmissionRow extends RowDataPacket {
+  inventory_id: string;
+  place_id: string;
+  admission_subtype: string;
+  ticket_type: string;
+  tier_label: string | null;
+  display_order: number;
+}
+
+function exactInventoryId(value: string): string {
+  const id = normalizeTicketInventoryId(value);
+  if (!id || id !== value) throw new Error("TICKETING_INVENTORY_ID_INVALID");
+  return id;
 }
 
 interface BusinessInventoryRow extends RowDataPacket {
@@ -385,8 +429,82 @@ async function bindCatalogOfferWithConnection(
   });
 }
 
-export class MySqlTicketingBusinessInventoryRepository implements TicketingBusinessInventoryRepositoryPort {
+export class MySqlTicketingBusinessInventoryRepository
+  implements
+    TicketingBusinessInventoryRepositoryPort,
+    TicketingInventoryOwnershipReadPort
+{
   constructor(private readonly pool: Pool) {}
+
+  async findOwnershipByInventoryId(
+    inventoryIdInput: string,
+  ): Promise<TicketingInventoryOwnership | null> {
+    const inventoryId = exactInventoryId(inventoryIdInput);
+    const [rows] = await this.pool.execute<InventoryOwnershipRow[]>(
+      "SELECT inventory_id, business_id FROM ticketing_inventory_ownership WHERE inventory_id = ? LIMIT 1",
+      [inventoryId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    if (
+      row.inventory_id !== inventoryId ||
+      typeof row.business_id !== "string" ||
+      !BUSINESS_ID.test(row.business_id)
+    )
+      throw new Error("TICKETING_INVENTORY_OWNERSHIP_PERSISTED_INVALID");
+    return Object.freeze({
+      inventoryId: row.inventory_id,
+      businessId: row.business_id,
+    });
+  }
+
+  async findCatalogBindingByInventoryId(
+    inventoryIdInput: string,
+  ): Promise<TicketingCatalogOfferBinding | null> {
+    const inventoryId = exactInventoryId(inventoryIdInput);
+    const [rows] = await this.pool.execute<CatalogBindingRow[]>(
+      "SELECT inventory_id, business_id, offer_id FROM ticketing_inventory_catalog_bindings WHERE inventory_id = ? LIMIT 1",
+      [inventoryId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    if (
+      row.inventory_id !== inventoryId ||
+      typeof row.business_id !== "string" ||
+      !BUSINESS_ID.test(row.business_id) ||
+      typeof row.offer_id !== "string" ||
+      !CATALOG_OFFER_ID.test(row.offer_id)
+    )
+      throw new Error("TICKETING_CATALOG_BINDING_PERSISTED_INVALID");
+    return bindingFromRow(row);
+  }
+
+  async findAdmissionProfileByInventoryId(
+    inventoryIdInput: string,
+  ): Promise<TicketingInventoryAdmissionProfile | null> {
+    const inventoryId = exactInventoryId(inventoryIdInput);
+    const [rows] = await this.pool.execute<InventoryAdmissionRow[]>(
+      "SELECT inventory_id, place_id, admission_subtype, ticket_type, tier_label, display_order FROM ticketing_admission_profiles WHERE inventory_id = ? LIMIT 1",
+      [inventoryId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    const admission = normalizeTicketAdmissionProfile({
+      placeId: row.place_id,
+      subtype: row.admission_subtype,
+      ticketType: row.ticket_type,
+      tierLabel: row.tier_label,
+      displayOrder: row.display_order,
+    });
+    if (
+      row.inventory_id !== inventoryId ||
+      !admission ||
+      admission.placeId !== row.place_id
+    ) {
+      throw new Error("TICKETING_ADMISSION_PROFILE_PERSISTED_INVALID");
+    }
+    return Object.freeze({ inventoryId: row.inventory_id, admission });
+  }
 
   async listByBusiness(
     businessIdInput: string,
