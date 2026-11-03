@@ -27,6 +27,18 @@ function clean(value, max = 500) {
     : "";
 }
 
+function ticketingOwnerReference(value, errorCode) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > 160 ||
+    value !== value.trim()
+  ) {
+    throw new Error(errorCode);
+  }
+  return value;
+}
+
 function slug(value) {
   return clean(value, 160)
     .normalize("NFKD")
@@ -1924,6 +1936,78 @@ export function createPlacePlatformRuntime({
     return { businessId: String(place.businessId), placeId: String(place.id) };
   }
 
+  async function findTicketingBusinessOwner(businessId, destinationId) {
+    assertReady();
+    const [rows] = await pool.execute(
+      `SELECT b.id AS business_id, d.destination_id
+         FROM business_entities b
+         INNER JOIN business_destinations d ON d.business_id = b.id
+        WHERE b.id = ? AND d.destination_id = ?
+        LIMIT 1`,
+      [
+        ticketingOwnerReference(businessId, "INVALID_BUSINESS_ID"),
+        ticketingOwnerReference(destinationId, "INVALID_DESTINATION_ID"),
+      ],
+    );
+    const row = rows[0];
+    return row
+      ? Object.freeze({
+          businessId: row.business_id,
+          destinationId: row.destination_id,
+        })
+      : null;
+  }
+
+  async function findTicketingPlaceOwner(placeId) {
+    assertReady();
+    const [rows] = await pool.execute(
+      `SELECT place_id, business_id, destination_id
+         FROM business_places
+        WHERE place_id = ?
+        LIMIT 1`,
+      [ticketingOwnerReference(placeId, "INVALID_PLACE_ID")],
+    );
+    const row = rows[0];
+    return row
+      ? Object.freeze({
+          id: row.place_id,
+          businessId: row.business_id,
+          destinationId: row.destination_id,
+        })
+      : null;
+  }
+
+  async function findTicketingOfferOwner(offerId) {
+    assertReady();
+    const offer = await catalogRuntime.repository.getOffer(
+      ticketingOwnerReference(offerId, "INVALID_OFFER_ID"),
+    );
+    return offer
+      ? Object.freeze({
+          id: offer.id,
+          businessId: offer.businessId,
+          productId: offer.productId,
+          placeId: offer.placeId,
+          destinationId: offer.destinationId,
+        })
+      : null;
+  }
+
+  async function findTicketingProductOwner(productId) {
+    assertReady();
+    const product = await catalogRuntime.repository.getProduct(
+      ticketingOwnerReference(productId, "INVALID_PRODUCT_ID"),
+    );
+    return product
+      ? Object.freeze({
+          id: product.id,
+          businessId: product.businessId,
+          placeId: product.placeId,
+          destinationId: product.destinationId,
+        })
+      : null;
+  }
+
   async function getBusinessLocationPlace(businessId) {
     assertReady();
     const normalizedBusinessId = clean(businessId, 160);
@@ -2101,6 +2185,10 @@ export function createPlacePlatformRuntime({
     updateLegacyBusinessProfile,
     getCmsDetail,
     createDraft,
+    findTicketingBusinessOwner,
+    findTicketingPlaceOwner,
+    findTicketingOfferOwner,
+    findTicketingProductOwner,
     getBusinessLocationPlace,
     listLocationDiscoveryPlaces,
     updateProfile,

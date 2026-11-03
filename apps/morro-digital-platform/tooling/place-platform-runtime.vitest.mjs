@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
 
@@ -9,6 +9,7 @@ function fixture({
   publishedRows = [],
   cmsRows = [],
   cmsError = null,
+  read = null,
 } = {}) {
   const executed = [];
   const transaction = { committed: false, rolledBack: false };
@@ -20,6 +21,8 @@ function fixture({
       return [[]];
     }
     executed.push({ sql, params });
+    const result = await read?.(sql, params);
+    if (result !== undefined) return result;
     if (sql.includes("INSERT INTO business_entities") && duplicate) {
       throw new Error("ER_DUP_ENTRY");
     }
@@ -645,6 +648,221 @@ describe("trusted destination SQL boundary", () => {
       expect(executed[0].params).toEqual(["place-1"]);
     } finally {
       await runtime.stop();
+    }
+  });
+});
+
+describe("Ticketing canonical ownership reads", () => {
+  const lookups = [
+    ["findTicketingBusinessOwner", ["business-a", "morro-de-sao-paulo"]],
+    ["findTicketingPlaceOwner", ["place-a"]],
+    ["findTicketingOfferOwner", ["offer-a"]],
+    ["findTicketingProductOwner", ["product-a"]],
+  ];
+
+  async function ownershipFixture(options) {
+    const context = fixture(options);
+    onTestFinished(() => context.runtime.stop());
+    expect(await context.runtime.start()).toBe(true);
+    context.executed.length = 0;
+    return context;
+  }
+
+  it("requires a ready runtime before every owner lookup", async () => {
+    const { runtime, executed } = fixture();
+    for (const state of ["not-started", "stopped"]) {
+      if (state === "stopped") {
+        expect(await runtime.start()).toBe(true);
+        executed.length = 0;
+        await runtime.stop();
+      }
+      for (const [method, args] of lookups) {
+        await expect(runtime[method](...args)).rejects.toThrow(
+          "PLACE_PLATFORM_UNAVAILABLE",
+        );
+      }
+      expect(executed).toHaveLength(0);
+    }
+  });
+
+  it("requires the exact Business and Destination membership without selecting a Place", async () => {
+    const memberships = [
+      { business_id: "business-a", destination_id: "morro-de-sao-paulo" },
+      { business_id: "business-b", destination_id: "itacare" },
+    ];
+    const { runtime, executed } = await ownershipFixture({
+      read: async (sql, params) => {
+        if (!sql.includes("FROM business_entities b")) return undefined;
+        return [
+          memberships.filter(
+            (row) =>
+              row.business_id === params[0] && row.destination_id === params[1],
+          ),
+        ];
+      },
+    });
+    await expect(
+      runtime.findTicketingBusinessOwner("business-a", "morro-de-sao-paulo"),
+    ).resolves.toEqual({
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+    });
+    for (const args of [
+      ["business-a", "itacare"],
+      ["business-missing", "morro-de-sao-paulo"],
+    ]) {
+      await expect(
+        runtime.findTicketingBusinessOwner(...args),
+      ).resolves.toBeNull();
+    }
+    expect(executed).toHaveLength(3);
+    for (const { sql } of executed) {
+      expect(sql).toContain(
+        "INNER JOIN business_destinations d ON d.business_id = b.id",
+      );
+      expect(sql).toContain("WHERE b.id = ? AND d.destination_id = ?");
+      expect(sql).not.toContain("business_places");
+    }
+  });
+
+  it("reads the requested Place's scalar ownership instead of the first Place or editable JSON", async () => {
+    const places = [
+      {
+        place_id: "place-a",
+        business_id: "business-a",
+        destination_id: "morro-de-sao-paulo",
+      },
+      {
+        place_id: "place-b",
+        business_id: "business-a",
+        destination_id: "itacare",
+        editable_place_json: {
+          id: "place-a",
+          businessId: "other",
+          destinationId: "other",
+        },
+      },
+    ];
+    const { runtime, executed } = await ownershipFixture({
+      read: async (sql, params) =>
+        sql.includes("FROM business_places")
+          ? [places.filter((row) => row.place_id === params[0])]
+          : undefined,
+    });
+    await expect(runtime.findTicketingPlaceOwner("place-b")).resolves.toEqual({
+      id: "place-b",
+      businessId: "business-a",
+      destinationId: "itacare",
+    });
+    await expect(
+      runtime.findTicketingPlaceOwner("place-missing"),
+    ).resolves.toBeNull();
+    expect(executed).toHaveLength(2);
+    expect(executed[0].params).toEqual(["place-b"]);
+    expect(executed[0].sql).toContain("WHERE place_id = ?");
+    expect(executed[0].sql).not.toContain("ORDER BY");
+  });
+
+  it.each([
+    [null, null],
+    [null, "itacare"],
+    ["place-a", null],
+    ["place-a", "itacare"],
+  ])(
+    "preserves optional Catalog ownership links (%s, %s)",
+    async (placeId, destinationId) => {
+      const row = {
+        business_id: "business-a",
+        place_id: placeId,
+        destination_id: destinationId,
+        product_id: "product-a",
+        offer_id: "offer-a",
+        created_at: "2026-11-02T00:00:00.000Z",
+        updated_at: "2026-11-02T00:00:00.000Z",
+        name: "Product",
+        description: "",
+        status: "active",
+        tags_json: [],
+        price_minor_units: 100,
+        currency: "BRL",
+        sales_starts_at: null,
+        sales_ends_at: null,
+        experience_starts_at: null,
+        experience_ends_at: null,
+        capacity: null,
+      };
+      const { runtime, executed } = await ownershipFixture({
+        read: async (sql, params) => {
+          if (sql.includes("FROM catalog_offers")) {
+            return [params[0] === row.offer_id ? [row] : []];
+          }
+          if (sql.includes("FROM catalog_products")) {
+            return [params[0] === row.product_id ? [row] : []];
+          }
+          return undefined;
+        },
+      });
+      const offer = await runtime.findTicketingOfferOwner("offer-a");
+      const product = await runtime.findTicketingProductOwner("product-a");
+      const ownership = { businessId: "business-a", placeId, destinationId };
+      expect(offer).toEqual({
+        ...ownership,
+        id: "offer-a",
+        productId: "product-a",
+      });
+      expect(product).toEqual({ ...ownership, id: "product-a" });
+      expect(executed.map(({ params }) => params)).toEqual([
+        ["offer-a"],
+        ["product-a"],
+      ]);
+      expect(
+        executed.every(({ sql }) => sql.startsWith("SELECT * FROM catalog_")),
+      ).toBe(true);
+    },
+  );
+
+  it.each(lookups)(
+    "distinguishes an absent owner from provider failure: %s",
+    async (method, args) => {
+      const providerError = new Error("OWNER_DATABASE_UNAVAILABLE");
+      const read = vi.fn().mockResolvedValue([[]]);
+      const { runtime } = await ownershipFixture({ read });
+      await expect(runtime[method](...args)).resolves.toBeNull();
+      read.mockRejectedValueOnce(providerError);
+      await expect(runtime[method](...args)).rejects.toBe(providerError);
+    },
+  );
+
+  it("never coerces, trims, truncates or strips identifiers into another owner", async () => {
+    const { runtime, executed } = await ownershipFixture({
+      read: async () => [[]],
+    });
+    for (const [method, args] of lookups) {
+      for (const invalid of [
+        undefined,
+        null,
+        123,
+        "",
+        " business-a",
+        "business-a ",
+        "a".repeat(161),
+      ]) {
+        await expect(
+          runtime[method](invalid, ...args.slice(1)),
+        ).rejects.toThrow("INVALID_");
+      }
+    }
+    await expect(
+      runtime.findTicketingBusinessOwner("business-a", " itacare"),
+    ).rejects.toThrow("INVALID_DESTINATION_ID");
+    expect(executed).toHaveLength(0);
+    for (const [method, args] of lookups) {
+      const exact = `<${args[0]}>`;
+      await expect(
+        runtime[method](exact, ...args.slice(1)),
+      ).resolves.toBeNull();
+      expect(executed.at(-1).params[0]).toBe(exact);
+      expect(executed.at(-1).sql).not.toContain(exact);
     }
   });
 });

@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "feat/d02-ownership-resolver-20261102",
-      "baseSha": "e62cbdeb7cb914821816a2b8077638c8597e9a57",
+      "baseSha": "e692f3bb84c96298bf5a128b0bcdf190b5ee7bb5",
       "paths": [
         "services/ticketing/src/operator-authorization.ts",
         "services/ticketing/src/operator-authorization.test.ts",

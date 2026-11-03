@@ -5,6 +5,9 @@ import {
   type MorroProInventoryOffer,
   type TicketingBusinessInventoryRepositoryPort,
   type TicketingCatalogOfferBinding,
+  type TicketingInventoryAdmissionProfile,
+  type TicketingInventoryOwnership,
+  type TicketingInventoryOwnershipReadPort,
 } from "./business-inventory-repository.js";
 import {
   CommerceSessionAuthority,
@@ -101,6 +104,21 @@ import {
 
 export { MySqlTicketingCommerceCrmOutbox } from "./commerce-crm-outbox.js";
 export { TicketingAdminService } from "./ticketing-admin-service.js";
+export {
+  TicketingOperatorAuthorizationError,
+  createTicketingOperatorAuthorization,
+  requireTicketingOperatorAuthority,
+} from "./operator-authorization.js";
+export type {
+  TicketingOperatorAuthority,
+  TicketingOperatorAuthorizationDependencies,
+  TicketingOperatorAuthorizationErrorCode,
+  TicketingOperatorAuthorizationFailureReason,
+  TicketingOperatorAuthorizationFacts,
+  TicketingOperatorAuthorizationPort,
+  TicketingOperatorDestinationPort,
+  TicketingOperatorOwnerPort,
+} from "./operator-authorization.js";
 export type {
   TicketingAdminInventoryProjection,
   TicketingAdminListInput,
@@ -178,6 +196,9 @@ export type {
   TicketingHttpAuthorizationPort,
   TicketingHttpRequest,
   TicketingHttpResponse,
+  TicketingInventoryAdmissionProfile,
+  TicketingInventoryOwnership,
+  TicketingInventoryOwnershipReadPort,
   TicketingIssueResult,
   TicketingOfflineTransactionalCommandResult,
   TicketingPublicHttpTransportDependencies,
