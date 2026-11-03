@@ -39,6 +39,8 @@ jobs:
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
+      - name: Build workspace
+        run: pnpm -w build
       - name: Unit coverage
         run: pnpm --filter @touristic/morro-digital-platform test -- weather-i18n.test.ts weather-widget.test.ts
       - name: Install deterministic Chromium
@@ -46,8 +48,6 @@ jobs:
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
           mkdir -p /tmp/weather-v1-i18n
-      - name: Build workspace
-        run: pnpm -w build
       - name: Start authenticated Mapbox runtime
         env:
           MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}

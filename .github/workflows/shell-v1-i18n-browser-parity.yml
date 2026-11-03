@@ -48,6 +48,8 @@ jobs:
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
+      - name: Build workspace
+        run: pnpm -w build
       - name: Unit coverage
         run: pnpm --filter @touristic/morro-digital-platform test -- shell-v1-i18n.test.ts browser-locale.test.ts public-onboarding-i18n.test.ts assistant-voice-adapter.test.ts
       - name: Install deterministic Chromium
@@ -55,8 +57,6 @@ jobs:
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
           mkdir -p /tmp/shell-v1-i18n
-      - name: Build workspace
-        run: pnpm -w build
       - name: Start authenticated Mapbox runtime
         env:
           MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
