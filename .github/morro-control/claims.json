@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/assistant-ci-preconditions-20261103",
-      "baseSha": "971463adbdb4589db51c85a701f1ca755ec72837",
+      "baseSha": "5bd69af1e9130c9575a01c1bae59814ee86aff2d",
       "paths": [
         ".github/workflows/assistant-conversation-continuity-browser-contract.yml",
         ".github/workflows/assistant-modal-reading-order.yml",

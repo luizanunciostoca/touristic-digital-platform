@@ -10,6 +10,7 @@ on:
     paths:
       - ".github/actions/ci-bootstrap/action.yml"
       - .github/workflows/assistant-conversation-continuity-browser-contract.yml
+      - tooling/ci/assistant-workflow-preconditions.test.mjs
       - apps/morro-digital-platform/src/assistant/**
       - apps/morro-digital-platform/src/map/**
       - apps/morro-digital-platform/src/navigation/**
@@ -34,14 +35,16 @@ jobs:
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
+      - name: Verify assistant workflow preconditions
+        run: node --test tooling/ci/assistant-workflow-preconditions.test.mjs
+      - name: Build workspace
+        run: pnpm -w build
       - name: Focused conversation tests
         run: pnpm --filter @touristic/morro-digital-platform test -- assistant-conversation-orchestrator assistant-contextual-state
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
-      - name: Build workspace
-        run: pnpm -w build
       - name: Start authenticated map runtime
         env:
           MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}

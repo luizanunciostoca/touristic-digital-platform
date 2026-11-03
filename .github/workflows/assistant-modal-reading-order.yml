@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/actions/ci-bootstrap/action.yml"
       - .github/workflows/assistant-modal-reading-order.yml
+      - tooling/ci/assistant-workflow-preconditions.test.mjs
       - apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts
       - apps/morro-digital-platform/src/assistant/assistant-single-message-controller.ts
       - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
@@ -28,12 +29,14 @@ concurrency:
 jobs:
   modal-reading-order:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
+      - name: Verify assistant workflow preconditions
+        run: node --test tooling/ci/assistant-workflow-preconditions.test.mjs
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
