@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ASSISTANT-CI-PRECONDITIONS-20261103",
   "objective": "repair-assistant-ci-build-order-and-browser-runner",
-  "baseSha": "5bd69af1e9130c9575a01c1bae59814ee86aff2d",
-  "branch": "fix/assistant-ci-preconditions-20261103",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "e84065a5eff2d95dcddc0d01e968970ce9b5639a",
+  "branch": "chore/retire-assistant-ci-preconditions-20261103",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
