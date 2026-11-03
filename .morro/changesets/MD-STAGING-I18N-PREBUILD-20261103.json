@@ -4,7 +4,7 @@
   "objective": "build-workspace-before-staging-i18n-unit-coverage",
   "baseSha": "1655077769a4f2cde08969ec203996669c45c75e",
   "branch": "fix/staging-i18n-prebuild-20261103",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
