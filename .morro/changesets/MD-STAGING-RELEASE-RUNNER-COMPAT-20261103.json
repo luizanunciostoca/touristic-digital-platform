@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-RELEASE-RUNNER-COMPAT-20261103",
   "objective": "complete-staging-release-browser-runner-compatibility",
-  "baseSha": "7af21635ea437dbe94536c0b113878f68853917b",
-  "branch": "fix/staging-release-runner-compat-20261103",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "4e4882d5441267c7283c954295fb38cfc46a6916",
+  "branch": "chore/retire-staging-release-runner-compat-20261103",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
