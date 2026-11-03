@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-D02-OWNERSHIP-RESOLVER-20261102",
   "objective": "resolve-canonical-ticket-business-and-destination-ownership-before-online-authorization",
-  "baseSha": "e62cbdeb7cb914821816a2b8077638c8597e9a57",
+  "baseSha": "e692f3bb84c96298bf5a128b0bcdf190b5ee7bb5",
   "branch": "feat/d02-ownership-resolver-20261102",
   "state": "IMPLEMENTING",
   "risk": "critical",
