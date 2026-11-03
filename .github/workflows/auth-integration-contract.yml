@@ -145,16 +145,26 @@ jobs:
             --no-file-parallelism --reporter=json --outputFile=/tmp/ticketing-operator-authorization-sql.json
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
+          import { createHash } from 'node:crypto';
           import { readFileSync } from 'node:fs';
           const report = JSON.parse(readFileSync('/tmp/ticketing-operator-authorization-sql.json', 'utf8'));
+          const inventories = new Map([
+            ['6b1da0d3bb8844150cdb6787f40df80591b16e79ca4217d15f460a14e7a473e8', 34],
+            ['dc07fe76d4d0ef83ffd65c731b207ff35b75eb4fb60dbb642ccbb21b3ce8b800', 48],
+          ]);
+          const inventorySha256 = createHash('sha256')
+            .update(readFileSync('apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs'))
+            .digest('hex');
+          const expectedCount = inventories.get(inventorySha256);
+          assert.ok(Number.isSafeInteger(expectedCount), `Unreviewed D02 test inventory: ${inventorySha256}`);
           const results = report.testResults.flatMap(suite => suite.assertionResults);
           const expected = ['allowed', 'AFFILIATE', 'demoted']
             .map(mode => `D02 SQL ${mode}: real Auth and Ticketing preserve the capability boundary`);
           assert.equal(report.success, true);
           for (const field of ['numFailedTests', 'numPendingTests', 'numFailedTestSuites']) assert.equal(report[field], 0);
-          assert.equal(report.numTotalTests, 34);
-          assert.equal(report.numPassedTests, 34);
-          assert.equal(results.length, 34);
+          assert.equal(report.numTotalTests, expectedCount);
+          assert.equal(report.numPassedTests, expectedCount);
+          assert.equal(results.length, expectedCount);
           assert.equal(new Set(results.map(result => result.fullName)).size, results.length);
           for (const result of results) assert.equal(result.status, 'passed');
           for (const name of expected) {
@@ -162,7 +172,7 @@ jobs:
             assert.equal(matches.length, 1, `Missing or duplicate SQL proof: ${name}`);
             assert.equal(matches[0].status, 'passed', `SQL proof did not pass: ${name}`);
           }
-          console.log(JSON.stringify({ contract: 'D02-ONLINE-CHECKIN-CAPABILITY', requiredSqlCases: expected.length, passed: report.numPassedTests }));
+          console.log(JSON.stringify({ contract: 'D02-ONLINE-CHECKIN-CAPABILITY', inventorySha256, expectedCount, requiredSqlCases: expected.length, passed: report.numPassedTests }));
           NODE
       - name: Upload online check-in capability proof
         if: always()
