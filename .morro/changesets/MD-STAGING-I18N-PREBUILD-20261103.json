@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-I18N-PREBUILD-20261103",
+  "objective": "build-workspace-before-staging-i18n-unit-coverage",
+  "baseSha": "88bfb98d9710dba0fa7538c9aed12c45d4f7be2d",
+  "branch": "fix/staging-i18n-prebuild-20261103",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/shell-v1-i18n-browser-parity.yml",
+      ".github/workflows/weather-v1-i18n-browser-parity.yml",
+      ".morro/changesets/MD-STAGING-I18N-PREBUILD-20261103.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "claim-and-ci-governance",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/quality/ci-scheduler-governance.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

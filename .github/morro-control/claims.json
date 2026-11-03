@@ -131,6 +131,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
+    },
+    "MD-STAGING-I18N-PREBUILD-20261103": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-i18n-prebuild-20261103",
+      "baseSha": "88bfb98d9710dba0fa7538c9aed12c45d4f7be2d",
+      "paths": [
+        ".github/workflows/shell-v1-i18n-browser-parity.yml",
+        ".github/workflows/weather-v1-i18n-browser-parity.yml",
+        ".morro/changesets/MD-STAGING-I18N-PREBUILD-20261103.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-04T10:39:25.647Z"
     }
   }
 }
