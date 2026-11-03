@@ -271,3 +271,38 @@ describe("Ticketing public HTTP offline sync error boundary", () => {
     expect(result.body.error).toBe("TICKETING_TICKET_ALREADY_VALIDATED");
   });
 });
+
+describe("Ticketing online check-in capability boundary", () => {
+  it("rejects missing operator capability before inspecting the check-in payload", async () => {
+    let payloadReads = 0;
+    const authorize = vi.fn<
+      TicketingPublicHttpTransportDependencies["authorization"]["authorize"]
+    >(async (_request, options) =>
+      options.admin
+        ? { allowed: false as const, reason: "admin_required" as const }
+        : {
+            allowed: true as const,
+            actor: { subject: "non-operator", role: "viewer" as const },
+          },
+    );
+    const dependencies = {
+      enabled: true,
+      authorization: { authorize },
+      audit: { record: vi.fn().mockResolvedValue(undefined) },
+      clock: { now: () => "2026-11-02T12:00:00.000Z" },
+    } as unknown as TicketingPublicHttpTransportDependencies;
+    const result = await new TicketingPublicHttpTransport(dependencies).handle({
+      method: "POST",
+      pathname: "/api/ticketing/v1/operator/check-in",
+      headers: {},
+      get body() {
+        payloadReads += 1;
+        throw new Error("OPERATOR_PAYLOAD_MUST_REMAIN_UNREAD");
+      },
+    });
+    expect(result.status).toBe(403);
+    expect(result.body.error).toBe("ADMIN_REQUIRED");
+    expect(payloadReads).toBe(0);
+    expect(authorize).toHaveBeenCalledTimes(1);
+  });
+});

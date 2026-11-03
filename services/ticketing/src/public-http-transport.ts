@@ -425,7 +425,9 @@ export class TicketingPublicHttpTransport {
     }
 
     const mutation = method !== "GET";
-    const admin = relative.startsWith("/operator/offline-devices");
+    const admin =
+      relative.startsWith("/operator/offline-devices") ||
+      (relative === "/operator/check-in" && method === "POST");
     const authorization = await this.dependencies.authorization.authorize(
       request,
       {
