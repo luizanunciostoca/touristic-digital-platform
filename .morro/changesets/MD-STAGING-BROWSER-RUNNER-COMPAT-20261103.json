@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-BROWSER-RUNNER-COMPAT-20261103",
+  "objective": "restore-staging-release-browser-runner-compatibility",
+  "baseSha": "d6af6035cf349c774b3567901bdba82914609d80",
+  "branch": "fix/staging-browser-runner-compat-20261103",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/pwa-offline-browser-contract.yml",
+      ".github/workflows/v1-tour-assistant-visibility-browser-regression.yml",
+      ".github/workflows/mapbox-visual-contract-regression.yml",
+      ".github/workflows/v1-home-parity-browser-regression.yml",
+      ".github/workflows/navigation-visual-baseline.yml",
+      ".github/workflows/map-provider-regression.yml",
+      ".github/workflows/home-first-run-browser-regression.yml",
+      ".github/workflows/map-tour-browser-regression.yml",
+      ".morro/changesets/MD-STAGING-BROWSER-RUNNER-COMPAT-20261103.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "claim-and-ci-governance",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/quality/ci-scheduler-governance.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
