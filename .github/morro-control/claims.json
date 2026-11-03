@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-release-runner-compat-20261103",
-      "baseSha": "a6fd1bcf563e097349219c70b13f25c34eff4971",
+      "baseSha": "7af21635ea437dbe94536c0b113878f68853917b",
       "paths": [
         ".github/workflows/assistant-voice-browser-contract.yml",
         ".github/workflows/v1-explore-locations-browser-regression.yml",
