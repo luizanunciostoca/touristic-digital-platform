@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-D02-OWNERSHIP-RESOLVER-20261102",
+  "objective": "resolve-canonical-ticket-business-and-destination-ownership-before-online-authorization",
+  "baseSha": "e62cbdeb7cb914821816a2b8077638c8597e9a57",
+  "branch": "feat/d02-ownership-resolver-20261102",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "services/ticketing/src/operator-authorization.ts",
+      "services/ticketing/src/operator-authorization.test.ts",
+      "services/ticketing/src/business-inventory-repository.ts",
+      "services/ticketing/src/index.ts",
+      "services/ticketing/src/operator-authorization-mysql-integration.test.ts",
+      "services/ticketing/package.json",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+      ".morro/changesets/MD-D02-OWNERSHIP-RESOLVER-20261102.json"
+    ],
+    "contracts": ["ticket-fulfillment", "platform-authz"]
+  },
+  "reads": {
+    "contracts": [
+      "commerce-offering-identity",
+      "reservation-capacity",
+      "verified-payment-outcome",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": [
+      "ordering_ticketing_reservation_bindings",
+      "ticketing_reservations",
+      "ticketing_inventory",
+      "ticketing_inventory_ownership",
+      "ticketing_admission_profiles",
+      "ticketing_inventory_catalog_bindings",
+      "business_entities",
+      "business_destinations",
+      "business_places",
+      "catalog_offers",
+      "catalog_products"
+    ]
+  },
+  "auth": {
+    "capabilities": ["ticketing.manage"]
+  },
+  "dependencies": ["MD-D02-ONLINE-CHECKIN-CAPABILITY-R2-20261102"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-and-claim-invariants",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
