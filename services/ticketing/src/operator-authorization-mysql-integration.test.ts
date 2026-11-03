@@ -160,11 +160,10 @@ describeMySql.sequential("Ticketing ownership exact MySQL reads", () => {
     await expect(
       reservations.findInventoryById(offer.id),
     ).resolves.not.toBeNull();
-    expect(await readFacts(offer.id)).toEqual({
-      ownership: null,
-      catalog: expect.objectContaining({ inventoryId: offer.id }),
-      admission: expect.objectContaining({ inventoryId: offer.id }),
-    });
+    const facts = await readFacts(offer.id);
+    expect(facts.ownership).toBeNull();
+    expect(facts.catalog).toMatchObject({ inventoryId: offer.id });
+    expect(facts.admission).toMatchObject({ inventoryId: offer.id });
     const absent = "tin_p201_absent_0001";
     expect(await reservations.findInventoryById(absent)).toBeNull();
     expect(await readFacts(absent)).toEqual({
