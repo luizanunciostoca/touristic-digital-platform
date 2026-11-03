@@ -153,6 +153,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-03T12:00:00.000Z"
+    },
+    "MD-D02-AUTH-PROOF-INVENTORY-20261103": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "feat/d02-auth-proof-inventory-20261103",
+      "baseSha": "5d73990340f9f3569c66c27e6e5360f721c9b23e",
+      "paths": [
+        ".github/workflows/auth-integration-contract.yml",
+        ".morro/changesets/MD-D02-AUTH-PROOF-INVENTORY-20261103.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-03T12:00:00.000Z"
     }
   }
 }
