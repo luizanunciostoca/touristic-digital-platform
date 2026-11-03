@@ -14,6 +14,7 @@ import { createAuthApi } from "./auth-api.mjs";
 import {
   createTicketingApi,
   createTicketingAuthorizationPort,
+  createTicketingOwnershipPorts,
 } from "./ticketing-api.mjs";
 
 // Use the production Node exports built by the workspace dependency graph.
@@ -128,7 +129,7 @@ async function login(api, role) {
   };
 }
 
-async function authFixture() {
+async function authFixture(businessIds = ["tenant-a"]) {
   // Real state implementation; retain its handle to model a current policy
   // update independently of the role embedded in an already issued cookie.
   const state = authServer.createInMemoryAuthSecurityState();
@@ -137,7 +138,9 @@ async function authFixture() {
     .mockReturnValueOnce(state);
   const environment = {
     DASHBOARD_AUTH_SECRET: authSecret,
-    DASHBOARD_USERS_JSON: JSON.stringify(users),
+    DASHBOARD_USERS_JSON: JSON.stringify(
+      users.map((user) => ({ ...user, businessIds })),
+    ),
     DASHBOARD_AUTH_ORIGIN: origin,
     NODE_ENV: "development",
   };
@@ -231,16 +234,93 @@ function memoryStorage(ticket) {
   };
 }
 
-function compose(authApi, storage, { enabled = true } = {}) {
+function ownershipFixture(ticket) {
+  const state = {
+    businessId: "tenant-a",
+    destination: { id: ticket.destinationId, status: "active" },
+    ownerAvailable: true,
+    bindingPresent: true,
+  };
+  const reservation = {
+    id: "trv_d02_fixture",
+    inventoryId: "tin_d02_fixture",
+    orderId: ticket.orderId,
+    paymentId: ticket.paymentId,
+    destinationId: ticket.destinationId,
+    product: ticket.product,
+    quantity: ticket.quantity,
+    unitAmount: ticket.amount,
+    pricingVersion: "d02-v1",
+    status: "confirmed",
+  };
+  const operatorAuthorization =
+    ticketingServer.createTicketingOperatorAuthorization({
+      bindings: {
+        findByOrderId: async (id) =>
+          id === ticket.orderId && state.bindingPresent
+            ? {
+                orderId: id,
+                reservationReference: reservation.id,
+                productReference: `${ticket.product.kind}:${ticket.product.reference}`,
+                quantity: ticket.quantity,
+                amount: ticket.amount,
+                pricingVersion: reservation.pricingVersion,
+              }
+            : null,
+      },
+      reservations: {
+        findReservationById: async (id) =>
+          id === reservation.id ? reservation : null,
+        findInventoryById: async (id) =>
+          id === reservation.inventoryId
+            ? {
+                id,
+                destinationId: ticket.destinationId,
+                product: ticket.product,
+              }
+            : null,
+      },
+      businessInventory: {
+        findOwnershipByInventoryId: async (inventoryId) => ({
+          inventoryId,
+          businessId: state.businessId,
+        }),
+        findAdmissionProfileByInventoryId: async () => null,
+        findCatalogBindingByInventoryId: async () => null,
+      },
+      ...createTicketingOwnershipPorts({
+        getPlacePlatformRuntime: () =>
+          state.ownerAvailable
+            ? {
+                findTicketingBusinessOwner: async (
+                  businessId,
+                  destinationId,
+                ) => ({ businessId, destinationId }),
+              }
+            : null,
+        getDestinationService: () => ({
+          read: async () =>
+            state.destination
+              ? { status: "found", data: state.destination }
+              : { status: "not_found" },
+        }),
+      }),
+    });
+  return { state, operatorAuthorization };
+}
+
+function compose(authApi, storage, { enabled = true, ticket } = {}) {
   const unexpected = async () => {
     throw new Error("D02_UNEXPECTED_DOMAIN_OPERATION");
   };
+  const ownership = ownershipFixture(ticket);
   const ticketing = ticketingServer.createTicketingApplicationService({
     orders: { findById: unexpected },
     payments: { findById: unexpected },
     tickets: storage.tickets,
     checkIns: storage.checkIns,
     transactions: storage.transactions,
+    operatorAuthorization: ownership.operatorAuthorization,
     offline: { findById: unexpected },
     signingSecret,
     clock,
@@ -273,14 +353,15 @@ function compose(authApi, storage, { enabled = true } = {}) {
     publicTransport: { handle },
     audit: () => undefined,
   });
-  return { api, transport, handle };
+  return { api, transport, handle, ownership: ownership.state };
 }
 
-async function fixture() {
-  const auth = await authFixture();
+async function fixture({ businessId = "tenant-a", businessIds } = {}) {
+  const auth = await authFixture(businessIds);
   const ticket = ticketFixture();
   const storage = memoryStorage(ticket);
-  const composed = compose(auth.api, storage);
+  const composed = compose(auth.api, storage, { ticket });
+  composed.ownership.businessId = businessId;
   return {
     auth,
     ticket,
@@ -297,6 +378,19 @@ async function hostCall(api, req) {
   const response = recorder();
   await api.handle(req, response, new URL(req.url, origin));
   return { ...response, data: JSON.parse(response.body || "{}") };
+}
+
+function checkIn(f, headers, body = {}) {
+  return hostCall(
+    f.api,
+    request(checkInPath, {
+      headers,
+      body: {
+        qrPayload: createTicketQrPayload(f.ticket.id, signingSecret),
+        ...body,
+      },
+    }),
+  );
 }
 
 async function expectHostDenied(
@@ -502,6 +596,165 @@ it("D02 current principal loses capability after cookie issuance and successful 
   }
 });
 
+it.each([
+  ["BUSINESS_MANAGER", ["tenant-a"], 403],
+  ["BUSINESS_MANAGER", ["tenant-a", "tenant-b"], 200],
+  ["PLATFORM_ADMIN", ["tenant-a"], 200],
+])(
+  "D02 %s with current businesses %j operates tenant B with status %s",
+  async (role, businessIds, status) => {
+    const f = await fixture({ businessId: "tenant-b", businessIds });
+    try {
+      const before = f.storage.snapshot();
+      const result = await checkIn(f, await login(f.auth.api, role), {
+        operatorReference: "forged-operator",
+        operatorAuthority: {
+          subject: "forged-operator",
+          capabilities: ["ticketing.manage"],
+          scope: { kind: "platform" },
+        },
+      });
+      expect(result.statusCode).toBe(status);
+      if (status === 403) {
+        expect(result.data.error).toBe("TICKETING_OPERATOR_FORBIDDEN");
+        expect(f.storage.snapshot()).toEqual(before);
+      } else {
+        expect(result.data.data.checkIn.operatorReference).toBe(
+          `d02-${role.toLowerCase()}`,
+        );
+        expect(f.storage.snapshot().checkIns).toHaveLength(1);
+      }
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+it.each([
+  ["suspended", 409, "TICKETING_DESTINATION_SUSPENDED"],
+  ["missing", 404, "TICKETING_OPERATOR_NOT_FOUND"],
+  ["foreign", 403, "TICKETING_OPERATOR_FORBIDDEN"],
+  ["unavailable", 503, "TICKETING_OPERATOR_UNAVAILABLE"],
+])(
+  "D02 %s destination or owner denies a new entry without effects",
+  async (mode, status, error) => {
+    const f = await fixture();
+    try {
+      if (mode === "suspended") f.ownership.destination.status = "suspended";
+      if (mode === "missing") f.ownership.destination = null;
+      if (mode === "foreign") f.ownership.destination.id = "itacare";
+      if (mode === "unavailable") f.ownership.ownerAvailable = false;
+      const before = f.storage.snapshot();
+      const result = await checkIn(
+        f,
+        await login(f.auth.api, "BUSINESS_MANAGER"),
+      );
+      expect(result.statusCode).toBe(status);
+      expect(result.data.error).toBe(error);
+      expect(f.storage.snapshot()).toEqual(before);
+      expect(f.storage.operations).not.toContain("transactions.commitCheckIn");
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+it("D02 replaces stale business IDs in a valid cookie with current scope", async () => {
+  const f = await fixture({ businessId: "tenant-b" });
+  try {
+    const token = authServer.createSessionToken(
+      {
+        subject: "d02-business_manager",
+        email: "d02-business_manager@example.invalid",
+        role: "BUSINESS_MANAGER",
+        businessIds: ["tenant-b"],
+      },
+      authSecret,
+    );
+    const session = authServer.verifySessionToken(token, authSecret);
+    const headers = {
+      cookie: `${authServer.sessionCookieName}=${token}`,
+      "x-csrf-token": authServer.csrfTokenForSession(session, authSecret),
+    };
+    const before = f.storage.snapshot();
+    const result = await checkIn(f, headers);
+    expect(result.statusCode).toBe(403);
+    expect(result.data.error).toBe("TICKETING_OPERATOR_FORBIDDEN");
+    expect(f.storage.snapshot()).toEqual(before);
+  } finally {
+    await f.close();
+  }
+});
+
+it.each([
+  ["suspended", 200],
+  ["scope", 403],
+  ["missing", 404],
+  ["unavailable", 503],
+  ["other actor", 409],
+])(
+  "D02 exact replay after %s revalidates current authority and facts",
+  async (mode, status) => {
+    const f = await fixture({ businessId: "tenant-b" });
+    try {
+      let headers = await login(f.auth.api, "PLATFORM_ADMIN");
+      expect((await checkIn(f, headers)).statusCode).toBe(200);
+      const before = f.storage.snapshot();
+      f.storage.operations.length = 0;
+      if (mode === "suspended") f.ownership.destination.status = "suspended";
+      if (mode === "missing") f.ownership.bindingPresent = false;
+      if (mode === "unavailable") f.ownership.ownerAvailable = false;
+      if (mode === "other actor")
+        headers = await login(f.auth.api, "PLATFORM_OWNER");
+      if (mode === "scope")
+        await f.auth.state.setPrincipalAdminState({
+          subject: "d02-platform_admin",
+          status: "active",
+          roleOverride: "BUSINESS_MANAGER",
+          updatedBy: "d02-platform_owner",
+        });
+      const result = await checkIn(f, headers);
+      expect(result.statusCode).toBe(status);
+      if (status === 200) expect(result.data.data.replayed).toBe(true);
+      if (mode === "other actor")
+        expect(result.data.error).toBe("TICKETING_CHECKIN_REPLAY_CONFLICT");
+      expect(f.storage.snapshot()).toEqual(before);
+      expect(f.storage.operations).not.toContain("transactions.commitCheckIn");
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+it("D02 revalidates a session revoked while the host reads the body", async () => {
+  const f = await fixture();
+  try {
+    const headers = await login(f.auth.api, "BUSINESS_MANAGER");
+    const req = request(checkInPath, {
+      headers,
+      body: {
+        qrPayload: createTicketQrPayload(f.ticket.id, signingSecret),
+      },
+    });
+    const read = req[Symbol.asyncIterator];
+    req[Symbol.asyncIterator] = async function* () {
+      expect(
+        (await authCall(f.auth.api, "logout", { headers })).statusCode,
+      ).toBe(200);
+      yield* read.call(this);
+    };
+    const before = f.storage.snapshot();
+    const result = await hostCall(f.api, req);
+    expect(result.statusCode).toBe(401);
+    expect(result.data.error).toBe("AUTH_REQUIRED");
+    expect(req.observed.bodyReads).toBe(1);
+    expect(f.storage.snapshot()).toEqual(before);
+    expect(f.storage.operations).toEqual([]);
+  } finally {
+    await f.close();
+  }
+});
+
 it("D02 denies capability before Content-Type and preserves the consumer session boundary", async () => {
   const f = await fixture();
   try {
@@ -660,7 +913,7 @@ it.skipIf(!databaseUrl).each(["allowed", "AFFILIATE", "demoted"])(
           instrumented.pool,
         ),
       };
-      ({ api } = compose(auth.api, storage));
+      ({ api } = compose(auth.api, storage, { ticket: original }));
       const headers = await login(
         auth.api,
         mode === "AFFILIATE" ? "AFFILIATE" : "PLATFORM_ADMIN",
