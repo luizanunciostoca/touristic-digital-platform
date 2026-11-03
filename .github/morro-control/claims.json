@@ -131,26 +131,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
-    },
-    "MD-STAGING-RELEASE-RUNNER-COMPAT-20261103": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-release-runner-compat-20261103",
-      "baseSha": "a6fd1bcf563e097349219c70b13f25c34eff4971",
-      "paths": [
-        ".github/workflows/assistant-voice-browser-contract.yml",
-        ".github/workflows/v1-explore-locations-browser-regression.yml",
-        ".github/workflows/morro-performance-budget.yml",
-        ".github/workflows/navigation-accessibility-baseline.yml",
-        ".github/workflows/v1-assistant-single-message-poi-markers.yml",
-        ".github/workflows/navigation-end-main-menu-v1-parity.yml",
-        ".github/workflows/navigation-turn-by-turn-parity.yml",
-        ".morro/changesets/MD-STAGING-RELEASE-RUNNER-COMPAT-20261103.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-04T08:58:01.000Z"
     }
   }
 }
