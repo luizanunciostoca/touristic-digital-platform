@@ -131,27 +131,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
-    },
-    "MD-D02-OWNERSHIP-RESOLVER-20261102": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "feat/d02-ownership-resolver-20261102",
-      "baseSha": "e692f3bb84c96298bf5a128b0bcdf190b5ee7bb5",
-      "paths": [
-        "services/ticketing/src/operator-authorization.ts",
-        "services/ticketing/src/operator-authorization.test.ts",
-        "services/ticketing/src/business-inventory-repository.ts",
-        "services/ticketing/src/index.ts",
-        "services/ticketing/src/operator-authorization-mysql-integration.test.ts",
-        "services/ticketing/package.json",
-        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
-        "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
-        ".morro/changesets/MD-D02-OWNERSHIP-RESOLVER-20261102.json"
-      ],
-      "domains": ["ticketing", "business", "auth", "ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-03T10:00:00.000Z"
     }
   }
 }
