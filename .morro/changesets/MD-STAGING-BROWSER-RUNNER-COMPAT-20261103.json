@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-BROWSER-RUNNER-COMPAT-20261103",
   "objective": "restore-staging-release-browser-runner-compatibility",
-  "baseSha": "d6af6035cf349c774b3567901bdba82914609d80",
+  "baseSha": "b8197beacd5ac3285da971811b9becf8b974cce9",
   "branch": "fix/staging-browser-runner-compat-20261103",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

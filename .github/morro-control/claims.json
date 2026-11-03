@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-browser-runner-compat-20261103",
-      "baseSha": "d6af6035cf349c774b3567901bdba82914609d80",
+      "baseSha": "b8197beacd5ac3285da971811b9becf8b974cce9",
       "paths": [
         ".github/workflows/pwa-offline-browser-contract.yml",
         ".github/workflows/v1-tour-assistant-visibility-browser-regression.yml",
