@@ -131,6 +131,28 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-02T05:12:25.701Z"
+    },
+    "MD-D02-ONLINE-OWNERSHIP-ENFORCEMENT-20261102": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "feat/d02-online-ownership-enforcement-20261102",
+      "baseSha": "4731bfb1b092f83ed7e639d7985980f301851748",
+      "paths": [
+        "services/ticketing/src/ticketing-application-service.ts",
+        "services/ticketing/src/ticketing-application-service.test.ts",
+        "services/ticketing/src/public-http-transport.ts",
+        "services/ticketing/src/public-http-transport-validity.test.ts",
+        "services/ticketing/src/operator-authorization-mysql-integration.test.ts",
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs",
+        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs",
+        ".morro/changesets/MD-D02-ONLINE-OWNERSHIP-ENFORCEMENT-20261102.json"
+      ],
+      "domains": ["ticketing", "business", "auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-03T12:00:00.000Z"
     }
   }
 }
