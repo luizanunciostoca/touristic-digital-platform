@@ -136,7 +136,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-i18n-prebuild-20261103",
-      "baseSha": "88bfb98d9710dba0fa7538c9aed12c45d4f7be2d",
+      "baseSha": "1655077769a4f2cde08969ec203996669c45c75e",
       "paths": [
         ".github/workflows/shell-v1-i18n-browser-parity.yml",
         ".github/workflows/weather-v1-i18n-browser-parity.yml",

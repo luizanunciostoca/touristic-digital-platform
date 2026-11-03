@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-I18N-PREBUILD-20261103",
   "objective": "build-workspace-before-staging-i18n-unit-coverage",
-  "baseSha": "88bfb98d9710dba0fa7538c9aed12c45d4f7be2d",
+  "baseSha": "1655077769a4f2cde08969ec203996669c45c75e",
   "branch": "fix/staging-i18n-prebuild-20261103",
   "state": "IMPLEMENTING",
   "risk": "high",
