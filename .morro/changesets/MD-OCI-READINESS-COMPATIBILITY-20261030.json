@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-OCI-READINESS-COMPATIBILITY-20261030",
   "objective": "validate-staging-readiness-for-node-and-immutable-oci-with-exact-service-checks",
-  "baseSha": "624c556130079732c32d7c498cb7683161a8ac66",
-  "branch": "fix/oci-readiness-compatibility-20261030",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "afe745540c852511cb9c5c993a75ec59968cb5d8",
+  "branch": "chore/retire-merged-oci-20261104-d78ffb43508e",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
