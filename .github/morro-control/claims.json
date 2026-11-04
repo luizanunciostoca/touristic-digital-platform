@@ -2,21 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CSS-RECOVERY-FIXTURES-20261027": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/css-recovery-fixtures-20261027",
-      "baseSha": "e78a868b4e9de6ae2c63b2688099088acab99d86",
-      "paths": [
-        "tooling/control-state/mdctl-css-entry-order-correction.test.mjs",
-        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
-        ".morro/changesets/MD-CSS-RECOVERY-FIXTURES-20261027.json"
-      ],
-      "domains": ["map", "ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-27T23:59:59.000Z"
-    },
     "MD-OCI-READINESS-COMPATIBILITY-20261030": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
