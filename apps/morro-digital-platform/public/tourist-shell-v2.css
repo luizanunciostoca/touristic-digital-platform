@@ -3134,7 +3134,8 @@ html[dir="rtl"]
   display: none !important;
 }
 
-#unified-assistant-dock
+html
+  #unified-assistant-dock
   > #assistant-category-rail[data-has-scroll-forward]
   .md-assistant-category-scroll {
   padding-inline-end: 3.5rem !important;

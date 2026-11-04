@@ -104,6 +104,56 @@ test("the real entry selection retains complete weather failure and loading rule
   );
 });
 
+test("the real entry selection preserves category scroll hint visibility and overflow states", async () => {
+  const manifest = JSON.parse(
+    await readFile(
+      new URL("./entry-css-manifest.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const source = manifest.sources.find((row) =>
+    row.file.endsWith("/tourist-shell-v2.css"),
+  );
+  const css = await readFile(
+    new URL("../../" + source.file, import.meta.url),
+    "utf8",
+  );
+  const railStates = (ast) => {
+    const rules = [];
+    ast.walkRules((rule) => {
+      if (
+        rule.selector.includes(".md-category-scroll-hint") ||
+        (rule.selector.includes("[data-has-scroll-forward]") &&
+          rule.selector.includes(".md-assistant-category-scroll"))
+      )
+        rules.push(rule);
+    });
+    return rules;
+  };
+  const original = postcss.parse(css);
+  const expected = railStates(original);
+  assert.ok(
+    expected.some(
+      (rule) =>
+        rule.selector.includes("[hidden]") &&
+        rule.nodes.some(
+          (node) =>
+            node.type === "decl" &&
+            node.prop === "display" &&
+            node.value === "none" &&
+            node.important,
+        ),
+    ),
+    "The scroll hint must have an effective hidden-state declaration",
+  );
+  assert.deepEqual(
+    railStates(selectEntryRules(original.clone(), source)).map((rule) =>
+      rule.toString(),
+    ),
+    expected.map((rule) => rule.toString()),
+  );
+});
+
 test("coverage ranges reject malformed, overlapping, and stale indices", () => {
   assert.deepEqual([...parseRuleRanges("0-2,4", 5)], [0, 1, 2, 4]);
   for (const ranges of ["2-1", "0,0", "0-2,2", "5", "-1", "1.5", "01", "0;1"]) {
