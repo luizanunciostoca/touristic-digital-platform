@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CATEGORY-RAIL-ENTRY-CSS-20261104",
   "objective": "repair-category-rail-hidden-state-and-entry-css-padding",
-  "baseSha": "12b9441639fd4c4161b37833b81946dac9b25805",
+  "baseSha": "cdc7134ae6120d3f5846a4590dd9b0f8ab9397b7",
   "branch": "fix/category-rail-entry-css-20261104",
   "state": "IMPLEMENTING",
   "risk": "high",
