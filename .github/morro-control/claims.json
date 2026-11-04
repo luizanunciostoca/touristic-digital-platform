@@ -111,27 +111,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-31T23:00:00.000Z"
     },
-    "MD-D012-PRESERVATION-RECEIPTS-20261102": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/d012-preservation-receipts-20261102",
-      "baseSha": "0fa3860de1c8ecfc1703bcf928b415c3a6057d05",
-      "paths": [
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/source-task.json.txt",
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/source-context-pack.json.txt",
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/source-capability-leases.json.txt",
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/stop-ack-root.json",
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/stop-ack-d01-author.json",
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/stop-ack-d02-service-author.json",
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/source-snapshot.json.txt",
-        "tooling/fabric/retirement-evidence/MD-D01-D02-OPERATOR-AUTHZ-20261101/20261102/README.md",
-        ".morro/changesets/MD-D012-PRESERVATION-RECEIPTS-20261102.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-11-02T05:12:25.701Z"
-    },
     "MD-CATEGORY-RAIL-ENTRY-CSS-20261104": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
