@@ -5,6 +5,7 @@ import type {
 import { analyzeAssistantIntent } from "./intent-engine.js";
 import type { AssistantIntentResult } from "./intent-engine.js";
 import { assistantRequiresLLM } from "./llm-policy.js";
+import type { AssistantLocale } from "./menu.js";
 
 export interface AssistantDialogOption {
   label: string;
@@ -54,6 +55,8 @@ export interface AssistantDialogControllerOptions {
   llm?: AssistantDialogIntentHandler;
   defaultResponse?: () => AssistantDialogResponse;
   errorResponse?: () => AssistantDialogResponse;
+  /** Guided recovery presentation only; intent detection keeps its own language. */
+  getPresentationLanguage?: () => AssistantLocale;
 }
 
 const CATEGORY_BY_INTENT: Partial<
@@ -309,29 +312,30 @@ function deriveResponseContextUpdate(
 
 function guidedFallbackResponse(
   intent: AssistantIntentResult,
+  presentationLanguage?: AssistantLocale,
 ): AssistantDialogResponse {
-  const language = intent.entities.language ?? "pt";
+  const language = presentationLanguage ?? intent.entities.language ?? "pt";
   const copy = {
     pt: {
-      text: "Estou tendo dificuldade para entender. Posso mostrar a ajuda ou algumas opções principais.",
+      text: "Escolha Ajuda para ver o que posso fazer, ou uma categoria para explorar o mapa.",
       help: "Ajuda",
       beaches: "Praias",
       restaurants: "Restaurantes",
     },
     en: {
-      text: "I'm having trouble understanding. I can show help or some main options.",
+      text: "Choose Help to see what I can do, or a category to explore the map.",
       help: "Help",
       beaches: "Beaches",
       restaurants: "Restaurants",
     },
     es: {
-      text: "Estoy teniendo dificultad para entender. Puedo mostrar ayuda o algunas opciones principales.",
+      text: "Elige Ayuda para ver qué puedo hacer, o una categoría para explorar el mapa.",
       help: "Ayuda",
       beaches: "Playas",
       restaurants: "Restaurantes",
     },
     he: {
-      text: "אני מתקשה להבין. אפשר לפתוח עזרה או כמה אפשרויות עיקריות.",
+      text: "אפשר לבחור בעזרה כדי לראות במה אוכל לעזור, או בקטגוריה כדי לסייר במפה.",
       help: "עזרה",
       beaches: "חופים",
       restaurants: "מסעדות",
@@ -341,7 +345,10 @@ function guidedFallbackResponse(
   return {
     text: localized.text,
     options: [
-      { label: localized.help, value: localized.help },
+      {
+        label: localized.help,
+        value: language === "he" ? "help" : localized.help,
+      },
       { label: localized.beaches, value: localized.beaches },
       { label: localized.restaurants, value: localized.restaurants },
     ],
@@ -395,7 +402,10 @@ export function createAssistantDialogController(
         if (!response) {
           if (intent.intent === "unknown" || intent.intent === "place_search") {
             if (context.fallbackCount >= FALLBACK_ESCALATION_THRESHOLD) {
-              response = guidedFallbackResponse(intent);
+              response = guidedFallbackResponse(
+                intent,
+                options.getPresentationLanguage?.(),
+              );
               fallbackCount = 0;
             } else {
               response = defaultResponse();

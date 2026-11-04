@@ -3,6 +3,7 @@ import {
   createAssistantContextManager,
   createAssistantDialogController,
   createAssistantUserProfileManager,
+  getAssistantMainMenu,
   normalizeAssistantVoiceLanguage,
   type AssistantDialogIntentHandler,
   type AssistantDialogResponse,
@@ -685,6 +686,45 @@ function resolveMapboxAccessToken(override?: string): string | undefined {
   return runtime || undefined;
 }
 
+function assistantRecoveryResponse(
+  language: ReturnType<typeof normalizeAssistantVoiceLanguage>,
+  empty = false,
+): AssistantDialogResponse {
+  const copy = {
+    pt: {
+      empty:
+        "Escolha uma categoria ou digite o nome de um lugar para explorar o mapa.",
+      unanswered:
+        "Não consegui responder agora. Tente reformular ou escolha uma opção.",
+    },
+    en: {
+      empty: "Choose a category or type a place name to explore the map.",
+      unanswered:
+        "I couldn’t answer just now. Try rephrasing or choose an option.",
+    },
+    es: {
+      empty:
+        "Elige una categoría o escribe el nombre de un lugar para explorar el mapa.",
+      unanswered:
+        "No pude responder ahora. Prueba a reformular el mensaje o elige una opción.",
+    },
+    he: {
+      empty: "כדי לסייר במפה, אפשר לבחור קטגוריה או להקליד שם של מקום.",
+      unanswered: "לא הצלחתי להשיב כרגע. אפשר לנסח מחדש או לבחור אפשרות.",
+    },
+  } as const;
+  return {
+    text: copy[language][empty ? "empty" : "unanswered"],
+    ...(empty
+      ? {}
+      : {
+          options: getAssistantMainMenu(language).filter((option) =>
+            ["help", "beaches", "restaurants"].includes(option.value),
+          ),
+        }),
+  };
+}
+
 function voiceInputMessage(
   language: ReturnType<typeof normalizeAssistantVoiceLanguage>,
   state: "listening" | "unsupported" | "error",
@@ -694,26 +734,26 @@ function voiceInputMessage(
   const messages = {
     pt: {
       unsupported:
-        "Desculpe, seu navegador não suporta reconhecimento de voz. Por favor, digite sua pergunta.",
+        "A entrada por voz não está disponível neste navegador. Digite sua mensagem.",
       error:
-        "Desculpe, não consegui entender. Pode tentar novamente ou digitar sua pergunta?",
+        "Não foi possível usar a entrada por voz agora. Tente novamente ou digite sua mensagem.",
     },
     en: {
       unsupported:
-        "Sorry, your browser does not support voice recognition. Please type your question.",
+        "Voice input isn’t available in this browser. Type your message.",
       error:
-        "Sorry, I couldn't understand. Please try again or type your question.",
+        "Voice input couldn’t be used just now. Try again or type your message.",
     },
     es: {
       unsupported:
-        "Lo siento, tu navegador no admite reconocimiento de voz. Escribe tu pregunta.",
+        "La entrada por voz no está disponible en este navegador. Escribe tu mensaje.",
       error:
-        "Lo siento, no pude entender. Inténtalo de nuevo o escribe tu pregunta.",
+        "No se pudo usar la entrada por voz ahora. Inténtalo de nuevo o escribe tu mensaje.",
     },
     he: {
-      unsupported:
-        "מצטערים, הדפדפן שלך אינו תומך בזיהוי קולי. אנא הקלד את השאלה.",
-      error: "מצטערים, לא הצלחתי להבין. נסה שוב או הקלד את השאלה.",
+      unsupported: "קלט קולי לא זמין בדפדפן הזה. אפשר להקליד את ההודעה.",
+      error:
+        "לא ניתן היה להשתמש בקלט הקולי כרגע. אפשר לנסות שוב או להקליד את ההודעה.",
     },
   } as const;
   return messages[language][state];
@@ -790,26 +830,53 @@ export function installBrowserAssistantRuntime(
           },
         },
       });
-  const controller = createAssistantDialogController({
-    context,
-    profile,
-    handlers: Object.fromEntries(
-      Object.entries({
-        ...domainHandlers,
-        ...intelligenceHandlers,
-        ...navigationHandlers,
-      }).map(([intent, handler]) => [
-        intent,
-        handler ? withPresentationLanguage(handler) : undefined,
-      ]),
-    ),
-    llm: withPresentationLanguage(
-      createAssistantLlmHandler({
-        ...(options.fetch ? { fetch: options.fetch } : {}),
-      }),
-    ),
-    errorResponse: runtimeErrorResponse,
-  });
+  const controller = {
+    processUserInput(
+      input: string,
+      isCurrent: () => boolean = () => true,
+    ): Promise<AssistantDialogResponse> {
+      // Bind writes to this request: a late handler must not replace the
+      // context or append history after a newer shared conversation action.
+      return createAssistantDialogController({
+        context: {
+          getContext: () => context.getContext(),
+          updateContext: (updates) => {
+            if (isCurrent()) context.updateContext(updates);
+          },
+          addToHistory: (entry) => {
+            if (isCurrent()) context.addToHistory(entry);
+          },
+        },
+        profile,
+        handlers: Object.fromEntries(
+          Object.entries({
+            ...domainHandlers,
+            ...intelligenceHandlers,
+            ...navigationHandlers,
+          }).map(([intent, handler]) => [
+            intent,
+            handler ? withPresentationLanguage(handler) : undefined,
+          ]),
+        ),
+        llm: withPresentationLanguage(
+          createAssistantLlmHandler({
+            ...(options.fetch ? { fetch: options.fetch } : {}),
+          }),
+        ),
+        defaultResponse: () =>
+          assistantRecoveryResponse(
+            normalizeAssistantVoiceLanguage(
+              options.document.documentElement.lang,
+            ),
+          ),
+        errorResponse: runtimeErrorResponse,
+        getPresentationLanguage: () =>
+          normalizeAssistantVoiceLanguage(
+            options.document.documentElement.lang,
+          ),
+      }).processUserInput(input);
+    },
+  };
 
   const view = options.document.defaultView;
   let navigationActive = false;
@@ -936,6 +1003,22 @@ export function installBrowserAssistantRuntime(
   const dropStaleResponse = (): AssistantDialogResponse => {
     conversation.recordStaleResponseDropped();
     return supersededResponse();
+  };
+  const onPlaceDetailsPresented = (event: Event): void => {
+    const turn = conversation.recentTurns().at(-1);
+    if (
+      destroyed ||
+      turn?.cause !== "place_details" ||
+      eventDetail(event)?.turnId !== turn.id
+    ) {
+      return;
+    }
+    // The shared turn owns the presentation, including a deduplicated repeat.
+    // Invalidate every pending runtime boundary without cancelling the
+    // contextual turns created by the runtime's own Explore commands.
+    requestGeneration += 1;
+    assistantUiGeneration += 1;
+    dispatchAssistantUiState(options.document, "idle");
   };
   let currentPresentation: AssistantPresentationSnapshot | null = null;
   let legacyMenuRouting = false;
@@ -1094,7 +1177,8 @@ export function installBrowserAssistantRuntime(
     suppressOptionValues: readonly string[] = [],
   ): Promise<AssistantDialogResponse> => {
     const submittedValue = rawInput.trim();
-    if (!submittedValue) return { text: "Como posso ajudar?" };
+    if (!submittedValue)
+      return assistantRecoveryResponse(presentationLanguage(), true);
     syncExploreContext();
     const numericIndex = /^\d+$/u.test(submittedValue)
       ? Number(submittedValue) - 1
@@ -1301,6 +1385,9 @@ export function installBrowserAssistantRuntime(
         menuRouted = menuCommand
           ? await options.explore.execute(menuCommand)
           : false;
+        if (destroyed || generation !== requestGeneration) {
+          return dropStaleResponse();
+        }
         if (
           !menuRouted &&
           menuCommand &&
@@ -1313,6 +1400,9 @@ export function installBrowserAssistantRuntime(
               type: "open_category",
               category: lastCategory,
             });
+            if (destroyed || generation !== requestGeneration) {
+              return dropStaleResponse();
+            }
             menuRouted = opened
               ? await options.explore.execute(menuCommand)
               : false;
@@ -1363,8 +1453,21 @@ export function installBrowserAssistantRuntime(
     clearAssistantDomOptions(options.document);
     removePhotoPresentation(options.document);
     appendStandardMessage("user", submittedValue);
-    const response = await controller.processUserInput(value);
-    if (destroyed || generation !== requestGeneration) {
+    // Menu routing above can create its own Explore turns. Once the dialog
+    // handler starts, any newer shared action supersedes this pending answer.
+    const sequence = conversation.issueSequence();
+    const isCurrentResponse = (): boolean =>
+      !destroyed &&
+      generation === requestGeneration &&
+      conversation.isCurrentSequence(sequence);
+    let response: AssistantDialogResponse;
+    try {
+      response = await controller.processUserInput(value, isCurrentResponse);
+    } catch (error) {
+      if (!isCurrentResponse()) return dropStaleResponse();
+      throw error;
+    }
+    if (!isCurrentResponse()) {
       return dropStaleResponse();
     }
 
@@ -1460,6 +1563,9 @@ export function installBrowserAssistantRuntime(
       );
     }
 
+    if (destroyed || generation !== requestGeneration) {
+      return dropStaleResponse();
+    }
     voice?.speak(response.text, voiceLanguage());
     return response;
   };
@@ -1473,13 +1579,9 @@ export function installBrowserAssistantRuntime(
         return supersededResponse();
       return await executeInputTurn(...args);
     } catch (error) {
-      if (!destroyed && generation === assistantUiGeneration) {
-        appendStandardMessage(
-          "assistant",
-          runtimeErrorResponse().text,
-          args[0],
-        );
-      }
+      if (destroyed || generation !== assistantUiGeneration)
+        return supersededResponse();
+      appendStandardMessage("assistant", runtimeErrorResponse().text, args[0]);
       throw error;
     }
   };
@@ -1531,7 +1633,9 @@ export function installBrowserAssistantRuntime(
       }
       return response;
     } catch (error) {
-      if (stylesReady && !destroyed && uiGeneration === assistantUiGeneration) {
+      if (destroyed || uiGeneration !== assistantUiGeneration)
+        return supersededResponse();
+      if (stylesReady) {
         dispatchAssistantUiState(options.document, "error");
       }
       throw error;
@@ -1836,6 +1940,10 @@ export function installBrowserAssistantRuntime(
     "morro:assistant-option-selected",
     onOptionSelected,
   );
+  options.document.addEventListener(
+    "morro:assistant-place-details-presented",
+    onPlaceDetailsPresented,
+  );
   syncExploreContext();
 
   return Object.freeze({
@@ -1877,6 +1985,10 @@ export function installBrowserAssistantRuntime(
       options.document.removeEventListener(
         "morro:assistant-option-selected",
         onOptionSelected,
+      );
+      options.document.removeEventListener(
+        "morro:assistant-place-details-presented",
+        onPlaceDetailsPresented,
       );
       contextualMessaging.destroy();
       voiceSettings.destroy();

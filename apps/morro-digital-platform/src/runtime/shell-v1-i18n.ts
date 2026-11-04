@@ -25,6 +25,8 @@ export type V1ShellTranslationKey =
   | "submenu_title_explore_places"
   | "submenu_close"
   | "assistant_minimize"
+  | "assistant_region_label"
+  | "assistant_conversation_label"
   | "assistant_input_placeholder"
   | "assistant_input_label"
   | "assistant_send_label"
@@ -68,6 +70,8 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         submenu_title_explore_places: "Explorar locais",
         submenu_close: "Fechar menu",
         assistant_minimize: "Minimizar assistente",
+        assistant_region_label: "Assistente do Morro Digital",
+        assistant_conversation_label: "Conversa com o assistente",
         assistant_input_placeholder: "Pergunte ao Morro Digital...",
         assistant_input_label: "Mensagem para o assistente",
         assistant_send_label: "Enviar mensagem",
@@ -115,6 +119,8 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         submenu_title_explore_places: "Explore places",
         submenu_close: "Close menu",
         assistant_minimize: "Minimize assistant",
+        assistant_region_label: "Morro Digital assistant",
+        assistant_conversation_label: "Conversation with the assistant",
         assistant_input_placeholder: "Type your question...",
         assistant_input_label: "Message to the assistant",
         assistant_send_label: "Send message",
@@ -162,6 +168,8 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         submenu_title_explore_places: "Explorar lugares",
         submenu_close: "Cerrar menú",
         assistant_minimize: "Minimizar asistente",
+        assistant_region_label: "Asistente de Morro Digital",
+        assistant_conversation_label: "Conversación con el asistente",
         assistant_input_placeholder: "Escribe tu pregunta...",
         assistant_input_label: "Mensaje para el asistente",
         assistant_send_label: "Enviar mensaje",
@@ -209,6 +217,8 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         submenu_title_explore_places: "חקר מקומות",
         submenu_close: "סגור תפריט",
         assistant_minimize: "מזעור העוזר",
+        assistant_region_label: "העוזר של Morro Digital",
+        assistant_conversation_label: "שיחה עם העוזר",
         assistant_input_placeholder: "הקלד את שאלתך...",
         assistant_input_label: "הודעה לעוזר",
         assistant_send_label: "שלח הודעה",

@@ -30,6 +30,68 @@ function createContextPort(
 }
 
 describe("assistant V1 dialog controller orchestration", () => {
+  it.each([
+    ["pt", "Ajuda"],
+    ["en", "Help"],
+    ["es", "Ayuda"],
+    ["he", "עזרה"],
+  ] as const)(
+    "keeps the fourth fallback in presentation language %s",
+    async (language, help) => {
+      const context = createContextPort();
+      const getPresentationLanguage = vi.fn(() => language);
+      const requests: AssistantDialogIntentHandlerContext[] = [];
+      const configuration = {
+        context,
+        handlers: {
+          help: () => ({ text: "help response", metadata: { domain: "help" } }),
+        },
+        llm: async (request: AssistantDialogIntentHandlerContext) => {
+          requests.push(request);
+          return null;
+        },
+        defaultResponse: () => ({ text: `fallback-${language}` }),
+        getPresentationLanguage,
+      };
+      const controller = createAssistantDialogController(configuration);
+      const responses = [];
+      const counts = [];
+      for (let turn = 0; turn < 4; turn += 1) {
+        responses.push(
+          await controller.processUserInput("xyz qwerty incompreensivel"),
+        );
+        counts.push(context.getContext().fallbackCount);
+      }
+
+      expect(responses.slice(0, 3).map((response) => response.text)).toEqual([
+        `fallback-${language}`,
+        `fallback-${language}`,
+        `fallback-${language}`,
+      ]);
+      expect.soft(responses[3]?.options?.[0]?.label).toBe(help);
+      expect.soft(getPresentationLanguage).toHaveBeenCalledOnce();
+      expect(counts).toEqual([1, 2, 3, 0]);
+      expect(requests).toHaveLength(4);
+      expect(
+        requests.every(
+          (request) => request.input === "xyz qwerty incompreensivel",
+        ),
+      ).toBe(true);
+      expect(
+        requests.map((request) => request.intent.entities.language),
+      ).toEqual(["es", "es", "es", "es"]);
+      expect(responses[3]?.metadata).toEqual({
+        domain: "fallback",
+        state: "escalated",
+      });
+      const helpOption = responses[3]?.options?.[0];
+      if (!helpOption) throw new Error("Escalated help option missing");
+      const recovered = await controller.processUserInput(helpOption.value);
+      expect(recovered.metadata?.domain).toBe("help");
+      expect(requests).toHaveLength(4);
+    },
+  );
+
   it("returns the default response for empty input", async () => {
     const controller = createAssistantDialogController({
       context: createContextPort(),
