@@ -83,6 +83,7 @@ function fixture(locale = "pt-BR") {
     card: () => request.content as unknown as Element,
     select: (value: string) => request.onSelect(value),
     options: () => request.options.map((option) => option.value),
+    renderedOptions: () => request.options,
     async start() {
       expect(await controller.start("volta-a-ilha")).toBe(true);
       request.onSelect("__tour_start__");
@@ -91,6 +92,47 @@ function fixture(locale = "pt-BR") {
 }
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("immersive tour map presentation commands", () => {
+  it.each([
+    ["pt-BR", "▶️ Explorar roteiro no mapa", "➡️ Ver próxima parada"],
+    ["en-US", "▶️ Explore itinerary on the map", "➡️ View next stop"],
+    [
+      "es-ES",
+      "▶️ Explorar el itinerario en el mapa",
+      "➡️ Ver siguiente parada",
+    ],
+    ["he-IL", "▶️ חקור את המסלול במפה", "➡️ צפה בעצירה הבאה"],
+  ])(
+    "keeps the map presentation commands behind the labels in %s",
+    async (locale, start, next) => {
+      const view = fixture(locale);
+      expect(await view.controller.start("volta-a-ilha")).toBe(true);
+      expect(view.controller.getState().stage).toBe("intro");
+
+      const startOption = view
+        .renderedOptions()
+        .find((option) => option.label === start);
+      expect(startOption?.value).toBe("__tour_start__");
+      view.select(startOption!.value);
+      expect(view.controller.getState()).toMatchObject({
+        stage: "stop",
+        currentStopIndex: 0,
+      });
+
+      const nextOption = view
+        .renderedOptions()
+        .find((option) => option.label === next);
+      expect(nextOption?.value).toBe("__tour_next__");
+      view.select(nextOption!.value);
+      expect(view.controller.getState()).toMatchObject({
+        stage: "stop",
+        currentStopIndex: 1,
+      });
+      view.controller.destroy();
+    },
+  );
+});
 
 describe("immersive tour photo recovery", () => {
   it.each([

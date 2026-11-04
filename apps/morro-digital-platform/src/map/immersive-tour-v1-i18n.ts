@@ -31,10 +31,10 @@ export interface V1ImmersiveTourCopy {
 
 const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
   "pt-BR": Object.freeze({
-    start: "▶️ Iniciar o tour",
+    start: "▶️ Explorar roteiro no mapa",
     seeStops: "📋 Ver todas as paradas",
     cancel: "❌ Cancelar",
-    next: "➡️ Próxima parada",
+    next: "➡️ Ver próxima parada",
     previous: "⬅️ Parada anterior",
     finish: "🏁 Finalizar tour",
     exit: "❌ Sair do tour",
@@ -60,10 +60,10 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
       `Você explorou todas as ${count} paradas do ${title}! Esperamos que tenha aproveitado cada momento desta experiência.`,
   }),
   en: Object.freeze({
-    start: "▶️ Start tour",
+    start: "▶️ Explore itinerary on the map",
     seeStops: "📋 See all stops",
     cancel: "❌ Cancel",
-    next: "➡️ Next stop",
+    next: "➡️ View next stop",
     previous: "⬅️ Previous stop",
     finish: "🏁 Finish tour",
     exit: "❌ Exit tour",
@@ -89,10 +89,10 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
       `You explored all ${count} stops of ${title}! We hope you enjoyed every moment of this experience.`,
   }),
   es: Object.freeze({
-    start: "▶️ Iniciar tour",
+    start: "▶️ Explorar el itinerario en el mapa",
     seeStops: "📋 Ver todas las paradas",
     cancel: "❌ Cancelar",
-    next: "➡️ Siguiente parada",
+    next: "➡️ Ver siguiente parada",
     previous: "⬅️ Parada anterior",
     finish: "🏁 Finalizar tour",
     exit: "❌ Salir del tour",
@@ -118,10 +118,10 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
       `¡Exploraste las ${count} paradas de ${title}! Esperamos que hayas disfrutado cada momento de esta experiencia.`,
   }),
   he: Object.freeze({
-    start: "▶️ התחל סיור",
+    start: "▶️ חקור את המסלול במפה",
     seeStops: "📋 ראה את כל העצירות",
     cancel: "❌ ביטול",
-    next: "➡️ עצירה הבאה",
+    next: "➡️ צפה בעצירה הבאה",
     previous: "⬅️ עצירה קודמת",
     finish: "🏁 סיים סיור",
     exit: "❌ צא מהסיור",
