@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CSS-RECOVERY-FIXTURES-20261027",
   "objective": "repair-isolated-css-recovery-test-fixtures-without-runtime-or-authority-changes",
-  "baseSha": "e78a868b4e9de6ae2c63b2688099088acab99d86",
-  "branch": "fix/css-recovery-fixtures-20261027",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "9beeddd20d8906a4ebfdb800d2ffbf994cc71974",
+  "branch": "chore/retire-merged-fixtures-20261104-d1eb7ea94468",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
