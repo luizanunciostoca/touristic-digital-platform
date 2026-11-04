@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/category-rail-entry-css-20261104",
-      "baseSha": "12b9441639fd4c4161b37833b81946dac9b25805",
+      "baseSha": "10cf94ed3be18fbe0d6b8016db6720c8779e258a",
       "paths": [
         "apps/morro-digital-platform/public/tourist-shell-v2.css",
         "tooling/ci/entry-css-manifest.json",
