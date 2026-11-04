@@ -555,6 +555,7 @@ export function installExploreLocationsControl({
         location: ExploreMapLocation;
         categoryLabel: string;
         description: string;
+        locale: AssistantLocale;
       }>
     | undefined;
   let activePlaceActionValues: readonly string[] = Object.freeze([]);
@@ -1555,6 +1556,7 @@ export function installExploreLocationsControl({
       activeStage !== "detail" ||
       !activePlaceDetail ||
       activePlaceDetail.location !== activePlaceLocation ||
+      activePlaceDetail.locale !== currentLocale() ||
       value !== `place-action:info:${activePlaceDetail.placeId}`
     ) {
       return undefined;
@@ -1566,7 +1568,11 @@ export function installExploreLocationsControl({
     if (value.startsWith("place-action:info:")) {
       const detail = readActivePlaceDetail(value);
       if (detail) {
-        const turn = getAssistantConversationOrchestrator(document).transition({
+        const conversation = getAssistantConversationOrchestrator(document);
+        // Repeating an explicit action still supersedes a pending answer,
+        // even when the conversation deduplicates the unchanged details turn.
+        conversation.issueSequence();
+        const turn = conversation.transition({
           cause: "place_details",
           messageKey: "place_details",
           intent: "place_info",
@@ -1588,6 +1594,11 @@ export function installExploreLocationsControl({
           detail.categoryLabel,
           turn.renderedText,
           turn,
+        );
+        document.dispatchEvent(
+          new CustomEvent("morro:assistant-place-details-presented", {
+            detail: { turnId: turn.id },
+          }),
         );
       }
       return;
@@ -1779,7 +1790,12 @@ export function installExploreLocationsControl({
 
   const selectLocation = async (
     location: ExploreMapLocation,
+    reason: "selection" | "locale" = "selection",
   ): Promise<void> => {
+    const refreshingLocale =
+      reason === "locale" &&
+      activeStage === "detail" &&
+      activePlaceLocation === location;
     const generation = ++interactionGeneration;
     const category = location.category;
     const locale = currentLocale();
@@ -1795,12 +1811,26 @@ export function installExploreLocationsControl({
     const categoryLabel =
       currentCategories().find((candidate) => candidate.value === category)
         ?.label ?? category;
+    const conversation = getAssistantConversationOrchestrator(document);
+    const previousTurn = conversation.recentTurns().at(-1);
+    const refreshDetails =
+      refreshingLocale &&
+      activePlaceDetail?.location === presentationLocation &&
+      previousTurn?.cause === "place_details" &&
+      previousTurn.entities.placeId === canonicalPlaceId &&
+      document.getElementById(ASSISTANT_FLOW_MESSAGE_ID)?.dataset
+        .conversationTurnId === previousTurn.id;
+    const refreshSequence = refreshDetails
+      ? conversation.issueSequence()
+      : undefined;
     activePlace = presentationLocation.name;
     activePlaceLocation = presentationLocation;
-    activePlaceDetail = undefined;
     activeStage = "detail";
-    removeAssistantFlowResults(document);
-    exploreFlowBottomSheet?.hide();
+    if (!refreshingLocale) {
+      activePlaceDetail = undefined;
+      removeAssistantFlowResults(document);
+      exploreFlowBottomSheet?.hide();
+    }
 
     const safeFallbackActions = getV1ExplorePlaceActionOptions(
       category,
@@ -1817,14 +1847,20 @@ export function installExploreLocationsControl({
       Array.from(new Set(safeFallbackActions.map(({ value }) => value))),
     );
 
-    renderPlaceDetailMessage(presentationLocation, categoryLabel, description);
+    if (!refreshingLocale) {
+      renderPlaceDetailMessage(
+        presentationLocation,
+        categoryLabel,
+        description,
+      );
+    }
     const firstPlaceAction = renderPlaceActionsRail(
       safeFallbackActions,
       null,
       presentationLocation.name,
       locale,
     );
-    firstPlaceAction?.focus();
+    if (!refreshingLocale) firstPlaceAction?.focus();
 
     const browserFetch = document.defaultView?.fetch?.bind(
       document.defaultView,
@@ -1836,20 +1872,24 @@ export function installExploreLocationsControl({
           })
         : Promise.resolve(null);
 
-    await renderLocationsOnMap(
-      [location],
-      category,
-      true,
-      false,
-      datasetCriteria,
-    );
+    if (!refreshingLocale) {
+      await renderLocationsOnMap(
+        [location],
+        category,
+        true,
+        false,
+        datasetCriteria,
+      );
+    }
 
     if (canonicalPlaceId) {
       try {
         const detail = await canonicalDetailPromise;
         if (
           generation !== interactionGeneration ||
-          activePlace !== presentationLocation.name
+          activeStage !== "detail" ||
+          activePlaceLocation !== presentationLocation ||
+          locale !== currentLocale()
         ) {
           return;
         }
@@ -1868,6 +1908,7 @@ export function installExploreLocationsControl({
               location: presentationLocation,
               categoryLabel,
               description: detailDescription.trim(),
+              locale,
             });
           }
           const canonicalActions = detail.actions.secondaryActions.map(
@@ -1902,6 +1943,13 @@ export function installExploreLocationsControl({
             detail.profile.name,
             locale,
           );
+          if (
+            detailDescription &&
+            refreshSequence !== undefined &&
+            conversation.isCurrentSequence(refreshSequence)
+          ) {
+            handlePlaceAction(`place-action:info:${canonicalPlaceId}`);
+          }
         }
       } catch {
         // Canonical Places fail closed: never fall back to inferred commercial
@@ -1909,9 +1957,15 @@ export function installExploreLocationsControl({
       }
     }
 
+    // Locale refresh changes presentation, not the selected place or map.
+    // Keep the confirmed description until a current translation is available.
+    if (refreshingLocale) return;
+
     if (
       generation !== interactionGeneration ||
-      activePlace !== presentationLocation.name
+      activeStage !== "detail" ||
+      activePlaceLocation !== presentationLocation ||
+      locale !== currentLocale()
     ) {
       return;
     }
@@ -2786,7 +2840,7 @@ export function installExploreLocationsControl({
           const location =
             activePlaceLocation ??
             resolveExploreLocationByName(activePlace, activeCategory?.value);
-          if (location) void selectLocation(location);
+          if (location) void selectLocation(location, "locale");
         }
         if (activeStage === "tour") immersiveTourController?.refreshLocale();
       })

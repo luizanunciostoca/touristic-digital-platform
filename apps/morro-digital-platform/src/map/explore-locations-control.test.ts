@@ -1,21 +1,44 @@
 import { readFileSync } from "node:fs";
 import { compileFunction } from "node:vm";
 import ts from "typescript";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  createAssistantContextManager,
+  createAssistantDialogController,
+  getAssistantMainMenu,
+  normalizeAssistantVoiceLanguage,
+  type AssistantDialogResponse,
+} from "@touristic/assistant";
 import {
   getAssistantConversationOrchestrator,
   type AssistantConversationOrchestrator,
 } from "../assistant/assistant-conversation-orchestrator.js";
 import { morroV1SearchCatalog, normalizeSearchText } from "@touristic/search";
+import {
+  executeAssistantV1ResidualCommand,
+  resolveAssistantV1ResidualCommand,
+} from "../assistant/assistant-v1-residual-command-adapter.js";
+import { readAssistantResponseOptions } from "../assistant/assistant-dom-view.js";
+import { assistantUiStateStatus } from "../assistant/assistant-ui-state.js";
+import {
+  resolveAssistantMenuCommand,
+  resolveAssistantRuntimeAction,
+} from "../assistant/assistant-menu-command-router.js";
+import {
+  getV1ExploreSubcategoryOptions,
+  resolveV1ExploreAppliedResult,
+} from "./explore-locations-v1-flow.js";
 
 import {
   appliedMapFilterSummary,
   createExploreLocationDetailsCommand,
   type ExternalTourMapPreparation,
+  type ExploreLocationsCommand,
   type ExploreSearchResult,
   getAssistantCategoryButtonId,
   getExploreLocationsCategories,
   getExploreLocationsForCategory,
+  resolveExploreLocationByName,
 } from "./explore-locations-control.js";
 import { groupProjectedMarkers } from "./explore-marker-grouping.js";
 import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
@@ -386,10 +409,16 @@ describe("external tour criteria publication", () => {
 });
 
 interface PlaceDetailConsumer {
+  document: Document;
   conversation: AssistantConversationOrchestrator;
   presenter(): Record<string, string>;
   setPresenterData(values: Record<string, string>): void;
   select(location: ExploreSearchResult): Promise<void>;
+  changeLocale(locale: string): void;
+  execute(command: ExploreLocationsCommand): Promise<boolean>;
+  holdMarkers(): () => void;
+  holdPosition(): () => void;
+  listenerCount(type: string): number;
   click(value: string): void;
   rails: Array<Array<{ label: string; value: string }>>;
   messages: Array<{ name: string; description: string }>;
@@ -400,12 +429,13 @@ interface PlaceDetailConsumer {
     generation: number;
     mapCalls: number;
     detailRequests: number;
+    positionRequests: number;
   };
 }
 
 function actualPlaceDetailConsumer(
   locale: "pt" | "en" | "es" | "he",
-  getDetail: (placeId: string) => unknown,
+  getDetail: (placeId: string, options: { locale: string }) => unknown,
 ): PlaceDetailConsumer {
   const sourcePath = new URL("./explore-locations-control.ts", import.meta.url);
   const ast = ts.createSourceFile(
@@ -419,30 +449,54 @@ function actualPlaceDetailConsumer(
     "handlePlaceAction",
     "renderPlaceActionsRail",
     "selectLocation",
+    "localeObserver",
+    "replaceMarkersSerial",
+    "installDataset",
+    "updateMapState",
+    "renderLocationsOnMap",
+    "renderMapOnlyLocations",
+    "execute",
+    "applyFlowOption",
+    "openCategory",
+    "openCategoryByValue",
+    "renderPlaces",
   ]);
   const declarations: string[] = [];
+  const functions: string[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isVariableDeclaration(node) && names.has(node.name.getText(ast))) {
       declarations.push(`const ${node.getText(ast)};`);
     }
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name &&
+      ["getCurrentPosition", "renderFilters"].includes(node.name.text)
+    ) {
+      functions.push(node.getText(ast));
+    }
     ts.forEachChild(node, visit);
   };
   visit(ast);
-  if (declarations.length !== names.size)
-    throw new Error("Expected the five actual place detail consumer functions");
+  if (declarations.length !== names.size || functions.length !== 2)
+    throw new Error(
+      "Expected the actual place detail consumers and locale observer",
+    );
 
   // Run the production consumers together. Only browser/network boundaries
   // are fixtures; the ID, generation, copy and dispatch decisions are real.
   const javascript = ts.transpileModule(
     `
-      const {locale,getDetail,normalizeSearchText,getV1ExploreLabel,getV1ExploreUiCopy,getV1ExplorePlaceActionOptions,getAssistantConversationOrchestrator}=dependencies;
-      let activePlace,activePlaceLocation,activePlaceDetail,activeStage="menu",interactionGeneration=0;
+      const {locale,getDetail,normalizeSearchText,normalizeAssistantVoiceLanguage,getExploreLocationsCategories,getExploreLocationsForCategory,getAssistantCategoryButtonId,createExploreLocationDetailsCommand,resolveExploreLocationByName,getV1ExploreSubcategoryOptions,resolveV1ExploreAppliedResult,morroV1SearchCatalog,getV1ExploreLabel,getV1ExploreUiCopy,getV1ExplorePlaceActionOptions,getAssistantConversationOrchestrator}=dependencies;
+      let activePlace,activePlaceLocation,activePlaceDetail,activeCategory,activeStage="menu",interactionGeneration=0;
       let activePlaceActionValues=[],datasetCriteria=[],mapCalls=0,detailRequests=0;
       const messages=[],events=[],rails=[];
+      const listeners=new Map();
+      let positionRequests=0,holdPosition=false,resolvePosition;
       const elements=new Map();
       class HTMLElement {
         constructor(){this.dataset={};this.textContent="";this.children=[];this.classList={remove(){},add(){}};}
-        setAttribute(name,value){this[name]=value;}
+        setAttribute(name,value){this[name]=value;if(name.startsWith("data-"))this.dataset[name.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=value;}
+        removeAttribute(name){delete this[name];if(name.startsWith("data-"))delete this.dataset[name.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())];}
         appendChild(node){this.children.push(node);if(node.id)elements.set(node.id,node);}
         replaceChildren(...nodes){
           this.children=nodes;
@@ -454,31 +508,54 @@ function actualPlaceDetailConsumer(
       }
       class HTMLButtonElement extends HTMLElement {}
       class CustomEvent { constructor(type,init) { this.type=type;this.detail=init.detail; } }
+      class MutationObserverCtor { constructor(callback) { this.callback=callback; } }
       const ASSISTANT_FLOW_MESSAGE_ID="assistant-category-results-message";
       const ASSISTANT_FLOW_RESULTS_ID="assistant-category-results";
       const area=new HTMLElement();
       const map=new HTMLElement();map.dataset.exploreState="ready";elements.set("map",map);
       const document={documentElement:{lang:locale},activeElement:null,
-        defaultView:{fetch() { throw Error("Unexpected direct network access"); }},
+        defaultView:{fetch() { throw Error("Unexpected direct network access"); },navigator:{geolocation:{getCurrentPosition(resolve){positionRequests+=1;if(holdPosition)resolvePosition=resolve;else resolve({coords:{latitude:-13.38,longitude:-38.91}});}}}},
+        querySelector:()=>null,querySelectorAll:()=>[],
         getElementById:id=>elements.get(id)??null,
         createElement:()=>new HTMLElement(),
-        dispatchEvent:event=>events.push(event)};
+        addEventListener:(type,listener)=>{const current=listeners.get(type)??new Set();current.add(listener);listeners.set(type,current);},
+        removeEventListener:(type,listener)=>listeners.get(type)?.delete(listener),
+        dispatchEvent:event=>{events.push(event);for(const listener of listeners.get(event.type)??[])listener(event);}};
+      for(const category of getExploreLocationsCategories(locale))elements.set(getAssistantCategoryButtonId(category.value),new HTMLButtonElement());
       const assistantMessagesArea=()=>area,hideMainMenu=()=>{};
-      const currentLocale=()=>locale,currentCategories=()=>[];
-      const contextualRailScroll=null,exploreFlowBottomSheet={hide(){}};
+      const currentLocale=()=>normalizeAssistantVoiceLanguage(document.documentElement.lang);
+      const currentCategories=()=>getExploreLocationsCategories(currentLocale());
+      const contextualRailScroll=null,exploreFlowBottomSheet={hide(){},setStatus(){}};
       const UNREGISTERED_COMMERCIAL_ACTION_IDS=new Set();
       const removeAssistantFlowResults=()=>{},requestAssistantOpen=()=>{};
       const renderContextualRail=(_stage,_label,options)=>{rails.push(options);return null;};
-      const createPublicPlaceMapClient=()=>({getDetail:(id)=>{detailRequests+=1;return getDetail(id);}});
-      const renderLocationsOnMap=async()=>{mapCalls+=1;};
+      const createPublicPlaceMapClient=()=>({getDetail:(id,options)=>{detailRequests+=1;return getDetail(id,options);}});
+      let destroyed=false,renderGeneration=0,datasetGeneration=0,datasetGeometryGeneration=0;
+      let externalTourOwnsMap=false,retainedMenuContext=false,activeMarkerMembers,datasetCategory,visibleLocations=[];
+      let activeCategoryButton,activeSearchQuery="",restoreCurrentFlow,closeMarkerList,refreshMarkerList,returnToMarkerList;
+      let placeReturnLocations=[],placeReturnCriteria=[],placeReturnMessage="",placeReturnIsSearch=false;
+      let markerQueue=Promise.resolve(),markerProviderReady=Promise.resolve();
+      const geospatialEngine={initialized:true,replaceMarkers:()=>{mapCalls+=1;return markerProviderReady;}};
+      const markerRegistry=new Map();
+      const clearDatasetGeometry=()=>{},publishDatasetGeometry=()=>{},syncLocationCounts=()=>{};
+      const groupedMarkers=locations=>locations.map((location,index)=>({id:String(index),...location}));
+      const frameLocationsOnMap=()=>{},clearTourPresentation=()=>{},resetCategoryTriggerState=()=>{},showMainMenu=()=>{},clearExploreRuntimeStatus=()=>{};
+      const renderFlow=(text)=>{let message=elements.get(ASSISTANT_FLOW_MESSAGE_ID);if(!message){message=new HTMLElement();message.id=ASSISTANT_FLOW_MESSAGE_ID;elements.set(message.id,message);}message.textContent=text;return null;};
       const setExploreRuntimeStatus=()=>{},emitStateChange=()=>{};
       const shareActivePlace=()=>{},tourTicketingUrl=()=>null,startImmersiveTour=()=>{},returnFromPlaceDetail=()=>{};
+      const refreshCategoryPresentation=()=>{},restoreCategoryRail=()=>{},renderExploreRuntimeStatus=()=>{};
+      const exploreRuntimeStatusDescriptor=null,immersiveTourController=null;
+      ${functions.join("\n")}
       ${declarations.join("\n")}
-      return {select:selectLocation,click:handlePlaceAction,rails,messages,events,
+      return {document,execute,select:selectLocation,click:handlePlaceAction,rails,messages,events,
+        listenerCount:type=>listeners.get(type)?.size??0,
+        holdMarkers:()=>{let release;markerProviderReady=new Promise(resolve=>{release=resolve;});return ()=>{markerProviderReady=Promise.resolve();release();};},
+        holdPosition:()=>{holdPosition=true;return ()=>{holdPosition=false;resolvePosition?.({coords:{latitude:-13.38,longitude:-38.91}});};},
+        changeLocale:locale=>{document.documentElement.lang=locale;localeObserver.callback([{attributeName:"lang"}]);},
         conversation:getAssistantConversationOrchestrator(document),
         presenter:()=>({...elements.get(ASSISTANT_FLOW_MESSAGE_ID)?.dataset}),
         setPresenterData:values=>Object.assign(elements.get(ASSISTANT_FLOW_MESSAGE_ID).dataset,values),
-        snapshot:()=>({place:activePlace,stage:activeStage,generation:interactionGeneration,mapCalls,detailRequests})};
+        snapshot:()=>({place:activePlace,stage:activeStage,generation:interactionGeneration,mapCalls,detailRequests,positionRequests})};
     `,
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
   ).outputText;
@@ -486,6 +563,15 @@ function actualPlaceDetailConsumer(
     locale,
     getDetail,
     normalizeSearchText,
+    normalizeAssistantVoiceLanguage,
+    getExploreLocationsCategories,
+    getExploreLocationsForCategory,
+    getAssistantCategoryButtonId,
+    createExploreLocationDetailsCommand,
+    resolveExploreLocationByName,
+    getV1ExploreSubcategoryOptions,
+    resolveV1ExploreAppliedResult,
+    morroV1SearchCatalog,
     getV1ExploreLabel,
     getV1ExploreUiCopy,
     getV1ExplorePlaceActionOptions,
@@ -566,7 +652,14 @@ describe("selected canonical place detail action", () => {
       const before = consumer.snapshot();
       consumer.click("place-action:info:place-a");
       expect(consumer.messages.at(-1)?.description).toBe("Full place details");
-      expect(consumer.events).toEqual([]);
+      expect(consumer.events).toEqual([
+        {
+          type: "morro:assistant-place-details-presented",
+          detail: {
+            turnId: consumer.conversation.snapshot().lastMeaningfulTurn,
+          },
+        },
+      ]);
       expect(consumer.snapshot()).toEqual(before);
     },
   );
@@ -634,7 +727,12 @@ describe("selected canonical place detail action", () => {
     expect(consumer.rails.at(-1)).toContainEqual(
       expect.objectContaining({ value: "place-action:info:place-b" }),
     );
-    expect(consumer.events).toEqual([]);
+    expect(consumer.events).toEqual([
+      {
+        type: "morro:assistant-place-details-presented",
+        detail: { turnId: consumer.conversation.snapshot().lastMeaningfulTurn },
+      },
+    ]);
   });
 
   it("consumes info safely on a failed request and preserves other action channels", async () => {
@@ -724,10 +822,17 @@ describe("confirmed details conversation continuity", () => {
       expect(consumer.presenter().contextualNonBlocking).toBeUndefined();
       expect(consumer.messages.at(-1)?.description).toBe(turn?.renderedText);
       expect(consumer.snapshot()).toEqual(before);
-      expect(consumer.events).toEqual([]);
+      expect(consumer.events).toEqual([
+        {
+          type: "morro:assistant-place-details-presented",
+          detail: { turnId: turn?.id },
+        },
+      ]);
       consumer.click("place-action:info:place-a");
       expect(consumer.conversation.recentTurns()).toHaveLength(2);
       expect(consumer.presenter().conversationTurnId).toBe(turn?.id);
+      expect(consumer.events).toHaveLength(2);
+      expect(consumer.events[1]?.detail.turnId).toBe(turn?.id);
     },
   );
 
@@ -798,6 +903,657 @@ describe("confirmed details conversation continuity", () => {
       consumer.click("place-action:info:place-b");
       expect(consumer.conversation.recentTurns()).toEqual([]);
       expect(consumer.events).toEqual([]);
+    },
+  );
+});
+
+const settleDetailRefresh = () =>
+  new Promise<void>((resolve) => setImmediate(resolve));
+
+function deferredDetail() {
+  let resolve!: (detail: ReturnType<typeof canonicalDetail>) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<ReturnType<typeof canonicalDetail>>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
+function actualConversationRuntime(
+  consumer: PlaceDetailConsumer,
+  settings: {
+    response?: AssistantDialogResponse;
+    executionResult?: "reject" | "false";
+    styles?: Promise<void>;
+  } = {},
+) {
+  const source = readFileSync(
+    new URL("../assistant/browser-assistant-runtime.ts", import.meta.url),
+    "utf8",
+  );
+  const ast = ts.createSourceFile(
+    "runtime.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const names = new Set([
+    "runtimeErrorResponse",
+    "withPresentationLanguage",
+    "controller",
+    "dropStaleResponse",
+    "appendStandardMessage",
+    "executeInputTurn",
+    "processInputTurn",
+    "processInput",
+    "eventDetail",
+    "onPlaceDetailsPresented",
+  ]);
+  const functionNames = new Set([
+    "supersededResponse",
+    "assistantRecoveryResponse",
+    "snapshotPresentation",
+    "readRuntimeAction",
+    "isUnknownArray",
+    "readDeterministicExploreCommands",
+  ]);
+  const declarations: string[] = [];
+  const subscriptions: string[] = [];
+  const cleanups: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isVariableDeclaration(node) && names.has(node.name.getText(ast))) {
+      declarations.push(`const ${node.getText(ast)};`);
+    }
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name &&
+      functionNames.has(node.name.text)
+    ) {
+      declarations.push(node.getText(ast));
+    }
+    if (
+      ts.isExpressionStatement(node) &&
+      ts.isCallExpression(node.expression)
+    ) {
+      const call = node.expression;
+      if (
+        call.arguments[0] &&
+        ts.isStringLiteral(call.arguments[0]) &&
+        call.arguments[0].text === "morro:assistant-place-details-presented" &&
+        ts.isPropertyAccessExpression(call.expression)
+      ) {
+        if (call.expression.name.text === "addEventListener")
+          subscriptions.push(node.getText(ast));
+        if (call.expression.name.text === "removeEventListener")
+          cleanups.push(node.getText(ast));
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  const context = createAssistantContextManager();
+  context.updateContext({ lastCategory: "beaches" });
+  const handler = vi.fn(
+    async () => settings.response ?? { text: "Current intentional answer" },
+  );
+  const execute = vi.fn(async (command: ExploreLocationsCommand) => {
+    const result = await consumer.execute(command);
+    if (settings.executionResult === "reject")
+      throw Error("Injected Explore boundary rejection");
+    return settings.executionResult === "false" ? false : result;
+  });
+  const messages: Array<{ sender: string; html: string }> = [];
+  const uiStates: string[] = [];
+  const voice = { speak: vi.fn() };
+  const dependencies = {
+    options: {
+      document: consumer.document,
+      explore: { execute, getState: () => consumer.snapshot() },
+    },
+    conversation: consumer.conversation,
+    context,
+    createAssistantDialogController,
+    profile: { recordInteraction: vi.fn() },
+    domainHandlers: { help: handler },
+    intelligenceHandlers: {},
+    navigationHandlers: {},
+    createAssistantLlmHandler: () => async () => null,
+    getAssistantMainMenu,
+    normalizeAssistantVoiceLanguage,
+    assistantUiStateStatus,
+    messages: {
+      append: (message: { sender: string; html: string }) =>
+        messages.push(message),
+    },
+    ensureFeatureStyles: () => settings.styles ?? null,
+    dispatchAssistantUiState: (_document: Document, state: string) =>
+      uiStates.push(state),
+    syncExploreContext: () => undefined,
+    commerceCheckoutUrl: () => null,
+    resolveAssistantV1ResidualCommand,
+    executeAssistantV1ResidualCommand,
+    resolveAssistantV1PlaceAction: () => null,
+    resolveAssistantMenuCommand,
+    resolveAssistantRuntimeAction,
+    presentationLanguage: () =>
+      normalizeAssistantVoiceLanguage(consumer.document.documentElement.lang),
+    voiceLanguage: () =>
+      normalizeAssistantVoiceLanguage(consumer.document.documentElement.lang),
+    readVisiblePresentation: () => null,
+    readExploreState: () => consumer.snapshot(),
+    clearAssistantDomOptions: () => undefined,
+    removePhotoPresentation: () => undefined,
+    readPlaceOwnedActionValues: () => [],
+    readAssistantResponseOptions,
+    renderAssistantDomOptions: vi.fn(),
+    revealLatestAssistantContent: () => undefined,
+    readPhotoPresentation: () => null,
+    isPhotoResponse: () => false,
+    CONTROLLER_OWNED_AWAITING_TYPES: new Set(),
+    voice,
+    CustomEvent: class {
+      constructor(
+        readonly type: string,
+        readonly init: unknown,
+      ) {}
+    },
+  };
+  // The actual subscription, boundary consumers and controller run with the
+  // same document as the real Explore queue/selection/locale consumers above.
+  const javascript = ts.transpileModule(
+    `
+    let destroyed=false,requestGeneration=0,assistantUiGeneration=0,currentPresentation=null,legacyMenuRouting=false,navigationActive=false;
+    ${declarations.join("\n")}
+    ${subscriptions.join("\n")}
+    return {process:processInput,dispose(){destroyed=true;${cleanups.join("\n")}}};
+  `,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  const create = compileFunction(javascript, Object.keys(dependencies)) as (
+    ...values: unknown[]
+  ) => {
+    process(value: string): Promise<AssistantDialogResponse>;
+    dispose(): void;
+  };
+  return {
+    ...create(...Object.values(dependencies)),
+    execute,
+    handler,
+    context,
+    voice,
+    messages,
+    uiStates,
+  };
+}
+
+describe("explicit details across actual runtime async boundaries", () => {
+  it.each([
+    ["mostrar só praias", undefined],
+    ["mostrar todos os locais", undefined],
+    ["mostrar só praias", "reject"],
+  ] as const)(
+    "supersedes residual %s (%s) after selection and locale complete before the marker queue",
+    async (input, executionResult) => {
+      const consumer = actualPlaceDetailConsumer("pt", (id, { locale }) =>
+        canonicalDetail(id, `Confirmed ${locale} details`),
+      );
+      const runtime = actualConversationRuntime(consumer, {
+        ...(executionResult ? { executionResult } : {}),
+      });
+      const releaseMap = consumer.holdMarkers();
+      const old = runtime.process(input).then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      await settleDetailRefresh();
+      expect(consumer.snapshot()).toMatchObject({ stage: "menu", mapCalls: 1 });
+      const selected = consumer.select(canonicalLocation("place-b"));
+      await settleDetailRefresh();
+      consumer.click("place-action:info:place-b");
+      expect(consumer.conversation.recentTurns()).toEqual([]);
+      consumer.changeLocale("en");
+      await settleDetailRefresh();
+      consumer.click("place-action:info:place-b");
+      const details = consumer.conversation.recentTurns().at(-1)!;
+      expect(details.cause).toBe("place_details");
+      expect(consumer.snapshot().mapCalls).toBe(1);
+      releaseMap();
+      await selected;
+      expect(await old).toMatchObject({
+        value: { metadata: { state: "superseded" } },
+      });
+      expect(consumer.conversation.snapshot().lastMeaningfulTurn).toBe(
+        details.id,
+      );
+      expect(
+        runtime.messages.filter((message) => message.sender === "assistant"),
+      ).toEqual([]);
+      expect(runtime.context.getContext().history).toEqual([]);
+      expect(runtime.voice.speak).not.toHaveBeenCalled();
+      expect(runtime.uiStates.at(-1)).not.toBe("loading");
+      expect(runtime.uiStates).not.toContain("error");
+    },
+  );
+
+  it.each([undefined, "false", "reject"] as const)(
+    "supersedes a real nearby menu command (%s) before fallback, answer or error",
+    async (executionResult) => {
+      const consumer = actualPlaceDetailConsumer("pt", (id) =>
+        canonicalDetail(id),
+      );
+      await consumer.execute({ type: "open_category", category: "beaches" });
+      const releasePosition = consumer.holdPosition();
+      const runtime = actualConversationRuntime(consumer, {
+        ...(executionResult ? { executionResult } : {}),
+      });
+      const old = runtime.process("próximo").then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      await settleDetailRefresh();
+      expect(consumer.snapshot().positionRequests).toBe(1);
+      await consumer.select(canonicalLocation("place-b"));
+      consumer.click("place-action:info:place-b");
+      const details = consumer.conversation.recentTurns().at(-1)!;
+      releasePosition();
+      expect(await old).toMatchObject({
+        value: { metadata: { state: "superseded" } },
+      });
+      expect(runtime.execute).toHaveBeenCalledOnce();
+      expect(runtime.handler).not.toHaveBeenCalled();
+      expect(runtime.voice.speak).not.toHaveBeenCalled();
+      expect(runtime.context.getContext().history).toEqual([]);
+      expect(consumer.conversation.snapshot().lastMeaningfulTurn).toBe(
+        details.id,
+      );
+      expect(runtime.uiStates).not.toContain("error");
+    },
+  );
+
+  it.each([undefined, "reject"] as const)(
+    "stops the next deterministic command and late voice after a real nearby action (%s)",
+    async (executionResult) => {
+      const consumer = actualPlaceDetailConsumer("pt", (id) =>
+        canonicalDetail(id),
+      );
+      await consumer.execute({ type: "open_category", category: "beaches" });
+      const releasePosition = consumer.holdPosition();
+      const runtime = actualConversationRuntime(consumer, {
+        ...(executionResult ? { executionResult } : {}),
+        response: {
+          text: "Finding nearby places",
+          metadata: {
+            deterministic: true,
+            exploreCommands: [
+              { type: "show_nearby" },
+              { type: "select_place", place: "Primeira Praia" },
+            ],
+          },
+        },
+      });
+      const old = runtime.process("ajuda").then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      await settleDetailRefresh();
+      expect(consumer.snapshot().positionRequests).toBe(1);
+      await consumer.select(canonicalLocation("place-b"));
+      consumer.click("place-action:info:place-b");
+      const details = consumer.conversation.recentTurns().at(-1)!;
+      const messagesBeforeCompletion = [...runtime.messages];
+      releasePosition();
+      expect(await old).toMatchObject({
+        value: { metadata: { state: "superseded" } },
+      });
+      expect(runtime.execute).toHaveBeenCalledOnce();
+      expect(runtime.messages).toEqual(messagesBeforeCompletion);
+      expect(runtime.voice.speak).not.toHaveBeenCalled();
+      expect(consumer.conversation.snapshot().lastMeaningfulTurn).toBe(
+        details.id,
+      );
+      expect(runtime.uiStates).not.toContain("error");
+    },
+  );
+
+  it.each([undefined, "reject"] as const)(
+    "stops late voice or error from a mapped show_place action (%s)",
+    async (executionResult) => {
+      const consumer = actualPlaceDetailConsumer("pt", (id) =>
+        canonicalDetail(id),
+      );
+      await consumer.execute({ type: "open_category", category: "beaches" });
+      await settleDetailRefresh();
+      const releaseMap = consumer.holdMarkers();
+      const runtime = actualConversationRuntime(consumer, {
+        ...(executionResult ? { executionResult } : {}),
+        response: {
+          text: "Showing the requested beach",
+          metadata: { action: "show_place:Primeira Praia" },
+        },
+      });
+      const old = runtime.process("ajuda").then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      await settleDetailRefresh();
+      expect(runtime.execute).toHaveBeenCalledWith({
+        type: "select_place",
+        place: "Primeira Praia",
+      });
+      const selected = consumer.select(canonicalLocation("place-b"));
+      consumer.changeLocale("en");
+      await settleDetailRefresh();
+      consumer.click("place-action:info:place-b");
+      const details = consumer.conversation.recentTurns().at(-1)!;
+      const messagesBeforeCompletion = [...runtime.messages];
+      releaseMap();
+      await selected;
+      expect(await old).toMatchObject({
+        value: { metadata: { state: "superseded" } },
+      });
+      expect(runtime.messages).toEqual(messagesBeforeCompletion);
+      expect(runtime.voice.speak).not.toHaveBeenCalled();
+      expect(consumer.conversation.snapshot().lastMeaningfulTurn).toBe(
+        details.id,
+      );
+      expect(runtime.uiStates).not.toContain("error");
+    },
+  );
+
+  it.each([
+    [false, "resolve"],
+    [false, "reject"],
+    [true, "resolve"],
+    [true, "reject"],
+  ] as const)(
+    "does not begin a request superseded by details (already open: %s) while styles %s",
+    async (alreadyOpen, outcome) => {
+      let resolve!: () => void;
+      let reject!: (error: Error) => void;
+      const styles = new Promise<void>((yes, no) => {
+        resolve = yes;
+        reject = no;
+      });
+      const consumer = actualPlaceDetailConsumer("pt", (id) =>
+        canonicalDetail(id),
+      );
+      await consumer.select(canonicalLocation("place-b"));
+      if (alreadyOpen) consumer.click("place-action:info:place-b");
+      const runtime = actualConversationRuntime(consumer, { styles });
+      const old = runtime.process("ajuda").then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      consumer.click("place-action:info:place-b");
+      const details = consumer.conversation.recentTurns().at(-1)!;
+      if (outcome === "resolve") resolve();
+      else reject(Error("Injected stylesheet failure"));
+      expect(await old).toMatchObject({
+        value: { metadata: { state: "superseded" } },
+      });
+      expect(runtime.handler).not.toHaveBeenCalled();
+      expect(runtime.execute).not.toHaveBeenCalled();
+      expect(runtime.voice.speak).not.toHaveBeenCalled();
+      expect(consumer.conversation.snapshot().lastMeaningfulTurn).toBe(
+        details.id,
+      );
+      expect(runtime.uiStates).not.toContain("loading");
+      expect(runtime.uiStates).not.toContain("error");
+    },
+  );
+
+  it("invalidates a waiting request when an open detail is reprojected in a new locale", async () => {
+    let releaseStyles!: () => void;
+    const styles = new Promise<void>((resolve) => {
+      releaseStyles = resolve;
+    });
+    const consumer = actualPlaceDetailConsumer("pt", (id, { locale }) =>
+      canonicalDetail(id, `Confirmed ${locale} details`),
+    );
+    await consumer.select(canonicalLocation("place-b"));
+    consumer.click("place-action:info:place-b");
+    const runtime = actualConversationRuntime(consumer, { styles });
+    const old = runtime.process("ajuda");
+    consumer.changeLocale("en");
+    await settleDetailRefresh();
+    const translated = consumer.conversation.recentTurns().at(-1)!;
+    expect(translated.renderedText).toBe("Confirmed en details");
+    releaseStyles();
+    expect((await old).metadata?.state).toBe("superseded");
+    expect(runtime.handler).not.toHaveBeenCalled();
+    expect(consumer.conversation.snapshot().lastMeaningfulTurn).toBe(
+      translated.id,
+    );
+    expect(runtime.uiStates).toEqual(["idle"]);
+  });
+
+  it("validates details notifications against the current turn and removes its listener", async () => {
+    let releaseStyles!: () => void;
+    const styles = new Promise<void>((resolve) => {
+      releaseStyles = resolve;
+    });
+    const consumer = actualPlaceDetailConsumer("pt", (id) =>
+      canonicalDetail(id),
+    );
+    await consumer.select(canonicalLocation("place-b"));
+    consumer.click("place-action:info:place-b");
+    const eventName = "morro:assistant-place-details-presented";
+    expect(consumer.listenerCount(eventName)).toBe(0);
+    const runtime = actualConversationRuntime(consumer, { styles });
+    expect(consumer.listenerCount(eventName)).toBe(1);
+    const pending = runtime.process("ajuda");
+    consumer.document.dispatchEvent(
+      new CustomEvent(eventName, { detail: { turnId: "unrelated-turn" } }),
+    );
+    releaseStyles();
+    expect((await pending).text).toBe("Current intentional answer");
+    expect(runtime.handler).toHaveBeenCalledOnce();
+    runtime.dispose();
+    expect(consumer.listenerCount(eventName)).toBe(0);
+  });
+
+  it.each(["mostrar só praias", "mostrar todos os locais", "próximo", "ajuda"])(
+    "keeps current residual/menu/response-owned operations valid: %s",
+    async (input) => {
+      const consumer = actualPlaceDetailConsumer("pt", (id) =>
+        canonicalDetail(id),
+      );
+      await consumer.execute({ type: "open_category", category: "beaches" });
+      await consumer.select(canonicalLocation("place-b"));
+      consumer.click("place-action:info:place-b");
+      const runtime = actualConversationRuntime(consumer, {
+        response: {
+          text: "Current mapped action",
+          metadata: { action: "show_place:Primeira Praia" },
+        },
+      });
+      const response = await runtime.process(input);
+      expect(response.metadata?.state).not.toBe("superseded");
+      expect(runtime.voice.speak).toHaveBeenCalledExactlyOnceWith(
+        response.text,
+        "pt",
+      );
+      expect(runtime.execute).toHaveBeenCalledOnce();
+      expect(runtime.uiStates.at(-1)).toBe("success");
+    },
+  );
+});
+
+describe("confirmed details locale refresh", () => {
+  it("keeps the opened description while loading and links the translated details without selecting again", async () => {
+    const english = deferredDetail();
+    const requested: string[] = [];
+    const consumer = actualPlaceDetailConsumer("pt", (id, { locale }) => {
+      requested.push(locale);
+      return locale === "pt"
+        ? canonicalDetail(id, "Detalhes confirmados")
+        : english.promise;
+    });
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.click("place-action:info:place-a");
+    const previous = consumer.conversation.recentTurns().at(-1)!;
+    consumer.changeLocale("en");
+    expect(consumer.messages.at(-1)?.description).toBe("Detalhes confirmados");
+    expect(consumer.presenter().conversationTurnId).toBe(previous.id);
+    english.resolve(canonicalDetail("place-a", "Confirmed English details"));
+    await settleDetailRefresh();
+    const translated = consumer.conversation.recentTurns().at(-1)!;
+    expect(translated).toMatchObject({
+      previousTurnId: previous.id,
+      cause: "place_details",
+      messageKey: "place_details",
+      priority: "explicit",
+      renderedText: "Confirmed English details",
+      entities: { placeId: "place-a" },
+    });
+    expect(consumer.presenter()).toMatchObject({
+      conversationTurnId: translated.id,
+      previousConversationTurnId: previous.id,
+      conversationCause: "place_details",
+      conversationPriority: "explicit",
+    });
+    expect(consumer.messages.at(-1)?.description).toBe(
+      "Confirmed English details",
+    );
+    expect(requested).toEqual(["pt", "en"]);
+    expect(consumer.snapshot().mapCalls).toBe(1);
+    consumer.click("place-action:info:place-a");
+    expect(consumer.conversation.recentTurns()).toHaveLength(2);
+    expect(consumer.presenter().conversationTurnId).toBe(translated.id);
+  });
+
+  it("keeps the latest locale when PT, EN and HE details complete out of order", async () => {
+    const english = deferredDetail();
+    const hebrew = deferredDetail();
+    const consumer = actualPlaceDetailConsumer("pt", (id, { locale }) =>
+      locale === "pt"
+        ? canonicalDetail(id, "Descrição em português")
+        : locale === "en"
+          ? english.promise
+          : hebrew.promise,
+    );
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.click("place-action:info:place-a");
+    const previous = consumer.conversation.recentTurns().at(-1)!;
+    consumer.changeLocale("en");
+    consumer.changeLocale("he");
+    hebrew.resolve(canonicalDetail("place-a", "פרטים מאומתים"));
+    await settleDetailRefresh();
+    expect(consumer.messages.at(-1)?.description).toBe("פרטים מאומתים");
+    const current = consumer.conversation.recentTurns().at(-1)!;
+    expect(current.previousTurnId).toBe(previous.id);
+    english.resolve(canonicalDetail("place-a", "Outdated English details"));
+    await settleDetailRefresh();
+    consumer.click("place-action:info:place-a");
+    expect(consumer.messages.at(-1)?.description).toBe("פרטים מאומתים");
+    expect(consumer.presenter().conversationTurnId).toBe(current.id);
+    expect(consumer.conversation.recentTurns()).toHaveLength(2);
+  });
+
+  it("does not restore place A after selecting same-named place B during locale loading", async () => {
+    const englishA = deferredDetail();
+    const consumer = actualPlaceDetailConsumer("pt", (id, { locale }) =>
+      locale === "en" && id === "place-a"
+        ? englishA.promise
+        : canonicalDetail(id, `Details for ${id}`),
+    );
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.click("place-action:info:place-a");
+    consumer.changeLocale("en");
+    await consumer.select(canonicalLocation("place-b"));
+    englishA.resolve(canonicalDetail("place-a", "Obsolete A details"));
+    await settleDetailRefresh();
+    expect(consumer.messages.at(-1)?.description).toBe("");
+    expect(consumer.presenter().conversationTurnId).toBeUndefined();
+    consumer.click("place-action:info:place-a");
+    expect(consumer.conversation.recentTurns()).toHaveLength(1);
+    consumer.click("place-action:info:place-b");
+    expect(consumer.messages.at(-1)?.description).toBe("Details for place-b");
+    expect(consumer.conversation.recentTurns().at(-1)?.entities.placeId).toBe(
+      "place-b",
+    );
+  });
+
+  it("does not inherit opened details when the same ID is selected anew", async () => {
+    const consumer = actualPlaceDetailConsumer("pt", (id) =>
+      canonicalDetail(id),
+    );
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.click("place-action:info:place-a");
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.changeLocale("en");
+    await settleDetailRefresh();
+    expect(consumer.messages.at(-1)?.description).toBe("");
+    expect(consumer.presenter().conversationTurnId).toBeUndefined();
+    expect(consumer.conversation.recentTurns()).toHaveLength(1);
+  });
+
+  it.each(["profile", "actions", "empty", "error"] as const)(
+    "preserves confirmed text without inventing a translated turn for %s details",
+    async (scenario) => {
+      const english = deferredDetail();
+      const consumer = actualPlaceDetailConsumer("pt", (id, { locale }) =>
+        locale === "pt"
+          ? canonicalDetail(id, "Texto confirmado")
+          : english.promise,
+      );
+      await consumer.select(canonicalLocation("place-a"));
+      consumer.click("place-action:info:place-a");
+      const previous = consumer.conversation.recentTurns().at(-1)!;
+      consumer.changeLocale("en");
+      const invalid = canonicalDetail("place-a");
+      if (scenario === "profile") invalid.profile.id = "place-b";
+      if (scenario === "actions") invalid.actions.placeId = "place-b";
+      if (scenario === "empty") invalid.profile.description = " ";
+      if (scenario === "error")
+        english.reject(Error("translation unavailable"));
+      else english.resolve(invalid);
+      await settleDetailRefresh();
+      consumer.click("place-action:info:place-a");
+      expect(consumer.messages.at(-1)?.description).toBe("Texto confirmado");
+      expect(consumer.presenter().conversationTurnId).toBe(previous.id);
+      expect(consumer.conversation.recentTurns()).toHaveLength(1);
+    },
+  );
+
+  it.each(["pending request", "completed turn"])(
+    "does not reopen translated details over a newer assistant %s",
+    async (scenario) => {
+      const english = deferredDetail();
+      const consumer = actualPlaceDetailConsumer("pt", (id, { locale }) =>
+        locale === "pt"
+          ? canonicalDetail(id, "Texto confirmado")
+          : english.promise,
+      );
+      await consumer.select(canonicalLocation("place-a"));
+      consumer.click("place-action:info:place-a");
+      consumer.changeLocale("en");
+      consumer.conversation.issueSequence();
+      if (scenario === "completed turn") {
+        consumer.conversation.transition({
+          cause: "assistant_response",
+          messageKey: "assistant_response",
+          renderedText: "A newer intentional answer",
+          priority: "explicit",
+        });
+      }
+      const current = consumer.conversation.recentTurns().at(-1)!;
+      const turnCount = consumer.conversation.recentTurns().length;
+      english.resolve(canonicalDetail("place-a", "Confirmed English details"));
+      await settleDetailRefresh();
+      expect(consumer.conversation.snapshot().lastMeaningfulTurn).toBe(
+        current.id,
+      );
+      expect(consumer.conversation.recentTurns()).toHaveLength(turnCount);
+      expect(consumer.messages.at(-1)?.description).toBe("Texto confirmado");
+      consumer.click("place-action:info:place-a");
+      expect(consumer.messages.at(-1)?.description).toBe(
+        "Confirmed English details",
+      );
+      expect(consumer.conversation.recentTurns().at(-1)?.previousTurnId).toBe(
+        current.id,
+      );
     },
   );
 });

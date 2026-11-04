@@ -15,6 +15,10 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 import ts from "typescript";
 import { resolveExploreLocationCount } from "./assistant-contextual-state.js";
 import { assistantUiStateStatus } from "./assistant-ui-state.js";
+import {
+  getAssistantConversationOrchestrator,
+  type ConversationTurn,
+} from "./assistant-conversation-orchestrator.js";
 import { describe, expect, it, vi } from "vitest";
 
 function runtimeClosure(name: string): string {
@@ -433,6 +437,295 @@ function deferredTurn() {
   });
   return { promise, resolve, reject };
 }
+
+function pendingAssistantFixture() {
+  const pending = deferredTurn();
+  const handler = vi.fn<AssistantDialogIntentHandler>(() => pending.promise);
+  const context = createAssistantContextManager();
+  const messages: Array<{ sender: string; html: string }> = [];
+  const assistantNodes: Array<{ dataset: Record<string, string> }> = [];
+  const uiStates: string[] = [];
+  const voice = { speak: vi.fn() };
+  const events: unknown[] = [];
+  let details: ConversationTurn | undefined;
+  const document = {
+    documentElement: { lang: "pt" },
+    querySelectorAll: () => assistantNodes,
+    getElementById: () => ({ textContent: "Selected place A" }),
+    dispatchEvent: (event: unknown) => events.push(event),
+  } as unknown as Document;
+  const conversation = getAssistantConversationOrchestrator(document);
+  const execute = vi.fn(async () => {
+    conversation.transition({
+      cause: "place_selected",
+      messageKey: "place_selected",
+      renderedText: "Selected place A",
+      place: "Praia A",
+    });
+    return true;
+  });
+  const exploreState = () => ({
+    stage: "detail",
+    place: "Praia A",
+    category: "beaches",
+  });
+  const dependencies = {
+    document,
+    conversation,
+    options: { document, explore: { execute, getState: exploreState } },
+    getAssistantConversationOrchestrator,
+    createAssistantDialogController,
+    getAssistantMainMenu,
+    normalizeAssistantVoiceLanguage,
+    assistantUiStateStatus,
+    context,
+    profile: { recordInteraction: vi.fn() },
+    domainHandlers: { help: handler },
+    intelligenceHandlers: {},
+    navigationHandlers: {},
+    createAssistantLlmHandler: () => async () => null,
+    messages: {
+      append: (message: { sender: string; html: string }) => {
+        messages.push(message);
+        if (message.sender === "assistant")
+          assistantNodes.push({ dataset: {} });
+      },
+    },
+    renderPlaceDetailMessage: (
+      _location: unknown,
+      _category: string,
+      _description: string,
+      turn: ConversationTurn,
+    ) => {
+      details = turn;
+    },
+    ensureFeatureStyles: () => null,
+    dispatchAssistantUiState: (_document: Document, state: string) =>
+      uiStates.push(state),
+    currentLocale: () => "pt",
+    presentationLanguage: () => "pt",
+    voiceLanguage: () => "pt",
+    voice,
+    syncExploreContext: () => undefined,
+    readExploreState: exploreState,
+    commerceCheckoutUrl: () => null,
+    resolveAssistantV1ResidualCommand: () => null,
+    resolveAssistantV1PlaceAction: () => null,
+    readVisiblePresentation: () => null,
+    resolveAssistantMenuCommand: (_document: Document, value: string) =>
+      value === "beaches"
+        ? { type: "open_category", category: "beaches" }
+        : null,
+    CONTROLLER_OWNED_AWAITING_TYPES: new Set(),
+    clearAssistantDomOptions: vi.fn(),
+    removePhotoPresentation: vi.fn(),
+    readPlaceOwnedActionValues: () => [],
+    readAssistantResponseOptions: (response: AssistantDialogResponse) =>
+      response.options ?? [],
+    renderAssistantDomOptions: vi.fn(),
+    revealLatestAssistantContent: () => undefined,
+    readPhotoPresentation: () => null,
+    isPhotoResponse: () => false,
+    resolveAssistantRuntimeAction: () => ({
+      type: "open_category",
+      category: "beaches",
+    }),
+    CustomEvent: class {
+      constructor(
+        readonly type: string,
+        readonly init: unknown,
+      ) {}
+    },
+  };
+  const exploreAst = ts.createSourceFile(
+    "explore-locations-control.ts",
+    readFileSync(
+      new URL("../map/explore-locations-control.ts", import.meta.url),
+      "utf8",
+    ),
+    ts.ScriptTarget.Latest,
+  );
+  const detailConsumers: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ["readActivePlaceDetail", "handlePlaceAction"].includes(
+        node.name.getText(exploreAst),
+      )
+    ) {
+      detailConsumers.push(`const ${node.getText(exploreAst)};`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(exploreAst);
+  if (detailConsumers.length !== 2)
+    throw new Error("Actual detail action consumers missing");
+  const declarations = [
+    "runtimeErrorResponse",
+    "withPresentationLanguage",
+    "controller",
+    "dropStaleResponse",
+    "appendStandardMessage",
+    "executeInputTurn",
+    "processInputTurn",
+    "processInput",
+  ]
+    .map((name) => `const ${name} = ${runtimeClosure(name)};`)
+    .join("\n");
+  const functions = [
+    "supersededResponse",
+    "assistantRecoveryResponse",
+    "snapshotPresentation",
+    "readRuntimeAction",
+    "isUnknownArray",
+    "readDeterministicExploreCommands",
+  ]
+    .map(runtimeFunction)
+    .join("\n");
+  // Both production consumers share one real orchestrator and context manager.
+  // Only external handlers and browser presentation boundaries are fixtures.
+  const compiled = ts.transpileModule(
+    `
+    let destroyed=false, requestGeneration=0, assistantUiGeneration=0, currentPresentation=null, legacyMenuRouting=false;
+    const activeStage="detail", activePlaceLocation={name:"Praia A",category:"beaches"};
+    const activePlaceDetail={placeId:"place-a",location:activePlaceLocation,categoryLabel:"Praias",description:"Confirmed place A details",locale:"pt"};
+    ${functions}
+    ${declarations}
+    ${detailConsumers.join("\n")}
+    return {process:(value,source="programmatic")=>processInput(value,undefined,false,source),controller,showDetails:()=>handlePlaceAction("place-action:info:place-a")};
+  `,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  const create = compileFunction(compiled, Object.keys(dependencies)) as (
+    ...values: unknown[]
+  ) => {
+    process(
+      value: string,
+      source?: "programmatic" | "voice",
+    ): Promise<AssistantDialogResponse>;
+    controller: {
+      processUserInput(input: string): Promise<AssistantDialogResponse>;
+    };
+    showDetails(): void;
+  };
+  return {
+    ...create(...Object.values(dependencies)),
+    pending,
+    handler,
+    context,
+    conversation,
+    messages,
+    uiStates,
+    voice,
+    execute,
+    events,
+    details: () => details,
+    renderedOptions: dependencies.renderAssistantDomOptions,
+  };
+}
+
+describe("pending assistant response and explicit place details", () => {
+  it.each([
+    [false, "response"],
+    [true, "response"],
+    [false, "handler failure"],
+    [true, "handler failure"],
+    [false, "runtime rejection"],
+    [true, "runtime rejection"],
+  ] as const)(
+    "preserves details (already open: %s) after an old %s and accepts a later voice request",
+    async (alreadyOpen, outcome) => {
+      const f = pendingAssistantFixture();
+      if (alreadyOpen) f.showDetails();
+      if (outcome === "runtime rejection") {
+        vi.spyOn(f.controller, "processUserInput").mockImplementationOnce(
+          () => f.pending.promise,
+        );
+      }
+      const old = f.process("ajuda").then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      f.showDetails();
+      const details = f.details()!;
+      const contextAfterDetails = f.context.getContext();
+      if (outcome === "response") {
+        f.pending.resolve({
+          text: "Obsolete answer",
+          options: [{ label: "Obsolete option", value: "old-option" }],
+          metadata: { action: "show_beaches" },
+        });
+      } else {
+        f.pending.reject(Error("Obsolete failure"));
+      }
+      expect(await old).toMatchObject({
+        value: { metadata: { state: "superseded" } },
+      });
+      expect(f.conversation.snapshot().lastMeaningfulTurn).toBe(details.id);
+      expect(f.conversation.recentTurns()).toHaveLength(1);
+      expect(f.messages.filter(({ sender }) => sender === "assistant")).toEqual(
+        [],
+      );
+      expect(f.context.getContext()).toEqual(contextAfterDetails);
+      expect(f.voice.speak).not.toHaveBeenCalled();
+      expect(f.execute).not.toHaveBeenCalled();
+      expect(f.renderedOptions).not.toHaveBeenCalled();
+      expect(f.uiStates).not.toContain("error");
+
+      f.handler.mockResolvedValueOnce({ text: "A new intentional answer" });
+      const current = await f.process("ajuda", "voice");
+      expect(current.text).toBe("A new intentional answer");
+      expect(f.conversation.recentTurns().at(-1)).toMatchObject({
+        cause: "assistant_response",
+        previousTurnId: details.id,
+        renderedText: "A new intentional answer",
+      });
+      expect(f.voice.speak).toHaveBeenCalledExactlyOnceWith(
+        "A new intentional answer",
+        "pt",
+      );
+      expect(
+        f.context.getContext().history.map(({ response }) => response),
+      ).toEqual(["A new intentional answer"]);
+    },
+  );
+
+  it("keeps the newer request context when an older request resolves afterward", async () => {
+    const f = pendingAssistantFixture();
+    const old = f.process("ajuda");
+    f.showDetails();
+    f.handler.mockResolvedValueOnce({ text: "The current answer" });
+    await f.process("ajuda");
+    const currentState = f.context.getContext();
+    const currentTurn = f.conversation.snapshot().lastMeaningfulTurn;
+    f.pending.resolve({ text: "Obsolete answer" });
+    expect((await old).metadata?.state).toBe("superseded");
+    expect(f.context.getContext()).toEqual(currentState);
+    expect(f.conversation.snapshot().lastMeaningfulTurn).toBe(currentTurn);
+    expect(f.voice.speak).toHaveBeenCalledExactlyOnceWith(
+      "The current answer",
+      "pt",
+    );
+  });
+
+  it("keeps intentional routing and response-owned actions after details", async () => {
+    const f = pendingAssistantFixture();
+    f.showDetails();
+    expect((await f.process("beaches")).metadata?.state).toBe("routed");
+    expect(f.execute).toHaveBeenCalledOnce();
+    expect(f.handler).not.toHaveBeenCalled();
+    f.handler.mockResolvedValueOnce({
+      text: "Current action answer",
+      metadata: { action: "show_beaches" },
+    });
+    expect((await f.process("ajuda")).text).toBe("Current action answer");
+    expect(f.execute).toHaveBeenCalledTimes(2);
+    expect(f.voice.speak).toHaveBeenLastCalledWith(
+      "Current action answer",
+      "pt",
+    );
+  });
+});
 
 describe("actual runtime failure projection and composer recovery", () => {
   it.each(["pt-BR", "en", "es", "he"])(

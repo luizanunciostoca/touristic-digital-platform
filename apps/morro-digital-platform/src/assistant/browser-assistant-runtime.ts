@@ -830,32 +830,53 @@ export function installBrowserAssistantRuntime(
           },
         },
       });
-  const controller = createAssistantDialogController({
-    context,
-    profile,
-    handlers: Object.fromEntries(
-      Object.entries({
-        ...domainHandlers,
-        ...intelligenceHandlers,
-        ...navigationHandlers,
-      }).map(([intent, handler]) => [
-        intent,
-        handler ? withPresentationLanguage(handler) : undefined,
-      ]),
-    ),
-    llm: withPresentationLanguage(
-      createAssistantLlmHandler({
-        ...(options.fetch ? { fetch: options.fetch } : {}),
-      }),
-    ),
-    defaultResponse: () =>
-      assistantRecoveryResponse(
-        normalizeAssistantVoiceLanguage(options.document.documentElement.lang),
-      ),
-    errorResponse: runtimeErrorResponse,
-    getPresentationLanguage: () =>
-      normalizeAssistantVoiceLanguage(options.document.documentElement.lang),
-  });
+  const controller = {
+    processUserInput(
+      input: string,
+      isCurrent: () => boolean = () => true,
+    ): Promise<AssistantDialogResponse> {
+      // Bind writes to this request: a late handler must not replace the
+      // context or append history after a newer shared conversation action.
+      return createAssistantDialogController({
+        context: {
+          getContext: () => context.getContext(),
+          updateContext: (updates) => {
+            if (isCurrent()) context.updateContext(updates);
+          },
+          addToHistory: (entry) => {
+            if (isCurrent()) context.addToHistory(entry);
+          },
+        },
+        profile,
+        handlers: Object.fromEntries(
+          Object.entries({
+            ...domainHandlers,
+            ...intelligenceHandlers,
+            ...navigationHandlers,
+          }).map(([intent, handler]) => [
+            intent,
+            handler ? withPresentationLanguage(handler) : undefined,
+          ]),
+        ),
+        llm: withPresentationLanguage(
+          createAssistantLlmHandler({
+            ...(options.fetch ? { fetch: options.fetch } : {}),
+          }),
+        ),
+        defaultResponse: () =>
+          assistantRecoveryResponse(
+            normalizeAssistantVoiceLanguage(
+              options.document.documentElement.lang,
+            ),
+          ),
+        errorResponse: runtimeErrorResponse,
+        getPresentationLanguage: () =>
+          normalizeAssistantVoiceLanguage(
+            options.document.documentElement.lang,
+          ),
+      }).processUserInput(input);
+    },
+  };
 
   const view = options.document.defaultView;
   let navigationActive = false;
@@ -982,6 +1003,22 @@ export function installBrowserAssistantRuntime(
   const dropStaleResponse = (): AssistantDialogResponse => {
     conversation.recordStaleResponseDropped();
     return supersededResponse();
+  };
+  const onPlaceDetailsPresented = (event: Event): void => {
+    const turn = conversation.recentTurns().at(-1);
+    if (
+      destroyed ||
+      turn?.cause !== "place_details" ||
+      eventDetail(event)?.turnId !== turn.id
+    ) {
+      return;
+    }
+    // The shared turn owns the presentation, including a deduplicated repeat.
+    // Invalidate every pending runtime boundary without cancelling the
+    // contextual turns created by the runtime's own Explore commands.
+    requestGeneration += 1;
+    assistantUiGeneration += 1;
+    dispatchAssistantUiState(options.document, "idle");
   };
   let currentPresentation: AssistantPresentationSnapshot | null = null;
   let legacyMenuRouting = false;
@@ -1348,6 +1385,9 @@ export function installBrowserAssistantRuntime(
         menuRouted = menuCommand
           ? await options.explore.execute(menuCommand)
           : false;
+        if (destroyed || generation !== requestGeneration) {
+          return dropStaleResponse();
+        }
         if (
           !menuRouted &&
           menuCommand &&
@@ -1360,6 +1400,9 @@ export function installBrowserAssistantRuntime(
               type: "open_category",
               category: lastCategory,
             });
+            if (destroyed || generation !== requestGeneration) {
+              return dropStaleResponse();
+            }
             menuRouted = opened
               ? await options.explore.execute(menuCommand)
               : false;
@@ -1410,8 +1453,21 @@ export function installBrowserAssistantRuntime(
     clearAssistantDomOptions(options.document);
     removePhotoPresentation(options.document);
     appendStandardMessage("user", submittedValue);
-    const response = await controller.processUserInput(value);
-    if (destroyed || generation !== requestGeneration) {
+    // Menu routing above can create its own Explore turns. Once the dialog
+    // handler starts, any newer shared action supersedes this pending answer.
+    const sequence = conversation.issueSequence();
+    const isCurrentResponse = (): boolean =>
+      !destroyed &&
+      generation === requestGeneration &&
+      conversation.isCurrentSequence(sequence);
+    let response: AssistantDialogResponse;
+    try {
+      response = await controller.processUserInput(value, isCurrentResponse);
+    } catch (error) {
+      if (!isCurrentResponse()) return dropStaleResponse();
+      throw error;
+    }
+    if (!isCurrentResponse()) {
       return dropStaleResponse();
     }
 
@@ -1507,6 +1563,9 @@ export function installBrowserAssistantRuntime(
       );
     }
 
+    if (destroyed || generation !== requestGeneration) {
+      return dropStaleResponse();
+    }
     voice?.speak(response.text, voiceLanguage());
     return response;
   };
@@ -1520,13 +1579,9 @@ export function installBrowserAssistantRuntime(
         return supersededResponse();
       return await executeInputTurn(...args);
     } catch (error) {
-      if (!destroyed && generation === assistantUiGeneration) {
-        appendStandardMessage(
-          "assistant",
-          runtimeErrorResponse().text,
-          args[0],
-        );
-      }
+      if (destroyed || generation !== assistantUiGeneration)
+        return supersededResponse();
+      appendStandardMessage("assistant", runtimeErrorResponse().text, args[0]);
       throw error;
     }
   };
@@ -1578,7 +1633,9 @@ export function installBrowserAssistantRuntime(
       }
       return response;
     } catch (error) {
-      if (stylesReady && !destroyed && uiGeneration === assistantUiGeneration) {
+      if (destroyed || uiGeneration !== assistantUiGeneration)
+        return supersededResponse();
+      if (stylesReady) {
         dispatchAssistantUiState(options.document, "error");
       }
       throw error;
@@ -1883,6 +1940,10 @@ export function installBrowserAssistantRuntime(
     "morro:assistant-option-selected",
     onOptionSelected,
   );
+  options.document.addEventListener(
+    "morro:assistant-place-details-presented",
+    onPlaceDetailsPresented,
+  );
   syncExploreContext();
 
   return Object.freeze({
@@ -1924,6 +1985,10 @@ export function installBrowserAssistantRuntime(
       options.document.removeEventListener(
         "morro:assistant-option-selected",
         onOptionSelected,
+      );
+      options.document.removeEventListener(
+        "morro:assistant-place-details-presented",
+        onPlaceDetailsPresented,
       );
       contextualMessaging.destroy();
       voiceSettings.destroy();
