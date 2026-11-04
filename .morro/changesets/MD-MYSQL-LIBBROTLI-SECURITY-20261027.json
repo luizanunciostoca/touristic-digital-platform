@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-MYSQL-LIBBROTLI-SECURITY-20261027",
   "objective": "patch-oracle-libbrotli-in-mysql-images-without-database-or-runtime-policy-changes",
-  "baseSha": "f992054fc12876a20ca4668dc45558b1bd4b4225",
-  "branch": "chore/acquire-mysql-libbrotli-20261027",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "9b1a4fc56ee8389feac61a5fb1444c8324276354",
+  "branch": "chore/retire-merged-mysql-20261104-692e98887918",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
