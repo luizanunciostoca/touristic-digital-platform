@@ -3,14 +3,15 @@ import { describe, expect, it } from "vitest";
 import { getV1ImmersiveTourCopy } from "./immersive-tour-v1-i18n.js";
 
 describe("V1 immersive tour presentation copy", () => {
-  it("preserves the canonical Portuguese V1 controls and interpolation", () => {
+  it("clarifies the Portuguese map presentation controls and preserves interpolation", () => {
     const copy = getV1ImmersiveTourCopy("pt-BR");
 
     expect([copy.start, copy.seeStops, copy.cancel]).toEqual([
-      "▶️ Iniciar o tour",
+      "▶️ Explorar roteiro no mapa",
       "📋 Ver todas as paradas",
       "❌ Cancelar",
     ]);
+    expect(copy.next).toBe("➡️ Ver próxima parada");
     expect(copy.stopLabel(2, 8)).toBe("Parada 2 de 8");
     expect(copy.stopsOf("Passeio Volta à Ilha")).toBe(
       "Paradas do Passeio Volta à Ilha:",
@@ -21,14 +22,30 @@ describe("V1 immersive tour presentation copy", () => {
   });
 
   it.each([
-    ["en-US", "▶️ Start tour", "⛵ See other tours"],
-    ["es-AR", "▶️ Iniciar tour", "⛵ Ver otros paseos"],
-    ["he-IL", "▶️ התחל סיור", "⛵ ראה סיורים אחרים"],
+    [
+      "en-US",
+      "▶️ Explore itinerary on the map",
+      "➡️ View next stop",
+      "⛵ See other tours",
+    ],
+    [
+      "es-AR",
+      "▶️ Explorar el itinerario en el mapa",
+      "➡️ Ver siguiente parada",
+      "⛵ Ver otros paseos",
+    ],
+    [
+      "he-IL",
+      "▶️ חקור את המסלול במפה",
+      "➡️ צפה בעצירה הבאה",
+      "⛵ ראה סיורים אחרים",
+    ],
   ])(
-    "keeps the V1 localized tour controls for %s",
-    (locale, start, seeTours) => {
+    "clarifies the localized map presentation controls for %s",
+    (locale, start, next, seeTours) => {
       const copy = getV1ImmersiveTourCopy(locale);
       expect(copy.start).toBe(start);
+      expect(copy.next).toBe(next);
       expect(copy.seeTours).toBe(seeTours);
     },
   );

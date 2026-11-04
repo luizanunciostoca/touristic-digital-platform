@@ -5,6 +5,7 @@ import {
   createAssistantContextManager,
   createAssistantDialogController,
   createDefaultAssistantContext,
+  getAssistantMainMenu,
   normalizeAssistantVoiceLanguage,
   type AssistantDialogResponse,
   type AssistantActiveTourContext,
@@ -26,6 +27,14 @@ function runtimeClosure(name: string): string {
   find(ast);
   if (!result) throw new Error(`Actual runtime closure missing: ${name}`);
   return result;
+}
+
+function runtimeFunction(name: string): string {
+  const declaration = ast.statements.find(
+    (node) => ts.isFunctionDeclaration(node) && node.name?.text === name,
+  );
+  if (!declaration) throw new Error(`Actual runtime function missing: ${name}`);
+  return declaration.getText(ast);
 }
 
 function failureFixture(
@@ -55,19 +64,22 @@ function failureFixture(
   }
   const events: string[] = [];
   const messages: string[] = [];
+  const llm = vi.fn<AssistantDialogIntentHandler>(async () => null);
   let state = createDefaultAssistantContext(() => 1000);
+  const document = {
+    documentElement: { lang: language },
+    querySelector: () => null,
+  };
   const dependencies = {
-    options: {
-      document: {
-        documentElement: { lang: language },
-        querySelector: () => null,
-      },
-    },
+    options: { document },
     ensureFeatureStyles: styleLoader,
     assistantUiStateStatus,
     createAssistantDialogController,
+    getAssistantMainMenu,
     normalizeAssistantVoiceLanguage,
-    createAssistantLlmHandler: () => async () => null,
+    voiceLanguage: () =>
+      normalizeAssistantVoiceLanguage(document.documentElement.lang),
+    createAssistantLlmHandler: () => llm,
     context: {
       getContext: () => state,
       updateContext: (value: Partial<typeof state>) => {
@@ -100,6 +112,7 @@ function failureFixture(
     "onCompositionEnd",
     "onInputKeyDown",
     "onOptionSelected",
+    "onVoiceClick",
   ]
     .map((name) => `const ${name} = ${runtimeClosure(name)};`)
     .join("\n");
@@ -110,31 +123,41 @@ function failureFixture(
     true,
   );
   let onResult = "";
+  let onError = "";
   function findVoice(node: ts.Node): void {
     if (
       ts.isPropertyAssignment(node) &&
       node.name.getText(voiceAst) === "onResult"
     )
       onResult = node.initializer.getText(voiceAst);
+    if (
+      ts.isPropertyAssignment(node) &&
+      node.name.getText(voiceAst) === "onError"
+    )
+      onError = node.initializer.getText(voiceAst);
     ts.forEachChild(node, findVoice);
   }
   findVoice(voiceAst);
-  if (!onResult) throw new Error("Actual voice result callback missing");
-  const superseded = ast.statements.find(
-    (node) =>
-      ts.isFunctionDeclaration(node) &&
-      node.name?.text === "supersededResponse",
-  );
-  if (!superseded) throw new Error("Actual superseded response missing");
+  if (!onResult || !onError) throw new Error("Actual voice callbacks missing");
+  const runtimeFunctions = [
+    "supersededResponse",
+    "assistantRecoveryResponse",
+    "voiceInputMessage",
+  ]
+    .map(runtimeFunction)
+    .join("\n");
   const compiled = ts.transpileModule(
     `
-    ${superseded.getText(ast)}
+    ${runtimeFunctions}
     let destroyed = false, assistantUiGeneration = 0, composerRevision = 0, composerComposing = false;
+    let assistantVoiceUiGeneration = 0;
+    const voiceInput = null;
     let legacyMenuRouting = false;
     let executeInputTurn = (value) => controller.processUserInput(value);
     ${declarations}
     const onVoiceResult = ${onResult};
-    return { processInput, submitInput, onComposerInput, onCompositionStart, onCompositionEnd, onInputKeyDown, onOptionSelected, onVoiceResult,
+    const onVoiceError = ${onError};
+    return { processInput, submitInput, onComposerInput, onCompositionStart, onCompositionEnd, onInputKeyDown, onOptionSelected, onVoiceResult, onVoiceError, onVoiceClick,
       destroy() { destroyed = true; },
       setTurn(turn) { executeInputTurn = turn; },
       failTurn() { executeInputTurn = async () => { throw new Error("turn failed"); }; } };
@@ -156,6 +179,8 @@ function failureFixture(
     onInputKeyDown(event: Key): void;
     onOptionSelected(event: OptionEvent): void;
     onVoiceResult(value: string): void;
+    onVoiceError(): void;
+    onVoiceClick(): void;
   };
   const runtime = createRuntime(...Object.values(dependencies));
   return {
@@ -163,6 +188,7 @@ function failureFixture(
     input,
     events,
     messages,
+    llm,
     Key,
     OptionEvent,
     document: dependencies.options.document,
@@ -234,6 +260,170 @@ describe("assistant presentation language at the real handler boundary", () => {
     }
   });
 });
+
+describe("localized recovery at the real runtime controller boundary", () => {
+  it.each([
+    [
+      "pt-BR",
+      "Não consegui responder agora. Tente reformular ou escolha uma opção.",
+      "Ajuda",
+      "Escolha Ajuda para ver o que posso fazer, ou uma categoria para explorar o mapa.",
+    ],
+    [
+      "en-US",
+      "I couldn’t answer just now. Try rephrasing or choose an option.",
+      "Help",
+      "Choose Help to see what I can do, or a category to explore the map.",
+    ],
+    [
+      "es-ES",
+      "No pude responder ahora. Prueba a reformular el mensaje o elige una opción.",
+      "Ayuda",
+      "Elige Ayuda para ver qué puedo hacer, o una categoría para explorar el mapa.",
+    ],
+    [
+      "he-IL",
+      "לא הצלחתי להשיב כרגע. אפשר לנסח מחדש או לבחור אפשרות.",
+      "עזרה",
+      "אפשר לבחור בעזרה כדי לראות במה אוכל לעזור, או בקטגוריה כדי לסייר במפה.",
+    ],
+  ])(
+    "keeps all four unresolved turns in %s",
+    async (locale, expected, help, escalated) => {
+      const helpHandler = createAssistantBrowserDomainHandlers().help;
+      if (!helpHandler) throw new Error("Actual help handler missing");
+      const f = failureFixture(locale, ensureFeatureStyles, {
+        help: helpHandler,
+      });
+      const responses: AssistantDialogResponse[] = [];
+      for (let turn = 0; turn < 4; turn += 1) {
+        responses.push(await f.processInput("xyz qwerty incompreensivel"));
+      }
+
+      expect
+        .soft(responses.slice(0, 3).map((response) => response.text))
+        .toEqual([expected, expected, expected]);
+      expect.soft(responses[3]?.options?.[0]?.label).toBe(help);
+      expect(responses[3]?.text).toBe(escalated);
+      expect(responses[3]?.metadata).toEqual({
+        domain: "fallback",
+        state: "escalated",
+      });
+      const canonicalOptions = getAssistantMainMenu(
+        normalizeAssistantVoiceLanguage(locale),
+      ).filter((option) =>
+        ["help", "beaches", "restaurants"].includes(option.value),
+      );
+      expect(responses[0]?.options).toEqual(canonicalOptions);
+      expect(responses[0]?.options?.map((option) => option.value)).toEqual([
+        "beaches",
+        "restaurants",
+        "help",
+      ]);
+      expect(responses[3]?.options?.map((option) => option.value)).toEqual([
+        normalizeAssistantVoiceLanguage(locale) === "he" ? "help" : help,
+        canonicalOptions.find((option) => option.value === "beaches")?.label,
+        canonicalOptions.find((option) => option.value === "restaurants")
+          ?.label,
+      ]);
+      const helpOption = responses[3]?.options?.[0];
+      if (!helpOption) throw new Error("Escalated help option missing");
+      expect(f.llm).toHaveBeenCalledTimes(4);
+      const recovered = await f.processInput(helpOption.value);
+      expect(recovered.metadata?.domain).toBe("help");
+      expect(f.llm).toHaveBeenCalledTimes(4);
+    },
+  );
+
+  it("reads a changed presentation language before the fourth fallback", async () => {
+    const f = failureFixture("en", ensureFeatureStyles, {});
+    for (let turn = 0; turn < 3; turn += 1) {
+      await f.processInput("xyz qwerty incompreensivel");
+    }
+    f.document.documentElement.lang = "he";
+    const response = await f.processInput("xyz qwerty incompreensivel");
+    expect(response.options?.[0]?.label).toBe("עזרה");
+    expect(response.metadata).toEqual({
+      domain: "fallback",
+      state: "escalated",
+    });
+  });
+
+  it.each([
+    [
+      "pt-BR",
+      "Escolha uma categoria ou digite o nome de um lugar para explorar o mapa.",
+    ],
+    ["en-US", "Choose a category or type a place name to explore the map."],
+    [
+      "es-ES",
+      "Elige una categoría o escribe el nombre de un lugar para explorar el mapa.",
+    ],
+    ["he-IL", "כדי לסייר במפה, אפשר לבחור קטגוריה או להקליד שם של מקום."],
+  ])(
+    "localizes the actual empty turn in %s without starting a request",
+    async (locale, expected) => {
+      const syncExploreContext = vi.fn();
+      const compiled = ts.transpileModule(
+        `${runtimeFunction("assistantRecoveryResponse")}\nreturn ${runtimeClosure("executeInputTurn")};`,
+        { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+      ).outputText;
+      const createTurn = compileFunction(compiled, [
+        "getAssistantMainMenu",
+        "presentationLanguage",
+        "syncExploreContext",
+      ]) as (
+        ...values: unknown[]
+      ) => (input: string) => Promise<AssistantDialogResponse>;
+      const turn = createTurn(
+        getAssistantMainMenu,
+        () => normalizeAssistantVoiceLanguage(locale),
+        syncExploreContext,
+      );
+      expect(await turn("   ")).toEqual({ text: expected });
+      expect(syncExploreContext).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [
+      "pt-BR",
+      "A entrada por voz não está disponível neste navegador. Digite sua mensagem.",
+      "Não foi possível usar a entrada por voz agora. Tente novamente ou digite sua mensagem.",
+    ],
+    [
+      "en-US",
+      "Voice input isn’t available in this browser. Type your message.",
+      "Voice input couldn’t be used just now. Try again or type your message.",
+    ],
+    [
+      "es-ES",
+      "La entrada por voz no está disponible en este navegador. Escribe tu mensaje.",
+      "No se pudo usar la entrada por voz ahora. Inténtalo de nuevo o escribe tu mensaje.",
+    ],
+    [
+      "he-IL",
+      "קלט קולי לא זמין בדפדפן הזה. אפשר להקליד את ההודעה.",
+      "לא ניתן היה להשתמש בקלט הקולי כרגע. אפשר לנסות שוב או להקליד את ההודעה.",
+    ],
+  ])(
+    "projects usable alternatives from real voice callbacks in %s",
+    (locale, unsupported, error) => {
+      const unavailable = failureFixture(locale);
+      unavailable.onVoiceClick();
+      expect(unavailable.events).toEqual(["error"]);
+      expect(unavailable.messages).toEqual([unsupported]);
+      expect(unavailable.input.value).toBe("ajuda");
+
+      const failed = failureFixture(locale);
+      failed.onVoiceError();
+      expect(failed.events).toEqual(["error"]);
+      expect(failed.messages).toEqual([error]);
+      expect(failed.input.value).toBe("ajuda");
+    },
+  );
+});
+
 function deferredTurn() {
   let resolve!: (response: AssistantDialogResponse) => void;
   let reject!: (error: Error) => void;
