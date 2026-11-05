@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/runtime-zlib-20261105",
-      "baseSha": "b3e74776b296c3c67db0540145dfbd871912e197",
+      "baseSha": "4dac39c394ba1dd12a82effcebd749d4dd92223d",
       "paths": [
         "Dockerfile",
         "tooling/quality/runtime-image-composition.mjs",
