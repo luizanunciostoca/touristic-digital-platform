@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { selectLatestWorkflowRuns } from "../control-state/status.mjs";
+import { executorControlState } from "../mdctl/invariants.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
 const EVIDENCE_STATUSES = new Set(
@@ -213,9 +215,9 @@ export function buildBootstrapReport({
     }
   }
 
-  const termuxHealthy = mdctl?.termux?.state === "HEALTHY";
-  checks["termux-fallback"] = termuxHealthy ? "PASS" : "BLOCKED";
-  if (!termuxHealthy) blockers.push("TERMUX_FALLBACK_NOT_HEALTHY");
+  checks["selected-executor-control"] = executorControlState(mdctl);
+  if (checks["selected-executor-control"] === "BLOCKED")
+    blockers.push("SELECTED_EXECUTOR_CONTROL_NOT_HEALTHY");
 
   const enterprise = enterpriseEvidence(external);
   if (profile === "cross-system") {
@@ -490,6 +492,9 @@ export function deriveLiveEngineeringProof({
   const workValid =
     Boolean(work) &&
     work.invalid == null &&
+    work.headSha === expectedCandidateSha &&
+    work.branch === expectedBranch &&
+    work.baseSha === observed.mainSha &&
     work.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD";
   checks["live-candidate-authority"] = workValid ? "PASS" : "NOT_PROVEN";
   if (!workValid) failures.push("LIVE_CANDIDATE_AUTHORITY_NOT_TRUSTED");
@@ -526,29 +531,30 @@ export function deriveLiveEngineeringProof({
   const activeRuns = Array.isArray(observed?.ci?.activeRuns)
     ? observed.ci.activeRuns
     : null;
-  const recentRuns = Array.isArray(observed?.ci?.recentRuns)
-    ? observed.ci.recentRuns
+  const candidateRuns = Array.isArray(observed?.ci?.candidateRuns)
+    ? observed.ci.candidateRuns
     : null;
-  const activeCandidateRuns =
-    activeRuns?.filter((run) => run?.headSha === expectedCandidateSha) ?? [];
-  const candidateRuns =
-    recentRuns?.filter((run) => run?.headSha === expectedCandidateSha) ?? [];
-  const completed = candidateRuns.filter((run) => run.status === "completed");
+  const ciSelection = selectLatestWorkflowRuns(
+    candidateRuns === null ? null : [...candidateRuns, ...(activeRuns ?? [])],
+    {
+      headSha: expectedCandidateSha,
+      branch: expectedBranch,
+      prNumber: pr?.number,
+      baseSha: observed?.mainSha,
+    },
+  );
+  const candidateCiCaptured =
+    Boolean(pr) && sourceAvailable(observed, "candidateCi:" + pr.number);
   const ciSettled =
-    activeRuns !== null &&
-    recentRuns !== null &&
-    activeCandidateRuns.length === 0 &&
-    candidateRuns.every((run) => run.status === "completed");
-  const ciSucceeded =
-    candidateRuns.length > 0 &&
-    completed.length === candidateRuns.length &&
-    completed.every(
-      (run) => run.conclusion === "success" && Number.isSafeInteger(run.id),
-    );
+    activeRuns !== null && candidateCiCaptured && ciSelection.settled;
+  const ciSucceeded = candidateCiCaptured && ciSelection.succeeded;
   checks["live-ci-settled"] = ciSettled ? "PASS" : "NOT_PROVEN";
   checks["live-ci-result"] = ciSucceeded ? "PASS" : "NOT_PROVEN";
   if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE_OR_UNKNOWN");
   if (!ciSucceeded) failures.push("CANDIDATE_CI_RESULT_NOT_PROVEN");
+  checks["live-selected-executor-control"] = executorControlState(liveStatus);
+  const executorProven = checks["live-selected-executor-control"] === "PASS";
+  if (!executorProven) failures.push("SELECTED_EXECUTOR_CONTROL_NOT_PROVEN");
 
   const controlsClear = blockersClear && schedulerClear && invariantsClear;
 
@@ -560,7 +566,11 @@ export function deriveLiveEngineeringProof({
     prNumber: pr?.number ?? null,
     changeSetState: work?.state ?? null,
     trustAuthority: work?.trustAuthority ?? null,
-    ciRunIds: completed.map((run) => run.id),
+    ciRunIds: ciSelection.selected.map((run) => run.id),
+    supersededCiRunIds: [
+      ...new Set(ciSelection.superseded.map((run) => run.id)),
+    ],
+    missingCiWorkflows: ciSelection.missing,
     ciHeadSha: expectedCandidateSha,
     checks,
     failures: [...new Set(failures)],
@@ -580,6 +590,7 @@ export function deriveLiveEngineeringProof({
       workValid &&
       remoteProven &&
       invariantsClear &&
+      executorProven &&
       ciSettled &&
       ciSucceeded,
   };

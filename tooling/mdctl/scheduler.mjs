@@ -160,6 +160,36 @@ export async function loadSchedulerPolicy(
   return validateSchedulerPolicy(raw);
 }
 
+export function evaluateWorkCapacity(
+  workItems,
+  policy = DEFAULT_SCHEDULER_POLICY,
+) {
+  assert.ok(Array.isArray(workItems), "SCHEDULER_WORK_ITEMS_INVALID");
+  for (const key of ["globalWriterLimit", "activePrLimit"])
+    assert.ok(
+      Number.isSafeInteger(policy[key]) && policy[key] > 0,
+      "SCHEDULER_CAPACITY_POLICY_INVALID:" + key,
+    );
+  const writers = workItems.filter((item) => item.writerActive === true).length;
+  const activePrs = workItems.filter(
+    (item) => item.openPr === true && item.draft !== true,
+  ).length;
+  const violations = [];
+  if (writers > policy.globalWriterLimit)
+    violations.push({
+      code: "GLOBAL_WIP_LIMIT_EXCEEDED",
+      observed: writers,
+      allowed: policy.globalWriterLimit,
+    });
+  if (activePrs > policy.activePrLimit)
+    violations.push({
+      code: "ACTIVE_PR_LIMIT_EXCEEDED",
+      observed: activePrs,
+      allowed: policy.activePrLimit,
+    });
+  return { writers, activePrs, violations };
+}
+
 function clean(value, limit = 200) {
   return typeof value === "string" ? value.trim().slice(0, limit) : "";
 }
@@ -283,25 +313,8 @@ export function buildSchedulerPlan({
       reason: item.invalid,
     }));
   const staleActive = active.filter((item) => item.replanRequired);
-  if (staleActive.length) {
-    violations.push({
-      code: "ACTIVE_WRITER_REPLAN_REQUIRED",
-      ids: staleActive.map((item) => item.changeSet.id),
-    });
-  }
-  if (active.length > policy.globalWriterLimit) {
-    violations.push({
-      code: "GLOBAL_WIP_LIMIT_EXCEEDED",
-      observed: active.length,
-      allowed: policy.globalWriterLimit,
-    });
-  }
-  if (
-    classified.filter((item) => item.openPr === true).length >
-    policy.activePrLimit
-  ) {
-    violations.push({ code: "ACTIVE_PR_LIMIT_EXCEEDED" });
-  }
+  const capacity = evaluateWorkCapacity(classified, policy);
+  violations.push(...capacity.violations);
   const activeChangeSets = active.map((item) => item.changeSet);
   const objectiveCounts = new Map();
   for (const changeSet of activeChangeSets) {
@@ -319,11 +332,15 @@ export function buildSchedulerPlan({
     }
   }
 
-  let slots = staleActive.length
-    ? 0
-    : Math.max(0, policy.globalWriterLimit - active.length);
+  let slots = Math.max(0, policy.globalWriterLimit - active.length);
   const granted = [];
-  const blocked = [];
+  // A stale writer retains its resource locks, but does not freeze independent
+  // dispatch. Exact-main composition remains mandatory at integration.
+  const blocked = staleActive.map((item) => ({
+    id: item.changeSet.id,
+    code: "ACTIVE_WRITER_REPLAN_REQUIRED",
+    reasons: item.replanReasons,
+  }));
   const pending = classified
     .filter(
       (item) =>
@@ -411,6 +428,7 @@ export function buildSchedulerPlan({
       replanBehindCommits: policy.replanBehindCommits,
     },
     activeWriters: active.map((item) => item.changeSet.id),
+    activePrs: capacity.activePrs,
     grants: granted.map(({ changeSet, ...grant }) => grant),
     blocked,
     violations,

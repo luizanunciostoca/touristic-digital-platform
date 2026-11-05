@@ -10,6 +10,7 @@ import {
   buildIntegrationQueue,
   buildSchedulerPlan,
   buildWorkerDispatchPlan,
+  evaluateWorkCapacity,
   findSemanticCollisions,
   loadSchedulerPolicy,
   normalizeObjective,
@@ -108,6 +109,7 @@ test("global WIP=3 blocks a fourth writer", () => {
     changeSet: changeSet(id, "objective-" + index),
     writerActive: true,
     openPr: true,
+    behindBy: 0,
   }));
   const next = {
     changeSet: changeSet("MD-D", "objective-next"),
@@ -130,6 +132,7 @@ test("same objective cannot receive a second writer", () => {
     changeSet: changeSet("MD-A", "brand-family-v2-adoption"),
     writerActive: true,
     openPr: true,
+    behindBy: 0,
   };
   const next = {
     changeSet: changeSet("MD-B", "brand-family-v2-adoption"),
@@ -165,6 +168,50 @@ test("drift over 20 commits forces replan", () => {
   assert.equal(plan.grants.length, 0);
   assert.equal(plan.blocked[0].code, "REPLAN_REQUIRED");
   assert.deepEqual(plan.blocked[0].reasons, ["SUPERSEDED_BY_MAIN_DRIFT"]);
+});
+test("drafts are PR records, not implicit writer grants or active integration fronts", () => {
+  const capacity = evaluateWorkCapacity(
+    Array.from({ length: 12 }, () => ({
+      openPr: true,
+      draft: true,
+      writerActive: false,
+    })),
+  );
+  assert.deepEqual(capacity, { writers: 0, activePrs: 0, violations: [] });
+  const active = evaluateWorkCapacity(
+    Array.from({ length: 9 }, () => ({ openPr: true })),
+  );
+  assert.equal(active.violations[0].code, "ACTIVE_PR_LIMIT_EXCEEDED");
+});
+test("a stale writer retains locks without freezing an independent dispatch", () => {
+  const stale = {
+    changeSet: changeSet("MD-STALE", "stale-task"),
+    writerActive: true,
+    openPr: true,
+    behindBy: 21,
+    statsKnown: true,
+  };
+  const next = {
+    changeSet: changeSet("MD-NEXT", "next-task"),
+    ready: true,
+    writerActive: false,
+    openPr: false,
+    dependenciesSatisfied: true,
+  };
+  const plan = buildSchedulerPlan({
+    mainSha: "a".repeat(40),
+    workItems: [stale, next],
+  });
+  assert.deepEqual(plan.activeWriters, ["MD-STALE"]);
+  assert.equal(plan.grants[0].id, "MD-NEXT");
+  assert.equal(plan.blocked[0].code, "ACTIVE_WRITER_REPLAN_REQUIRED");
+  assert.equal(plan.dispatchAllowed, true);
+  next.changeSet.owns.paths = [...stale.changeSet.owns.paths];
+  assert.equal(
+    buildSchedulerPlan({ mainSha: "a".repeat(40), workItems: [stale, next] })
+      .grants.length,
+    0,
+  );
 });
 test("scheduler grants compatible work by priority", () => {
   const low = {
@@ -386,7 +433,7 @@ test("integration queue requires exact current-main base", () => {
   );
 });
 
-test("stale active writer prevents new writer grants", () => {
+test("stale active writer still prevents dispatch into its resource scope", () => {
   const stale = {
     changeSet: changeSet("MD-STALE-W", "stale-w"),
     openPr: true,
@@ -401,15 +448,14 @@ test("stale active writer prevents new writer grants", () => {
     dependenciesSatisfied: true,
     priority: "P0",
   };
+  fresh.changeSet.owns.paths = [...stale.changeSet.owns.paths];
   const plan = buildSchedulerPlan({
     mainSha: "b".repeat(40),
     workItems: [stale, fresh],
   });
   assert.equal(plan.grants.length, 0);
   assert.ok(
-    plan.violations.some(
-      (item) => item.code === "ACTIVE_WRITER_REPLAN_REQUIRED",
-    ),
+    plan.blocked.some((item) => item.code === "ACTIVE_WRITER_REPLAN_REQUIRED"),
   );
   assert.equal(plan.dispatchAllowed, false);
 });

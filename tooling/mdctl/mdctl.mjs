@@ -41,6 +41,7 @@ function parseOptions(args, env = process.env) {
     stagingUrl: env.MORRO_STAGING_URL,
     productionUrl: env.MORRO_PRODUCTION_URL,
     localDirectory: process.cwd(),
+    executorTarget: "github",
   };
   let strict = false;
   let json = false;
@@ -52,9 +53,13 @@ function parseOptions(args, env = process.env) {
     else if (arg === "--json") json = true;
     else if (arg === "--summary") summary = true;
     else if (
-      ["--repo", "--staging-url", "--production-url", "--local-dir"].includes(
-        arg,
-      )
+      [
+        "--repo",
+        "--staging-url",
+        "--production-url",
+        "--local-dir",
+        "--executor",
+      ].includes(arg)
     ) {
       const value = rest[++i];
       if (!value || value.startsWith("--"))
@@ -63,6 +68,11 @@ function parseOptions(args, env = process.env) {
       if (arg === "--staging-url") config.stagingUrl = value;
       if (arg === "--production-url") config.productionUrl = value;
       if (arg === "--local-dir") config.localDirectory = value;
+      if (arg === "--executor") {
+        if (!["github", "termux"].includes(value))
+          throw new Error("EXECUTOR_TARGET_INVALID");
+        config.executorTarget = value;
+      }
     } else {
       throw new Error("ARGUMENT_INVALID:" + arg);
     }
@@ -97,6 +107,9 @@ export function attachLiveSchedulerState(observed, liveWork, policy) {
     liveSchedulerPlan,
     liveSchedulerWork: liveWork.items.map((item) => ({
       prNumber: item.prNumber ?? null,
+      headSha: item.headSha ?? null,
+      branch: item.branch ?? null,
+      baseSha: item.changeSet?.baseSha ?? null,
       changeSetId: item.changeSet?.id ?? null,
       objective: item.changeSet?.objective ?? null,
       state: item.changeSet?.state ?? null,
@@ -108,9 +121,15 @@ export function attachLiveSchedulerState(observed, liveWork, policy) {
 
 async function snapshot(config) {
   const policy = await loadSchedulerPolicy();
+  const executor = { target: config.executorTarget ?? "github" };
   const [observed, termux, liveWork] = await Promise.all([
     collectObservedState(config),
-    collectTermuxHeartbeat(),
+    executor.target === "termux"
+      ? collectTermuxHeartbeat()
+      : Promise.resolve({
+          state: "NOT_REQUIRED",
+          reason: "GITHUB_CONTROL_SELECTED",
+        }),
     collectLivePullWork({ repository: config.repository, policy }),
   ]);
   const observedWithLive = attachLiveSchedulerState(observed, liveWork, policy);
@@ -121,6 +140,7 @@ async function snapshot(config) {
   const invariants = evaluateInvariants({
     observed: observedWithLive,
     termux,
+    executor,
     ...control,
   });
   return {
@@ -129,6 +149,7 @@ async function snapshot(config) {
     controlPlaneVersion: "3.2",
     observed: observedWithLive,
     termux,
+    executor,
     controlProjection: {
       authority: control.projectionAuthority,
       sha: control.projectionSha,

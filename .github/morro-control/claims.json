@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/policy-governance-20261105",
-      "baseSha": "8a13f72028985ba4cc3643bd5bb564e5a2d2ee58",
+      "baseSha": "ae122344fc15e68d62ec84dab820f8cd89ffab38",
       "paths": [
         "tooling/tdp-max/tdp-max-v2.mjs",
         "tooling/tdp-max/tdp-max-v2.test.mjs",

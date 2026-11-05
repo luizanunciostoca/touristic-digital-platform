@@ -20,6 +20,231 @@ const text = (value, limit = 200) =>
     : null;
 const sha = (value) => (SHA.test(value ?? "") ? value : null);
 
+export const ENGINEERING_CI_WORKFLOWS = Object.freeze([
+  ".github/workflows/quality.yml",
+  ".github/workflows/morro-merge-gate.yml",
+]);
+const ENGINEERING_CI_JOBS = Object.freeze({
+  ".github/workflows/quality.yml": {
+    name: "quality",
+    step: "Require every selected suite and core gate to succeed",
+  },
+  ".github/workflows/morro-merge-gate.yml": {
+    name: "morro/merge-gate",
+    step: "Run trusted merge-gate policy",
+  },
+});
+
+export function requiredWorkflowJobVerified(run, jobs, checks, repository) {
+  const contract = ENGINEERING_CI_JOBS[run.path];
+  const name = contract?.name;
+  const matches = (jobs ?? []).filter((job) => job.name === name);
+  if (!name || matches.length !== 1) return false;
+  const job = matches[0];
+  if (
+    !Number.isSafeInteger(job.id) ||
+    job.id < 1 ||
+    job.run_id !== run.id ||
+    job.head_sha !== run.headSha ||
+    job.status !== "completed" ||
+    job.conclusion !== "success"
+  )
+    return false;
+  const assertions = (Array.isArray(job.steps) ? job.steps : []).filter(
+    (step) => step.name === contract.step,
+  );
+  if (
+    assertions.length !== 1 ||
+    assertions[0].status !== "completed" ||
+    assertions[0].conclusion !== "success"
+  )
+    return false;
+  return (checks ?? []).some(
+    (check) =>
+      Number.isSafeInteger(check.id) &&
+      check.id > 0 &&
+      check.name === name &&
+      check.head_sha === run.headSha &&
+      check.status === "completed" &&
+      check.conclusion === "success" &&
+      check.app?.id === 15368 &&
+      check.app?.slug === "github-actions" &&
+      job.html_url ===
+        `https://github.com/${repository}/actions/runs/${run.id}/job/${job.id}` &&
+      check.details_url === job.html_url &&
+      job.check_run_url ===
+        `https://api.github.com/repos/${repository}/check-runs/${check.id}`,
+  );
+}
+
+function workflowRunOrder(a, b) {
+  return (
+    Date.parse(b.createdAt) - Date.parse(a.createdAt) ||
+    b.id - a.id ||
+    b.runAttempt - a.runAttempt ||
+    Date.parse(b.updatedAt) - Date.parse(a.updatedAt) ||
+    Number(a.status === "completed") - Number(b.status === "completed")
+  );
+}
+
+export function summarizeWorkflowRun(run) {
+  return {
+    id: run.id,
+    workflowId: run.workflow_id,
+    path: text(run.path),
+    headSha: sha(run.head_sha),
+    branch: text(run.head_branch),
+    status: text(run.status),
+    conclusion: text(run.conclusion),
+    event: text(run.event),
+    runAttempt: run.run_attempt,
+    createdAt: text(run.created_at),
+    updatedAt: text(run.updated_at),
+    pullRequests: Array.isArray(run.pull_requests)
+      ? run.pull_requests.map((pr) => ({
+          number: pr.number,
+          headSha: sha(pr.head?.sha),
+          baseSha: sha(pr.base?.sha),
+        }))
+      : null,
+  };
+}
+
+// Select the current run for each required workflow/context, never any old green.
+// A rerun supersedes an earlier attempt of the same run; it cannot supersede a
+// later workflow invocation (for example, a new PR review-state transition).
+export function selectLatestWorkflowRuns(
+  runs,
+  {
+    headSha,
+    branch,
+    baseSha,
+    prNumber,
+    requiredWorkflows = ENGINEERING_CI_WORKFLOWS,
+    requireJobProof = true,
+  },
+) {
+  const invalid = [];
+  const selected = [];
+  const superseded = [];
+  const missing = [];
+  const unbound = [];
+  const supplied = Array.isArray(runs);
+  const matching = (supplied ? runs : []).filter((run) => {
+    if (run?.headSha !== headSha) return false;
+    if (!run.event || !run.branch || !run.path) {
+      invalid.push(run.id ?? null);
+      return false;
+    }
+    if (
+      run.event !== "pull_request" ||
+      run.branch !== branch ||
+      !requiredWorkflows.includes(run.path)
+    )
+      return false;
+    if (
+      !Array.isArray(run.pullRequests) ||
+      run.pullRequests.length === 0 ||
+      run.pullRequests.some(
+        (pr) =>
+          !Number.isSafeInteger(pr?.number) ||
+          pr.number < 1 ||
+          (pr.number === prNumber &&
+            (!SHA.test(pr.headSha ?? "") ||
+              !SHA.test(pr.baseSha ?? "") ||
+              pr.headSha !== headSha)),
+      ) ||
+      run.pullRequests.filter((pr) => pr.number === prNumber).length > 1
+    ) {
+      unbound.push(run);
+      return false;
+    }
+    return run.pullRequests.some(
+      (pr) =>
+        pr.number === prNumber &&
+        pr.headSha === headSha &&
+        pr.baseSha === baseSha,
+    );
+  });
+  for (const path of requiredWorkflows) {
+    const candidates = matching.filter((run) => run.path === path);
+    if (candidates.length === 0) {
+      missing.push(path);
+      continue;
+    }
+    const valid = candidates.every(
+      (run) =>
+        Number.isSafeInteger(run.id) &&
+        run.id > 0 &&
+        Number.isSafeInteger(run.workflowId) &&
+        run.workflowId > 0 &&
+        Number.isSafeInteger(run.runAttempt) &&
+        run.runAttempt > 0 &&
+        Number.isFinite(Date.parse(run.createdAt)) &&
+        Number.isFinite(Date.parse(run.updatedAt)),
+    );
+    const contradictions = candidates.some((run, index) =>
+      candidates
+        .slice(index + 1)
+        .some(
+          (other) =>
+            run.id === other.id &&
+            (run.createdAt !== other.createdAt ||
+              (run.runAttempt === other.runAttempt &&
+                run.updatedAt === other.updatedAt &&
+                (run.status !== other.status ||
+                  run.conclusion !== other.conclusion))),
+        ),
+    );
+    if (
+      !valid ||
+      contradictions ||
+      new Set(candidates.map((run) => run.workflowId)).size !== 1
+    ) {
+      invalid.push(path);
+      continue;
+    }
+    candidates.sort(workflowRunOrder);
+    selected.push(candidates[0]);
+    superseded.push(...candidates.slice(1));
+  }
+  for (const run of unbound) {
+    const current = selected.find((item) => item.path === run.path);
+    const ordered =
+      current &&
+      current.workflowId === run.workflowId &&
+      Number.isSafeInteger(run.id) &&
+      run.id > 0 &&
+      Number.isSafeInteger(run.runAttempt) &&
+      run.runAttempt > 0 &&
+      Number.isFinite(Date.parse(run.createdAt)) &&
+      Number.isFinite(Date.parse(run.updatedAt));
+    if (ordered && workflowRunOrder(current, run) < 0) superseded.push(run);
+    else invalid.push(run.id ?? null);
+  }
+  const complete =
+    supplied &&
+    invalid.length === 0 &&
+    missing.length === 0 &&
+    selected.length === requiredWorkflows.length &&
+    selected.length > 0;
+  return {
+    selected,
+    superseded,
+    missing,
+    invalid,
+    settled: complete && selected.every((run) => run.status === "completed"),
+    succeeded:
+      complete &&
+      selected.every(
+        (run) =>
+          run.status === "completed" &&
+          run.conclusion === "success" &&
+          (!requireJobProof || run.requiredJobVerified === true),
+      ),
+  };
+}
+
 export function validateRepository(value) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(value ?? ""))
     throw new Error("REPOSITORY_INVALID");
@@ -290,6 +515,77 @@ export async function collectObservedState({
     repository: text(pr.head?.repo?.full_name),
     url: "https://github.com/" + repository + "/pull/" + pr.number,
   }));
+  const candidateRuns = [];
+  for (const pr of activePrs.filter((item) => item.repository === repository)) {
+    const entries = await capture("candidateCi:" + pr.number, async () => {
+      if (!pr.headSha || !Number.isSafeInteger(pr.number) || pr.number < 1)
+        throw new Error("CI_CANDIDATE_IDENTITY_INVALID");
+      const pages = await api(
+        root +
+          "/actions/runs?head_sha=" +
+          pr.headSha +
+          "&event=pull_request&per_page=100",
+        { paginate: true },
+      );
+      if (
+        !Array.isArray(pages) ||
+        pages.length === 0 ||
+        !pages.every((page) => Array.isArray(page.workflow_runs))
+      )
+        throw new Error("CI_CANDIDATE_PAGES_INVALID");
+      const entries = pages.flatMap((page) => page.workflow_runs);
+      if (
+        !Number.isSafeInteger(pages[0].total_count) ||
+        pages[0].total_count !== entries.length
+      )
+        throw new Error("CI_CANDIDATE_RUNS_INCOMPLETE");
+      const summarized = entries.map(summarizeWorkflowRun);
+      const selected = selectLatestWorkflowRuns(summarized, {
+        headSha: pr.headSha,
+        branch: pr.branch,
+        baseSha: mainSha,
+        prNumber: pr.number,
+        requireJobProof: false,
+      }).selected.filter(
+        (run) => run.status === "completed" && run.conclusion === "success",
+      );
+      if (selected.length) {
+        const checks = await list(
+          root + "/commits/" + pr.headSha + "/check-runs?per_page=100",
+          "check_runs",
+        );
+        for (const run of selected) {
+          const jobs = await list(
+            root +
+              "/actions/runs/" +
+              run.id +
+              "/attempts/" +
+              run.runAttempt +
+              "/jobs?per_page=100",
+            "jobs",
+          );
+          run.requiredJobVerified = requiredWorkflowJobVerified(
+            run,
+            jobs,
+            checks,
+            repository,
+          );
+          const current = await api(root + "/actions/runs/" + run.id);
+          if (
+            current.id !== run.id ||
+            current.run_attempt !== run.runAttempt ||
+            current.head_sha !== run.headSha ||
+            current.path !== run.path ||
+            current.status !== run.status ||
+            current.conclusion !== run.conclusion
+          )
+            throw new Error("CI_CANDIDATE_RUN_CHANGED_DURING_CAPTURE");
+        }
+      }
+      return summarized;
+    });
+    if (entries) candidateRuns.push(...entries);
+  }
   async function mergedClaim(id, claim) {
     const branch = claim?.branch;
     if (!mainSha || typeof branch !== "string" || !branch) return null;
@@ -507,21 +803,11 @@ export async function collectObservedState({
   );
   const mainStable = Boolean(mainSha && latestMain?.sha === mainSha);
   if (!mainStable) block("MAIN_CHANGED_OR_UNVERIFIABLE", "main");
-  const summarizeRun = (run) => ({
-    id: run.id,
-    workflowId: run.workflow_id,
-    headSha: sha(run.head_sha),
-    branch: text(run.head_branch),
-    status: text(run.status),
-    conclusion: text(run.conclusion),
-    event: text(run.event),
-    updatedAt: text(run.updated_at),
-  });
   const running = [
     ...new Map(
       (Array.isArray(activeRuns) ? activeRuns : []).map((run) => [
         run.id,
-        summarizeRun(run),
+        summarizeWorkflowRun(run),
       ]),
     ).values(),
   ];
@@ -616,7 +902,8 @@ export async function collectObservedState({
     deployments: { sampleLimit: 30, environments: deploymentSummary },
     ci: {
       recentSampleLimit: 30,
-      recentRuns: (runs?.workflow_runs ?? []).map(summarizeRun),
+      recentRuns: (runs?.workflow_runs ?? []).map(summarizeWorkflowRun),
+      candidateRuns,
       activeRuns: running,
     },
     runtimeHealth,
