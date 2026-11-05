@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-POLICY-GOVERNANCE-20261105",
+  "objective": "simplify-governance-evidence-executor-ordinary-and-capacity-preserving-sensitive-boundaries",
+  "baseSha": "8a13f72028985ba4cc3643bd5bb564e5a2d2ee58",
+  "branch": "infra/policy-governance-20261105",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "tooling/tdp-max/tdp-max-v2.mjs",
+      "tooling/tdp-max/tdp-max-v2.test.mjs",
+      "tooling/control-state/status.mjs",
+      "tooling/control-state/status-run-selection.test.mjs",
+      "tooling/ci/control-state-status.test.mjs",
+      "tooling/mdctl/invariants.mjs",
+      "tooling/mdctl/mdctl.mjs",
+      "tooling/tdp-max/cli.mjs",
+      ".morro/fabric.json",
+      ".github/morro-control/tdp-max/final-gate.json",
+      "tooling/control-state/mdctl-invariants.test.mjs",
+      "tooling/mdctl/native-pr-gate.mjs",
+      "tooling/mdctl/native-pr-gate.test.mjs",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/mdctl/scheduler.mjs",
+      "tooling/mdctl/ordinary-pr-live.mjs",
+      "tooling/mdctl/ordinary-pr-live.test.mjs",
+      ".morro/scheduler-policy.json",
+      "tooling/control-state/mdctl-scheduler.test.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs",
+      "tooling/control-state/mdctl-plan.test.mjs",
+      "tooling/tdp-max/validate-config.mjs",
+      "tooling/tdp-max/validate-config.test.mjs",
+      ".morro/changesets/MD-POLICY-GOVERNANCE-20261105.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "governance-risk-proportional-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/tdp-max/tdp-max-v2.test.mjs",
+          "tooling/control-state/mdctl-invariants.test.mjs",
+          "tooling/mdctl/native-pr-gate.test.mjs",
+          "tooling/control-state/mdctl-scheduler.test.mjs",
+          "tooling/control-state/mdctl-merge-gate.test.mjs",
+          "tooling/control-state/mdctl-plan.test.mjs",
+          "tooling/ci/control-state-status.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

@@ -1,5 +1,42 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-POLICY-GOVERNANCE-20261105": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/policy-governance-20261105",
+      "baseSha": "8a13f72028985ba4cc3643bd5bb564e5a2d2ee58",
+      "paths": [
+        "tooling/tdp-max/tdp-max-v2.mjs",
+        "tooling/tdp-max/tdp-max-v2.test.mjs",
+        "tooling/control-state/status.mjs",
+        "tooling/control-state/status-run-selection.test.mjs",
+        "tooling/ci/control-state-status.test.mjs",
+        "tooling/mdctl/invariants.mjs",
+        "tooling/mdctl/mdctl.mjs",
+        "tooling/tdp-max/cli.mjs",
+        ".morro/fabric.json",
+        ".github/morro-control/tdp-max/final-gate.json",
+        "tooling/control-state/mdctl-invariants.test.mjs",
+        "tooling/mdctl/native-pr-gate.mjs",
+        "tooling/mdctl/native-pr-gate.test.mjs",
+        "tooling/mdctl/merge-gate.mjs",
+        "tooling/mdctl/scheduler.mjs",
+        "tooling/mdctl/ordinary-pr-live.mjs",
+        "tooling/mdctl/ordinary-pr-live.test.mjs",
+        ".morro/scheduler-policy.json",
+        "tooling/control-state/mdctl-scheduler.test.mjs",
+        "tooling/control-state/mdctl-merge-gate.test.mjs",
+        "tooling/control-state/mdctl-plan.test.mjs",
+        "tooling/tdp-max/validate-config.mjs",
+        "tooling/tdp-max/validate-config.test.mjs",
+        ".morro/changesets/MD-POLICY-GOVERNANCE-20261105.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-05T23:45:00.000Z"
+    }
+  }
 }
