@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { validateReleaseContainerEntrypoint } from "../quality/release-container-entrypoint.mjs";
 import {
   readRuntimeImageContract,
   validateRuntimeImageContract,
@@ -11,15 +12,43 @@ test("the reviewed final runtime and release-digest gates are present", () => {
   assert.equal(validateRuntimeImageContract(current).status, "PASS");
 });
 
-test("restoring the vulnerable full Debian runtime fails closed", () => {
-  assert.throws(() =>
-    validateRuntimeImageContract({
-      ...current,
-      dockerfile: current.dockerfile.replace(
-        "gcr.io/distroless/nodejs22-debian13:nonroot",
-        "node:22.23.2-trixie-slim",
-      ),
-    }),
+for (const [image, user, command] of [
+  [
+    "node:22.23.2-trixie-slim",
+    "node",
+    ["node", "apps/morro-digital-platform/tooling/dev-server.mjs"],
+  ],
+  [
+    "gcr.io/distroless/nodejs22-debian13:nonroot",
+    "65532:65532",
+    ["apps/morro-digital-platform/tooling/dev-server.mjs"],
+  ],
+]) {
+  test(`historical ${image} entrypoint compatibility does not authorize the current release image`, () => {
+    const dockerfile = `FROM node:22.23.2-trixie-slim AS build
+FROM ${image} AS production
+ENV NODE_ENV=production MORRO_RELEASE_SHA=$MORRO_RELEASE_SHA
+COPY --from=build --chown=${user} /app /app
+USER ${user}
+CMD ${JSON.stringify(command)}
+`;
+    assert.equal(validateReleaseContainerEntrypoint(dockerfile).runtime, image);
+    assert.throws(
+      () => validateRuntimeImageContract({ ...current, dockerfile }),
+      /RELEASE_COMPOSED_RUNTIME_REQUIRED/u,
+    );
+  });
+}
+
+test("a final image without actual exec-form composition verification fails closed", () => {
+  const dockerfile = current.dockerfile.replace(
+    'RUN ["/nodejs/bin/node", "/app/tooling/quality/runtime-image-composition.mjs", "verify"]',
+    "# verification removed",
+  );
+  assert.notEqual(dockerfile, current.dockerfile);
+  assert.throws(
+    () => validateRuntimeImageContract({ ...current, dockerfile }),
+    /RELEASE_COMPOSITION_FINAL_CONTRACT_INVALID/u,
   );
 });
 
