@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RUNTIME-ZLIB-SECURITY-20261105",
   "objective": "eliminate-vulnerable-system-zlib-preserving-node22-runtime-and-immutable-staging-release",
-  "baseSha": "4dac39c394ba1dd12a82effcebd749d4dd92223d",
-  "branch": "fix/runtime-zlib-20261105",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "7fd03dbb57befad0d49bbe33bb29ad6a53a4e990",
+  "branch": "chore/retire-merged-zlib-20261105-4e0e7b8a506c",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
