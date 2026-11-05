@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+// Keep destination serialization regressions in the required release gate.
+import "./check-workflow-concurrency.test.mjs";
 import { execFileSync } from "node:child_process";
 import {
   readFile,

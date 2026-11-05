@@ -26,8 +26,9 @@ env:
   PRODUCTION_URL: https://morro-digital-v2.onrender.com
 
 concurrency:
-  group: production-render-rollback
+  group: render-production-srv-daqgk83ncjis739tghig
   cancel-in-progress: false
+  queue: max
 
 jobs:
   rollback:

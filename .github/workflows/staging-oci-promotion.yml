@@ -32,8 +32,9 @@ permissions:
   deployments: write
 
 concurrency:
-  group: staging-oci-promotion
+  group: render-staging-srv-da4hb6c9v7es7386ttt0
   cancel-in-progress: false
+  queue: max
 
 env:
   NODE_VERSION: "22"

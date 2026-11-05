@@ -161,7 +161,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/policy-release-20261105",
-      "baseSha": "dae7cbb71dd088851623aab16d23b09090c375a2",
+      "baseSha": "ae122344fc15e68d62ec84dab820f8cd89ffab38",
       "paths": [
         ".github/workflows/staging-render-promotion.yml",
         ".github/workflows/production-render-promotion.yml",
