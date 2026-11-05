@@ -25,6 +25,13 @@ const nonInterruptible = new Set([
   "release-oci-image.yml",
 ]);
 
+function referencesSecret(source, name) {
+  return new RegExp(
+    String.raw`\bsecrets\s*(?:\.\s*${name}\b|\[\s*(['"])${name}\1\s*\])`,
+    "iu",
+  ).test(source);
+}
+
 function mutationTargets(file, source) {
   const targets = new Set();
   if (registeredRenderWriters.has(file)) {
@@ -32,12 +39,17 @@ function mutationTargets(file, source) {
   }
   // Renamed/new writers using the same target credentials also need the lock.
   // This classification does not substitute for provider target readback.
-  if (/secrets\.RENDER_STAGING_(?:IMAGE_)?DEPLOY_HOOK_URL\b/u.test(source)) {
+  if (
+    [
+      "RENDER_STAGING_DEPLOY_HOOK_URL",
+      "RENDER_STAGING_IMAGE_DEPLOY_HOOK_URL",
+    ].some((name) => referencesSecret(source, name))
+  ) {
     targets.add("staging");
   }
   if (
-    /secrets\.RENDER_PRODUCTION_(?:DEPLOY_HOOK_URL|SERVICE_ID)\b/u.test(
-      source,
+    ["RENDER_PRODUCTION_DEPLOY_HOOK_URL", "RENDER_PRODUCTION_SERVICE_ID"].some(
+      (name) => referencesSecret(source, name),
     ) ||
     /node\s+tooling\/render\/production-canonical-db-cutover\.mjs\s+(?:cutover|rollback)\b/u.test(
       source,

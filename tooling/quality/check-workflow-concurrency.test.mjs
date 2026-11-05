@@ -159,3 +159,70 @@ test("CI cancellation stays permitted and a nested job lock cannot substitute fo
     ),
   );
 });
+
+const destinationSecrets = [
+  ["staging", "RENDER_STAGING_DEPLOY_HOOK_URL"],
+  ["staging", "RENDER_STAGING_IMAGE_DEPLOY_HOOK_URL"],
+  ["production", "RENDER_PRODUCTION_DEPLOY_HOOK_URL"],
+  ["production", "RENDER_PRODUCTION_SERVICE_ID"],
+];
+const secretAccesses = [
+  ["dot", (key) => `secrets.${key}`],
+  ["spaced dot", (key) => `secrets . ${key}`],
+  ["single-quoted index", (key) => `secrets['${key}']`],
+  ["double-quoted index", (key) => `secrets["${key}"]`],
+  ["spaced single-quoted index", (key) => `secrets [ '${key}' ]`],
+  ["spaced double-quoted index", (key) => `secrets [ "${key}" ]`],
+  ["lowercase dot", (key) => `secrets.${key.toLowerCase()}`],
+  ["mixed-case dot", (key) => `secrets.ReNdEr_${key.slice(7).toLowerCase()}`],
+  ["lowercase index", (key) => `secrets['${key.toLowerCase()}']`],
+  [
+    "mixed-case index",
+    (key) => `secrets [ "ReNdEr_${key.slice(7).toLowerCase()}" ]`,
+  ],
+];
+function writerWithSecret(target, access, overrides = {}) {
+  return writer(target, overrides).replace(/secrets\.[A-Z_]+/u, access);
+}
+
+for (const [target, secret] of destinationSecrets) {
+  for (const [style, access] of secretAccesses) {
+    test(`unregistered ${target} writer is locked through ${secret}: ${style}`, () => {
+      const check = (source) =>
+        checkWorkflowConcurrency(new Map([["future-writer.yml", source]]));
+      const valid = writerWithSecret(target, access(secret));
+      assert.deepEqual(check(valid), []);
+      assert.ok(
+        check(
+          writerWithSecret(target, access(secret), { group: "uncoordinated" }),
+        ).some((message) => message.includes("must share concurrency.group")),
+      );
+      assert.ok(
+        check(writerWithSecret(target, access(secret), { cancel: true })).some(
+          (message) => message.includes("cancel-in-progress: false"),
+        ),
+      );
+      assert.ok(
+        check(valid.replace(/^  queue:.*\n/mu, "")).some((message) =>
+          message.includes("concurrency.queue"),
+        ),
+      );
+    });
+  }
+}
+
+test("a general Render API credential does not identify a web service mutation target", () => {
+  for (const access of [
+    "secrets.RENDER_PRODUCTION_API_KEY",
+    "secrets['render_production_api_key']",
+  ]) {
+    const source = writerWithSecret("production", access, {
+      group: "production-mysql-source-mutation",
+      cancel: true,
+    }).replace(/^  queue:.*\n/mu, "");
+    assert.deepEqual(
+      checkWorkflowConcurrency(new Map([["mysql-proof.yml", source]])),
+      [],
+    );
+  }
+});
