@@ -26,8 +26,12 @@ function compositionStages(dockerfile) {
     "RELEASE_COMPOSITION_PARSER_DIRECTIVE_UNSUPPORTED",
   );
   const stages = [];
+  // Discard comment lines before joining continued instructions.
   const logical = dockerfile
     .replace(/\r\n/gu, "\n")
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n")
     .replace(/\\\n[ \t]*/gu, " ");
   for (const raw of logical.split("\n")) {
     const line = raw.trim();

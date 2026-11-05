@@ -118,6 +118,35 @@ test("runtime bytes cannot be changed after final verification", () => {
   }
 });
 
+test("a comment ending in a backslash cannot hide an extra runtime COPY", () => {
+  for (const newline of ["\n", "\r\n"]) {
+    for (const comment of ["# ignored \\", " \t# ignored \\"]) {
+      const changed = (
+        canonical +
+        `\n${comment}\nCOPY --from=runtime-source /bin/busybox /bin/busybox\n`
+      ).replaceAll("\n", newline);
+      assert.throws(
+        () => validateReleaseContainerEntrypoint(changed),
+        /RELEASE_COMPOSITION_FINAL_CONTRACT_INVALID/u,
+      );
+    }
+  }
+});
+
+test("comments inside a continued instruction preserve its arguments", () => {
+  const marker = "RUN apk add --no-cache \\\n";
+  for (const comment of ["# package list", "# package list \\"]) {
+    const changed = canonical.replace(marker, `${marker}    ${comment}\n`);
+    assert.notEqual(changed, canonical);
+    for (const newline of ["\n", "\r\n"]) {
+      assert.deepEqual(
+        validateReleaseContainerEntrypoint(changed.replaceAll("\n", newline)),
+        validateReleaseContainerEntrypoint(canonical),
+      );
+    }
+  }
+});
+
 test("readiness validator remains usable as one standalone copied module", async (t) => {
   const directory = mkdtempSync(join(tmpdir(), "release-validator-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
