@@ -1,5 +1,26 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-RUNTIME-ZLIB-SECURITY-20261105": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/runtime-zlib-20261105",
+      "baseSha": "b3e74776b296c3c67db0540145dfbd871912e197",
+      "paths": [
+        "Dockerfile",
+        "tooling/quality/runtime-image-composition.mjs",
+        "tooling/quality/runtime-image-composition.test.mjs",
+        "tooling/ci/runtime-image-contract.mjs",
+        "tooling/ci/runtime-image-contract.test.mjs",
+        "tooling/quality/release-container-entrypoint.mjs",
+        "tooling/quality/release-container-entrypoint.test.mjs",
+        ".morro/changesets/MD-RUNTIME-ZLIB-SECURITY-20261105.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-05T18:00:00.000Z"
+    }
+  }
 }
