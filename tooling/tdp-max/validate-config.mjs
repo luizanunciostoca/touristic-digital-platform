@@ -319,7 +319,7 @@ export async function validateTdpMaxConfig() {
     "candidate-invalidation",
     "review-reconciliation",
     "workspace-bootstrap",
-    "executor-fallback",
+    "selected-executor-control",
     "anti-recurrence-proof",
     "unresolved-review-threads-zero",
     "post-merge-reconciliation",

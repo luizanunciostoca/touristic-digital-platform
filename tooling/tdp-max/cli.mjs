@@ -21,6 +21,7 @@ const FLAGS = {
   "--manifest": "manifest",
   "--staging-url": "stagingUrl",
   "--production-url": "productionUrl",
+  "--executor": "executorTarget",
 };
 
 function readJson(path) {
@@ -39,6 +40,7 @@ function parseArgs(argv) {
     manifest: null,
     stagingUrl: process.env.MORRO_STAGING_URL ?? null,
     productionUrl: process.env.MORRO_PRODUCTION_URL ?? null,
+    executorTarget: "github",
   };
   for (let i = 1; i < argv.length; i += 2) {
     if (argv[i] === "--") {
@@ -80,6 +82,7 @@ function runMdctl(command, options) {
   ];
   if (command === "status") args.push("--json");
   if (["bootstrap", "status"].includes(command)) {
+    args.push("--executor", options.executorTarget);
     if (options.stagingUrl) args.push("--staging-url", options.stagingUrl);
     if (options.productionUrl)
       args.push("--production-url", options.productionUrl);

@@ -27,6 +27,20 @@ function result(id, title, status, reason, critical = true) {
   return { id, title, status, reason, critical };
 }
 
+// This proves the selected control transport, not permission to dispatch a
+// worker. Executor authorization and functional dispatch preflight stay separate.
+export function executorControlState({ executor, observed, termux } = {}) {
+  const target = executor?.target ?? "github";
+  if (target === "termux")
+    return termux?.state === "HEALTHY" ? "PASS" : "BLOCKED";
+  if (target !== "github") return "BLOCKED";
+  return ["main", "mainRecheck", "recentCi", "activeCi"].every(
+    (name) => observed?.sources?.[name]?.state === "AVAILABLE",
+  )
+    ? "PASS"
+    : "NOT_PROVEN";
+}
+
 function evidenceFields(prefix) {
   return {
     state: prefix + "State",
@@ -240,6 +254,7 @@ export async function loadInvariantContextAtMain({
 export function evaluateInvariants({
   observed,
   termux,
+  executor = { target: "github" },
   integrationQueue,
   releaseState,
   ownership,
@@ -273,11 +288,17 @@ export function evaluateInvariants({
   checks.push(
     result(
       "INV-001",
-      "exactly one canonical Termux heartbeat",
-      termux?.state === "HEALTHY" ? "PASS" : "FAIL",
-      termux?.state === "HEALTHY"
-        ? "one fresh protocol-v2 Native Agent heartbeat"
-        : "heartbeat singleton, freshness or identity is not proven",
+      "canonical Termux heartbeat when its transport is selected",
+      executor?.target === "github"
+        ? "NOT_APPLICABLE"
+        : executor?.target === "termux" && termux?.state === "HEALTHY"
+          ? "PASS"
+          : "FAIL",
+      executor?.target === "github"
+        ? "GitHub control observation does not use the tablet"
+        : executor?.target === "termux" && termux?.state === "HEALTHY"
+          ? "one fresh protocol-v2 Native Agent heartbeat"
+          : "selected transport or heartbeat identity is not proven",
     ),
   );
 
