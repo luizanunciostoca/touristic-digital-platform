@@ -25,8 +25,9 @@ permissions:
   deployments: write
 
 concurrency:
-  group: production-oci-promotion
+  group: render-production-srv-daqgk83ncjis739tghig
   cancel-in-progress: false
+  queue: max
 
 env:
   NODE_VERSION: "22"
