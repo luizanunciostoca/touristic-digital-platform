@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-POLICY-RELEASE-20261105",
   "objective": "serialize-release-by-service-retire-source-node-exception-and-provide-isolated-candidate-bound-merged-retirement",
-  "baseSha": "ae122344fc15e68d62ec84dab820f8cd89ffab38",
+  "baseSha": "e6d634ee3e847117f4d0d472081639034424a393",
   "branch": "infra/policy-release-20261105",
   "state": "LOCAL_PROVEN",
   "risk": "critical",
