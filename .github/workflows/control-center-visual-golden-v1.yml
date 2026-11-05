@@ -1,35 +1,14 @@
 name: Control Center Visual Golden V1
 
 on:
+  workflow_call:
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - ".github/actions/ci-bootstrap/action.yml"
-      - ".github/workflows/control-center-visual-golden-v1.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs"
-      - "apps/morro-digital-platform/tooling/dev-server.mjs"
-      - "tests/visual-regression/control-center-v1/**"
-      - "packages/auth/**"
-      - "packages/auth-browser/**"
-      - "services/auth/**"
-      - "services/destinations/**"
-  push:
-    branches: [main]
-    paths:
-      - ".github/actions/ci-bootstrap/action.yml"
-      - ".github/workflows/control-center-visual-golden-v1.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs"
-      - "tests/visual-regression/control-center-v1/**"
 
 permissions:
-  contents: write
-  actions: read
+  contents: read
 
 concurrency:
-  group: control-center-visual-golden-v1-${{ github.event.pull_request.number || github.ref }}
+  group: suite-control-center-visual-golden-v1-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -54,63 +33,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
-      - name: Bootstrap reviewed Wave 3 goldens once
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Require the scheduler source identity
         shell: bash
         run: |
           set -euo pipefail
-          BASE_DIR="tests/visual-regression/control-center-v1"
-          if test -f "$BASE_DIR/control-center-v1-1440x900.png"; then
-            echo "Reviewed golden baselines already pinned."
-            exit 0
-          fi
-          mkdir -p "$BASE_DIR" /tmp/wave3-golden
-          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/10681151958/zip" > /tmp/wave3-golden.zip
-          unzip -q /tmp/wave3-golden.zip -d /tmp/wave3-golden
-          cp /tmp/wave3-golden/control-center-responsive-accessibility-v1-1440.png "$BASE_DIR/control-center-v1-1440x900.png"
-          cp /tmp/wave3-golden/control-center-responsive-accessibility-v1-1280.png "$BASE_DIR/control-center-v1-1280x800.png"
-          cp /tmp/wave3-golden/control-center-responsive-accessibility-v1-1024.png "$BASE_DIR/control-center-v1-1024x768.png"
-          cp /tmp/wave3-golden/control-center-responsive-accessibility-v1-768.png "$BASE_DIR/control-center-v1-768x1024.png"
-          cp /tmp/wave3-golden/control-center-responsive-accessibility-v1-390.png "$BASE_DIR/control-center-v1-390x844.png"
-          printf '%s  %s\n' \
-            4ca9dc2995aa51cecb6f7cd699bbf77b0cafbb9aa2a02d5d9bc41883712bf659 "$BASE_DIR/control-center-v1-1440x900.png" \
-            aaa4a5ee6ae2c6933536fe97701a5af3ce0861feb8f5bc9aefe041e0d5be7630 "$BASE_DIR/control-center-v1-1280x800.png" \
-            577b5b970cff2809b76b2da1cf9ae7b410ff7c8527b8cabbafa9acc4e1263302 "$BASE_DIR/control-center-v1-1024x768.png" \
-            ec8f87995e0099bd54acbf8d85bd5106d93e1594695ce115ce35cccc5d7136c5 "$BASE_DIR/control-center-v1-768x1024.png" \
-            116fc0ea9ee9f2d75504929cd15594dc1205691f4c0ba5700e04ee191888e867 "$BASE_DIR/control-center-v1-390x844.png" \
-            | sha256sum --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$BASE_DIR"/*.png
-          git commit -m "test(control-center): pin reviewed Wave 3 visual goldens"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
-
-      - name: Normalize Wave 4 harness formatting once
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm exec prettier --write \
-            apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs \
-            tests/visual-regression/control-center-v1/manual-contract.json
-          if git diff --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs \
-            tests/visual-regression/control-center-v1/manual-contract.json
-          git commit -m "style(control-center): format visual golden harness"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Check Wave 4 formatting
         run: >-
@@ -225,5 +159,3 @@ jobs:
       - name: Stop runtime
         if: always()
         run: kill "$(cat /tmp/control-center-visual-golden-v1-server.pid)" 2>/dev/null || true
-
-# Exact-head user-trigger marker after canonical baseline/style pinning.

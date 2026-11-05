@@ -30,6 +30,22 @@
       ]
     },
     {
+      "workflow": "control-center-visual-golden-v1.yml",
+      "jobId": "suite-control-center-visual-golden-v1",
+      "paths": [
+        ".github/actions/ci-bootstrap/action.yml",
+        ".github/workflows/control-center-visual-golden-v1.yml",
+        "apps/control-center/**",
+        "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "tests/visual-regression/control-center-v1/**",
+        "packages/auth/**",
+        "packages/auth-browser/**",
+        "services/auth/**",
+        "services/destinations/**"
+      ]
+    },
+    {
       "workflow": "payments-operational-ledger-contract.yml",
       "jobId": "suite-payments-operational-ledger-contract",
       "paths": [

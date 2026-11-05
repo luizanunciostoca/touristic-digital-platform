@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-POLICY-CI-20261105",
   "objective": "consolidate-ci-orchestration-preserve-suite-coverage-remove-closed-merge-exceptions-and-visual-writes",
-  "baseSha": "5afeda2d0b2f3042ce92db7a4de8aab1b3875c92",
+  "baseSha": "e17d6b883c419f391bf65b8a74315de91f34aec8",
   "branch": "infra/policy-ci-20261105",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

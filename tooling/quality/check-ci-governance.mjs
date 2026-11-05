@@ -208,53 +208,70 @@ requireIncludes(
   ],
 );
 
-const releaseGate = workflowSources.get("release-promotion-gate.yml");
-if (!releaseGate) fail("release-promotion-gate.yml is missing");
-requireIncludes(releaseGate, ".github/workflows/release-promotion-gate.yml", [
-  "workflow_dispatch:",
-  "expected_sha:",
-  "name: release / smoke",
-  'node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"',
-  "pnpm platform:contracts:check",
-  "pnpm build",
-  "runtime-config.js",
-]);
-if (/^\s{2}(pull_request|push):/m.test(releaseGate)) {
-  fail("release promotion gate must remain explicit workflow_dispatch only");
-}
-
-const productionPromotion = workflowSources.get(
+const legacySourceWorkflows = [
+  "staging-render-promotion.yml",
   "production-render-promotion.yml",
-);
-if (!productionPromotion) {
-  fail("production-render-promotion.yml is missing");
+  "release-promotion-gate.yml",
+];
+const legacySourceCount = legacySourceWorkflows.filter((name) =>
+  workflowSources.has(name),
+).length;
+if (
+  legacySourceCount !== 0 &&
+  legacySourceCount !== legacySourceWorkflows.length
+) {
+  fail("legacy source release workflows must be retired as one complete group");
 }
-requireIncludes(
-  productionPromotion,
-  ".github/workflows/production-render-promotion.yml",
-  [
+// Preserve all existing guards until the bounded retirement removes this group.
+if (legacySourceCount === legacySourceWorkflows.length) {
+  const releaseGate = workflowSources.get("release-promotion-gate.yml");
+  if (!releaseGate) fail("release-promotion-gate.yml is missing");
+  requireIncludes(releaseGate, ".github/workflows/release-promotion-gate.yml", [
     "workflow_dispatch:",
     "expected_sha:",
-    "confirm_production:",
-    "name: production / preflight",
+    "name: release / smoke",
     'node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"',
     "pnpm platform:contracts:check",
-    "pnpm migration:dry-run",
-    "pnpm release:readiness:check",
-    "pnpm secret-patterns:check",
-    "pnpm ci:governance:check",
-    "pnpm ci:supply-chain:strict",
-    "name: production",
-    "RENDER_PRODUCTION_DEPLOY_HOOK_URL",
-    "ref=${EXPECTED_SHA}",
-    "pnpm --silent payments:render:smoke",
-    "production-deployment-evidence.txt",
-  ],
-);
-if (/^\s{2}(pull_request|push):/m.test(productionPromotion)) {
-  fail(
-    "production Render promotion must remain explicit workflow_dispatch only",
+    "pnpm build",
+    "runtime-config.js",
+  ]);
+  if (/^\s{2}(pull_request|push):/m.test(releaseGate)) {
+    fail("release promotion gate must remain explicit workflow_dispatch only");
+  }
+
+  const productionPromotion = workflowSources.get(
+    "production-render-promotion.yml",
   );
+  if (!productionPromotion) {
+    fail("production-render-promotion.yml is missing");
+  }
+  requireIncludes(
+    productionPromotion,
+    ".github/workflows/production-render-promotion.yml",
+    [
+      "workflow_dispatch:",
+      "expected_sha:",
+      "confirm_production:",
+      "name: production / preflight",
+      'node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"',
+      "pnpm platform:contracts:check",
+      "pnpm migration:dry-run",
+      "pnpm release:readiness:check",
+      "pnpm secret-patterns:check",
+      "pnpm ci:governance:check",
+      "pnpm ci:supply-chain:strict",
+      "name: production",
+      "RENDER_PRODUCTION_DEPLOY_HOOK_URL",
+      "ref=${EXPECTED_SHA}",
+      "pnpm --silent payments:render:smoke",
+      "production-deployment-evidence.txt",
+    ],
+  );
+  if (/^\s{2}(pull_request|push):/m.test(productionPromotion)) {
+    fail(
+      "production Render promotion must remain explicit workflow_dispatch only",
+    );
+  }
 }
 
 const pagesAfterFinalAcceptance = workflowSources.get(
@@ -328,49 +345,74 @@ requireIncludes(
     "name: production",
     "RENDER_PRODUCTION_API_KEY",
     "RENDER_PRODUCTION_SERVICE_ID",
-    "autoDeploy == false",
     "/rollback",
     "pnpm --silent release:identity:smoke",
   ],
 );
+if (
+  productionRollback.includes(
+    "node tooling/render/render-service-contract.mjs /tmp/render-service.json",
+  )
+) {
+  requireIncludes(
+    productionRollback,
+    ".github/workflows/production-render-rollback.yml",
+    [
+      "EXPECTED_RENDER_SERVICE_ID: srv-daqgk83ncjis739tghig",
+      "EXPECTED_RENDER_SERVICE_NAME: morro-digital-v2",
+      "EXPECTED_RENDER_REGION: virginia",
+      "RENDER_WORKSPACE_ID: tea-d9p09oks728c7381s990",
+    ],
+  );
+} else {
+  requireIncludes(
+    productionRollback,
+    ".github/workflows/production-render-rollback.yml",
+    ["autoDeploy == false"],
+  );
+}
 if (/^\s{2}(pull_request|push):/m.test(productionRollback)) {
   fail(
     "production Render rollback must remain explicit workflow_dispatch only",
   );
 }
 
-const stagingPromotion = workflowSources.get("staging-render-promotion.yml");
-if (!stagingPromotion) {
-  fail("staging-render-promotion.yml is missing");
-}
-requireIncludes(
-  stagingPromotion,
-  ".github/workflows/staging-render-promotion.yml",
-  [
-    "workflow_dispatch:",
-    "expected_sha:",
-    "confirm_staging:",
-    "name: staging / preflight",
-    'node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"',
-    "pnpm platform:contracts:check",
-    "pnpm migration:dry-run",
-    "pnpm release:readiness:check",
-    "pnpm secret-patterns:check",
-    "pnpm ci:governance:check",
-    "pnpm ci:supply-chain:strict",
-    "name: main - morro-digital-v2-staging",
-    "RENDER_STAGING_DEPLOY_HOOK_URL",
-    "EXPECTED_STAGING_SERVICE_ID: srv-da4hb6c9v7es7386ttt0",
-    "EXPECTED_STAGING_SERVICE_NAME: morro-digital-v2-staging",
-    "ref=${EXPECTED_SHA}",
-    'url.hostname !== "api.render.com"',
-    "url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)",
-    "pnpm --silent payments:render:smoke",
-    "staging-deployment-evidence.json",
-  ],
-);
-if (/^\s{2}(pull_request|push):/m.test(stagingPromotion)) {
-  fail("staging Render promotion must remain explicit workflow_dispatch only");
+if (legacySourceCount === legacySourceWorkflows.length) {
+  const stagingPromotion = workflowSources.get("staging-render-promotion.yml");
+  if (!stagingPromotion) {
+    fail("staging-render-promotion.yml is missing");
+  }
+  requireIncludes(
+    stagingPromotion,
+    ".github/workflows/staging-render-promotion.yml",
+    [
+      "workflow_dispatch:",
+      "expected_sha:",
+      "confirm_staging:",
+      "name: staging / preflight",
+      'node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"',
+      "pnpm platform:contracts:check",
+      "pnpm migration:dry-run",
+      "pnpm release:readiness:check",
+      "pnpm secret-patterns:check",
+      "pnpm ci:governance:check",
+      "pnpm ci:supply-chain:strict",
+      "name: main - morro-digital-v2-staging",
+      "RENDER_STAGING_DEPLOY_HOOK_URL",
+      "EXPECTED_STAGING_SERVICE_ID: srv-da4hb6c9v7es7386ttt0",
+      "EXPECTED_STAGING_SERVICE_NAME: morro-digital-v2-staging",
+      "ref=${EXPECTED_SHA}",
+      'url.hostname !== "api.render.com"',
+      "url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)",
+      "pnpm --silent payments:render:smoke",
+      "staging-deployment-evidence.json",
+    ],
+  );
+  if (/^\s{2}(pull_request|push):/m.test(stagingPromotion)) {
+    fail(
+      "staging Render promotion must remain explicit workflow_dispatch only",
+    );
+  }
 }
 
 // Required Quality validates merge groups. Full fan-out belongs exclusively to
