@@ -38,6 +38,20 @@ test("healthy baseline has no critical failures", () => {
   assert.deepEqual(report.criticalFailures, []);
 });
 
+test("Termux heartbeat is required only for the selected Termux transport", () => {
+  const evaluate = (target, state) =>
+    evaluateInvariants(
+      context({
+        executor: { target },
+        termux: { state },
+      }),
+    ).checks.find((check) => check.id === "INV-001").status;
+  assert.equal(evaluate("github", "UNAVAILABLE"), "NOT_APPLICABLE");
+  assert.equal(evaluate("termux", "UNAVAILABLE"), "FAIL");
+  assert.equal(evaluate("termux", "HEALTHY"), "PASS");
+  assert.equal(evaluate("unknown", "HEALTHY"), "FAIL");
+});
+
 test("expired unmerged active claim fails closed", () => {
   const report = evaluateInvariants(
     context({
