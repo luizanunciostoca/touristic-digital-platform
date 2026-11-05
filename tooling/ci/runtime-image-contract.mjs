@@ -2,21 +2,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { validateReleaseContainerEntrypoint } from "../quality/release-container-entrypoint.mjs";
 
 export function validateRuntimeImageContract({ dockerfile, scanner, release }) {
-  assert.match(
-    dockerfile,
-    /FROM gcr[.]io\/distroless\/nodejs22-debian13:nonroot AS production/u,
-  );
-  assert.doesNotMatch(dockerfile, /FROM node:[^\n]+ AS production/u);
-  assert.match(
-    dockerfile,
-    /COPY --from=build --chown=65532:65532 \/app \/app/u,
-  );
-  assert.match(dockerfile, /USER 65532:65532/u);
-  assert.match(
-    dockerfile,
-    /CMD \["apps\/morro-digital-platform\/tooling\/dev-server[.]mjs"\]/u,
+  const runtime = validateReleaseContainerEntrypoint(dockerfile);
+  assert.equal(runtime.runtime, "scratch", "RELEASE_COMPOSED_RUNTIME_REQUIRED");
+  assert.equal(
+    runtime.composition,
+    "alpine-3.22-pinned-node22",
+    "RELEASE_COMPOSITION_CONTRACT_REQUIRED",
   );
   assert.doesNotMatch(scanner, /^  pull_request:/mu);
   assert.match(scanner, /^  workflow_dispatch:\s*\n    inputs:/mu);
