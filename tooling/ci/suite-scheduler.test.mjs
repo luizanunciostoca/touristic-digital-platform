@@ -56,6 +56,7 @@ function completeReport(overrides = {}) {
 }
 const expectedManagedSuites = [
   "control-center-browser-contract.yml",
+  "control-center-visual-golden-v1.yml",
   "payments-operational-ledger-contract.yml",
   "payments-persistence-integration.yml",
   "payments-sandbox-provider-contract.yml",
@@ -64,6 +65,82 @@ const expectedManagedSuites = [
 ];
 test("managed suite registry is exact for this rollout", () => {
   assert.deepEqual([...all].sort(), expectedManagedSuites);
+});
+test("visual migration retains trigger union and selects classified legacy paths", () => {
+  const workflow = "control-center-visual-golden-v1.yml";
+  const paths = [
+    ".github/actions/ci-bootstrap/action.yml",
+    ".github/workflows/control-center-visual-golden-v1.yml",
+    "apps/control-center/**",
+    "apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs",
+    "apps/morro-digital-platform/tooling/dev-server.mjs",
+    "tests/visual-regression/control-center-v1/**",
+    "packages/auth/**",
+    "packages/auth-browser/**",
+    "services/auth/**",
+    "services/destinations/**",
+  ];
+  assert.deepEqual(
+    suiteManifest.suites.find((suite) => suite.workflow === workflow).paths,
+    paths,
+  );
+  for (const path of paths) {
+    const file =
+      path === "services/destinations/**"
+        ? "services/destinations/src/mysql-destination-repository.ts"
+        : path.replace("**", "src/index.ts");
+    const report = analyzeFiles([file]);
+    assert.equal(report.classificationBlocked, false, file);
+    assert.ok(selectSuites(report).includes(workflow), file);
+  }
+});
+test("visual migration cannot conceal existing unclassified runtime paths", () => {
+  for (const file of [
+    "services/destinations/src/index.ts",
+    "services/destinations/src/schema.ts",
+    "packages/auth-browser/src/unclassified.ts",
+  ]) {
+    const report = analyzeFiles([file]);
+    assert.equal(report.classificationBlocked, true, file);
+    assert.deepEqual(report.unknownFiles, [file]);
+    assert.deepEqual(selectSuites(report), []);
+  }
+});
+test("visual baselines require actual golden success without admitting neighboring suites", () => {
+  const workflow = "control-center-visual-golden-v1.yml";
+  for (const file of [
+    ...["1440x900", "1280x800", "1024x768", "768x1024", "390x844"].map(
+      (size) =>
+        `tests/visual-regression/control-center-v1/control-center-v1-${size}.png`,
+    ),
+    "tests/visual-regression/control-center-v1/manual-contract.json",
+  ]) {
+    const report = analyzeFiles([file]);
+    assert.equal(report.classificationBlocked, false, file);
+    assert.equal(report.needsVisual, true, file);
+    const selected = selectSuites(report);
+    assert.ok(selected.includes(workflow), file);
+    assert.equal(
+      verifySuiteResults(selected, results(selected)).result,
+      "PASS",
+    );
+    for (const result of ["failure", "cancelled", "skipped", undefined]) {
+      const needs = results(selected);
+      needs["suite-control-center-visual-golden-v1"] = { result };
+      assert.throws(
+        () => verifySuiteResults(selected, needs),
+        /control-center-visual-golden-v1.yml: expected success/,
+      );
+    }
+    for (const neighbor of [
+      "tests/visual-regression/control-center-v10/baseline.png",
+      "tests/visual-regression/unclassified/baseline.png",
+    ]) {
+      const mixed = analyzeFiles([file, neighbor]);
+      assert.equal(mixed.classificationBlocked, true, neighbor);
+      assert.deepEqual(selectSuites(mixed), []);
+    }
+  }
 });
 test("classification blocks avoid fan-out while critical changes select all managed suites", () => {
   for (const files of [["unexpected/new-runtime.ts"], []])
@@ -267,6 +344,7 @@ test("known critical changes stay deep while unclassified changes block", () => 
   assert.equal(auth.qualityProfile, "BUGFIX_FAST");
   assert.deepEqual(selectSuites(auth), [
     "control-center-browser-contract.yml",
+    "control-center-visual-golden-v1.yml",
     "payments-operational-ledger-contract.yml",
   ]);
 
@@ -392,6 +470,7 @@ test("scheduler reclassifies tampered file lists before narrowing coverage", () 
   auth.files = ["packages/auth/src/authorization.ts"];
   assert.deepEqual(selectSuites(auth), [
     "control-center-browser-contract.yml",
+    "control-center-visual-golden-v1.yml",
     "payments-operational-ledger-contract.yml",
   ]);
 
@@ -689,4 +768,22 @@ test("business support navigation targets content rather than hidden search link
       "page.locator('a[href=\"#businesses:toca-do-morcego\"]')",
     ),
   );
+});
+
+test("protected retirement engines retain critical deep coverage during migration", () => {
+  for (const prefix of ["staging-node-", "merged-retirement-"])
+    for (const suffix of ["executor.mjs", "executor.test.mjs"]) {
+      const file = "tooling/ci/" + prefix + suffix;
+      const report = analyzeFiles([file]);
+      assert.equal(report.classificationBlocked, false, file);
+      assert.ok(report.domains.includes("cicd"), file);
+      assert.equal(report.risk, "CRITICAL", file);
+      assert.equal(report.qualityProfile, "DEEP_PROOF", file);
+      assert.equal(report.needsFullSecurity, true, file);
+      assert.equal(report.needsFullRegression, true, file);
+      assert.deepEqual(selectSuites(report), all, file);
+    }
+  const unrelated = analyzeFiles(["tooling/ci/merged-retirements-example.mjs"]);
+  assert.ok(!unrelated.domains.includes("cicd"));
+  assert.equal(unrelated.risk, "HIGH");
 });

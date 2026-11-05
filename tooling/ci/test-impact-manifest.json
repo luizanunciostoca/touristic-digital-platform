@@ -153,6 +153,7 @@
         "tooling/quality/",
         ".github/actions/",
         "tooling/ci/staging-node-",
+        "tooling/ci/merged-retirement-",
         "turbo.json",
         "tooling/ci/turbo-entry-css-cache.test.mjs"
       ],
@@ -327,7 +328,8 @@
       "paths": [
         "apps/control-center/",
         "apps/morro-digital-platform/src/ux/control-center-",
-        "apps/morro-digital-platform/tooling/control-center-"
+        "apps/morro-digital-platform/tooling/control-center-",
+        "tests/visual-regression/control-center-v1/"
       ],
       "excludePaths": [
         "**/package.json",
