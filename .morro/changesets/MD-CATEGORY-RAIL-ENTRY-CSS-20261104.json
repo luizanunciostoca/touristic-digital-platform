@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CATEGORY-RAIL-ENTRY-CSS-20261104",
   "objective": "repair-category-rail-hidden-state-and-entry-css-padding",
-  "baseSha": "965ec0ba3499a5e25da64fcbb46584c878ca797d",
-  "branch": "fix/category-rail-entry-css-20261104",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "f302807b7279006a16c68473f56b2fdba24043fd",
+  "branch": "chore/retire-merged-css-20261105-4a1c76ae8f0d",
+  "state": "MERGED",
   "risk": "high",
   "scope": "DESTINATION:MORRO",
   "owns": {
