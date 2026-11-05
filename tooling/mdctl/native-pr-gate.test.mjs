@@ -21,7 +21,12 @@ const fixture = () => ({
   files: ["apps/a/src/a.ts"],
   changedLines: 10,
   changedFileCount: 1,
-  policy: { hardFiles: 20, hardLines: 100 },
+  policy: {
+    hardFiles: 20,
+    hardLines: 100,
+    globalWriterLimit: 3,
+    activePrLimit: 8,
+  },
   unresolvedReviewThreads: 0,
 });
 test("single ordinary front keeps explicit reduced guarantee", () => {
@@ -30,19 +35,35 @@ test("single ordinary front keeps explicit reduced guarantee", () => {
   assert.equal(r.semanticDependenciesProven, false);
   assert.equal(r.semanticCollisionsProven, false);
 });
-test("two disjoint fronts allowed", () => {
+test("three disjoint fronts use configured capacity instead of a separate two-PR ceiling", () => {
   const f = fixture();
   f.fronts.push({ ...f.fronts[0], number: 2, paths: ["apps/a/src/b.ts"] });
-  assert.equal(evaluateNativeFronts(f).openPrs, 2);
+  f.fronts.push({ ...f.fronts[0], number: 3, paths: ["apps/a/src/c.ts"] });
+  assert.equal(evaluateNativeFronts(f).openPrs, 3);
+  assert.equal(evaluateNativeFronts(f).activePrs, 3);
+});
+test("independent drafts do not consume active PR capacity but their overlaps remain protected", () => {
+  const f = fixture();
+  f.policy.activePrLimit = 1;
+  f.fronts.push(
+    ...Array.from({ length: 10 }, (_, index) => ({
+      ...f.fronts[0],
+      number: index + 2,
+      draft: true,
+      paths: [`apps/a/src/draft-${index}.ts`],
+    })),
+  );
+  assert.equal(evaluateNativeFronts(f).activePrs, 1);
+  f.fronts[1].paths = [...f.fronts[0].paths];
+  assert.throws(() => evaluateNativeFronts(f), /PATH_OVERLAP/);
 });
 for (const [name, mutate] of [
   [
-    "third front",
-    (f) =>
-      f.fronts.push(
-        { ...f.fronts[0], number: 2 },
-        { ...f.fronts[0], number: 3 },
-      ),
+    "configured active front capacity",
+    (f) => {
+      f.policy.activePrLimit = 1;
+      f.fronts.push({ ...f.fronts[0], number: 2, paths: ["apps/a/src/b.ts"] });
+    },
   ],
   ["overlap", (f) => f.fronts.push({ ...f.fronts[0], number: 2 })],
   [

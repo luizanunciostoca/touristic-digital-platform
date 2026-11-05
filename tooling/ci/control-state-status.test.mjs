@@ -7,6 +7,7 @@ import {
   renderSummary,
   runtimeOrigin,
   summarizeRuntime,
+  selectLatestWorkflowRuns,
   validateRepository,
 } from "../control-state/status.mjs";
 
@@ -60,6 +61,7 @@ function harness(overrides = {}) {
   const values = fixtures();
   const calls = [];
   let mainReads = 0;
+  let candidateReads = 0;
   const api = async (path, options) => {
     calls.push({ path, options });
     if (overrides.fail?.(path)) throw new Error("TOKEN=must-never-leak");
@@ -108,6 +110,22 @@ function harness(overrides = {}) {
       return [
         { workflow_runs: [{ id: 42, status: "in_progress", head_sha: MAIN }] },
       ];
+    if (path.includes("/actions/runs?head_sha="))
+      return (
+        (++candidateReads > 1 ? overrides.candidateReadbackPages : null) ??
+        overrides.candidatePages ?? [{ total_count: 0, workflow_runs: [] }]
+      );
+    if (path.includes("/check-runs?"))
+      return [{ check_runs: overrides.checks ?? [] }];
+    if (/\/actions\/runs\/\d+\/attempts\/\d+\/jobs\?/u.test(path))
+      return [{ jobs: overrides.jobs ?? [] }];
+    if (/\/actions\/runs\/\d+$/u.test(path))
+      return (
+        overrides.runReadback ??
+        overrides.candidatePages
+          ?.flatMap((page) => page.workflow_runs)
+          .find((run) => String(run.id) === path.split("/").at(-1))
+      );
     if (path.includes("/actions/runs?"))
       return {
         total_count: 40000,
@@ -155,6 +173,11 @@ test("snapshot binds versioned reads to live main and paginates PRs", async () =
   assert.equal(state.ci.activeRuns.length, 1);
   assert.equal(state.ci.recentSampleLimit, 30);
   assert.equal(state.ci.recentRuns.length, 1);
+  assert.equal(state.sources["candidateCi:1"].state, "AVAILABLE");
+  assert.ok(
+    calls.find((call) => call.path.includes("/actions/runs?head_sha="))?.options
+      .paginate,
+  );
   assert.equal(state.deployments.environments.staging.sha, OLD);
   assert.equal(
     state.stagingSha,
@@ -180,6 +203,184 @@ test("snapshot binds versioned reads to live main and paginates PRs", async () =
   assert.ok(
     calls.find((call) => call.path.includes("/pulls?")).options.paginate,
   );
+});
+
+test("candidate CI is collected independently of the global recent sample and incomplete pagination fails closed", async () => {
+  const candidate = {
+    id: 101,
+    head_sha: OLD,
+    head_branch: "infra/task",
+    run_attempt: 2,
+  };
+  const { options } = harness({
+    candidatePages: [{ total_count: 1, workflow_runs: [candidate] }],
+  });
+  const state = await collectObservedState(options);
+  assert.equal(state.ci.candidateRuns[0].id, 101);
+  assert.equal(state.ci.candidateRuns[0].runAttempt, 2);
+  const incomplete = await collectObservedState(
+    harness({
+      candidatePages: [{ total_count: 2, workflow_runs: [candidate] }],
+    }).options,
+  );
+  assert.equal(incomplete.sources["candidateCi:1"].state, "UNAVAILABLE");
+  assert.equal(incomplete.collectionState, "PARTIAL");
+});
+
+test("candidate proof checks the executed job and rejects a rerun changing during capture", async () => {
+  const run = {
+    id: 101,
+    workflow_id: 10,
+    head_sha: OLD,
+    head_branch: "infra/task",
+    path: ".github/workflows/quality.yml",
+    run_attempt: 2,
+    event: "pull_request",
+    created_at: NOW,
+    updated_at: NOW,
+    status: "completed",
+    conclusion: "success",
+    pull_requests: [{ number: 1, head: { sha: OLD }, base: { sha: MAIN } }],
+  };
+  const job = {
+    id: 301,
+    run_id: 101,
+    name: "quality",
+    head_sha: OLD,
+    status: "completed",
+    conclusion: "success",
+    html_url: "https://github.com/fixture/morro/actions/runs/101/job/301",
+    check_run_url: "https://api.github.com/repos/fixture/morro/check-runs/401",
+    steps: [
+      {
+        name: "Require every selected suite and core gate to succeed",
+        status: "completed",
+        conclusion: "success",
+      },
+    ],
+  };
+  const check = {
+    id: 401,
+    name: "quality",
+    head_sha: OLD,
+    status: "completed",
+    conclusion: "success",
+    app: { id: 15368, slug: "github-actions" },
+    details_url: job.html_url,
+  };
+  const input = {
+    candidatePages: [{ total_count: 1, workflow_runs: [run] }],
+    jobs: [job],
+    checks: [check],
+  };
+  const state = await collectObservedState(harness(input).options);
+  assert.equal(state.ci.candidateRuns[0].requiredJobVerified, true);
+  const noJobs = await collectObservedState(
+    harness({ ...input, jobs: [] }).options,
+  );
+  assert.equal(noJobs.ci.candidateRuns[0].requiredJobVerified, false);
+  const moved = await collectObservedState(
+    harness({ ...input, runReadback: { ...run, run_attempt: 3 } }).options,
+  );
+  assert.equal(moved.sources["candidateCi:1"].state, "UNAVAILABLE");
+
+  const merge = {
+    ...run,
+    id: 102,
+    workflow_id: 11,
+    path: ".github/workflows/morro-merge-gate.yml",
+  };
+  const mergeJob = {
+    ...job,
+    id: 302,
+    run_id: merge.id,
+    name: "morro/merge-gate",
+    html_url: "https://github.com/fixture/morro/actions/runs/102/job/302",
+    check_run_url: "https://api.github.com/repos/fixture/morro/check-runs/402",
+    steps: [
+      {
+        name: "Run trusted merge-gate policy",
+        status: "completed",
+        conclusion: "success",
+      },
+    ],
+  };
+  const complete = {
+    candidatePages: [{ total_count: 2, workflow_runs: [run, merge] }],
+    jobs: [job, mergeJob],
+    checks: [
+      check,
+      {
+        ...check,
+        id: 402,
+        name: mergeJob.name,
+        details_url: mergeJob.html_url,
+      },
+    ],
+  };
+  const accepted = await collectObservedState(harness(complete).options);
+  assert.equal(
+    selectLatestWorkflowRuns(accepted.ci.candidateRuns, {
+      headSha: OLD,
+      branch: "infra/task",
+      baseSha: MAIN,
+      prNumber: 1,
+    }).succeeded,
+    true,
+  );
+  const newer = { ...run, id: 103, created_at: "2026-09-28T08:00:01Z" };
+  for (const changed of [
+    { ...newer, status: "in_progress", conclusion: null },
+    { ...newer, conclusion: "failure" },
+    { ...newer, pull_requests: [] },
+    {
+      ...newer,
+      pull_requests: [{ number: 1, head: { sha: null }, base: { sha: MAIN } }],
+    },
+    { ...run, run_attempt: 3 },
+  ]) {
+    const current = await collectObservedState(
+      harness({
+        ...complete,
+        candidateReadbackPages: [
+          { total_count: 3, workflow_runs: [run, merge, changed] },
+        ],
+      }).options,
+    );
+    assert.equal(current.sources["candidateCi:1"].state, "UNAVAILABLE");
+    assert.deepEqual(current.ci.candidateRuns, []);
+  }
+  const incompleteReadback = await collectObservedState(
+    harness({
+      ...complete,
+      candidateReadbackPages: [{ total_count: 3, workflow_runs: [run, merge] }],
+    }).options,
+  );
+  assert.equal(
+    incompleteReadback.sources["candidateCi:1"].state,
+    "UNAVAILABLE",
+  );
+  const unrelated = await collectObservedState(
+    harness({
+      ...complete,
+      candidateReadbackPages: [
+        {
+          total_count: 3,
+          workflow_runs: [
+            run,
+            merge,
+            {
+              ...newer,
+              pull_requests: [
+                { number: 99, head: { sha: OLD }, base: { sha: MAIN } },
+              ],
+            },
+          ],
+        },
+      ],
+    }).options,
+  );
+  assert.equal(unrelated.sources["candidateCi:1"].state, "AVAILABLE");
 });
 
 test("moved main invalidates snapshot without concealing captured identity", async () => {

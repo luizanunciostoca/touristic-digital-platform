@@ -33,6 +33,7 @@ import { canonicalJson, validateChangeSetV2 } from "./changeset-v2.mjs";
 import { parseAuthorityLedger } from "./event-ledger.mjs";
 import {
   DEFAULT_SCHEDULER_POLICY,
+  evaluateWorkCapacity,
   findSemanticCollisions,
   loadSchedulerPolicy,
   normalizeObjective,
@@ -517,17 +518,29 @@ export function evaluateClaimAcquisitionMergeGate({
     "MERGE_GATE_LIVE_WORK_ITEM_INVALID",
   );
 
+  const capacity = evaluateWorkCapacity(
+    [
+      ...others,
+      {
+        openPr: true,
+        draft:
+          liveItems?.find((item) => item.prNumber === currentPrNumber)
+            ?.draft === true,
+        writerActive: true,
+      },
+    ],
+    policy,
+  );
   const openPrs = others.filter((item) => item?.openPr === true).length + 1;
   assert.ok(
-    openPrs <= policy.activePrLimit,
+    capacity.activePrs <= policy.activePrLimit,
     "MERGE_GATE_ACTIVE_PR_LIMIT_EXCEEDED",
   );
   assert.ok(
     policy.writerStates.includes(manifest.state),
     "MERGE_GATE_ACQUISITION_WRITER_STATE_POLICY_INVALID",
   );
-  const activeWriters =
-    others.filter((item) => item?.writerActive === true).length + 1;
+  const activeWriters = capacity.writers;
   assert.ok(
     activeWriters <= policy.globalWriterLimit,
     "MERGE_GATE_GLOBAL_WIP_EXCEEDED",
@@ -563,6 +576,7 @@ export function evaluateClaimAcquisitionMergeGate({
     changedFiles: changedFileCount,
     changedLines,
     activeWriters,
+    activePrs: capacity.activePrs,
     openPrs,
     unresolvedReviewThreads,
     trustAuthority: trust.authority,
@@ -717,15 +731,23 @@ export function evaluateMergeGate({
     [],
     "MERGE_GATE_LIVE_WORK_ITEM_INVALID",
   );
+  const capacity = evaluateWorkCapacity(
+    [
+      ...others,
+      {
+        openPr: true,
+        draft: candidate.draft === true,
+        writerActive: policy.writerStates.includes(manifest.state),
+      },
+    ],
+    policy,
+  );
   const openPrs = others.filter((item) => item?.openPr === true).length + 1;
   assert.ok(
-    openPrs <= policy.activePrLimit,
+    capacity.activePrs <= policy.activePrLimit,
     "MERGE_GATE_ACTIVE_PR_LIMIT_EXCEEDED",
   );
-  const candidateWriter = policy.writerStates.includes(manifest.state) ? 1 : 0;
-  const activeWriters =
-    others.filter((item) => item?.writerActive === true).length +
-    candidateWriter;
+  const activeWriters = capacity.writers;
   assert.ok(
     activeWriters <= policy.globalWriterLimit,
     "MERGE_GATE_GLOBAL_WIP_EXCEEDED",
@@ -748,6 +770,7 @@ export function evaluateMergeGate({
     changedFiles: changedFileCount,
     changedLines,
     activeWriters,
+    activePrs: capacity.activePrs,
     openPrs,
     unresolvedReviewThreads,
     trustAuthority: candidate.trust.authority,

@@ -5,6 +5,7 @@ import {
   buildReconcileReport,
   evaluateFinalGate,
 } from "./tdp-max-v2.mjs";
+import { ENGINEERING_CI_WORKFLOWS } from "../control-state/status.mjs";
 
 const MAIN = "a".repeat(40);
 const CANDIDATE = "b".repeat(40);
@@ -35,6 +36,12 @@ function collector(patch = {}, criticalFailures = []) {
       generatedAt: "2026-10-03T09:00:00Z",
       blockers: [],
       liveSchedulerPlan: { violations: [] },
+      sources: Object.fromEntries(
+        ["main", "mainRecheck", "recentCi", "activeCi"].map((name) => [
+          name,
+          { state: "AVAILABLE" },
+        ]),
+      ),
       ...patch,
     },
     invariants: { criticalFailures },
@@ -79,6 +86,9 @@ function manifest(profile = "engineering", patch = {}) {
 function work(changeSetId = CHANGESET, patch = {}) {
   return {
     prNumber: 703,
+    headSha: CANDIDATE,
+    baseSha: MAIN,
+    branch: BRANCH,
     changeSetId,
     state: "POLICY_SATISFIED",
     trustAuthority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
@@ -98,9 +108,26 @@ function pr(patch = {}) {
   };
 }
 
-function ci(conclusion = "success") {
-  return { id: 123, headSha: CANDIDATE, status: "completed", conclusion };
+function ci(conclusion = "success", patch = {}) {
+  return {
+    id: 123,
+    workflowId: 10,
+    path: ENGINEERING_CI_WORKFLOWS[0],
+    headSha: CANDIDATE,
+    branch: BRANCH,
+    event: "pull_request",
+    runAttempt: 1,
+    createdAt: "2026-10-03T08:58:00Z",
+    updatedAt: "2026-10-03T08:59:00Z",
+    pullRequests: [{ number: 703, headSha: CANDIDATE, baseSha: MAIN }],
+    status: "completed",
+    conclusion,
+    requiredJobVerified: true,
+    ...patch,
+  };
 }
+const mergeCi = () =>
+  ci("success", { id: 124, workflowId: 11, path: ENGINEERING_CI_WORKFLOWS[1] });
 
 function live(patch = {}, criticalFailures = []) {
   const available = { state: "AVAILABLE" };
@@ -114,11 +141,20 @@ function live(patch = {}, criticalFailures = []) {
       collectionState: "CAPTURED",
       blockers: [],
       activePrs: [pr()],
-      ci: { activeRuns: [], recentRuns: [ci()] },
+      ci: {
+        activeRuns: [],
+        recentRuns: [ci()],
+        candidateRuns: [ci(), mergeCi()],
+      },
       sources: Object.fromEntries(
-        ["main", "mainRecheck", "pullRequests", "recentCi", "activeCi"].map(
-          (name) => [name, available],
-        ),
+        [
+          "main",
+          "mainRecheck",
+          "pullRequests",
+          "recentCi",
+          "activeCi",
+          "candidateCi:703",
+        ].map((name) => [name, available]),
       ),
       liveSchedulerPlan: { violations: [] },
       liveSchedulerWork: [work()],
@@ -167,6 +203,42 @@ test("cross-system bootstrap cannot self-prove from external JSON", () => {
   );
 });
 
+test("selected GitHub control does not require the unused Termux fallback", () => {
+  const mdctl = collector();
+  mdctl.termux = { state: "UNAVAILABLE" };
+  assert.equal(bootstrapResult(mdctl), "READY");
+  mdctl.executor = { target: "termux" };
+  assert.equal(bootstrapResult(mdctl), "BLOCKED");
+  mdctl.termux = { state: "HEALTHY" };
+  assert.equal(bootstrapResult(mdctl), "READY");
+  mdctl.executor = { target: "unknown" };
+  assert.equal(bootstrapResult(mdctl), "BLOCKED");
+});
+
+test("final gate uses current applicable CI instead of the global historical sample", () => {
+  const status = live({
+    ci: {
+      activeRuns: [],
+      recentRuns: [ci("failure")],
+      candidateRuns: [
+        ci("failure", { id: 122, createdAt: "2026-10-03T08:55:00Z" }),
+        ci(),
+        mergeCi(),
+      ],
+    },
+  });
+  const result = gate({ liveStatus: status });
+  assert.equal(result.taskVerdict, "COMPLETE");
+  assert.deepEqual(result.liveProof.ciRunIds, [123, 124]);
+  status.observed.ci.candidateRuns.push(
+    ci("failure", {
+      id: 125,
+      createdAt: "2026-10-03T08:59:30Z",
+    }),
+  );
+  assert.equal(gate({ liveStatus: status }).taskVerdict, "NOT_PROVEN");
+});
+
 test("engineering completion requires exact candidate and LIVE remote proof", () => {
   assert.equal(gate().taskVerdict, "COMPLETE");
   assert.equal(
@@ -188,6 +260,10 @@ test("engineering completion requires exact candidate and LIVE remote proof", ()
       "NOT_PROVEN",
     ],
     [live({ activePrs: [pr({ headSha: OTHER })] }), "NOT_PROVEN"],
+    [
+      live({ liveSchedulerWork: [work(CHANGESET, { headSha: OTHER })] }),
+      "NOT_PROVEN",
+    ],
     [
       live({ liveSchedulerWork: [work(CHANGESET, { invalid: "DIVERGED" })] }),
       "NOT_PROVEN",

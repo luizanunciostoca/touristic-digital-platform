@@ -641,6 +641,44 @@ test("claim acquisition accepts exactly one bounded orchestrator claim", () => {
   assert.equal(result.trustAuthority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
 });
 
+for (const [name, build, evaluate] of [
+  ["acquisition", acquisitionInput, evaluateClaimAcquisitionMergeGate],
+  ["integration", input, evaluateMergeGate],
+]) {
+  test(
+    name + " shares non-Draft PR capacity while retaining Draft writer locks",
+    () => {
+      const drafts = Array.from({ length: 8 }, (_, index) => ({
+        prNumber: 20 + index,
+        openPr: true,
+        draft: true,
+        writerActive: false,
+        invalid: null,
+      }));
+      const value = build({ liveItems: drafts });
+      assert.equal(evaluate(value).activePrs, 1);
+      assert.equal(evaluate(value).openPrs, 9);
+      const active = build({
+        liveItems: drafts.map((item) => ({ ...item, draft: false })),
+      });
+      assert.throws(
+        () => evaluate(active),
+        /MERGE_GATE_ACTIVE_PR_LIMIT_EXCEEDED/,
+      );
+      active.liveItems[0].draft = true;
+      assert.equal(evaluate(active).activePrs, 8);
+      const locked = build({ liveItems: structuredClone(drafts) });
+      Object.assign(locked.liveItems[1], {
+        writerActive: true,
+        changeSet: manifest({ id: "MD-OTHER", branch: "feat/other" }),
+      });
+      assert.throws(() => evaluate(locked), /MERGE_GATE_SEMANTIC_COLLISION/);
+      for (const item of locked.liveItems.slice(1, 4)) item.writerActive = true;
+      assert.throws(() => evaluate(locked), /MERGE_GATE_GLOBAL_WIP_EXCEEDED/);
+    },
+  );
+}
+
 for (const patterns of [
   [".github/morro-control/claims.json"],
   [".github/morro-control/events.ndjson"],

@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ordinaryPrScope } from "../fabric/ordinary-pr-policy.mjs";
+import { evaluateWorkCapacity } from "./scheduler.mjs";
 const SHA = /^[a-f0-9]{40}$/;
 export function classifyNativeScope(trustedDir, candidateDir, base, head) {
   for (const sha of [base, head]) assert.match(sha, SHA, "NATIVE_SHA_INVALID");
@@ -75,9 +76,18 @@ export function evaluateNativeFronts({
     "NATIVE_FILE_BUDGET",
   );
   assert.ok(
-    Array.isArray(fronts) && fronts.length >= 1 && fronts.length <= 2,
-    "NATIVE_TWO_FRONT_LIMIT",
+    Array.isArray(fronts) && fronts.length >= 1,
+    "NATIVE_FRONTS_REQUIRED",
   );
+  const capacity = evaluateWorkCapacity(
+    fronts.map((front) => ({
+      openPr: front.state === "open",
+      draft: front.draft,
+      writerActive: false,
+    })),
+    policy,
+  );
+  assert.deepEqual(capacity.violations, [], "NATIVE_ACTIVE_FRONT_LIMIT");
   const own = fronts.filter((p) => p.number === prNumber);
   assert.equal(own.length, 1, "NATIVE_PR_MISSING");
   assert.equal(own[0].head.sha, head, "NATIVE_HEAD_MOVED");
@@ -106,12 +116,13 @@ export function evaluateNativeFronts({
     schemaVersion: 1,
     kind: "TDP_MERGE_GATE_DECISION",
     decision: "POLICY_SATISFIED",
-    mode: "NATIVE_TWO_FRONTS_SERIAL_INTEGRATOR",
+    mode: "NATIVE_POLICY_CAPACITY_SERIAL_INTEGRATOR",
     exactBaseSha: base,
     exactHeadSha: head,
     changedFiles: changedFileCount,
     changedLines,
     openPrs: fronts.length,
+    activePrs: capacity.activePrs,
     unresolvedReviewThreads,
     semanticDependenciesProven: false,
     semanticCollisionsProven: false,
@@ -124,7 +135,6 @@ export async function nativeFrontSnapshot(repository, api) {
   });
   assert.ok(Array.isArray(pages), "NATIVE_PAGES_UNKNOWN");
   const prs = pages.flat();
-  assert.ok(prs.length <= 2, "NATIVE_TWO_FRONT_LIMIT");
   return Promise.all(
     prs.map(async (p) => {
       const live = await api(root + "/pulls/" + p.number);
