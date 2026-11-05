@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-POLICY-RELEASE-20261105",
+  "objective": "serialize-release-by-service-retire-source-node-exception-and-provide-isolated-candidate-bound-merged-retirement",
+  "baseSha": "dae7cbb71dd088851623aab16d23b09090c375a2",
+  "branch": "infra/policy-release-20261105",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/staging-render-promotion.yml",
+      ".github/workflows/production-render-promotion.yml",
+      ".github/workflows/release-promotion-gate.yml",
+      "tooling/ci/staging-node-acceptance.mjs",
+      "tooling/ci/staging-node-acceptance.test.mjs",
+      "tooling/ci/staging-node-barrier.mjs",
+      "tooling/ci/staging-node-barrier.test.mjs",
+      "tooling/ci/staging-node-contracts.mjs",
+      "tooling/ci/staging-node-contracts.test.mjs",
+      "tooling/ci/staging-node-dispatch.mjs",
+      "tooling/ci/staging-node-dispatch.test.mjs",
+      "tooling/ci/staging-node-exception.json",
+      "tooling/ci/staging-node-exception.mjs",
+      "tooling/ci/staging-node-receipts.mjs",
+      "tooling/ci/staging-node-receipts.test.mjs",
+      "tooling/ci/staging-node-runtime.mjs",
+      "tooling/ci/staging-node-runtime.test.mjs",
+      "tooling/ci/staging-node-test-fixtures.mjs",
+      ".github/workflows/staging-oci-promotion.yml",
+      ".github/workflows/production-oci-promotion.yml",
+      ".github/workflows/production-render-rollback.yml",
+      "tooling/quality/check-workflow-concurrency.mjs",
+      "tooling/quality/check-workflow-concurrency.test.mjs",
+      "tooling/quality/release-target-governance.test.mjs",
+      "tooling/render/render-service-contract.mjs",
+      "tooling/render/render-service-contract.test.mjs",
+      "docs/operations/STAGING-NODE-EXCEPTION.md",
+      ".morro/changesets/MD-POLICY-RELEASE-20261105.json",
+      ".github/workflows/merged-retirement-executor.yml",
+      "tooling/ci/merged-retirement-executor.mjs",
+      "tooling/ci/merged-retirement-executor.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "release-control-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/quality/release-target-governance.test.mjs",
+          "tooling/ci/staging-oci-deployment-evidence.test.mjs",
+          "tooling/render/production-canonical-db-cutover.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
