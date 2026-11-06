@@ -569,6 +569,7 @@ export async function collectObservedState({
   stagingUrl,
   productionUrl,
   now = () => new Date().toISOString(),
+  beforeFinalReadback = async () => {},
 } = {}) {
   validateRepository(repository);
   const sources = {};
@@ -595,13 +596,49 @@ export async function collectObservedState({
   }
   async function list(endpoint, key) {
     const pages = await api(endpoint, { paginate: true });
-    if (!Array.isArray(pages)) throw new Error("PAGINATION_INVALID");
+    if (!Array.isArray(pages) || pages.length === 0)
+      throw new Error("PAGINATION_INVALID");
     return pages.flatMap((page) => {
       const entries = key ? page?.[key] : page;
       if (!Array.isArray(entries)) throw new Error("PAGE_INVALID");
       return entries;
     });
   }
+  async function countedList(endpoint, key) {
+    const pages = await api(endpoint, { paginate: true });
+    if (!Array.isArray(pages) || pages.length === 0)
+      throw new Error("PAGINATION_INVALID");
+    const total = pages[0]?.total_count;
+    if (
+      !Number.isSafeInteger(total) ||
+      total < 0 ||
+      pages.some(
+        (page) => page?.total_count !== total || !Array.isArray(page?.[key]),
+      )
+    )
+      throw new Error("PAGE_TOTAL_INVALID");
+    const entries = pages.flatMap((page) => page[key]);
+    if (
+      entries.length !== total ||
+      entries.some((entry) => !positiveInteger(entry?.id)) ||
+      new Set(entries.map((entry) => entry.id)).size !== entries.length
+    )
+      throw new Error("PAGINATION_INCOMPLETE_OR_DUPLICATED");
+    return entries;
+  }
+  async function readPulls() {
+    const pulls = (await list(root + "/pulls?state=open&per_page=100")).map(
+      (pr) => pullRequestIdentity(pr, repository),
+    );
+    if (
+      pulls.some((pr) => pr.state !== "open") ||
+      new Set(pulls.map((pr) => pr.number)).size !== pulls.length
+    )
+      throw new Error("PULL_LIST_INVALID");
+    return pulls;
+  }
+  const pullSnapshot = (pulls) =>
+    JSON.stringify([...pulls].sort((a, b) => a.number - b.number));
   const main = await capture("main", async () => {
     const value = await api(root + "/commits/main");
     if (!sha(value?.sha) || !sha(value?.commit?.tree?.sha))
@@ -620,9 +657,7 @@ export async function collectObservedState({
     deployments,
     local,
   ] = await Promise.all([
-    capture("pullRequests", () =>
-      list(root + "/pulls?state=open&per_page=100"),
-    ),
+    capture("pullRequests", readPulls),
     capture("claims", async () => {
       if (!mainSha) throw new Error("MAIN_REQUIRED");
       const value = decodeContent(
@@ -680,15 +715,78 @@ export async function collectObservedState({
     }),
     capture("localWorkspace", () => workspace(localDirectory)),
   ]);
-  const activePrs = (Array.isArray(pulls) ? pulls : []).map((pr) => ({
-    number: pr.number,
-    branch: text(pr.head?.ref),
-    headSha: sha(pr.head?.sha),
-    baseSha: sha(pr.base?.sha),
-    draft: pr.draft === true,
-    repository: text(pr.head?.repo?.full_name),
-    url: "https://github.com/" + repository + "/pull/" + pr.number,
-  }));
+  const activePrs = pulls ?? [];
+  const candidateContexts = [];
+  for (const pr of activePrs.filter(
+    (item) => item.repository === repository && item.baseRef === "main",
+  )) {
+    const context = await capture("candidateCi:" + pr.number, async () => {
+      const readCandidateRuns = async () =>
+        (
+          await countedList(
+            root +
+              "/actions/runs?head_sha=" +
+              pr.headSha +
+              "&event=pull_request&per_page=100",
+            "workflow_runs",
+          )
+        ).map(summarizeWorkflowRun);
+      const summarized = await readCandidateRuns();
+      // Preliminary selection only; final consumers still require A0 job proof.
+      const selectionOptions = {
+        headSha: pr.headSha,
+        branch: pr.branch,
+        baseSha: mainSha,
+        prNumber: pr.number,
+        requireJobProof: false,
+      };
+      const initialSelection = selectLatestWorkflowRuns(
+        summarized,
+        selectionOptions,
+      );
+      const successful = initialSelection.selected.filter(
+        (run) => run.status === "completed" && run.conclusion === "success",
+      );
+      if (successful.length) {
+        const checks = await countedList(
+          root +
+            "/commits/" +
+            pr.headSha +
+            "/check-runs?filter=all&per_page=100",
+          "check_runs",
+        );
+        for (const run of successful) {
+          const jobs = await countedList(
+            root +
+              "/actions/runs/" +
+              run.id +
+              "/attempts/" +
+              run.runAttempt +
+              "/jobs?per_page=100",
+            "jobs",
+          );
+          run.requiredJobVerified = requiredWorkflowJobVerified(
+            run,
+            jobs,
+            checks,
+            repository,
+          );
+          const current = summarizeWorkflowRun(
+            await api(root + "/actions/runs/" + run.id),
+          );
+          if (workflowRunSnapshot(current) !== workflowRunSnapshot(run))
+            throw new Error("CI_CANDIDATE_RUN_CHANGED_DURING_CAPTURE");
+        }
+      }
+      return {
+        summarized,
+        initialSelection,
+        selectionOptions,
+        readCandidateRuns,
+      };
+    });
+    if (context) candidateContexts.push({ ...context, prNumber: pr.number });
+  }
   async function mergedClaim(id, claim) {
     const branch = claim?.branch;
     if (!mainSha || typeof branch !== "string" || !branch) return null;
@@ -901,26 +999,67 @@ export async function collectObservedState({
       authority: "GITHUB_DEPLOYMENT_RECORD_NOT_RUNTIME_PROOF",
     };
   }
+  // Compose all additional sources before terminal I/O. A failed composition
+  // rejects the snapshot rather than returning an apparently captured proof.
+  await beforeFinalReadback({ mainSha, activePrs });
+  const selectionIdentity = (selection) =>
+    JSON.stringify({
+      runs: selection.selected.map(workflowRunSnapshot),
+      missing: [...selection.missing].sort(),
+      invalid: [...selection.invalid].sort(),
+    });
+  const candidateReadbacks = await Promise.all(
+    candidateContexts.map((context) =>
+      capture("candidateCi:" + context.prNumber, async () => {
+        const finalSelection = selectLatestWorkflowRuns(
+          await context.readCandidateRuns(),
+          context.selectionOptions,
+        );
+        if (
+          selectionIdentity(finalSelection) !==
+          selectionIdentity(context.initialSelection)
+        )
+          throw new Error("CI_CANDIDATE_SELECTION_CHANGED_DURING_CAPTURE");
+        return context.summarized;
+      }),
+    ),
+  );
+  await capture("pullRequestsRecheck", async () => {
+    if (!pulls) throw new Error("INITIAL_PULL_LIST_UNAVAILABLE");
+    const latest = await readPulls();
+    if (pullSnapshot(latest) !== pullSnapshot(activePrs))
+      throw new Error("PULL_LIST_CHANGED_DURING_CAPTURE");
+    for (const pr of activePrs) {
+      const current = pullRequestIdentity(
+        await api(root + "/pulls/" + pr.number),
+        repository,
+      );
+      if (pullSnapshot([current]) !== pullSnapshot([pr]))
+        throw new Error("PULL_CHANGED_DURING_CAPTURE");
+    }
+    return latest;
+  });
+  // This is the final remote read, not an atomic transaction across endpoints.
   const latestMain = await capture("mainRecheck", () =>
     api(root + "/commits/main"),
   );
   const mainStable = Boolean(mainSha && latestMain?.sha === mainSha);
   if (!mainStable) block("MAIN_CHANGED_OR_UNVERIFIABLE", "main");
-  const summarizeRun = (run) => ({
-    id: run.id,
-    workflowId: run.workflow_id,
-    headSha: sha(run.head_sha),
-    branch: text(run.head_branch),
-    status: text(run.status),
-    conclusion: text(run.conclusion),
-    event: text(run.event),
-    updatedAt: text(run.updated_at),
-  });
+  const terminalStable =
+    mainStable &&
+    !Object.entries(sources).some(
+      ([name, source]) =>
+        (name.startsWith("candidateCi:") || name.startsWith("pullRequests")) &&
+        source.state === "UNAVAILABLE",
+    );
+  const candidateRuns = terminalStable
+    ? candidateReadbacks.filter(Boolean).flat()
+    : [];
   const running = [
     ...new Map(
       (Array.isArray(activeRuns) ? activeRuns : []).map((run) => [
         run.id,
-        summarizeRun(run),
+        summarizeWorkflowRun(run),
       ]),
     ).values(),
   ];
@@ -979,14 +1118,14 @@ export async function collectObservedState({
     mainTreeSha: main?.commit?.tree?.sha ?? null,
     mainShaAtEnd: sha(latestMain?.sha),
     expectedCertifiedReleaseSha,
-    consistency: mainStable
+    consistency: terminalStable
       ? "MAIN_STABLE_VOLATILE_SOURCES_NON_ATOMIC"
       : "INCONSISTENT",
-    collectionState: Object.values(sources).some(
-      (source) => source.state === "UNAVAILABLE",
-    )
-      ? "PARTIAL"
-      : "CAPTURED",
+    collectionState:
+      !mainStable ||
+      Object.values(sources).some((source) => source.state === "UNAVAILABLE")
+        ? "PARTIAL"
+        : "CAPTURED",
     activePrs,
     observedClaims,
     activeClaims,
@@ -1015,7 +1154,8 @@ export async function collectObservedState({
     deployments: { sampleLimit: 30, environments: deploymentSummary },
     ci: {
       recentSampleLimit: 30,
-      recentRuns: (runs?.workflow_runs ?? []).map(summarizeRun),
+      recentRuns: (runs?.workflow_runs ?? []).map(summarizeWorkflowRun),
+      candidateRuns,
       activeRuns: running,
     },
     runtimeHealth,
@@ -1032,6 +1172,33 @@ export async function collectObservedState({
     readinessAuthority: "FABRIC_PROOF_REQUIRED_NO_AUTOMATIC_STATE_ADVANCEMENT",
     blockers,
     sources,
+  };
+}
+
+export function pullRequestIdentity(pr, repository) {
+  if (
+    !positiveInteger(pr?.number) ||
+    !sha(pr.head?.sha) ||
+    !sha(pr.base?.sha) ||
+    !identityText(pr.head?.ref) ||
+    !identityText(pr.base?.ref) ||
+    !["open", "closed"].includes(pr.state) ||
+    typeof pr.draft !== "boolean" ||
+    pr.base?.repo?.full_name !== repository
+  )
+    throw new Error("PULL_IDENTITY_INVALID");
+  validateRepository(pr.head?.repo?.full_name);
+  return {
+    number: pr.number,
+    branch: pr.head.ref,
+    headSha: pr.head.sha,
+    baseSha: pr.base.sha,
+    baseRef: pr.base.ref,
+    baseRepository: pr.base.repo.full_name,
+    state: pr.state,
+    draft: pr.draft,
+    repository: pr.head.repo.full_name,
+    url: "https://github.com/" + repository + "/pull/" + pr.number,
   };
 }
 

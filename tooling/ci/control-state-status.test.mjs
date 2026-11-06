@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { snapshot } from "../mdctl/mdctl.mjs";
+import { collectLivePullWork } from "../mdctl/scheduler-live.mjs";
 import {
   collectObservedState,
   parseArguments,
   probeRuntime,
   renderSummary,
   runtimeOrigin,
+  selectLatestWorkflowRuns,
   summarizeRuntime,
   validateRepository,
 } from "../control-state/status.mjs";
@@ -17,6 +20,7 @@ const NOW = "2026-09-28T08:00:00.000Z";
 const REPO = "fixture/morro";
 const root = "repos/" + REPO;
 const content = (value) => ({
+  sha: TREE,
   encoding: "base64",
   content: Buffer.from(JSON.stringify(value)).toString("base64"),
 });
@@ -48,7 +52,8 @@ function fixtures() {
         {
           number: 1,
           head: { ref: "infra/task", sha: OLD, repo: { full_name: REPO } },
-          base: { sha: MAIN },
+          base: { sha: MAIN, ref: "main", repo: { full_name: REPO } },
+          state: "open",
           draft: true,
         },
       ],
@@ -60,8 +65,11 @@ function harness(overrides = {}) {
   const values = fixtures();
   const calls = [];
   let mainReads = 0;
+  let candidateReads = 0;
+  let pullReads = 0;
   const api = async (path, options) => {
     calls.push({ path, options });
+    await overrides.onRead?.(path, options);
     if (overrides.fail?.(path)) throw new Error("TOKEN=must-never-leak");
     if (path === root + "/commits/main")
       return {
@@ -80,7 +88,26 @@ function harness(overrides = {}) {
             : path.split("/compare/")[1].split("...")[0],
         },
       };
-    if (path.includes("/pulls?")) return overrides.pulls ?? values.pulls;
+    if (path.includes("/pulls?state=open&base=main"))
+      return overrides.workPulls ?? overrides.pulls ?? values.pulls;
+    if (path.includes("/pulls?"))
+      return ++pullReads > 1
+        ? (overrides.pullReadback ?? overrides.pulls ?? values.pulls)
+        : (overrides.pulls ?? values.pulls);
+    if (/\/pulls\/\d+$/u.test(path)) {
+      const number = Number(path.split("/").at(-1));
+      return (
+        overrides.pullDetails?.[number] ??
+        (overrides.pulls ?? values.pulls)
+          .flat()
+          .find((pr) => pr.number === number)
+      );
+    }
+    if (path.includes("/issues?")) return [[]];
+    if (path.includes("/contents/.morro/integration-queue.json"))
+      return content({ items: [] });
+    if (path.includes("/contents/.morro/ownership.json"))
+      return content({ domains: [] });
     if (path.includes("/contents/.github/morro-control/claims.json"))
       return content(overrides.registry ?? values.registry);
     if (path.includes("/contents/.github/morro-control/backlog.json"))
@@ -104,6 +131,33 @@ function harness(overrides = {}) {
               values.manifest)
           : (overrides.manifest ?? values.manifest),
       );
+    if (path.includes("/actions/runs?head_sha="))
+      return ++candidateReads > 1
+        ? (overrides.candidateReadbackPages ??
+            overrides.candidatePages ?? [{ total_count: 0, workflow_runs: [] }])
+        : (overrides.candidatePages ?? [{ total_count: 0, workflow_runs: [] }]);
+    if (path.includes("/check-runs?")) {
+      const checks = overrides.checks ?? [];
+      return (
+        overrides.checkPages ?? [
+          { total_count: checks.length, check_runs: checks },
+        ]
+      );
+    }
+    if (/\/actions\/runs\/\d+\/attempts\/\d+\/jobs\?/u.test(path)) {
+      const id = Number(path.match(/\/runs\/(\d+)\//u)[1]);
+      const jobs = overrides.jobsByRun?.[id] ?? [];
+      return overrides.jobPages ?? [{ total_count: jobs.length, jobs }];
+    }
+    if (/\/actions\/runs\/\d+$/u.test(path)) {
+      const id = Number(path.split("/").at(-1));
+      return (
+        overrides.runReadbacks?.[id] ??
+        overrides.candidatePages
+          ?.flatMap((page) => page.workflow_runs)
+          .find((run) => run.id === id)
+      );
+    }
     if (path.includes("/actions/runs?status="))
       return [
         { workflow_runs: [{ id: 42, status: "in_progress", head_sha: MAIN }] },
@@ -142,6 +196,695 @@ function harness(overrides = {}) {
     },
   };
 }
+
+function candidateFixture() {
+  const runs = ["quality.yml", "morro-merge-gate.yml"].map((file, index) => ({
+    id: 101 + index,
+    workflow_id: 10 + index,
+    path: ".github/workflows/" + file,
+    head_sha: OLD,
+    head_branch: "infra/task",
+    event: "pull_request",
+    run_attempt: 2,
+    created_at: NOW,
+    updated_at: NOW,
+    status: "completed",
+    conclusion: "success",
+    pull_requests: [{ number: 1, head: { sha: OLD }, base: { sha: MAIN } }],
+  }));
+  const jobs = runs.map((run, index) => ({
+    id: 301 + index,
+    run_id: run.id,
+    run_attempt: run.run_attempt,
+    head_sha: OLD,
+    name: index ? "morro/merge-gate" : "quality",
+    status: "completed",
+    conclusion: "success",
+    html_url: `https://github.com/${REPO}/actions/runs/${run.id}/job/${301 + index}`,
+    check_run_url: `https://api.github.com/repos/${REPO}/check-runs/${401 + index}`,
+    steps: [
+      {
+        name: index
+          ? "Run trusted merge-gate policy"
+          : "Require every selected suite and core gate to succeed",
+        status: "completed",
+        conclusion: "success",
+      },
+    ],
+  }));
+  return {
+    candidatePages: [{ total_count: runs.length, workflow_runs: runs }],
+    jobsByRun: Object.fromEntries(jobs.map((job) => [job.run_id, [job]])),
+    checks: jobs.map((job, index) => ({
+      id: 401 + index,
+      name: job.name,
+      head_sha: OLD,
+      status: "completed",
+      conclusion: "success",
+      app: { id: 15368, slug: "github-actions" },
+      details_url: job.html_url,
+    })),
+  };
+}
+const candidateProof = (state) =>
+  selectLatestWorkflowRuns(state.ci.candidateRuns, {
+    headSha: OLD,
+    branch: "infra/task",
+    baseSha: MAIN,
+    prNumber: 1,
+  });
+
+function reconciledSnapshotHarness(onRepeatedDetail) {
+  const path = ".github/workflows/morro-agent-profiles.yml";
+  const manifest = {
+    ...fixtures().manifest,
+    schemaVersion: 2,
+    objective: "trust-routing-reconciliation",
+    state: "LOCAL_PROVEN",
+    scope: "PLATFORM",
+    owns: { paths: [path], contracts: [] },
+    reads: { contracts: [] },
+    produces: { events: [], routes: [] },
+    database: { tables: [] },
+    auth: { capabilities: [] },
+    requiredEvidence: ["remote-proof"],
+    requiredCapabilities: ["github:read"],
+    contextPack: {
+      maxBytes: 65536,
+      include: ["changeset", "git-identity", "proof-plan"],
+    },
+    proof: {
+      budget: { maxCommands: 1, maxSeconds: 60 },
+      commands: [
+        {
+          id: "collector",
+          argv: ["node", "--test", "tooling/ci/control-state-status.test.mjs"],
+          timeoutSeconds: 30,
+        },
+      ],
+      requiredRemoteEvidence: ["remote-proof"],
+    },
+    stopAt: "REMOTE_PROVEN",
+  };
+  const registry = fixtures().registry;
+  Object.assign(registry.claims[manifest.id], {
+    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+    status: "LOCAL_PROVEN",
+    domains: ["control-plane"],
+    risk: "P1",
+    paths: [path],
+    expiresAt: "2099-01-01T00:00:00Z",
+  });
+  const input = candidateFixture();
+  const run = {
+    ...input.candidatePages[0].workflow_runs[0],
+    id: 77,
+    workflow_id: 77,
+    name: "Claim Guard Contract",
+    path: ".github/workflows/morro-claim-guard.yml",
+    pull_requests: [
+      { number: 1, head: { sha: OLD }, base: { sha: MAIN, ref: "main" } },
+    ],
+  };
+  const job = {
+    ...input.jobsByRun[101][0],
+    id: 777,
+    run_id: run.id,
+    name: "base-controlled-trust-root-reconciliation",
+    html_url: `https://github.com/${REPO}/actions/runs/77/job/777`,
+    check_run_url: `https://api.github.com/repos/${REPO}/check-runs/777`,
+    steps: [
+      {
+        name: "Validate approved trust-routing candidate blobs",
+        status: "completed",
+        conclusion: "success",
+      },
+    ],
+  };
+  input.candidatePages[0].workflow_runs.push(run);
+  input.candidatePages[0].total_count += 1;
+  input.jobsByRun[run.id] = [job];
+  input.checks.push({
+    ...input.checks[0],
+    id: 777,
+    name: job.name,
+    details_url: job.html_url,
+  });
+  const fixture = harness({ ...input, manifest, registry });
+  const originalApi = fixture.options.api;
+  let detailReads = 0;
+  fixture.options.api = async (endpoint, options) => {
+    if (endpoint === root + "/pulls/1") {
+      const pr = structuredClone(await originalApi(endpoint, options));
+      Object.assign(pr, { changed_files: 1, additions: 1, deletions: 1 });
+      if (++detailReads === 2) onRepeatedDetail?.(pr);
+      return pr;
+    }
+    if (endpoint === root + "/pulls/1/files?per_page=100")
+      return [
+        [{ filename: path, status: "modified", additions: 1, deletions: 1 }],
+      ];
+    if (endpoint === root + "/actions/runs/77/jobs?per_page=100")
+      return [{ total_count: 1, jobs: [job] }];
+    if (
+      [
+        ".github/workflows/morro-claim-guard.yml",
+        ".github/workflows/morro-claim-guard-trusted.yml",
+        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        path,
+        "tooling/fabric/claim-guard.mjs",
+        "tooling/mdctl/scheduler-live.mjs",
+      ].some((file) => endpoint.includes("/contents/" + file + "?ref="))
+    )
+      return {
+        sha: endpoint.endsWith("/contents/" + path + "?ref=" + OLD)
+          ? OLD
+          : TREE,
+      };
+    return originalApi(endpoint, options);
+  };
+  return { ...fixture, detailReads: () => detailReads };
+}
+
+test("snapshot permits normalized identical canonical trust-root rereads", async () => {
+  const direct = reconciledSnapshotHarness();
+  const work = await collectLivePullWork({
+    repository: REPO,
+    api: direct.options.api,
+  });
+  assert.equal(work.items[0].invalid, null);
+  assert.equal(work.items[0].trust.trusted, true);
+  assert.equal(
+    work.items[0].trust.trustRootReconciliation.authority,
+    "BASE_CONTROLLED_TRUST_ROOT_RECONCILIATION",
+  );
+  assert.equal(direct.detailReads(), 2);
+  const composed = reconciledSnapshotHarness((pr) => {
+    pr.title = "Metadata can change without changing normalized identity";
+    pr.head = { repo: pr.head.repo, sha: pr.head.sha, ref: pr.head.ref };
+  });
+  const result = await snapshot(composed.options);
+  assert.equal(result.observed.collectionState, "CAPTURED");
+  assert.equal(result.observed.liveSchedulerWork[0].invalid, null);
+  assert.equal(
+    result.observed.liveSchedulerWork[0].trustAuthority,
+    "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+  );
+  assert.equal(composed.detailReads(), 3);
+});
+
+test("snapshot rejects identity drift in repeated canonical trust-root details", async (t) => {
+  const mutations = {
+    head: (pr) => (pr.head.sha = TREE),
+    branch: (pr) => (pr.head.ref = "infra/changed"),
+    draft: (pr) => (pr.draft = false),
+    missingDraft: (pr) => delete pr.draft,
+    baseSha: (pr) => (pr.base.sha = OLD),
+    baseRef: (pr) => (pr.base.ref = "release"),
+    repository: (pr) => (pr.head.repo.full_name = "fork/morro"),
+    baseRepository: (pr) => (pr.base.repo.full_name = "other/morro"),
+    number: (pr) => (pr.number = 2),
+    closed: (pr) => (pr.state = "closed"),
+  };
+  for (const [name, mutate] of Object.entries(mutations))
+    await t.test(name, async () => {
+      const fixture = reconciledSnapshotHarness(mutate);
+      await assert.rejects(
+        snapshot(fixture.options),
+        /WORK_PULL_DETAIL_INVALID|PULL_IDENTITY_INVALID/u,
+      );
+      assert.equal(fixture.detailReads(), 2);
+    });
+});
+
+test("candidate proof comes from complete per-head pages, exact attempts and all checks", async () => {
+  const input = candidateFixture();
+  const [quality, merge] = input.candidatePages[0].workflow_runs;
+  const old = {
+    ...quality,
+    id: 100,
+    created_at: "2026-09-28T07:00:00Z",
+    conclusion: "failure",
+  };
+  input.candidatePages = [
+    { total_count: 3, workflow_runs: [old, quality] },
+    { total_count: 3, workflow_runs: [merge] },
+  ];
+  const olderCheck = {
+    ...input.checks[0],
+    id: 400,
+    details_url: `https://github.com/${REPO}/actions/runs/100/job/300`,
+  };
+  input.checkPages = [
+    { total_count: 3, check_runs: [olderCheck] },
+    { total_count: 3, check_runs: input.checks },
+  ];
+  const { options, calls } = harness(input);
+  const state = await collectObservedState(options);
+  assert.equal(state.collectionState, "CAPTURED");
+  assert.equal(candidateProof(state).succeeded, true);
+  assert.deepEqual(
+    candidateProof(state).selected.map((run) => run.id),
+    [101, 102],
+  );
+  assert.equal(
+    state.ci.recentRuns.some((run) => run.id === 101),
+    false,
+  );
+  assert.equal(
+    calls.filter(({ path }) => path.includes("head_sha=")).length,
+    2,
+  );
+  assert.ok(
+    calls
+      .filter(({ path }) => path.includes("head_sha="))
+      .every(
+        ({ path, options }) =>
+          path.includes("event=pull_request") && options.paginate,
+      ),
+  );
+  assert.ok(
+    calls
+      .filter(({ path }) => path.includes("/jobs?"))
+      .every(
+        ({ path, options }) =>
+          path.includes("/attempts/2/jobs?") && options.paginate,
+      ),
+  );
+  assert.ok(
+    calls
+      .find(({ path }) => path.includes("/check-runs?"))
+      .path.includes("filter=all"),
+  );
+  assert.equal(calls.at(-1).path, root + "/commits/main");
+});
+
+test("incomplete or duplicated candidate, job and check pages cannot become captured proof", async (t) => {
+  for (const source of ["candidatePages", "jobPages", "checkPages"]) {
+    const key = {
+      candidatePages: "workflow_runs",
+      jobPages: "jobs",
+      checkPages: "check_runs",
+    }[source];
+    const base = candidateFixture();
+    const item =
+      source === "candidatePages"
+        ? base.candidatePages[0].workflow_runs[0]
+        : source === "jobPages"
+          ? base.jobsByRun[101][0]
+          : base.checks[0];
+    const variants = {
+      emptyPages: [],
+      malformedPage: [{}],
+      missingEntry: [{ total_count: 2, [key]: [item] }],
+      duplicate: [
+        { total_count: 2, [key]: [item] },
+        { total_count: 2, [key]: [item] },
+      ],
+      changedTotal: [
+        { total_count: 1, [key]: [item] },
+        { total_count: 2, [key]: [] },
+      ],
+      invalidId: [{ total_count: 1, [key]: [{ ...item, id: 0 }] }],
+    };
+    for (const [name, pages] of Object.entries(variants))
+      await t.test(source + ":" + name, async () => {
+        const state = await collectObservedState(
+          harness({ ...candidateFixture(), [source]: pages }).options,
+        );
+        assert.equal(state.sources["candidateCi:1"].state, "UNAVAILABLE");
+        assert.equal(state.collectionState, "PARTIAL");
+        assert.deepEqual(state.ci.candidateRuns, []);
+      });
+  }
+});
+
+test("complete provider pages still require the unchanged A0 job and check semantics", async (t) => {
+  const mutations = {
+    missingAttempt: (input) => delete input.jobsByRun[101][0].run_attempt,
+    wrongAttempt: (input) => (input.jobsByRun[101][0].run_attempt = 1),
+    wrongRun: (input) => (input.jobsByRun[101][0].run_id = 999),
+    wrongHead: (input) => (input.jobsByRun[101][0].head_sha = TREE),
+    missingJob: (input) => (input.jobsByRun[101] = []),
+    missingStep: (input) => (input.jobsByRun[101][0].steps = []),
+    skippedStep: (input) =>
+      (input.jobsByRun[101][0].steps[0].conclusion = "skipped"),
+    wrongApp: (input) => (input.checks[0].app.id = 1),
+    wrongCheckHead: (input) => (input.checks[0].head_sha = TREE),
+    wrongCheckUrl: (input) => (input.checks[0].details_url += "/other"),
+    contradictoryCheck: (input) =>
+      input.checks.push({ ...input.checks[0], id: 999, conclusion: "failure" }),
+  };
+  for (const [name, mutate] of Object.entries(mutations))
+    await t.test(name, async () => {
+      const input = candidateFixture();
+      mutate(input);
+      const state = await collectObservedState(harness(input).options);
+      assert.equal(state.sources["candidateCi:1"].state, "AVAILABLE");
+      assert.equal(
+        state.ci.candidateRuns.find((run) => run.id === 101)
+          .requiredJobVerified,
+        false,
+      );
+      assert.equal(candidateProof(state).succeeded, false);
+    });
+});
+
+test("immediate run readback binds every A0 identity and invocation field", async (t) => {
+  const changes = {
+    id: 999,
+    workflow_id: 99,
+    path: ".github/workflows/other.yml",
+    head_sha: TREE,
+    head_branch: "infra/other",
+    event: "push",
+    run_attempt: 3,
+    created_at: "2026-09-28T07:00:00Z",
+    updated_at: "2026-09-28T08:00:01Z",
+    status: "in_progress",
+    conclusion: "failure",
+    pull_requests: [],
+  };
+  for (const [key, value] of Object.entries(changes))
+    await t.test(key, async () => {
+      const input = candidateFixture();
+      input.runReadbacks = {
+        101: { ...input.candidatePages[0].workflow_runs[0], [key]: value },
+      };
+      const state = await collectObservedState(harness(input).options);
+      assert.equal(state.sources["candidateCi:1"].state, "UNAVAILABLE");
+      assert.deepEqual(state.ci.candidateRuns, []);
+    });
+});
+
+test("terminal candidate selection rejects new applicable, ambiguous or rerun evidence", async (t) => {
+  const input = candidateFixture();
+  const [quality, merge] = input.candidatePages[0].workflow_runs;
+  const newer = {
+    ...quality,
+    id: 103,
+    created_at: "2026-09-28T08:00:01Z",
+    updated_at: "2026-09-28T08:00:01Z",
+  };
+  const variants = {
+    failure: [quality, merge, { ...newer, conclusion: "failure" }],
+    pending: [quality, merge, { ...newer, status: "queued", conclusion: null }],
+    unbound: [quality, merge, { ...newer, pull_requests: [] }],
+    malformedBinding: [
+      quality,
+      merge,
+      {
+        ...newer,
+        pull_requests: [
+          { number: 1, head: { sha: null }, base: { sha: MAIN } },
+        ],
+      },
+    ],
+    rerun: [{ ...quality, run_attempt: 3 }, merge],
+  };
+  for (const [name, entries] of Object.entries(variants))
+    await t.test(name, async () => {
+      const state = await collectObservedState(
+        harness({
+          ...input,
+          candidateReadbackPages: [
+            { total_count: entries.length, workflow_runs: entries },
+          ],
+        }).options,
+      );
+      assert.equal(state.sources["candidateCi:1"].state, "UNAVAILABLE");
+      assert.equal(state.collectionState, "PARTIAL");
+      assert.equal(candidateProof(state).succeeded, false);
+    });
+  for (const foreign of [
+    { ...newer, head_branch: "infra/other" },
+    { ...newer, event: "push" },
+    { ...newer, path: ".github/workflows/other.yml" },
+    {
+      ...newer,
+      pull_requests: [{ number: 2, head: { sha: OLD }, base: { sha: MAIN } }],
+    },
+    {
+      ...newer,
+      pull_requests: [{ number: 1, head: { sha: OLD }, base: { sha: TREE } }],
+    },
+    {
+      ...newer,
+      id: 100,
+      created_at: "2026-09-28T07:00:00Z",
+      run_attempt: 8,
+      status: "in_progress",
+      conclusion: null,
+    },
+  ]) {
+    const state = await collectObservedState(
+      harness({
+        ...input,
+        candidateReadbackPages: [
+          { total_count: 3, workflow_runs: [quality, merge, foreign] },
+        ],
+      }).options,
+    );
+    assert.equal(
+      candidateProof(state).succeeded,
+      true,
+      JSON.stringify(foreign),
+    );
+  }
+});
+
+test("terminal PR list and details reject identity, Draft, state and set changes", async (t) => {
+  const mutations = {
+    draft: (pr) => (pr.draft = false),
+    missingDraft: (pr) => delete pr.draft,
+    state: (pr) => (pr.state = "closed"),
+    head: (pr) => (pr.head.sha = TREE),
+    branch: (pr) => (pr.head.ref = "infra/other"),
+    repository: (pr) => (pr.head.repo.full_name = "fork/morro"),
+    base: (pr) => (pr.base.sha = OLD),
+    baseRef: (pr) => (pr.base.ref = "release"),
+    baseRepository: (pr) => (pr.base.repo.full_name = "other/morro"),
+    number: (pr) => (pr.number = 2),
+  };
+  for (const source of ["list", "detail"])
+    for (const [name, mutate] of Object.entries(mutations))
+      await t.test(source + ":" + name, async () => {
+        const pr = structuredClone(fixtures().pulls[0][0]);
+        mutate(pr);
+        const input = {
+          ...candidateFixture(),
+          ...(source === "list"
+            ? { pullReadback: [[pr]] }
+            : { pullDetails: { 1: pr } }),
+        };
+        const { options, calls } = harness(input);
+        const state = await collectObservedState(options);
+        assert.equal(state.sources.pullRequestsRecheck.state, "UNAVAILABLE");
+        assert.equal(state.collectionState, "PARTIAL");
+        assert.deepEqual(state.ci.candidateRuns, []);
+        assert.equal(calls.at(-1).path, root + "/commits/main");
+      });
+  const pr = fixtures().pulls[0][0];
+  for (const pages of [[[]], [[pr, pr]], [[pr, { ...pr, number: 2 }]], []]) {
+    const state = await collectObservedState(
+      harness({ ...candidateFixture(), pullReadback: pages }).options,
+    );
+    assert.equal(state.collectionState, "PARTIAL");
+    assert.deepEqual(state.ci.candidateRuns, []);
+  }
+  const state = await collectObservedState(
+    harness({
+      ...candidateFixture(),
+      fail: (path) => path === root + "/pulls/1",
+    }).options,
+  );
+  assert.equal(state.sources.pullRequestsRecheck.state, "UNAVAILABLE");
+});
+
+test("shared heads preserve distinct PR contexts and reordered terminal lists", async () => {
+  const input = candidateFixture();
+  const first = fixtures().pulls[0][0];
+  const second = structuredClone(first);
+  second.number = 2;
+  second.head.ref = "infra/other";
+  input.pulls = [[first, second]];
+  input.pullReadback = [[second, first]];
+  const extraRuns = input.candidatePages[0].workflow_runs.map((run) => ({
+    ...run,
+    id: run.id + 10,
+    head_branch: "infra/other",
+    pull_requests: [{ number: 2, head: { sha: OLD }, base: { sha: MAIN } }],
+  }));
+  for (const run of extraRuns) {
+    const original = input.jobsByRun[run.id - 10][0];
+    const job = {
+      ...original,
+      id: original.id + 10,
+      run_id: run.id,
+      html_url: `https://github.com/${REPO}/actions/runs/${run.id}/job/${original.id + 10}`,
+      check_run_url: `https://api.github.com/repos/${REPO}/check-runs/${original.id + 110}`,
+    };
+    input.jobsByRun[run.id] = [job];
+    input.checks.push({
+      ...input.checks.find((check) => check.name === job.name),
+      id: original.id + 110,
+      details_url: job.html_url,
+    });
+  }
+  input.candidatePages[0].workflow_runs.push(...extraRuns);
+  input.candidatePages[0].total_count = 4;
+  const state = await collectObservedState(harness(input).options);
+  assert.equal(state.collectionState, "CAPTURED");
+  assert.equal(state.ci.candidateRuns.length, 8);
+  assert.equal(candidateProof(state).succeeded, true);
+  assert.equal(
+    selectLatestWorkflowRuns(state.ci.candidateRuns, {
+      headSha: OLD,
+      branch: "infra/other",
+      baseSha: MAIN,
+      prNumber: 2,
+    }).succeeded,
+    true,
+  );
+});
+
+test("initial PR identity remains unknown instead of turning missing Draft into false", async () => {
+  const pr = fixtures().pulls[0][0];
+  delete pr.draft;
+  const state = await collectObservedState(harness({ pulls: [[pr]] }).options);
+  assert.equal(state.sources.pullRequests.state, "UNAVAILABLE");
+  assert.equal(state.collectionState, "PARTIAL");
+  assert.deepEqual(state.activePrs, []);
+});
+
+test("snapshot rejects a completed producer observing a different PR than the delayed collector", async (t) => {
+  const mutations = {
+    head: (pr) => (pr.head.sha = "d".repeat(40)),
+    branch: (pr) => (pr.head.ref = "infra/changed"),
+    draft: (pr) => (pr.draft = false),
+    baseSha: (pr) => (pr.base.sha = TREE),
+    baseRef: (pr) => (pr.base.ref = "release"),
+    repository: (pr) => (pr.head.repo.full_name = "fork/morro"),
+    number: (pr) => (pr.number = 2),
+    closed: (pr) => (pr.state = "closed"),
+  };
+  for (const [name, mutate] of Object.entries(mutations))
+    await t.test(name, async () => {
+      const oldPr = fixtures().pulls[0][0];
+      const currentPr = structuredClone(oldPr);
+      mutate(currentPr);
+      const input = JSON.parse(
+        JSON.stringify(candidateFixture()).replaceAll(OLD, currentPr.head.sha),
+      );
+      input.workPulls = [[oldPr]];
+      input.pulls = currentPr.state === "closed" ? [[]] : [[currentPr]];
+      input.pullDetails = { 1: oldPr };
+      let workReads = 0;
+      let releaseCollector;
+      const producerFinished = new Promise(
+        (resolve) => (releaseCollector = resolve),
+      );
+      input.onRead = async (path) => {
+        if (
+          path === root + "/pulls?state=open&base=main&per_page=100" &&
+          ++workReads === 2
+        ) {
+          input.pullDetails = { [currentPr.number]: currentPr };
+          releaseCollector();
+        }
+        if (path === root + "/pulls?state=open&per_page=100")
+          await producerFinished;
+      };
+      await assert.rejects(
+        snapshot(harness(input).options),
+        /COMPOSED_PULL_IDENTITY_MISMATCH/u,
+      );
+    });
+});
+
+test("snapshot finishes canonical work, heartbeat and projection reads before terminal proof", async (t) => {
+  const stable = harness(candidateFixture());
+  const baseline = await snapshot(stable.options);
+  assert.equal(candidateProof(baseline.observed).succeeded, true);
+  assert.equal(stable.calls.at(-1).path, root + "/commits/main");
+  assert.equal(
+    baseline.observed.liveSchedulerWork[0].invalid,
+    "TRUSTED_CONTROL_FILE_UNAVAILABLE",
+  );
+  for (const stage of ["work", "heartbeat", "projection"])
+    await t.test(stage, async () => {
+      const input = candidateFixture();
+      let releaseInitial;
+      let delayed = false;
+      const initialCaptured = new Promise(
+        (resolve) => (releaseInitial = resolve),
+      );
+      input.onRead = async (path) => {
+        if (path === root + "/actions/runs/102") releaseInitial();
+        const waitHere =
+          stage === "work"
+            ? path.includes("/pulls?state=open&base=main")
+            : stage === "heartbeat"
+              ? path.includes("/issues?")
+              : path.includes("/contents/.morro/ownership.json");
+        if (waitHere && !delayed) {
+          delayed = true;
+          await initialCaptured;
+          await new Promise(setImmediate);
+          const [quality, merge] = input.candidatePages[0].workflow_runs;
+          input.candidateReadbackPages = [
+            {
+              total_count: 3,
+              workflow_runs: [
+                quality,
+                merge,
+                {
+                  ...quality,
+                  id: 103,
+                  created_at: "2026-09-28T08:00:01Z",
+                  updated_at: "2026-09-28T08:00:01Z",
+                  conclusion: "failure",
+                },
+              ],
+            },
+          ];
+        }
+      };
+      const { options, calls } = harness(input);
+      const result = await snapshot(options);
+      assert.equal(delayed, true);
+      assert.equal(
+        result.observed.sources["candidateCi:1"].state,
+        "UNAVAILABLE",
+      );
+      assert.equal(result.observed.collectionState, "PARTIAL");
+      assert.equal(candidateProof(result.observed).succeeded, false);
+      assert.equal(calls.at(-1).path, root + "/commits/main");
+    });
+});
+
+test("composition failure rejects the snapshot and terminal main drift cannot remain CAPTURED", async () => {
+  const broken = harness({
+    ...candidateFixture(),
+    fail: (path) => path.includes("/contents/.morro/ownership.json"),
+  });
+  await assert.rejects(snapshot(broken.options));
+  const { options } = harness(candidateFixture());
+  options.beforeFinalReadback = async () => {
+    throw new Error("COMPOSITION_REJECTED");
+  };
+  await assert.rejects(collectObservedState(options), /COMPOSITION_REJECTED/u);
+  const input = candidateFixture();
+  input.onRead = async (path) => {
+    if (path === root + "/pulls/1") input.moveMain = true;
+  };
+  const moved = harness(input);
+  const state = await collectObservedState(moved.options);
+  assert.equal(state.collectionState, "PARTIAL");
+  assert.equal(state.consistency, "INCONSISTENT");
+  assert.deepEqual(state.ci.candidateRuns, []);
+  assert.equal(moved.calls.at(-1).path, root + "/commits/main");
+});
 
 test("snapshot binds versioned reads to live main and paginates PRs", async () => {
   const { calls, options } = harness();
@@ -185,6 +928,7 @@ test("snapshot binds versioned reads to live main and paginates PRs", async () =
 test("moved main invalidates snapshot without concealing captured identity", async () => {
   const { options } = harness({ moveMain: true });
   const state = await collectObservedState(options);
+  assert.equal(state.collectionState, "PARTIAL");
   assert.equal(state.consistency, "INCONSISTENT");
   assert.equal(state.mainSha, MAIN);
   assert.equal(state.mainShaAtEnd, OLD);
@@ -238,7 +982,9 @@ test("fork PR with matching branch cannot satisfy canonical claim", async () => 
             sha: OLD,
             repo: { full_name: "fork/morro" },
           },
-          base: { sha: MAIN },
+          base: { sha: MAIN, ref: "main", repo: { full_name: REPO } },
+          state: "open",
+          draft: false,
         },
       ],
     ],
