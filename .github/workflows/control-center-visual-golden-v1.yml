@@ -2,6 +2,10 @@ name: Control Center Visual Golden V1
 
 on:
   workflow_call:
+    inputs:
+      ci_selected_suites:
+        type: string
+        required: true
   workflow_dispatch:
 
 permissions:
@@ -37,6 +41,7 @@ jobs:
           persist-credentials: false
 
       - name: Require the scheduler source identity
+        id: ci_command_01
         shell: bash
         run: |
           set -euo pipefail
@@ -47,6 +52,7 @@ jobs:
           browser: "true"
 
       - name: Check Wave 4 formatting
+        id: ci_command_02
         run: >-
           pnpm exec prettier --check
           .github/workflows/control-center-visual-golden-v1.yml
@@ -54,6 +60,7 @@ jobs:
           tests/visual-regression/control-center-v1/manual-contract.json
 
       - name: Verify baseline inventory
+        id: ci_command_03
         shell: bash
         run: |
           set -euo pipefail
@@ -63,14 +70,17 @@ jobs:
           done
 
       - name: Install deterministic Chromium and image diff dependencies
+        id: ci_command_04
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2 pixelmatch@5.3.0 pngjs@7.0.0
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
 
       - name: Clean build runtime graph
+        id: ci_command_05
         run: pnpm -w build
 
       - name: Start deterministic authenticated Control Center
+        id: ci_command_06
         shell: bash
         run: |
           set -euo pipefail
@@ -101,6 +111,7 @@ jobs:
           exit 1
 
       - name: Validate manual visual conformance
+        id: ci_command_07
         env:
           CONTROL_CENTER_ORIGIN: http://127.0.0.1:4199
         shell: bash
@@ -109,6 +120,7 @@ jobs:
             node apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs
 
       - name: Prove the golden suite rejects deliberate regressions
+        id: ci_command_08
         env:
           CONTROL_CENTER_ORIGIN: http://127.0.0.1:4199
         shell: bash
@@ -129,6 +141,7 @@ jobs:
           rm -f /tmp/control-center-visual-golden-v1/failure.json
 
       - name: Record exact-head evidence identity
+        id: ci_command_09
         if: always()
         shell: bash
         run: |
@@ -137,13 +150,14 @@ jobs:
           printf '%s\n' "$GITHUB_RUN_ID" > /tmp/control-center-visual-golden-v1/workflow-run-id.txt
 
       - name: Show diagnostics
+        id: ci_command_10
         if: failure()
         run: cat /tmp/control-center-visual-golden-v1-server.log || true
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: control-center-visual-golden-v1-evidence
+          name: control-center-visual-golden-v1-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/control-center-visual-golden-v1/expected/**
             /tmp/control-center-visual-golden-v1/actual/**
@@ -157,5 +171,23 @@ jobs:
           if-no-files-found: error
 
       - name: Stop runtime
+        id: ci_command_11
         if: always()
         run: kill "$(cat /tmp/control-center-visual-golden-v1-server.pid)" 2>/dev/null || true
+
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["control-center-visual-golden-v1.yml"]'), 'control-center-visual-golden-v1.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["control-center-visual-golden-v1.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt control-center-visual-golden-v1.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-control-center-visual-golden-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

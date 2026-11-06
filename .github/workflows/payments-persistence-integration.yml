@@ -2,6 +2,10 @@ name: Payments Persistence Integration
 
 on:
   workflow_call:
+    inputs:
+      ci_selected_suites:
+        type: string
+        required: true
   workflow_dispatch:
 
 permissions:
@@ -35,8 +39,28 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/ci-bootstrap
       - name: Ordering MySQL integration
+        id: ci_command_01
         run: pnpm --filter @touristic/ordering-server test:integration
       - name: Financial MySQL integration
+        id: ci_command_02
         run: pnpm --filter @touristic/financial-server test:integration
       - name: Checkout application MySQL integration
+        id: ci_command_03
         run: pnpm exec vitest run tooling/payments/checkout-mysql-integration.test.ts
+
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["payments-persistence-integration.yml"]'), 'payments-persistence-integration.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["payments-persistence-integration.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt payments-persistence-integration.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-payments-persistence-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

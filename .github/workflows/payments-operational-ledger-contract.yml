@@ -2,6 +2,10 @@ name: Payments Operational Ledger Contract
 
 on:
   workflow_call:
+    inputs:
+      ci_selected_suites:
+        type: string
+        required: true
   workflow_dispatch:
 
 permissions:
@@ -34,13 +38,33 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/ci-bootstrap
       - name: Verified accounting unit and recovery contracts
+        id: ci_command_01
         run: pnpm --filter @touristic/financial-server test
       - name: Approval and reversal MySQL integration
+        id: ci_command_02
         run: pnpm --filter @touristic/financial-server test:integration
       - name: Build composed Financial runtime
+        id: ci_command_03
         run: |
           pnpm --filter @touristic/auth build
           pnpm --filter @touristic/financial build
           pnpm --filter @touristic/ordering build
           pnpm --filter @touristic/financial-server build
           pnpm --filter @touristic/ordering-server build
+
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["payments-operational-ledger-contract.yml"]'), 'payments-operational-ledger-contract.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["payments-operational-ledger-contract.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt payments-operational-ledger-contract.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-payments-operational-ledger-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

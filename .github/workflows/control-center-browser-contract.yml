@@ -2,6 +2,10 @@ name: Control Center Browser Contract
 
 on:
   workflow_call:
+    inputs:
+      ci_selected_suites:
+        type: string
+        required: true
   workflow_dispatch:
 
 permissions:
@@ -34,12 +38,15 @@ jobs:
         with:
           browser: "true"
       - name: Install deterministic Chromium
+        id: ci_command_01
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2 axe-core@4.10.3
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build Control Center runtime graph
+        id: ci_command_02
         run: pnpm -w build
       - name: Start authenticated Control Center runtime
+        id: ci_command_03
         shell: bash
         run: |
           set -euo pipefail
@@ -74,6 +81,7 @@ jobs:
           cat /tmp/control-center-server.log
           exit 1
       - name: Validate Control Center browser, security and responsive contracts
+        id: ci_command_04
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -580,23 +588,43 @@ jobs:
           });
           NODE
       - name: Validate final Control Center completion journeys
+        id: ci_command_05
         run: |
           node apps/morro-digital-platform/tooling/control-center-users-browser-contract.mjs
           node apps/morro-digital-platform/tooling/control-center-commerce-browser-contract.mjs
           node apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs
           node apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs
       - name: Show Control Center diagnostics
+        id: ci_command_06
         if: failure()
         run: cat /tmp/control-center-server.log || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: control-center-browser-evidence
+          name: control-center-browser-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/control-center-browser-evidence.json
             /tmp/control-center-accessibility-evidence.json
           retention-days: 3
           if-no-files-found: ignore
       - name: Stop Control Center runtime
+        id: ci_command_07
         if: always()
         run: kill "$(cat /tmp/control-center-server.pid)" 2>/dev/null || true
+
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["control-center-browser-contract.yml"]'), 'control-center-browser-contract.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["control-center-browser-contract.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt control-center-browser-contract.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-control-center-browser-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

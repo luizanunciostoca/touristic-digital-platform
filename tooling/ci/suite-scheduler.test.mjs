@@ -14,6 +14,13 @@ import {
   verifySuiteResults,
 } from "./suite-scheduler.mjs";
 
+import {
+  buildReceipt,
+  executionPlan,
+  loadCoverage,
+  verifyReceipts,
+} from "./workflow-coverage.mjs";
+
 const all = suiteManifest.suites.map((suite) => suite.workflow);
 const BASE = "a".repeat(40);
 const HEAD = "b".repeat(40);
@@ -397,9 +404,36 @@ test("release proof binds successful child results to exact source, tree, lockfi
   const sha = "a".repeat(40);
   const treeSha = "b".repeat(40);
   const lockfileDigest = "sha256:" + "c".repeat(64);
+  const context = loadCoverage();
+  const plan = executionPlan(
+    all,
+    {
+      sourceSha: sha,
+      treeSha,
+      lockfileDigest,
+      repository: "morro/ci-fixture",
+      runId: "123",
+      runAttempt: 1,
+    },
+    context,
+  );
+  const receipts = all.map((workflow) =>
+    buildReceipt(
+      workflow,
+      plan,
+      Object.fromEntries(
+        context.coverage.workflows[workflow].commands
+          .filter((command) => command.required)
+          .map(({ id }) => [id, { outcome: "success", conclusion: "success" }]),
+      ),
+      context,
+    ),
+  );
+  const executionProof = verifyReceipts(plan, receipts, results(all), context);
   const proof = buildQualityProof(all, results(all), sha, {
     treeSha,
     lockfileDigest,
+    executionProof,
   });
   assert.equal(proof.schemaVersion, 2);
   assert.equal(proof.sourceSha, sha);

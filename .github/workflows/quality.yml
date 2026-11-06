@@ -240,36 +240,50 @@ jobs:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-browser-contract.yml')
     uses: ./.github/workflows/control-center-browser-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
   suite-control-center-visual-golden-v1:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-visual-golden-v1.yml')
     uses: ./.github/workflows/control-center-visual-golden-v1.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
   suite-payments-operational-ledger-contract:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-operational-ledger-contract.yml')
     uses: ./.github/workflows/payments-operational-ledger-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
   suite-payments-persistence-integration:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-persistence-integration.yml')
     uses: ./.github/workflows/payments-persistence-integration.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
   suite-payments-sandbox-provider-contract:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-sandbox-provider-contract.yml')
     uses: ./.github/workflows/payments-sandbox-provider-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
   suite-payments-settlement-contract:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-settlement-contract.yml')
     uses: ./.github/workflows/payments-settlement-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
   suite-payments-subscription-recurrence-contract:
     needs: impact
     if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-subscription-recurrence-contract.yml')
     uses: ./.github/workflows/payments-subscription-recurrence-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
   quality:
     name: quality
@@ -290,20 +304,33 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           package-manager-cache: false
+      - name: Install locked proof dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts --prefer-offline
+      - name: Download selected suite execution receipts
+        if: needs.impact.result == 'success' && needs.impact.outputs.scheduled_suites != '[]'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: ci-suite-*-${{ github.run_id }}-*
+          path: .ci-suite-receipts
+          merge-multiple: false
       - name: Require every selected suite and core gate to succeed
         env:
           CI_SELECTED_SUITES: ${{ needs.impact.outputs.scheduled_suites }}
           CI_JOB_RESULTS: ${{ toJSON(needs) }}
+          CI_RECEIPTS_DIR: .ci-suite-receipts
         run: node tooling/ci/suite-scheduler.mjs --verify
 
       - name: Upload exact-source Quality child proof
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ci-quality-${{ github.run_id }}
+          name: ci-quality-${{ github.run_id }}-${{ github.run_attempt }}
           path: ci-quality-proof.json
           if-no-files-found: error
           retention-days: 30
