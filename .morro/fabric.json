@@ -43,7 +43,7 @@
     "required-skipped-evidence-is-failure",
     "auto-merge-only-after-merge-ready",
     "external-effects-require-verifiable-evidence",
-    "termux-heartbeat-singleton",
+    "selected-executor-control",
     "zero-active-expired-claims",
     "single-integration-train-authority",
     "single-release-candidate",

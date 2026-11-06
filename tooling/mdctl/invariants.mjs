@@ -27,6 +27,44 @@ function result(id, title, status, reason, critical = true) {
   return { id, title, status, reason, critical };
 }
 
+export function validateExecutorTarget(value) {
+  if (!["github", "termux"].includes(value))
+    throw new Error("EXECUTOR_TARGET_INVALID");
+  return value;
+}
+
+// Read/control capability only; this does not authorize dispatch or a switch.
+export function executorControlState({ executor, observed, termux } = {}) {
+  if (!["github", "termux"].includes(executor?.target)) return "BLOCKED";
+  if (
+    !SHA.test(observed?.mainSha ?? "") ||
+    observed.mainShaAtEnd !== observed.mainSha ||
+    ![
+      "main",
+      "mainRecheck",
+      "pullRequests",
+      "pullRequestsRecheck",
+      "claims",
+    ].every((name) => observed.sources?.[name]?.state === "AVAILABLE")
+  )
+    return "NOT_PROVEN";
+  if (executor.target === "termux") {
+    const heartbeat = Date.parse(
+      termux?.details?.[0]?.fields?.heartbeat_utc ?? "",
+    );
+    const age = Date.now() - heartbeat;
+    if (
+      termux?.state !== "HEALTHY" ||
+      termux.details?.length !== 1 ||
+      !Number.isFinite(age) ||
+      age < 0 ||
+      age > 5 * 60 * 1000
+    )
+      return "BLOCKED";
+  }
+  return "PASS";
+}
+
 function evidenceFields(prefix) {
   return {
     state: prefix + "State",
@@ -240,6 +278,7 @@ export async function loadInvariantContextAtMain({
 export function evaluateInvariants({
   observed,
   termux,
+  executor,
   integrationQueue,
   releaseState,
   ownership,
@@ -273,11 +312,15 @@ export function evaluateInvariants({
   checks.push(
     result(
       "INV-001",
-      "exactly one canonical Termux heartbeat",
-      termux?.state === "HEALTHY" ? "PASS" : "FAIL",
-      termux?.state === "HEALTHY"
-        ? "one fresh protocol-v2 Native Agent heartbeat"
-        : "heartbeat singleton, freshness or identity is not proven",
+      "selected executor has current control capability",
+      executorControlState({ executor, observed, termux }) === "PASS"
+        ? "PASS"
+        : "FAIL",
+      executor?.target === "github"
+        ? "GitHub control requires available exact-main sources; tablet heartbeat is not selected"
+        : executor?.target === "termux"
+          ? "Termux control additionally requires one fresh protocol-v2 Native Agent heartbeat"
+          : "selected executor is unknown",
     ),
   );
 

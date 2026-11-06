@@ -1,18 +1,23 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   collectObservedState,
   githubApi,
+  localWorkspace,
+  probeRuntime,
   pullRequestIdentity,
   renderSummary,
+  validateRepository,
 } from "../control-state/status.mjs";
 import {
   collectTermuxHeartbeat,
   evaluateInvariants,
   loadInvariantContextAtMain,
   renderInvariantReport,
+  validateExecutorTarget,
 } from "./invariants.mjs";
 import { runTaskCli } from "./task-lifecycle.mjs";
 import { runClaimCli } from "./claim-lifecycle.mjs";
@@ -25,12 +30,80 @@ import {
   collectLivePullWork,
   evaluateDependenciesAtMain,
 } from "./scheduler-live.mjs";
-import { validateChangeSetV2 } from "./changeset-v2.mjs";
+import { canonicalJson, validateChangeSetV2 } from "./changeset-v2.mjs";
 import { runReconcileCli } from "./reconcile.mjs";
 import {
   buildDispatchRequest,
   verifyDispatchReadback,
 } from "./dispatch-runtime.mjs";
+
+const canonicalSnapshots = new WeakMap();
+const captureOptionNames = new Set([
+  "repository",
+  "stagingUrl",
+  "productionUrl",
+  "localDirectory",
+  "executorTarget",
+]);
+const snapshotDigest = (value) =>
+  createHash("sha256").update(canonicalJson(value)).digest("hex");
+
+function freezeSnapshot(value, seen = new WeakSet()) {
+  if (!value || typeof value !== "object" || seen.has(value)) return value;
+  seen.add(value);
+  for (const child of Object.values(value)) freezeSnapshot(child, seen);
+  return Object.freeze(value);
+}
+
+function canonicalCaptureOptions(options) {
+  if (
+    !options ||
+    typeof options !== "object" ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(options))
+  )
+    throw new Error("CANONICAL_CAPTURE_OPTIONS_INVALID");
+  const result = Object.create(null);
+  for (const name of Reflect.ownKeys(options)) {
+    const descriptor = Object.getOwnPropertyDescriptor(options, name);
+    if (
+      !captureOptionNames.has(name) ||
+      !Object.hasOwn(descriptor, "value") ||
+      (descriptor.value !== undefined &&
+        (typeof descriptor.value !== "string" || !descriptor.value))
+    )
+      throw new Error("CANONICAL_CAPTURE_OPTIONS_INVALID");
+    if (descriptor.value !== undefined) result[name] = descriptor.value;
+  }
+  if (result.repository) validateRepository(result.repository);
+  if (result.executorTarget !== undefined)
+    validateExecutorTarget(result.executorTarget);
+  return Object.freeze(result);
+}
+
+// No payload, caller transport, probe, workspace reader, clock or producer can
+// mint this binding. Serialization and copies intentionally lose provenance.
+export async function captureCanonicalSnapshot(options = {}) {
+  const value = await snapshot({
+    ...canonicalCaptureOptions(options),
+    api: githubApi,
+    probe: probeRuntime,
+    workspace: localWorkspace,
+    now: () => new Date().toISOString(),
+  });
+  canonicalSnapshots.set(value, snapshotDigest(value));
+  return value;
+}
+
+export function isCanonicalLiveSnapshot(value) {
+  const expected =
+    value && typeof value === "object" && canonicalSnapshots.get(value);
+  if (!expected || !Object.isFrozen(value)) return false;
+  try {
+    return snapshotDigest(value) === expected;
+  } catch {
+    return false;
+  }
+}
 
 function parseOptions(args, env = process.env) {
   const explicit = args[0] && !args[0].startsWith("--");
@@ -42,6 +115,7 @@ function parseOptions(args, env = process.env) {
     stagingUrl: env.MORRO_STAGING_URL,
     productionUrl: env.MORRO_PRODUCTION_URL,
     localDirectory: process.cwd(),
+    executorTarget: "github",
   };
   let strict = false;
   let json = false;
@@ -53,9 +127,13 @@ function parseOptions(args, env = process.env) {
     else if (arg === "--json") json = true;
     else if (arg === "--summary") summary = true;
     else if (
-      ["--repo", "--staging-url", "--production-url", "--local-dir"].includes(
-        arg,
-      )
+      [
+        "--repo",
+        "--staging-url",
+        "--production-url",
+        "--local-dir",
+        "--executor",
+      ].includes(arg)
     ) {
       const value = rest[++i];
       if (!value || value.startsWith("--"))
@@ -64,6 +142,8 @@ function parseOptions(args, env = process.env) {
       if (arg === "--staging-url") config.stagingUrl = value;
       if (arg === "--production-url") config.productionUrl = value;
       if (arg === "--local-dir") config.localDirectory = value;
+      if (arg === "--executor")
+        config.executorTarget = validateExecutorTarget(value);
     } else {
       throw new Error("ARGUMENT_INVALID:" + arg);
     }
@@ -98,16 +178,25 @@ export function attachLiveSchedulerState(observed, liveWork, policy) {
     liveSchedulerPlan,
     liveSchedulerWork: liveWork.items.map((item) => ({
       prNumber: item.prNumber ?? null,
+      repository: observed.repository ?? null,
+      headSha: item.headSha ?? null,
+      branch: item.branch ?? null,
+      baseSha: item.changeSet?.baseSha ?? null,
       changeSetId: item.changeSet?.id ?? null,
+      claimExpiresAt: item.claim?.expiresAt ?? null,
       objective: item.changeSet?.objective ?? null,
       state: item.changeSet?.state ?? null,
       trustAuthority: item.trust?.authority ?? null,
+      trust: item.trust ?? null,
       invalid: item.invalid ?? null,
     })),
   };
 }
 
 export async function snapshot(config = {}) {
+  const executor = {
+    target: validateExecutorTarget(config.executorTarget ?? "github"),
+  };
   const policy = await loadSchedulerPolicy();
   const api = config.api ?? githubApi;
   const repository =
@@ -154,7 +243,12 @@ export async function snapshot(config = {}) {
   };
   // Only provider transport is injectable; work/projection producers stay canonical.
   const composition = Promise.all([
-    collectTermuxHeartbeat({ api }),
+    executor.target === "termux"
+      ? collectTermuxHeartbeat({ api })
+      : Promise.resolve({
+          state: "NOT_REQUIRED",
+          reason: "GITHUB_CONTROL_SELECTED",
+        }),
     collectLivePullWork({ repository, policy, api: workApi }),
   ]).then(
     (values) => ({ values }),
@@ -203,14 +297,16 @@ export async function snapshot(config = {}) {
   const invariants = evaluateInvariants({
     observed: observedWithLive,
     termux,
+    executor,
     ...control,
   });
-  return {
+  return freezeSnapshot({
     schemaVersion: 1,
     kind: "TDP_MDCTL_BOOTSTRAP",
     controlPlaneVersion: "3.2",
     observed: observedWithLive,
     termux,
+    executor,
     controlProjection: {
       authority: control.projectionAuthority,
       sha: control.projectionSha,
@@ -220,7 +316,7 @@ export async function snapshot(config = {}) {
       mainSha: liveWork.mainSha,
     },
     invariants,
-  };
+  });
 }
 
 export async function assertCurrentMainUnchanged({

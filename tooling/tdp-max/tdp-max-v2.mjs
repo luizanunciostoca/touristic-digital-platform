@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { isCanonicalLiveSnapshot } from "../mdctl/mdctl.mjs";
+import { selectLatestWorkflowRuns } from "../control-state/status.mjs";
+import { executorControlState } from "../mdctl/invariants.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
 const EVIDENCE_STATUSES = new Set(
@@ -213,9 +216,9 @@ export function buildBootstrapReport({
     }
   }
 
-  const termuxHealthy = mdctl?.termux?.state === "HEALTHY";
-  checks["termux-fallback"] = termuxHealthy ? "PASS" : "BLOCKED";
-  if (!termuxHealthy) blockers.push("TERMUX_FALLBACK_NOT_HEALTHY");
+  checks["selected-executor-control"] = executorControlState(mdctl);
+  if (checks["selected-executor-control"] === "BLOCKED")
+    blockers.push("SELECTED_EXECUTOR_CONTROL_NOT_HEALTHY");
 
   const enterprise = enterpriseEvidence(external);
   if (profile === "cross-system") {
@@ -374,20 +377,30 @@ function findCandidatePr(
       pr?.repository === expectedRepository &&
       pr?.headSha === expectedCandidateSha &&
       pr?.branch === expectedBranch &&
-      pr?.baseSha === observed?.mainSha,
+      pr?.baseSha === observed?.mainSha &&
+      pr?.baseRef === "main" &&
+      pr?.baseRepository === expectedRepository &&
+      pr?.state === "open",
   );
-  return matches.length === 1 ? matches[0] : null;
+  return matches.length === 1 &&
+    observed.activePrs.filter((pr) => pr?.number === matches[0].number)
+      .length === 1
+    ? matches[0]
+    : null;
 }
 
 function findCandidateWork(observed, manifest, pr) {
   if (!pr) return null;
-  return (
-    (observed?.liveSchedulerWork ?? []).find(
-      (item) =>
-        item?.prNumber === pr.number &&
-        item?.changeSetId === manifest.changeSetId,
-    ) ?? null
+  const matches = (observed?.liveSchedulerWork ?? []).filter(
+    (item) =>
+      item?.prNumber === pr.number ||
+      item?.changeSetId === manifest.changeSetId,
   );
+  return matches.length === 1 &&
+    matches[0].prNumber === pr.number &&
+    matches[0].changeSetId === manifest.changeSetId
+    ? matches[0]
+    : null;
 }
 
 export function deriveLiveEngineeringProof({
@@ -401,12 +414,21 @@ export function deriveLiveEngineeringProof({
   const observed = liveStatus?.observed;
   const checks = {};
   const failures = [];
+  const canonicalCapture = isCanonicalLiveSnapshot(liveStatus);
+  const executorState = executorControlState(liveStatus);
+  const executorReady = executorState === "PASS";
+  checks["selected-executor-control"] = executorState;
+  if (!executorReady) failures.push("SELECTED_EXECUTOR_CONTROL_NOT_PROVEN");
+  checks["canonical-live-capture"] = canonicalCapture ? "PASS" : "NOT_PROVEN";
+  if (!canonicalCapture) failures.push("CANONICAL_LIVE_CAPTURE_REQUIRED");
+  // A caller clock may describe diagnostic fixtures, never freshen a real receipt.
+  const proofNow = canonicalCapture ? Date.now() : now;
 
   const generatedAt = Date.parse(observed?.generatedAt ?? "");
   const snapshotFresh =
     Number.isFinite(generatedAt) &&
-    generatedAt <= now + 300000 &&
-    now - generatedAt <= 600000;
+    generatedAt <= proofNow + 300000 &&
+    proofNow - generatedAt <= 600000;
   checks["live-snapshot-fresh"] = snapshotFresh ? "PASS" : "NOT_PROVEN";
   if (!snapshotFresh) failures.push("LIVE_SNAPSHOT_STALE_OR_UNKNOWN");
 
@@ -420,7 +442,7 @@ export function deriveLiveEngineeringProof({
   checks["live-main-stable"] = mainStable ? "PASS" : "NOT_PROVEN";
   if (!mainStable) failures.push("LIVE_MAIN_NOT_STABLE");
 
-  const sourceSet = ["pullRequests", "recentCi", "activeCi"];
+  const sourceSet = ["pullRequests", "pullRequestsRecheck", "claims"];
   const sourcesComplete = sourceSet.every((name) =>
     sourceAvailable(observed, name),
   );
@@ -471,7 +493,10 @@ export function deriveLiveEngineeringProof({
     repositoryBound &&
     SHA.test(expectedCandidateSha ?? "") &&
     typeof expectedBranch === "string" &&
-    expectedBranch.length > 0;
+    expectedBranch.length > 0 &&
+    observed?.localWorkspace?.headSha === expectedCandidateSha &&
+    observed.localWorkspace.branch === expectedBranch &&
+    observed.localWorkspace.dirty === false;
   checks["workspace-candidate-binding"] = workspaceCandidateBound
     ? "PASS"
     : "NOT_PROVEN";
@@ -490,12 +515,39 @@ export function deriveLiveEngineeringProof({
   const workValid =
     Boolean(work) &&
     work.invalid == null &&
-    work.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD";
+    work.repository === expectedRepository &&
+    work.headSha === expectedCandidateSha &&
+    work.branch === expectedBranch &&
+    work.baseSha === observed.mainSha &&
+    work.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD" &&
+    work.trust?.authority === work.trustAuthority &&
+    work.trust?.trusted === true &&
+    work.trust?.headSha === expectedCandidateSha;
   checks["live-candidate-authority"] = workValid ? "PASS" : "NOT_PROVEN";
   if (!workValid) failures.push("LIVE_CANDIDATE_AUTHORITY_NOT_TRUSTED");
 
+  const claims = (observed?.activeClaims ?? []).filter(
+    (claim) =>
+      claim?.id === manifest.changeSetId || claim?.branch === expectedBranch,
+  );
+  const claimCurrent =
+    claims.length === 1 &&
+    claims[0].id === manifest.changeSetId &&
+    claims[0].branch === expectedBranch &&
+    // The immutable work producer validates a candidate reanchor against main;
+    // the published registry can retain its prior base until that PR is merged.
+    SHA.test(claims[0].baseSha ?? "") &&
+    claims[0].activeByRegistry === true &&
+    Date.parse(claims[0].expiresAt) > proofNow &&
+    Date.parse(work?.claimExpiresAt) > proofNow &&
+    Date.parse(work.claimExpiresAt) <= Date.parse(claims[0].expiresAt);
+  checks["live-candidate-claim"] = claimCurrent ? "PASS" : "NOT_PROVEN";
+  if (!claimCurrent) failures.push("LIVE_CANDIDATE_CLAIM_EXPIRED_OR_UNKNOWN");
+
   const remoteProven =
     workValid &&
+    claimCurrent &&
+    pr?.draft === false &&
     REMOTE_PROVEN_STATES.has(work.state) &&
     work.state !== "REMOTE_PROVEN" &&
     work.state !== "COMPOSITION_PROVEN";
@@ -523,34 +575,27 @@ export function deriveLiveEngineeringProof({
     failures.push("LIVE_CRITICAL_INVARIANTS_UNRESOLVED");
   }
 
-  const activeRuns = Array.isArray(observed?.ci?.activeRuns)
-    ? observed.ci.activeRuns
-    : null;
-  const recentRuns = Array.isArray(observed?.ci?.recentRuns)
-    ? observed.ci.recentRuns
-    : null;
-  const activeCandidateRuns =
-    activeRuns?.filter((run) => run?.headSha === expectedCandidateSha) ?? [];
-  const candidateRuns =
-    recentRuns?.filter((run) => run?.headSha === expectedCandidateSha) ?? [];
-  const completed = candidateRuns.filter((run) => run.status === "completed");
-  const ciSettled =
-    activeRuns !== null &&
-    recentRuns !== null &&
-    activeCandidateRuns.length === 0 &&
-    candidateRuns.every((run) => run.status === "completed");
-  const ciSucceeded =
-    candidateRuns.length > 0 &&
-    completed.length === candidateRuns.length &&
-    completed.every(
-      (run) => run.conclusion === "success" && Number.isSafeInteger(run.id),
-    );
+  const ciSelection = selectLatestWorkflowRuns(observed?.ci?.candidateRuns, {
+    headSha: expectedCandidateSha,
+    branch: expectedBranch,
+    prNumber: pr?.number,
+    baseSha: observed?.mainSha,
+  });
+  const candidateCiCaptured =
+    Boolean(pr) && sourceAvailable(observed, "candidateCi:" + pr.number);
+  const ciSettled = candidateCiCaptured && ciSelection.settled;
+  const ciSucceeded = candidateCiCaptured && ciSelection.succeeded;
   checks["live-ci-settled"] = ciSettled ? "PASS" : "NOT_PROVEN";
   checks["live-ci-result"] = ciSucceeded ? "PASS" : "NOT_PROVEN";
   if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE_OR_UNKNOWN");
   if (!ciSucceeded) failures.push("CANDIDATE_CI_RESULT_NOT_PROVEN");
 
-  const controlsClear = blockersClear && schedulerClear && invariantsClear;
+  const controlsClear =
+    blockersClear && schedulerClear && invariantsClear && executorReady;
+  if (!canonicalCapture)
+    for (const key of Object.keys(checks)) {
+      if (checks[key] === "PASS") checks[key] = "NOT_PROVEN";
+    }
 
   return {
     schemaVersion: 1,
@@ -560,15 +605,29 @@ export function deriveLiveEngineeringProof({
     prNumber: pr?.number ?? null,
     changeSetState: work?.state ?? null,
     trustAuthority: work?.trustAuthority ?? null,
-    ciRunIds: completed.map((run) => run.id),
+    evidenceMode: canonicalCapture
+      ? "CANONICAL_LIVE_CAPTURE"
+      : "UNTRUSTED_DIAGNOSTIC",
+    ciRunIds: ciSelection.selected.map((run) => run.id),
+    supersededCiRunIds: [
+      ...new Set(ciSelection.superseded.map((run) => run.id)),
+    ],
+    missingCiWorkflows: ciSelection.missing,
+    invalidCiInputs: ciSelection.invalid,
+    ciSelection: {
+      settled: ciSelection.settled,
+      succeeded: ciSelection.succeeded,
+    },
     ciHeadSha: expectedCandidateSha,
     checks,
     failures: [...new Set(failures)],
-    currentMainMatches,
-    exactCandidate,
-    remoteProven,
-    controlsClear,
+    currentMainMatches: canonicalCapture && currentMainMatches,
+    exactCandidate: canonicalCapture && exactCandidate,
+    remoteProven: canonicalCapture && remoteProven,
+    controlsClear: canonicalCapture && controlsClear,
     proven:
+      canonicalCapture &&
+      executorReady &&
       snapshotFresh &&
       mainStable &&
       sourcesComplete &&
@@ -727,7 +786,10 @@ export function evaluateFinalGate({
   return {
     schemaVersion: 1,
     kind: "TDP_MAX_FINAL_GATE_V2",
-    authorityMode: "MDCTL_LIVE_PROJECTION",
+    authorityMode:
+      liveProof.evidenceMode === "CANONICAL_LIVE_CAPTURE"
+        ? "MDCTL_LIVE_PROJECTION"
+        : "UNTRUSTED_DIAGNOSTIC",
     lifecycleAuthority: finalGate.lifecycleAuthority,
     releaseAuthority: finalGate.releaseAuthority,
     profile: manifest.profile,
