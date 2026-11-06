@@ -136,6 +136,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-06T19:09:09.252Z"
+    },
+    "MD-ITACARE-CENSUS-MAINTENANCE-20261106": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/ci-census-maintenance-20261106",
+      "baseSha": "3febabdade96c4143c80747c904fb8b11536413a",
+      "paths": [
+        ".github/workflows/itacare-product-candidate-proof.yml",
+        "tooling/ci/itacare-activation-census.mjs",
+        "tooling/ci/itacare-activation-census.test.mjs",
+        ".morro/changesets/MD-ITACARE-CENSUS-MAINTENANCE-20261106.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-06T16:30:00.000Z"
     }
   }
 }
