@@ -325,12 +325,13 @@ function compose(authApi, storage, { enabled = true, ticket } = {}) {
     signingSecret,
     clock,
   });
+  const findInventoryById = vi.fn().mockResolvedValue(null);
   const dependencies = {
     enabled,
     authorization: createTicketingAuthorizationPort({ authApi }),
     ticketing,
     tickets: storage.tickets,
-    reservations: { findInventoryById: async () => null },
+    reservations: { findInventoryById },
     reads: { listInventory: async () => [] },
     holders: {},
     reservationOrders: {},
@@ -353,7 +354,13 @@ function compose(authApi, storage, { enabled = true, ticket } = {}) {
     publicTransport: { handle },
     audit: () => undefined,
   });
-  return { api, transport, handle, ownership: ownership.state };
+  return {
+    api,
+    transport,
+    handle,
+    ownership: ownership.state,
+    findInventoryById,
+  };
 }
 
 async function fixture({ businessId = "tenant-a", businessIds } = {}) {
@@ -781,12 +788,14 @@ it("D02 denies capability before Content-Type and preserves the consumer session
     const quote = await hostCall(
       f.api,
       request(`${prefix}/quote`, {
+        method: "GET",
         headers,
         body: { inventoryId: "tin_d02_missing_fixture", quantity: 1 },
       }),
     );
     expect(quote.statusCode).toBe(401);
     expect(quote.data.error).toBe("AUTH_REQUIRED");
+    expect(f.findInventoryById).not.toHaveBeenCalled();
     const inventory = await hostCall(
       f.api,
       request(`${prefix}/inventory`, { method: "GET" }),

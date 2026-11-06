@@ -157,7 +157,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/d02-guest-quote-method-guard-20261106",
-      "baseSha": "351ced2eb901d6f591ac8a6d5f4c943fa34481b1",
+      "baseSha": "fb304a52514f775575d1c1074ed229e8009ad21a",
       "paths": [
         "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs",
         ".morro/changesets/MD-D02-GUEST-QUOTE-METHOD-GUARD-20261106.json"
