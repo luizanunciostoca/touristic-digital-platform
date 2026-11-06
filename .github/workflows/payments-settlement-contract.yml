@@ -2,6 +2,10 @@ name: Payments Settlement Contract
 
 on:
   workflow_call:
+    inputs:
+      ci_selected_suites:
+        type: string
+        required: true
   workflow_dispatch:
 
 permissions:
@@ -34,17 +38,38 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/ci-bootstrap
       - name: Validate settlement domain contracts
+        id: ci_command_01
         run: |
           pnpm --filter @touristic/financial lint
           pnpm --filter @touristic/financial typecheck
           pnpm --filter @touristic/financial test
           pnpm --filter @touristic/financial build
       - name: Validate settlement server contracts
+        id: ci_command_02
         run: |
           pnpm --filter @touristic/financial-server lint
           pnpm --filter @touristic/financial-server typecheck
           pnpm --filter @touristic/financial-server exec vitest run src/sandbox-settlement-provider.test.ts
       - name: Validate durable allocation, settlement and refund recovery
+        id: ci_command_03
         run: pnpm --filter @touristic/financial-server test:settlement-integration
       - name: Build settlement server boundary
+        id: ci_command_04
         run: pnpm --filter @touristic/financial-server build
+
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["payments-settlement-contract.yml"]'), 'payments-settlement-contract.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["payments-settlement-contract.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt payments-settlement-contract.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-payments-settlement-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

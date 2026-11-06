@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "selector": "tooling/ci/scheduled-suites.json",
+  "workflows": {
+    "control-center-browser-contract.yml": {
+      "jobId": "control-center-browser",
+      "preservedExecutionDigest": "sha256:585001e6a69ff144aca754741aafd083913a1725e727202fbdbc19078d681493",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Install deterministic Chromium",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Build Control Center runtime graph",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Start authenticated Control Center runtime",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Validate Control Center browser, security and responsive contracts",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_05",
+          "name": "Validate final Control Center completion journeys",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_06",
+          "name": "Show Control Center diagnostics",
+          "required": false,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_07",
+          "name": "Stop Control Center runtime",
+          "required": false,
+          "semantic": false
+        }
+      ]
+    },
+    "control-center-visual-golden-v1.yml": {
+      "jobId": "visual-golden-v1",
+      "preservedExecutionDigest": "sha256:eaa0c540cc08ad0ba89cc9dbd4158b6f6e2e0a5c6fd6875b42f4b807f9a3bf49",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Require the scheduler source identity",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Check Wave 4 formatting",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Verify baseline inventory",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Install deterministic Chromium and image diff dependencies",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_05",
+          "name": "Clean build runtime graph",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_06",
+          "name": "Start deterministic authenticated Control Center",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_07",
+          "name": "Validate manual visual conformance",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_08",
+          "name": "Prove the golden suite rejects deliberate regressions",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_09",
+          "name": "Record exact-head evidence identity",
+          "required": false,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_10",
+          "name": "Show diagnostics",
+          "required": false,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_11",
+          "name": "Stop runtime",
+          "required": false,
+          "semantic": false
+        }
+      ]
+    },
+    "payments-operational-ledger-contract.yml": {
+      "jobId": "operational-ledger-contract",
+      "preservedExecutionDigest": "sha256:b234a30314b5b7003ea67e138386a5cf2bbff9565b896864fd480f6e86b98835",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Verified accounting unit and recovery contracts",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Approval and reversal MySQL integration",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Build composed Financial runtime",
+          "required": true,
+          "semantic": false
+        }
+      ]
+    },
+    "payments-persistence-integration.yml": {
+      "jobId": "mysql-integration",
+      "preservedExecutionDigest": "sha256:7574de1d5a95efb5d520685d78f6dca4585718ce39678fb862c5d8e5d6b51d69",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Ordering MySQL integration",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Financial MySQL integration",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Checkout application MySQL integration",
+          "required": true,
+          "semantic": true
+        }
+      ]
+    },
+    "payments-sandbox-provider-contract.yml": {
+      "jobId": "sandbox-provider-contract",
+      "preservedExecutionDigest": "sha256:bef23bdf94bc76dd5c0c5cd30aed9e39c175a5d34441f408d35e9e3f814c0146",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Financial provider unit contract",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Ordering provider composition contract",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Local sandbox HTTP wire and idempotency contract",
+          "required": true,
+          "semantic": true
+        }
+      ]
+    },
+    "payments-settlement-contract.yml": {
+      "jobId": "settlement-contract",
+      "preservedExecutionDigest": "sha256:be83491b1db125124ef61c8d3d4bfb598b99321f75894f5e2723a268f135c433",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Validate settlement domain contracts",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Validate settlement server contracts",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Validate durable allocation, settlement and refund recovery",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Build settlement server boundary",
+          "required": true,
+          "semantic": false
+        }
+      ]
+    },
+    "payments-subscription-recurrence-contract.yml": {
+      "jobId": "recurrence-contract",
+      "preservedExecutionDigest": "sha256:a14003204b84b94ae241d3b8a24f6dfe62ac183609a22b804149f6cc65e2225a",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Build Financial package dependency",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Ordering recurrence domain and application contracts",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Ordering durable Subscription persistence",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Build server runtime entrypoints",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_05",
+          "name": "Payments server authority bootstrap",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_06",
+          "name": "Payments browser authority bootstrap",
+          "required": true,
+          "semantic": true
+        }
+      ]
+    }
+  }
+}

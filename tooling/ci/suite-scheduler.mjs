@@ -1,9 +1,16 @@
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeFiles } from "./impact-analyzer.mjs";
+import {
+  executionPlan,
+  loadCoverage,
+  readReceipts,
+  sourceIdentity,
+  verifyExecutionProof,
+  verifyReceipts,
+} from "./workflow-coverage.mjs";
 
 export const suiteManifest = JSON.parse(
   readFileSync(new URL("./scheduled-suites.json", import.meta.url), "utf8"),
@@ -181,7 +188,7 @@ export function buildQualityProof(
   selected,
   needs,
   sourceSha,
-  { treeSha, lockfileDigest } = {},
+  { treeSha, lockfileDigest, executionProof } = {},
 ) {
   if (!exactSha(sourceSha))
     throw new Error("Quality proof requires an exact source SHA");
@@ -190,6 +197,14 @@ export function buildQualityProof(
   if (!sha256Digest(lockfileDigest))
     throw new Error("Quality proof requires a lockfile SHA-256 digest");
   verifySuiteResults(selected, needs);
+  verifyExecutionProof(executionProof, selected, needs);
+  for (const [key, value] of Object.entries({
+    sourceSha,
+    treeSha,
+    lockfileDigest,
+  }))
+    if (executionProof.plan[key] !== value)
+      throw new Error("Quality proof execution source identity mismatch");
   const body = {
     schemaVersion: 2,
     sourceSha,
@@ -197,6 +212,7 @@ export function buildQualityProof(
     lockfileDigest,
     selected,
     needs,
+    executionProof,
     result: "PASS",
   };
   return { ...body, artifactDigest: digestJson(body) };
@@ -217,6 +233,10 @@ export function verifyQualityProof(proof) {
   const { artifactDigest, ...body } = proof;
   if (digestJson(body) !== artifactDigest)
     throw new Error("Quality proof artifact digest mismatch");
+  verifyExecutionProof(proof.executionProof, proof.selected, proof.needs);
+  for (const key of ["sourceSha", "treeSha", "lockfileDigest"])
+    if (proof.executionProof.plan[key] !== proof[key])
+      throw new Error("Quality proof execution source identity mismatch");
   return { sourceSha: proof.sourceSha, result: "PASS" };
 }
 
@@ -227,16 +247,19 @@ if (
   if (process.argv[2] === "--verify") {
     const selected = JSON.parse(process.env.CI_SELECTED_SUITES || "null");
     const needs = JSON.parse(process.env.CI_JOB_RESULTS || "null");
-    const sourceSha = process.env.GITHUB_SHA;
-    const treeSha = execFileSync("git", ["rev-parse", `${sourceSha}^{tree}`], {
-      encoding: "utf8",
-    }).trim();
-    const lockfileDigest =
-      "sha256:" +
-      createHash("sha256").update(readFileSync("pnpm-lock.yaml")).digest("hex");
+    const context = loadCoverage();
+    const identity = sourceIdentity();
+    const { sourceSha, treeSha, lockfileDigest } = identity;
+    const executionProof = verifyReceipts(
+      executionPlan(selected, identity, context),
+      readReceipts(process.env.CI_RECEIPTS_DIR || ".ci-suite-receipts"),
+      needs,
+      context,
+    );
     const proof = buildQualityProof(selected, needs, sourceSha, {
       treeSha,
       lockfileDigest,
+      executionProof,
     });
     verifyQualityProof(proof);
     writeFileSync(
