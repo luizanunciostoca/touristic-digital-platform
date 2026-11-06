@@ -18,7 +18,406 @@ const text = (value, limit = 200) =>
   typeof value === "string"
     ? value.replace(/[\u0000-\u001f\u007f]/gu, "").slice(0, limit)
     : null;
-const sha = (value) => (SHA.test(value ?? "") ? value : null);
+const sha = (value) =>
+  typeof value === "string" && SHA.test(value) ? value : null;
+const positiveInteger = (value) => Number.isSafeInteger(value) && value > 0;
+const identityText = (value) =>
+  typeof value === "string" &&
+  value.length > 0 &&
+  !/[\u0000-\u001f\u007f]/u.test(value)
+    ? value
+    : null;
+
+// GitHub timestamps are UTC ISO instants. Date.parse alone also accepts values
+// such as "0" and normalizes impossible calendar dates, neither of which proves order.
+function workflowTimestamp(value) {
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/u.test(value)
+  )
+    return NaN;
+  const time = Date.parse(value);
+  const canonical = value.includes(".")
+    ? value.replace(
+        /\.(\d{1,3})Z$/u,
+        (_, fraction) => `.${fraction.padEnd(3, "0")}Z`,
+      )
+    : value.replace(/Z$/u, ".000Z");
+  return Number.isFinite(time) && new Date(time).toISOString() === canonical
+    ? time
+    : NaN;
+}
+
+function workflowRunOrdered(run) {
+  const created = workflowTimestamp(run.createdAt);
+  const updated = workflowTimestamp(run.updatedAt);
+  return (
+    positiveInteger(run.id) &&
+    positiveInteger(run.workflowId) &&
+    positiveInteger(run.runAttempt) &&
+    Number.isFinite(created) &&
+    Number.isFinite(updated) &&
+    created <= updated
+  );
+}
+
+export const ENGINEERING_CI_WORKFLOWS = Object.freeze([
+  ".github/workflows/quality.yml",
+  ".github/workflows/morro-merge-gate.yml",
+]);
+const ENGINEERING_CI_JOBS = Object.freeze({
+  ".github/workflows/quality.yml": {
+    name: "quality",
+    step: "Require every selected suite and core gate to succeed",
+  },
+  ".github/workflows/morro-merge-gate.yml": {
+    name: "morro/merge-gate",
+    step: "Run trusted merge-gate policy",
+  },
+});
+
+export function requiredWorkflowJobVerified(run, jobs, checks, repository) {
+  if (
+    !run ||
+    !positiveInteger(run.id) ||
+    !positiveInteger(run.workflowId) ||
+    !positiveInteger(run.runAttempt) ||
+    !sha(run.headSha) ||
+    !Array.isArray(jobs) ||
+    !Array.isArray(checks)
+  )
+    return false;
+  try {
+    validateRepository(repository);
+  } catch {
+    return false;
+  }
+  if (
+    typeof run.path !== "string" ||
+    !Object.hasOwn(ENGINEERING_CI_JOBS, run.path)
+  )
+    return false;
+  const contract = ENGINEERING_CI_JOBS[run.path];
+  const name = contract?.name;
+  const matches = jobs.filter((job) => job?.name === name);
+  if (!name || matches.length !== 1) return false;
+  const job = matches[0];
+  if (
+    !positiveInteger(job.id) ||
+    jobs.filter((item) => item?.id === job.id).length !== 1 ||
+    !positiveInteger(job.run_id) ||
+    job.run_id !== run.id ||
+    !positiveInteger(job.run_attempt) ||
+    job.run_attempt !== run.runAttempt ||
+    !sha(job.head_sha) ||
+    job.head_sha !== run.headSha ||
+    job.status !== "completed" ||
+    job.conclusion !== "success"
+  )
+    return false;
+  const assertions = (Array.isArray(job.steps) ? job.steps : []).filter(
+    (step) => step?.name === contract.step,
+  );
+  if (
+    assertions.length !== 1 ||
+    assertions[0].status !== "completed" ||
+    assertions[0].conclusion !== "success"
+  )
+    return false;
+  const linked = checks.filter(
+    (check) =>
+      check &&
+      (check.details_url === job.html_url ||
+        job.check_run_url ===
+          `https://api.github.com/repos/${repository}/check-runs/${check.id}`),
+  );
+  // A contradictory copy of the linked check must never disappear in some(success).
+  if (linked.length !== 1) return false;
+  const check = linked[0];
+  return (
+    positiveInteger(check.id) &&
+    Boolean(sha(check.head_sha)) &&
+    check.name === name &&
+    check.head_sha === run.headSha &&
+    check.status === "completed" &&
+    check.conclusion === "success" &&
+    check.app?.id === 15368 &&
+    check.app?.slug === "github-actions" &&
+    job.html_url ===
+      `https://github.com/${repository}/actions/runs/${run.id}/job/${job.id}` &&
+    check.details_url === job.html_url &&
+    job.check_run_url ===
+      `https://api.github.com/repos/${repository}/check-runs/${check.id}`
+  );
+}
+
+function workflowRunOrder(a, b) {
+  return (
+    workflowTimestamp(b.createdAt) - workflowTimestamp(a.createdAt) ||
+    b.id - a.id ||
+    b.runAttempt - a.runAttempt ||
+    workflowTimestamp(b.updatedAt) - workflowTimestamp(a.updatedAt) ||
+    Number(a.status === "completed") - Number(b.status === "completed")
+  );
+}
+
+function workflowPrBindings(run) {
+  return Array.isArray(run.pullRequests)
+    ? run.pullRequests
+        .map((pr) => [pr?.number, pr?.headSha, pr?.baseSha])
+        .sort((a, b) => a[0] - b[0])
+    : run.pullRequests;
+}
+
+function workflowRunSnapshot(run) {
+  return JSON.stringify([
+    run.id,
+    run.workflowId,
+    run.path,
+    run.headSha,
+    run.branch,
+    run.event,
+    run.runAttempt,
+    run.createdAt,
+    run.updatedAt,
+    run.status,
+    run.conclusion,
+    workflowPrBindings(run),
+  ]);
+}
+
+function workflowRunsContradict(run, other) {
+  if (run.id !== other.id) return false;
+  if (
+    ["workflowId", "path", "headSha", "branch", "event"].some(
+      (key) => run[key] !== other[key],
+    ) ||
+    workflowTimestamp(run.createdAt) !== workflowTimestamp(other.createdAt) ||
+    JSON.stringify(workflowPrBindings(run)) !==
+      JSON.stringify(workflowPrBindings(other))
+  )
+    return true;
+  const updated = workflowTimestamp(run.updatedAt);
+  const otherUpdated = workflowTimestamp(other.updatedAt);
+  if (run.runAttempt !== other.runAttempt)
+    return run.runAttempt > other.runAttempt
+      ? updated < otherUpdated
+      : otherUpdated < updated;
+  if (updated === otherUpdated)
+    return workflowRunSnapshot(run) !== workflowRunSnapshot(other);
+  if (run.status === "completed" && other.status === "completed")
+    return run.conclusion !== other.conclusion;
+  return (
+    (run.status === "completed" && updated < otherUpdated) ||
+    (other.status === "completed" && otherUpdated < updated)
+  );
+}
+
+export function summarizeWorkflowRun(run) {
+  return {
+    id: run?.id,
+    workflowId: run?.workflow_id,
+    path: identityText(run?.path),
+    headSha: sha(run?.head_sha),
+    branch: identityText(run?.head_branch),
+    status: identityText(run?.status),
+    conclusion: identityText(run?.conclusion),
+    event: identityText(run?.event),
+    runAttempt: run?.run_attempt,
+    createdAt: identityText(run?.created_at),
+    updatedAt: identityText(run?.updated_at),
+    pullRequests: Array.isArray(run?.pull_requests)
+      ? run.pull_requests.map((pr) => ({
+          number: pr?.number,
+          headSha: sha(pr?.head?.sha),
+          baseSha: sha(pr?.base?.sha),
+        }))
+      : null,
+  };
+}
+
+// Select the current run for each required workflow/context, never any old green.
+// A rerun supersedes an earlier attempt of the same run; it cannot supersede a
+// later workflow invocation (for example, a new PR review-state transition).
+export function selectLatestWorkflowRuns(
+  runs,
+  {
+    headSha,
+    branch,
+    baseSha,
+    prNumber,
+    requiredWorkflows = ENGINEERING_CI_WORKFLOWS,
+    requireJobProof = true,
+  } = {},
+) {
+  const invalid = [];
+  const selected = [];
+  const superseded = [];
+  const missing = [];
+  const unbound = [];
+  const supplied = Array.isArray(runs);
+  if (
+    !sha(headSha) ||
+    !sha(baseSha) ||
+    !identityText(branch) ||
+    !positiveInteger(prNumber) ||
+    typeof requireJobProof !== "boolean" ||
+    !Array.isArray(requiredWorkflows) ||
+    requiredWorkflows.length === 0 ||
+    requiredWorkflows.some((path) => !identityText(path)) ||
+    new Set(requiredWorkflows).size !== requiredWorkflows.length
+  )
+    return {
+      selected,
+      superseded,
+      missing,
+      invalid: ["CONTEXT_INVALID"],
+      settled: false,
+      succeeded: false,
+    };
+  const matching = (supplied ? runs : []).filter((run) => {
+    if (!run || typeof run !== "object") {
+      invalid.push(null);
+      return false;
+    }
+    // Exclude only explicit foreign contexts before considering missing identity.
+    // A missing/malformed head normalized to null is still potentially current.
+    if (
+      (identityText(run.event) && run.event !== "pull_request") ||
+      (identityText(run.branch) && run.branch !== branch) ||
+      (identityText(run.path) && !requiredWorkflows.includes(run.path))
+    )
+      return false;
+    const associations = Array.isArray(run.pullRequests)
+      ? run.pullRequests
+      : [];
+    const prIds = associations.map((pr) => pr?.number).filter(positiveInteger);
+    if (
+      new Set(prIds).size !== prIds.length ||
+      (sha(run.headSha) &&
+        associations.some(
+          (pr) => sha(pr?.headSha) && pr.headSha !== run.headSha,
+        ))
+    ) {
+      invalid.push(run.id ?? null);
+      unbound.push(run);
+      return false;
+    }
+    const bound =
+      Array.isArray(run.pullRequests) &&
+      run.pullRequests.length > 0 &&
+      run.pullRequests.every(
+        (pr) =>
+          positiveInteger(pr?.number) && sha(pr.headSha) && sha(pr.baseSha),
+      );
+    if (sha(run.headSha) && run.headSha !== headSha) return false;
+    const pr =
+      bound && run.pullRequests.find((item) => item.number === prNumber);
+    if (bound && (!pr || (pr.headSha === headSha && pr.baseSha !== baseSha)))
+      return false;
+    if (
+      !identityText(run.event) ||
+      !identityText(run.branch) ||
+      !identityText(run.path) ||
+      !sha(run.headSha) ||
+      !bound ||
+      !pr ||
+      pr.headSha !== headSha
+    ) {
+      unbound.push(run);
+      return false;
+    }
+    return true;
+  });
+  // Run IDs are global provider identities. A conflicting copy cannot evade the
+  // gate by changing its branch, event, head or workflow into a foreign context.
+  const relevantIds = new Set([...matching, ...unbound].map((run) => run.id));
+  for (const id of relevantIds) {
+    const copies = runs.filter(
+      (run) => run && typeof run === "object" && run.id === id,
+    );
+    if (
+      copies.some((run, index) =>
+        copies
+          .slice(index + 1)
+          .some((other) => workflowRunsContradict(run, other)),
+      )
+    )
+      invalid.push(id ?? null);
+  }
+  // Distinct required paths cannot share one workflow identity in this context.
+  // Explicit foreign runs were excluded above and do not redefine this mapping.
+  const workflowPaths = new Map();
+  for (const run of matching) {
+    if (!positiveInteger(run.workflowId)) continue;
+    const previous = workflowPaths.get(run.workflowId);
+    if (previous && previous !== run.path)
+      invalid.push("WORKFLOW_ID_PATH_CONFLICT:" + run.workflowId);
+    else workflowPaths.set(run.workflowId, run.path);
+  }
+  for (const path of requiredWorkflows) {
+    // Shared heads can be collected through several PR contexts. Only identical
+    // provider snapshots may share proof; an explicit negative is never hidden.
+    const snapshots = new Map();
+    for (const run of matching.filter((item) => item.path === path)) {
+      const key = workflowRunSnapshot(run);
+      const previous = snapshots.get(key);
+      if (
+        !previous ||
+        run.requiredJobVerified === false ||
+        (previous.requiredJobVerified !== false &&
+          run.requiredJobVerified === true)
+      )
+        snapshots.set(key, run);
+    }
+    const candidates = [...snapshots.values()];
+    if (candidates.length === 0) {
+      missing.push(path);
+      continue;
+    }
+    const valid = candidates.every(workflowRunOrdered);
+    if (!valid || new Set(candidates.map((run) => run.workflowId)).size !== 1) {
+      invalid.push(path);
+      continue;
+    }
+    candidates.sort(workflowRunOrder);
+    selected.push(candidates[0]);
+    superseded.push(...candidates.slice(1));
+  }
+  for (const run of unbound) {
+    const current = selected.find((item) => item.path === run.path);
+    const ordered =
+      current &&
+      current.workflowId === run.workflowId &&
+      workflowRunOrdered(run) &&
+      (current.id === run.id ||
+        workflowTimestamp(run.createdAt) <
+          workflowTimestamp(current.createdAt));
+    if (ordered && workflowRunOrder(current, run) < 0) superseded.push(run);
+    else invalid.push(run.id ?? null);
+  }
+  const complete =
+    supplied &&
+    invalid.length === 0 &&
+    missing.length === 0 &&
+    selected.length === requiredWorkflows.length &&
+    selected.length > 0;
+  return {
+    selected,
+    superseded,
+    missing,
+    invalid,
+    settled: complete && selected.every((run) => run.status === "completed"),
+    succeeded:
+      complete &&
+      selected.every(
+        (run) =>
+          run.status === "completed" &&
+          run.conclusion === "success" &&
+          (!requireJobProof || run.requiredJobVerified === true),
+      ),
+  };
+}
 
 export function validateRepository(value) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(value ?? ""))
