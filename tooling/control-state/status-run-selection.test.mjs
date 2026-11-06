@@ -252,6 +252,53 @@ test("provider run summarization retains attempt and PR binding", () => {
   ]);
 });
 
+test("one workflow ID cannot satisfy distinct required paths in the candidate context", () => {
+  for (const workflowId of [10, 20]) {
+    const quality = run({ workflowId });
+    const gate = { ...merge(), workflowId };
+    for (const runs of [
+      [quality, gate],
+      [gate, quality],
+    ]) {
+      for (const requireJobProof of [true, false]) {
+        const result = selectLatestWorkflowRuns(runs, {
+          ...context,
+          requireJobProof,
+        });
+        assert.equal(result.succeeded, false);
+        assert.equal(result.settled, false);
+        assert.ok(
+          result.invalid.includes("WORKFLOW_ID_PATH_CONFLICT:" + workflowId),
+        );
+      }
+    }
+  }
+});
+
+test("workflow ID comparisons remain scoped to the selected PR context", () => {
+  for (const patch of [
+    { event: "push" },
+    { branch: "other" },
+    { path: ".github/workflows/other.yml" },
+    {
+      headSha: BASE,
+      pullRequests: [{ number: 7, headSha: BASE, baseSha: BASE }],
+    },
+    { pullRequests: [{ number: 8, headSha: HEAD, baseSha: BASE }] },
+    { pullRequests: [{ number: 7, headSha: HEAD, baseSha: HEAD }] },
+  ]) {
+    const foreign = run({ id: 300, workflowId: 20, ...patch });
+    for (const pair of [
+      [run(), foreign],
+      [foreign, run()],
+    ]) {
+      const result = select(...pair);
+      assert.equal(result.succeeded, true, JSON.stringify(patch));
+      assert.deepEqual(result.invalid, []);
+    }
+  }
+});
+
 test("workflow success without an executed trusted required job is not proof", () => {
   assert.equal(select(run({ requiredJobVerified: false })).succeeded, false);
   const workflow = run();

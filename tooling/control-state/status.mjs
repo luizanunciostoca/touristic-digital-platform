@@ -345,6 +345,16 @@ export function selectLatestWorkflowRuns(
     )
       invalid.push(id ?? null);
   }
+  // Distinct required paths cannot share one workflow identity in this context.
+  // Explicit foreign runs were excluded above and do not redefine this mapping.
+  const workflowPaths = new Map();
+  for (const run of matching) {
+    if (!positiveInteger(run.workflowId)) continue;
+    const previous = workflowPaths.get(run.workflowId);
+    if (previous && previous !== run.path)
+      invalid.push("WORKFLOW_ID_PATH_CONFLICT:" + run.workflowId);
+    else workflowPaths.set(run.workflowId, run.path);
+  }
   for (const path of requiredWorkflows) {
     // Shared heads can be collected through several PR contexts. Only identical
     // provider snapshots may share proof; an explicit negative is never hidden.
