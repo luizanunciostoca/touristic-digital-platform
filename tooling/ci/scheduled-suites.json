@@ -116,6 +116,84 @@
         "services/financial/**",
         "services/ordering/**"
       ]
+    },
+    {
+      "workflow": "control-center-affiliates-contract.yml",
+      "jobId": "suite-control-center-affiliates-contract",
+      "paths": [
+        ".github/workflows/control-center-affiliates-contract.yml",
+        "apps/control-center/**",
+        "apps/morro-digital-platform/package.json",
+        "apps/morro-digital-platform/tooling/admin-api.mjs",
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs",
+        "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
+        "apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs",
+        "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "package.json",
+        "packages/affiliates/**",
+        "packages/auth/**",
+        "pnpm-lock.yaml",
+        "services/affiliates/**",
+        "services/auth/**"
+      ]
+    },
+    {
+      "workflow": "control-center-catalog-drafts.yml",
+      "jobId": "suite-control-center-catalog-drafts",
+      "paths": [
+        ".github/workflows/control-center-catalog-drafts.yml",
+        "apps/control-center/public/control-center-business-cms.js",
+        "apps/morro-digital-platform/src/ux/control-center-business-cms-contract.test.ts",
+        "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
+        "apps/morro-digital-platform/tooling/catalog-platform-runtime.mjs",
+        "apps/morro-digital-platform/tooling/control-center-catalog-drafts.mysql.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
+      ]
+    },
+    {
+      "workflow": "control-center-home-overview-v1-contract.yml",
+      "jobId": "suite-control-center-home-overview-v1-contract",
+      "paths": [
+        ".github/actions/ci-bootstrap/action.yml",
+        ".github/workflows/control-center-home-overview-v1-contract.yml",
+        "apps/control-center/**",
+        "apps/morro-digital-platform/src/ux/control-center-home-overview-v1-contract.test.ts",
+        "apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs",
+        "apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.node.mjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "packages/auth-browser/**",
+        "packages/auth/**",
+        "services/auth/**",
+        "services/destinations/**"
+      ]
+    },
+    {
+      "workflow": "control-center-responsive-accessibility-v1-contract.yml",
+      "jobId": "suite-control-center-responsive-accessibility-v1-contract",
+      "paths": [
+        ".github/actions/ci-bootstrap/action.yml",
+        ".github/workflows/control-center-responsive-accessibility-v1-contract.yml",
+        "apps/control-center/**",
+        "apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs"
+      ]
+    },
+    {
+      "workflow": "control-center-shell-v1-contract.yml",
+      "jobId": "suite-control-center-shell-v1-contract",
+      "paths": [
+        ".github/actions/ci-bootstrap/action.yml",
+        ".github/workflows/control-center-shell-v1-contract.yml",
+        "apps/control-center/**",
+        "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
+        "apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "packages/auth-browser/**",
+        "packages/auth/**",
+        "services/auth/**",
+        "services/destinations/**"
+      ]
     }
   ]
 }

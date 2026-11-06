@@ -265,6 +265,220 @@
           "semantic": true
         }
       ]
+    },
+    "control-center-affiliates-contract.yml": {
+      "jobId": "affiliates-admin-contract",
+      "preservedExecutionDigest": "sha256:e080ea1c2425478041f359062b8ebd3ce2aa76c0d4f7a5aca8f5ac523a44c588",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Build Affiliates and Auth owner boundaries",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Validate Control Center Affiliates orchestration",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Validate Affiliates owner contracts with MySQL",
+          "required": true,
+          "semantic": true
+        }
+      ]
+    },
+    "control-center-catalog-drafts.yml": {
+      "jobId": "mysql-acceptance",
+      "preservedExecutionDigest": "sha256:49fd719f7491b5295863c91e7278f0adb23aee40fede0a37c65d49ed45578faf",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Build canonical dependencies",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Catalog draft privacy acceptance",
+          "required": true,
+          "semantic": true
+        }
+      ]
+    },
+    "control-center-home-overview-v1-contract.yml": {
+      "jobId": "home-overview-v1",
+      "preservedExecutionDigest": "sha256:b85a47df296a58bddf91d6ee59cd8d9b15c38c9f8c4dfbe8183e0dbf551fcaef",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Check Wave 2 formatting",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Run Home source contract",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Run Home model edge cases",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Install deterministic Chromium",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_05",
+          "name": "Build runtime graph",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_06",
+          "name": "Start authenticated Control Center",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_07",
+          "name": "Validate Home in Chromium",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_08",
+          "name": "Show diagnostics",
+          "required": false,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_09",
+          "name": "Stop runtime",
+          "required": false,
+          "semantic": false
+        }
+      ]
+    },
+    "control-center-responsive-accessibility-v1-contract.yml": {
+      "jobId": "responsive-accessibility-v1",
+      "preservedExecutionDigest": "sha256:effeee459fa28c04f860228d7e1c08bd9bac0a2f0261fa18e27e4ad08d867fd9",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Check Wave 3 formatting",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Install deterministic Chromium and axe-core",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Build runtime graph",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Start authenticated Control Center",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_05",
+          "name": "Validate responsive accessibility contract",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_06",
+          "name": "Show diagnostics",
+          "required": false,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_07",
+          "name": "Stop runtime",
+          "required": false,
+          "semantic": false
+        }
+      ]
+    },
+    "control-center-shell-v1-contract.yml": {
+      "jobId": "shell-v1",
+      "preservedExecutionDigest": "sha256:abc703af479abb51af7e8f863f46de624cb122f22771a083a195ac1992a06fe6",
+      "commands": [
+        {
+          "id": "ci_command_01",
+          "name": "Check exact shell formatting",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_02",
+          "name": "Run shell source contract",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_03",
+          "name": "Install deterministic Chromium",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_04",
+          "name": "Build runtime graph",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_05",
+          "name": "Start authenticated Control Center",
+          "required": true,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_06",
+          "name": "Validate shell in mandatory viewports",
+          "required": true,
+          "semantic": true
+        },
+        {
+          "id": "ci_command_07",
+          "name": "Show diagnostics",
+          "required": false,
+          "semantic": false
+        },
+        {
+          "id": "ci_command_08",
+          "name": "Stop runtime",
+          "required": false,
+          "semantic": false
+        }
+      ]
     }
   }
 }

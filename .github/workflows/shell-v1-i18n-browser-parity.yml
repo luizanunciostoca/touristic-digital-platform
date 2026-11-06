@@ -51,7 +51,7 @@ jobs:
       - name: Build workspace
         run: pnpm -w build
       - name: Unit coverage
-        run: pnpm --filter @touristic/morro-digital-platform test -- shell-v1-i18n.test.ts browser-locale.test.ts public-onboarding-i18n.test.ts assistant-voice-adapter.test.ts
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run shell-v1-i18n.test.ts browser-locale.test.ts public-onboarding-i18n.test.ts assistant-voice-adapter.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2

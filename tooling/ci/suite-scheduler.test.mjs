@@ -62,7 +62,12 @@ function completeReport(overrides = {}) {
   };
 }
 const expectedManagedSuites = [
+  "control-center-affiliates-contract.yml",
   "control-center-browser-contract.yml",
+  "control-center-catalog-drafts.yml",
+  "control-center-home-overview-v1-contract.yml",
+  "control-center-responsive-accessibility-v1-contract.yml",
+  "control-center-shell-v1-contract.yml",
   "control-center-visual-golden-v1.yml",
   "payments-operational-ledger-contract.yml",
   "payments-persistence-integration.yml",
@@ -72,6 +77,50 @@ const expectedManagedSuites = [
 ];
 test("managed suite registry is exact for this rollout", () => {
   assert.deepEqual([...all].sort(), expectedManagedSuites);
+});
+test("MySQL1 keeps the union of legacy triggers for Affiliates and Catalog drafts", () => {
+  const contracts = {
+    "control-center-affiliates-contract.yml": [
+      ".github/workflows/control-center-affiliates-contract.yml",
+      "apps/control-center/**",
+      "apps/morro-digital-platform/package.json",
+      "apps/morro-digital-platform/tooling/admin-api.mjs",
+      "apps/morro-digital-platform/tooling/admin-api.test.mjs",
+      "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
+      "apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs",
+      "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs",
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+      "package.json",
+      "packages/affiliates/**",
+      "packages/auth/**",
+      "pnpm-lock.yaml",
+      "services/affiliates/**",
+      "services/auth/**",
+    ],
+    "control-center-catalog-drafts.yml": [
+      ".github/workflows/control-center-catalog-drafts.yml",
+      "apps/control-center/public/control-center-business-cms.js",
+      "apps/morro-digital-platform/src/ux/control-center-business-cms-contract.test.ts",
+      "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
+      "apps/morro-digital-platform/tooling/catalog-platform-runtime.mjs",
+      "apps/morro-digital-platform/tooling/control-center-catalog-drafts.mysql.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+    ],
+  };
+  for (const [workflow, paths] of Object.entries(contracts)) {
+    assert.deepEqual(
+      suiteManifest.suites.find((suite) => suite.workflow === workflow).paths,
+      paths,
+    );
+    for (const path of paths) {
+      const file = path.replace("**", "src/index.ts");
+      const report = analyzeFiles([file]);
+      if (report.classificationBlocked) {
+        assert.deepEqual(selectSuites(report), []);
+      } else assert.ok(selectSuites(report).includes(workflow), file);
+    }
+  }
+  assert.ok(!all.includes("control-center-content-contract.yml"));
 });
 test("visual migration retains trigger union and selects classified legacy paths", () => {
   const workflow = "control-center-visual-golden-v1.yml";
@@ -353,6 +402,9 @@ test("known critical changes stay deep while unclassified changes block", () => 
     "control-center-browser-contract.yml",
     "control-center-visual-golden-v1.yml",
     "payments-operational-ledger-contract.yml",
+    "control-center-affiliates-contract.yml",
+    "control-center-home-overview-v1-contract.yml",
+    "control-center-shell-v1-contract.yml",
   ]);
 
   const unknown = analyzeFiles(["unknown/runtime.ts"]);
@@ -506,6 +558,9 @@ test("scheduler reclassifies tampered file lists before narrowing coverage", () 
     "control-center-browser-contract.yml",
     "control-center-visual-golden-v1.yml",
     "payments-operational-ledger-contract.yml",
+    "control-center-affiliates-contract.yml",
+    "control-center-home-overview-v1-contract.yml",
+    "control-center-shell-v1-contract.yml",
   ]);
 
   const unknown = analyzeFiles(["docs/overview.md"]);
@@ -820,4 +875,54 @@ test("protected retirement engines retain critical deep coverage during migratio
   const unrelated = analyzeFiles(["tooling/ci/merged-retirements-example.mjs"]);
   assert.ok(!unrelated.domains.includes("cicd"));
   assert.equal(unrelated.risk, "HIGH");
+});
+
+test("UI2 preserves each original trigger path without bypassing classification", () => {
+  const contracts = {
+    "control-center-home-overview-v1-contract.yml": [
+      ".github/actions/ci-bootstrap/action.yml",
+      ".github/workflows/control-center-home-overview-v1-contract.yml",
+      "apps/control-center/**",
+      "apps/morro-digital-platform/src/ux/control-center-home-overview-v1-contract.test.ts",
+      "apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs",
+      "apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.node.mjs",
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+      "packages/auth-browser/**",
+      "packages/auth/**",
+      "services/auth/**",
+      "services/destinations/**",
+    ],
+    "control-center-responsive-accessibility-v1-contract.yml": [
+      ".github/actions/ci-bootstrap/action.yml",
+      ".github/workflows/control-center-responsive-accessibility-v1-contract.yml",
+      "apps/control-center/**",
+      "apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs",
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+    ],
+    "control-center-shell-v1-contract.yml": [
+      ".github/actions/ci-bootstrap/action.yml",
+      ".github/workflows/control-center-shell-v1-contract.yml",
+      "apps/control-center/**",
+      "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts",
+      "apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs",
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+      "packages/auth-browser/**",
+      "packages/auth/**",
+      "services/auth/**",
+      "services/destinations/**",
+    ],
+  };
+  for (const [workflow, paths] of Object.entries(contracts)) {
+    assert.deepEqual(
+      suiteManifest.suites.find((suite) => suite.workflow === workflow).paths,
+      paths,
+    );
+    for (const path of paths) {
+      const file = path.replace("**", "src/index.ts");
+      const report = analyzeFiles([file]);
+      if (report.classificationBlocked)
+        assert.deepEqual(selectSuites(report), []);
+      else assert.ok(selectSuites(report).includes(workflow), file);
+    }
+  }
 });

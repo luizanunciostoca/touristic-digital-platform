@@ -1,49 +1,18 @@
 name: Control Center Affiliates Contract
 
 on:
+  workflow_call:
+    inputs:
+      ci_selected_suites:
+        type: string
+        required: true
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
-    paths:
-      - ".github/workflows/control-center-affiliates-contract.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/package.json"
-      - "apps/morro-digital-platform/tooling/admin-api.mjs"
-      - "apps/morro-digital-platform/tooling/admin-api.test.mjs"
-      - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
-      - "apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs"
-      - "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs"
-      - "apps/morro-digital-platform/tooling/dev-server.mjs"
-      - "packages/affiliates/**"
-      - "packages/auth/**"
-      - "services/affiliates/**"
-      - "services/auth/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/control-center-affiliates-contract.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/package.json"
-      - "apps/morro-digital-platform/tooling/admin-api.mjs"
-      - "apps/morro-digital-platform/tooling/admin-api.test.mjs"
-      - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
-      - "apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs"
-      - "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs"
-      - "apps/morro-digital-platform/tooling/dev-server.mjs"
-      - "packages/affiliates/**"
-      - "packages/auth/**"
-      - "services/affiliates/**"
-      - "services/auth/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: control-center-affiliates-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: suite-control-center-affiliates-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -74,16 +43,37 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - id: ci_command_01
+        run: pnpm install --frozen-lockfile
       - name: Build Affiliates and Auth owner boundaries
+        id: ci_command_02
         run: |
           pnpm --filter @touristic/auth build
           pnpm --filter @touristic/affiliates build
           pnpm --filter @touristic/affiliates-server build
       - name: Validate Control Center Affiliates orchestration
+        id: ci_command_03
         run: |
           pnpm --filter @touristic/morro-digital-platform exec vitest run \
             tooling/admin-api.test.mjs \
             tooling/admin-domain-adapters.test.mjs
       - name: Validate Affiliates owner contracts with MySQL
+        id: ci_command_04
         run: pnpm --filter @touristic/affiliates-server test:integration
+
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["control-center-affiliates-contract.yml"]'), 'control-center-affiliates-contract.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["control-center-affiliates-contract.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt control-center-affiliates-contract.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-control-center-affiliates-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30
