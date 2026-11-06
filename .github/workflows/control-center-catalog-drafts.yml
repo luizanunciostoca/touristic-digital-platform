@@ -1,22 +1,17 @@
 name: Control Center Catalog Drafts Acceptance
 
 on:
-  pull_request:
-    paths:
-      [
-        ".github/workflows/control-center-catalog-drafts.yml",
-        "apps/control-center/public/control-center-business-cms.js",
-        "apps/morro-digital-platform/src/ux/control-center-business-cms-contract.test.ts",
-        "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
-        "apps/morro-digital-platform/tooling/catalog-platform-runtime.mjs",
-        "apps/morro-digital-platform/tooling/control-center-catalog-drafts.mysql.mjs",
-        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
-      ]
+  workflow_call:
+    inputs:
+      ci_selected_suites:
+        type: string
+        required: true
 
-permissions: { contents: read }
+permissions:
+  contents: read
 
 concurrency:
-  group: control-center-catalog-drafts-${{ github.event.pull_request.number || github.ref }}
+  group: suite-control-center-catalog-drafts-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -39,12 +34,32 @@ jobs:
         with: { version: 10.15.0 }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: { node-version: 22, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+      - id: ci_command_01
+        run: pnpm install --frozen-lockfile
       - name: Build canonical dependencies
+        id: ci_command_02
         run: |
           pnpm --filter @touristic/auth build
           pnpm --filter @touristic/core build
           pnpm --filter @touristic/business build
           pnpm --filter @touristic/content-server build
       - name: Catalog draft privacy acceptance
+        id: ci_command_03
         run: node --test apps/morro-digital-platform/tooling/control-center-catalog-drafts.mysql.mjs
+
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["control-center-catalog-drafts.yml"]'), 'control-center-catalog-drafts.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["control-center-catalog-drafts.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt control-center-catalog-drafts.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-control-center-catalog-drafts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

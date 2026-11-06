@@ -285,6 +285,41 @@ jobs:
     with:
       ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
 
+  suite-control-center-affiliates-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-affiliates-contract.yml')
+    uses: ./.github/workflows/control-center-affiliates-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
+
+  suite-control-center-catalog-drafts:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-catalog-drafts.yml')
+    uses: ./.github/workflows/control-center-catalog-drafts.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
+
+  suite-control-center-home-overview-v1-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-home-overview-v1-contract.yml')
+    uses: ./.github/workflows/control-center-home-overview-v1-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
+
+  suite-control-center-responsive-accessibility-v1-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-responsive-accessibility-v1-contract.yml')
+    uses: ./.github/workflows/control-center-responsive-accessibility-v1-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
+
+  suite-control-center-shell-v1-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'control-center-shell-v1-contract.yml')
+    uses: ./.github/workflows/control-center-shell-v1-contract.yml
+    with:
+      ci_selected_suites: ${{ needs.impact.outputs.scheduled_suites }}
+
   quality:
     name: quality
     if: always()
@@ -298,6 +333,11 @@ jobs:
       - suite-payments-sandbox-provider-contract
       - suite-payments-settlement-contract
       - suite-payments-subscription-recurrence-contract
+      - suite-control-center-affiliates-contract
+      - suite-control-center-catalog-drafts
+      - suite-control-center-home-overview-v1-contract
+      - suite-control-center-responsive-accessibility-v1-contract
+      - suite-control-center-shell-v1-contract
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -1,21 +1,18 @@
 name: Control Center Responsive Accessibility V1 Contract
 
 on:
+  workflow_call:
+    inputs:
+      ci_selected_suites:
+        required: true
+        type: string
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - ".github/actions/ci-bootstrap/action.yml"
-      - ".github/workflows/control-center-responsive-accessibility-v1-contract.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs"
-      - "apps/morro-digital-platform/tooling/dev-server.mjs"
 
 permissions:
   contents: read
 
 concurrency:
-  group: control-center-responsive-accessibility-v1-${{ github.event.pull_request.number || github.ref }}
+  group: suite-control-center-responsive-accessibility-v1-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -41,6 +38,7 @@ jobs:
         with:
           browser: "true"
       - name: Check Wave 3 formatting
+        id: ci_command_01
         run: >-
           pnpm exec prettier --check
           apps/control-center/public/control-center-responsive-accessibility-v1.css
@@ -49,12 +47,15 @@ jobs:
           apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs
           .github/workflows/control-center-responsive-accessibility-v1-contract.yml
       - name: Install deterministic Chromium and axe-core
+        id: ci_command_02
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2 axe-core@4.10.3
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build runtime graph
+        id: ci_command_03
         run: pnpm -w build
       - name: Start authenticated Control Center
+        id: ci_command_04
         shell: bash
         run: |
           set -euo pipefail
@@ -83,21 +84,40 @@ jobs:
           cat /tmp/control-center-responsive-accessibility-v1-server.log
           exit 1
       - name: Validate responsive accessibility contract
+        id: ci_command_05
         env:
           CONTROL_CENTER_ORIGIN: http://127.0.0.1:4198
         run: node apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs
       - name: Show diagnostics
+        id: ci_command_06
         if: failure()
         run: cat /tmp/control-center-responsive-accessibility-v1-server.log || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: control-center-responsive-accessibility-v1-evidence
+          name: control-center-responsive-accessibility-v1-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/control-center-responsive-accessibility-v1-evidence.json
             /tmp/control-center-responsive-accessibility-v1-*.png
           retention-days: 7
           if-no-files-found: error
       - name: Stop runtime
+        id: ci_command_07
         if: always()
         run: kill "$(cat /tmp/control-center-responsive-accessibility-v1-server.pid)" 2>/dev/null || true
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["control-center-responsive-accessibility-v1-contract.yml"]'), 'control-center-responsive-accessibility-v1-contract.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["control-center-responsive-accessibility-v1-contract.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt control-center-responsive-accessibility-v1-contract.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-control-center-responsive-accessibility-v1-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

@@ -40,7 +40,7 @@ jobs:
       - name: Verify canonical Place Action Registry
         run: pnpm --filter @touristic/business exec vitest run src/place-action-registry.test.ts
       - name: Verify Ticketing canonical binding boundary
-        run: pnpm --filter @touristic/ticketing-server test -- src/commerce-public-http-transport.test.ts
+        run: pnpm --filter @touristic/ticketing-server test src/commerce-public-http-transport.test.ts
       - name: Build runtime dependencies
         run: |
           pnpm --filter @touristic/auth build

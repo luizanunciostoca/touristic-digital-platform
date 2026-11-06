@@ -1,34 +1,18 @@
 name: Control Center Shell V1 Contract
 
 on:
+  workflow_call:
+    inputs:
+      ci_selected_suites:
+        required: true
+        type: string
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - ".github/actions/ci-bootstrap/action.yml"
-      - ".github/workflows/control-center-shell-v1-contract.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts"
-      - "apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs"
-      - "apps/morro-digital-platform/tooling/dev-server.mjs"
-      - "packages/auth/**"
-      - "packages/auth-browser/**"
-      - "services/auth/**"
-      - "services/destinations/**"
-  push:
-    branches: [main]
-    paths:
-      - ".github/actions/ci-bootstrap/action.yml"
-      - ".github/workflows/control-center-shell-v1-contract.yml"
-      - "apps/control-center/**"
-      - "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts"
-      - "apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs"
 
 permissions:
   contents: read
 
 concurrency:
-  group: control-center-shell-v1-${{ github.event.pull_request.number || github.ref }}
+  group: suite-control-center-shell-v1-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -54,6 +38,7 @@ jobs:
         with:
           browser: "true"
       - name: Check exact shell formatting
+        id: ci_command_01
         shell: bash
         run: |
           set -euo pipefail
@@ -66,16 +51,20 @@ jobs:
           )
           pnpm exec prettier --check "${FILES[@]}"
       - name: Run shell source contract
+        id: ci_command_02
         run: >
           pnpm --filter @touristic/morro-digital-platform exec vitest run
           src/ux/control-center-shell-sidebar-v1-contract.test.ts
       - name: Install deterministic Chromium
+        id: ci_command_03
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build runtime graph
+        id: ci_command_04
         run: pnpm -w build
       - name: Start authenticated Control Center
+        id: ci_command_05
         shell: bash
         run: |
           set -euo pipefail
@@ -106,21 +95,40 @@ jobs:
           cat /tmp/control-center-shell-v1-server.log
           exit 1
       - name: Validate shell in mandatory viewports
+        id: ci_command_06
         env:
           CONTROL_CENTER_ORIGIN: http://127.0.0.1:4196
         run: node apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs
       - name: Show diagnostics
+        id: ci_command_07
         if: failure()
         run: cat /tmp/control-center-shell-v1-server.log || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: control-center-shell-v1-evidence
+          name: control-center-shell-v1-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/control-center-shell-v1-evidence.json
             /tmp/control-center-shell-v1-*.png
           retention-days: 5
           if-no-files-found: ignore
       - name: Stop runtime
+        id: ci_command_08
         if: always()
         run: kill "$(cat /tmp/control-center-shell-v1-server.pid)" 2>/dev/null || true
+      - name: Record managed suite execution
+        id: ci_receipt
+        if: success() && contains(fromJSON(inputs.ci_selected_suites || '["control-center-shell-v1-contract.yml"]'), 'control-center-shell-v1-contract.yml')
+        env:
+          CI_SELECTED_SUITES: ${{ inputs.ci_selected_suites || '["control-center-shell-v1-contract.yml"]' }}
+          CI_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node tooling/ci/workflow-coverage.mjs --receipt control-center-shell-v1-contract.yml
+      - name: Upload managed suite execution
+        id: ci_receipt_upload
+        if: success() && steps.ci_receipt.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-suite-control-center-shell-v1-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-suite-receipt.json
+          if-no-files-found: error
+          retention-days: 30

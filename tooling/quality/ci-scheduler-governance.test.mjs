@@ -17,7 +17,9 @@ test("managed suites cannot bypass the scheduler or write to the repository", ()
   for (const suite of suiteManifest.suites) {
     const source = read(".github/workflows/" + suite.workflow);
     assert.match(source, /^  workflow_call:/m);
-    assert.match(source, /^  workflow_dispatch:/m);
+    if (suite.workflow === "control-center-catalog-drafts.yml")
+      assert.doesNotMatch(source, /^  workflow_dispatch:/m);
+    else assert.match(source, /^  workflow_dispatch:/m);
     assert.doesNotMatch(source, /^  (pull_request|push|pull_request_target):/m);
     assert.doesNotMatch(
       source,
