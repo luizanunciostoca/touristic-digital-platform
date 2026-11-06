@@ -43,6 +43,7 @@ import {
 } from "./map/global-view-control.js";
 import { getExploreLocationsCategories } from "./map/explore-locations-control.js";
 import { createV1ExploreMarkerElement } from "./map/explore-marker-element.js";
+import { getV1ExploreUiCopy } from "./map/explore-v1-i18n.js";
 import { initializeMorroBrowserLocale } from "./runtime/browser-locale.js";
 import {
   loadPublicDestination,
@@ -146,7 +147,7 @@ function installDiscoverCategoryRail(): void {
       button.textContent = category.label;
       button.setAttribute(
         "aria-label",
-        `${category.label} · ${category.count} locais`,
+        getV1ExploreUiCopy(locale).categoryAria(category.label, category.count),
       );
     }
   };

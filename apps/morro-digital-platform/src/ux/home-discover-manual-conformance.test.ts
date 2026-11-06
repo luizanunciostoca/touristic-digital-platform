@@ -1,9 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { runInNewContext } from "node:vm";
+
+import { transpileModule } from "typescript";
 
 import { describe, expect, it } from "vitest";
 
 import { createAppShellMarkup } from "../layouts/app-shell.js";
+import { getV1ExploreUiCopy } from "../map/explore-v1-i18n.js";
 
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
@@ -109,6 +113,62 @@ describe("Home / Discover UX V2 manual conformance", () => {
     }
     expect(controller).toContain("document.documentElement.lang");
     expect(controller).toContain('value.startsWith("he")');
+  });
+
+  it("updates Discover category accessible names when the language changes", async () => {
+    const entry = await readRepository(
+      "apps/morro-digital-platform/src/browser-entry.ts",
+    );
+    const start = entry.indexOf("function installDiscoverCategoryRail()");
+    const end = entry.indexOf("\ninstallDiscoverCategoryRail();", start);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const attributes = new Map<string, string>();
+    const button = {
+      dataset: { discoverCategory: "beaches" },
+      textContent: "",
+      setAttribute: (name: string, value: string) =>
+        attributes.set(name, value),
+      addEventListener: () => undefined,
+    };
+    const root = { lang: "pt-BR" };
+    let languageChanged = () => undefined;
+    const labels = { pt: "Praias", en: "Beaches", es: "Playas", he: "חופים" };
+    runInNewContext(
+      transpileModule(
+        `${entry.slice(start, end)}\ninstallDiscoverCategoryRail();`,
+        {},
+      ).outputText,
+      {
+        document: {
+          documentElement: root,
+          getElementById: () => ({ querySelectorAll: () => [button] }),
+          addEventListener: () => undefined,
+        },
+        MutationObserver: class {
+          constructor(callback: () => undefined) {
+            languageChanged = callback;
+          }
+          observe() {}
+        },
+        normalizeAssistantVoiceLanguage: (value: string) => value.slice(0, 2),
+        getExploreLocationsCategories: (locale: keyof typeof labels) => [
+          { value: "beaches", label: labels[locale], count: 8 },
+        ],
+        getV1ExploreUiCopy,
+      },
+    );
+    for (const [locale, expected] of [
+      ["pt-BR", "8 locais"],
+      ["en", "8 places"],
+      ["es", "8 lugares"],
+      ["he", "8 מקומות"],
+    ]) {
+      root.lang = locale!;
+      languageChanged();
+      expect(attributes.get("aria-label")).toContain(expected);
+    }
+    expect(button.textContent).toBe("חופים");
   });
 
   it("integrates privacy into Settings without removing LGPD choice", async () => {
