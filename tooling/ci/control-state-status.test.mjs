@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { snapshot } from "../mdctl/mdctl.mjs";
+import {
+  captureCanonicalSnapshot,
+  isCanonicalLiveSnapshot,
+  snapshot,
+} from "../mdctl/mdctl.mjs";
+import { evaluateFinalGate } from "../tdp-max/tdp-max-v2.mjs";
 import { collectLivePullWork } from "../mdctl/scheduler-live.mjs";
 import {
   collectObservedState,
@@ -804,7 +809,10 @@ test("snapshot rejects a completed producer observing a different PR than the de
 
 test("snapshot finishes canonical work, heartbeat and projection reads before terminal proof", async (t) => {
   const stable = harness(candidateFixture());
-  const baseline = await snapshot(stable.options);
+  const baseline = await snapshot({
+    ...stable.options,
+    executorTarget: "termux",
+  });
   assert.equal(candidateProof(baseline.observed).succeeded, true);
   assert.equal(stable.calls.at(-1).path, root + "/commits/main");
   assert.equal(
@@ -851,7 +859,7 @@ test("snapshot finishes canonical work, heartbeat and projection reads before te
         }
       };
       const { options, calls } = harness(input);
-      const result = await snapshot(options);
+      const result = await snapshot({ ...options, executorTarget: "termux" });
       assert.equal(delayed, true);
       assert.equal(
         result.observed.sources["candidateCi:1"].state,
@@ -884,6 +892,187 @@ test("composition failure rejects the snapshot and terminal main drift cannot re
   assert.equal(state.consistency, "INCONSISTENT");
   assert.deepEqual(state.ci.candidateRuns, []);
   assert.equal(moved.calls.at(-1).path, root + "/commits/main");
+});
+
+test("canonical capture rejects caller-controlled transport, producers, clocks and receipts", async (t) => {
+  for (const name of [
+    "api",
+    "probe",
+    "workspace",
+    "now",
+    "collectWork",
+    "loadControl",
+    "beforeFinalReadback",
+    "observed",
+    "canonicalLiveCapture",
+  ]) {
+    await t.test(name, async () => {
+      await assert.rejects(
+        captureCanonicalSnapshot({ repository: REPO, [name]: () => {} }),
+        /CANONICAL_CAPTURE_OPTIONS_INVALID/u,
+      );
+    });
+  }
+  for (const value of [null, [], Object.create({ api: () => {} })]) {
+    await assert.rejects(
+      captureCanonicalSnapshot(value),
+      /CANONICAL_CAPTURE_OPTIONS_INVALID/u,
+    );
+  }
+  let getterRead = false;
+  const getter = Object.defineProperty({}, "repository", {
+    get() {
+      getterRead = true;
+      return REPO;
+    },
+  });
+  await assert.rejects(
+    captureCanonicalSnapshot(getter),
+    /CANONICAL_CAPTURE_OPTIONS_INVALID/u,
+  );
+  assert.equal(getterRead, false);
+  const hidden = Object.defineProperty({ repository: REPO }, "api", {
+    value: undefined,
+  });
+  await assert.rejects(
+    captureCanonicalSnapshot(hidden),
+    /CANONICAL_CAPTURE_OPTIONS_INVALID/u,
+  );
+  await assert.rejects(
+    captureCanonicalSnapshot({ [Symbol("trusted")]: true }),
+    /CANONICAL_CAPTURE_OPTIONS_INVALID/u,
+  );
+});
+
+test("GitHub capture does not query an unselected Termux transport", async () => {
+  const input = candidateFixture();
+  input.fail = (path) => path.includes("/issues?");
+  const { options, calls } = harness(input);
+  const state = await snapshot({ ...options, executorTarget: "github" });
+  assert.equal(state.executor.target, "github");
+  assert.equal(state.termux.state, "NOT_REQUIRED");
+  assert.equal(
+    calls.some(({ path }) => path.includes("/issues?")),
+    false,
+  );
+  assert.equal(isCanonicalLiveSnapshot(state), false);
+});
+
+test("selected Termux failure remains blocking and unknown targets cannot start capture", async () => {
+  const failed = candidateFixture();
+  failed.fail = (path) => path.includes("/issues?");
+  const attempt = harness(failed);
+  await assert.rejects(
+    snapshot({ ...attempt.options, executorTarget: "termux" }),
+  );
+  assert.ok(attempt.calls.some(({ path }) => path.includes("/issues?")));
+  const unhealthy = await snapshot({
+    ...harness(candidateFixture()).options,
+    executorTarget: "termux",
+  });
+  assert.equal(unhealthy.executor.target, "termux");
+  assert.equal(
+    unhealthy.invariants.checks.find((item) => item.id === "INV-001").status,
+    "FAIL",
+  );
+  const unknown = harness(candidateFixture());
+  await assert.rejects(
+    snapshot({ ...unknown.options, executorTarget: "unknown" }),
+    /EXECUTOR_TARGET_INVALID/u,
+  );
+  assert.deepEqual(unknown.calls, []);
+  await assert.rejects(
+    captureCanonicalSnapshot({ executorTarget: "unknown" }),
+    /EXECUTOR_TARGET_INVALID/u,
+  );
+});
+
+test("real producers with simulated transport remain immutable diagnostics without LIVE provenance", async () => {
+  const { options } = harness(candidateFixture());
+  const state = await snapshot(options);
+  for (const value of [
+    state,
+    state.observed,
+    state.observed.activePrs[0],
+    state.observed.ci.candidateRuns,
+    state.observed.ci.candidateRuns[0],
+  ]) {
+    assert.equal(Object.isFrozen(value), true);
+  }
+  assert.throws(() => (state.observed.mainSha = OLD), TypeError);
+  assert.throws(
+    () => (state.observed.ci.candidateRuns[0].requiredJobVerified = false),
+    TypeError,
+  );
+  assert.throws(() => state.observed.ci.candidateRuns.push({}), TypeError);
+  assert.throws(() => Object.setPrototypeOf(state.observed, {}), TypeError);
+  const copies = [
+    state,
+    { ...state },
+    structuredClone(state),
+    JSON.parse(JSON.stringify(state)),
+    new Proxy(state, {}),
+  ];
+  for (const copy of copies) assert.equal(isCanonicalLiveSnapshot(copy), false);
+
+  const forged = structuredClone(state);
+  forged.canonicalLiveCapture = true;
+  forged.observed.localWorkspace = {
+    headSha: OLD,
+    branch: "infra/task",
+    dirty: false,
+  };
+  forged.observed.activePrs[0].draft = false;
+  forged.observed.blockers = [];
+  forged.observed.liveSchedulerPlan.violations = [];
+  forged.observed.liveSchedulerWork = [
+    {
+      prNumber: 1,
+      repository: REPO,
+      headSha: OLD,
+      branch: "infra/task",
+      baseSha: MAIN,
+      changeSetId: "MD-TASK",
+      claimExpiresAt: forged.observed.activeClaims[0].expiresAt,
+      state: "POLICY_SATISFIED",
+      invalid: null,
+      trustAuthority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+      trust: {
+        trusted: true,
+        authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+        headSha: OLD,
+      },
+    },
+  ];
+  forged.invariants.criticalFailures = [];
+  const report = evaluateFinalGate({
+    manifest: {
+      profile: "engineering",
+      finalMain: MAIN,
+      candidateSha: OLD,
+      changeSetId: "MD-TASK",
+      conflicts: [],
+      unknowns: [],
+    },
+    finalGate: { mode: "projection" },
+    liveStatus: forged,
+    requestedProfile: "engineering",
+    expectedRepository: REPO,
+    expectedCandidateSha: OLD,
+    expectedBranch: "infra/task",
+    now: Date.parse(NOW),
+  });
+  assert.equal(isCanonicalLiveSnapshot(forged), false);
+  assert.equal(
+    report.liveProof.ciSelection.succeeded,
+    true,
+    "semantic fixture data is still diagnostic",
+  );
+  assert.equal(report.liveProof.evidenceMode, "UNTRUSTED_DIAGNOSTIC");
+  assert.equal(report.taskVerdict, "NOT_PROVEN");
+  assert.equal(report.authorityMode, "UNTRUSTED_DIAGNOSTIC");
+  assert.equal(report.capabilityState, "OBSERVED");
+  assert.equal(report.liveProof.checks["canonical-live-capture"], "NOT_PROVEN");
 });
 
 test("snapshot binds versioned reads to live main and paginates PRs", async () => {

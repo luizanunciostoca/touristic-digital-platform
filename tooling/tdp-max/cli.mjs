@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { captureCanonicalSnapshot } from "../mdctl/mdctl.mjs";
+import { validateExecutorTarget } from "../mdctl/invariants.mjs";
 import { validateEvidenceManifest } from "./validate-config.mjs";
 import {
   buildBootstrapReport,
@@ -21,13 +24,14 @@ const FLAGS = {
   "--manifest": "manifest",
   "--staging-url": "stagingUrl",
   "--production-url": "productionUrl",
+  "--executor": "executorTarget",
 };
 
 function readJson(path) {
   return JSON.parse(readFileSync(resolve(process.cwd(), path), "utf8"));
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const command = argv[0];
   assert.ok(COMMANDS.has(command), "TDP_MAX_COMMAND_INVALID");
   const options = {
@@ -39,6 +43,7 @@ function parseArgs(argv) {
     manifest: null,
     stagingUrl: process.env.MORRO_STAGING_URL ?? null,
     productionUrl: process.env.MORRO_PRODUCTION_URL ?? null,
+    executorTarget: "github",
   };
   for (let i = 1; i < argv.length; i += 2) {
     if (argv[i] === "--") {
@@ -54,6 +59,7 @@ function parseArgs(argv) {
     );
     options[field] = value;
   }
+  validateExecutorTarget(options.executorTarget);
   return options;
 }
 
@@ -80,6 +86,7 @@ function runMdctl(command, options) {
   ];
   if (command === "status") args.push("--json");
   if (["bootstrap", "status"].includes(command)) {
+    args.push("--executor", options.executorTarget);
     if (options.stagingUrl) args.push("--staging-url", options.stagingUrl);
     if (options.productionUrl)
       args.push("--production-url", options.productionUrl);
@@ -114,7 +121,7 @@ function emit(value, failed = false) {
   if (failed) process.exitCode = 2;
 }
 
-function run(options) {
+export async function run(options) {
   const originMatch = runGit("remote", "get-url", "origin").match(
     /^(?:https:\/\/github\.com\/|git@github\.com:)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?$/u,
   );
@@ -158,9 +165,31 @@ function run(options) {
   );
   assert.ok(expectedBranch, "TDP_MAX_GIT_BRANCH_REQUIRED");
   validateEvidenceManifest(manifest);
+  const liveStatus = await captureCanonicalSnapshot({
+    repository: options.repository,
+    localDirectory: process.cwd(),
+    executorTarget: options.executorTarget,
+    ...(options.stagingUrl ? { stagingUrl: options.stagingUrl } : {}),
+    ...(options.productionUrl ? { productionUrl: options.productionUrl } : {}),
+  });
+  assert.equal(
+    runGit("rev-parse", "HEAD"),
+    expectedCandidateSha,
+    "TDP_MAX_LOCAL_HEAD_MOVED",
+  );
+  assert.equal(
+    runGit("branch", "--show-current"),
+    expectedBranch,
+    "TDP_MAX_LOCAL_BRANCH_MOVED",
+  );
+  assert.equal(
+    runGit("status", "--porcelain=v1", "--untracked-files=normal"),
+    "",
+    "TDP_MAX_LOCAL_WORKSPACE_DIRTY",
+  );
   const report = evaluateFinalGate({
     manifest,
-    liveStatus: runMdctl("status", options),
+    liveStatus,
     finalGate: readJson(".github/morro-control/tdp-max/final-gate.json"),
     externalEvidence: loadExternal(options.externalEvidence),
     requestedProfile: options.profile,
@@ -171,9 +200,14 @@ function run(options) {
   return emit(report, report.taskVerdict !== "COMPLETE");
 }
 
-try {
-  run(parseArgs(process.argv.slice(2)));
-} catch (error) {
-  console.error("TDP_MAX_V2_FAILED:" + String(error?.message ?? error));
-  process.exitCode = 1;
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  try {
+    await run(parseArgs(process.argv.slice(2)));
+  } catch (error) {
+    console.error("TDP_MAX_V2_FAILED:" + String(error?.message ?? error));
+    process.exitCode = 1;
+  }
 }

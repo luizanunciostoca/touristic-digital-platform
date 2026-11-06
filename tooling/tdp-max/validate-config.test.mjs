@@ -6,9 +6,36 @@ import {
   validateBootstrapReport,
   validateEvidenceManifest,
   validateRiskCoverage,
+  validateExecutorControlContract,
 } from "./validate-config.mjs";
 
 const SHA = "a".repeat(40);
+
+test("executor policy and final projection agree on selected control applicability", () => {
+  const fabric = { invariants: ["selected-executor-control"] };
+  const finalGate = { requiredForComplete: ["selected-executor-control"] };
+  validateExecutorControlContract({ fabric, finalGate });
+  for (const input of [
+    { fabric: { invariants: [] }, finalGate },
+    { fabric, finalGate: { requiredForComplete: [] } },
+    {
+      fabric: {
+        invariants: [...fabric.invariants, "termux-heartbeat-singleton"],
+      },
+      finalGate,
+    },
+    {
+      fabric,
+      finalGate: {
+        requiredForComplete: [
+          ...finalGate.requiredForComplete,
+          "executor-fallback",
+        ],
+      },
+    },
+  ])
+    assert.throws(() => validateExecutorControlContract(input), /TDP_MAX_/u);
+});
 
 test("validator accepts the canonical TDP-MAX projection", () => {
   const result = spawnSync(

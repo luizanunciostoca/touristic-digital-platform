@@ -141,6 +141,25 @@ export function validateEvidenceManifest(manifest) {
   return manifest;
 }
 
+export function validateExecutorControlContract({ fabric, finalGate }) {
+  assert.ok(
+    fabric?.invariants?.includes("selected-executor-control"),
+    "TDP_MAX_EXECUTOR_INVARIANT_REQUIRED",
+  );
+  assert.ok(
+    !fabric.invariants.includes("termux-heartbeat-singleton"),
+    "TDP_MAX_UNCONDITIONAL_TERMUX_INVARIANT",
+  );
+  assert.ok(
+    finalGate?.requiredForComplete?.includes("selected-executor-control"),
+    "TDP_MAX_EXECUTOR_GATE_REQUIRED",
+  );
+  assert.ok(
+    !finalGate.requiredForComplete.includes("executor-fallback"),
+    "TDP_MAX_UNCONDITIONAL_EXECUTOR_FALLBACK",
+  );
+}
+
 export async function validateTdpMaxConfig() {
   const policy = await text(".github/morro-control/tdp-max/POLICY.md");
   const authority = await json(
@@ -319,12 +338,13 @@ export async function validateTdpMaxConfig() {
     "candidate-invalidation",
     "review-reconciliation",
     "workspace-bootstrap",
-    "executor-fallback",
+    "selected-executor-control",
     "anti-recurrence-proof",
     "unresolved-review-threads-zero",
     "post-merge-reconciliation",
   ];
   const requiredConditionalGates = ["enterprise-authority-live"];
+  validateExecutorControlContract({ fabric, finalGate });
   assert.equal(
     finalGate.lifecycleAuthority,
     ".morro/fabric.json",
