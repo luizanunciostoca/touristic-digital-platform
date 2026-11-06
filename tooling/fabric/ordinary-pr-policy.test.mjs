@@ -20,6 +20,21 @@ const ownership = JSON.parse(
   readFileSync(new URL("../../.morro/ownership.json", import.meta.url)),
 );
 const ordinary = "apps/morro-digital-platform/src/map/ordinary-test.ts";
+const operationalDocuments = [
+  "docs/engineering/MORRO_ENGINEERING_FABRIC.md",
+  "docs/engineering/MORRO_ENGINEERING_FABRIC_V2.md",
+  "docs/operations/workspace-lifecycle.md",
+  "docs/operations/PRODUCTION-RELEASE-READINESS.md",
+  "docs/operations/PRODUCTION-GO-CHECKLIST.md",
+];
+for (const path of operationalDocuments) {
+  test("operational document stays outside ordinary: " + path, () => {
+    assert.equal(ordinaryPrScope([path], risk, ownership), false);
+    assert.equal(ordinaryPrScope([ordinary, path], risk, ownership), false);
+    for (const alias of [path + ".backup", path + "/nested.md"])
+      assert.equal(ordinaryPrScope([alias], risk, ownership), false);
+  });
+}
 test("ordinary mapped application work requires no claim input", () =>
   assert.equal(ordinaryPrScope([ordinary], risk, ownership), true));
 for (const path of [
@@ -65,6 +80,7 @@ test("real hook allows ordinary edit without registry or manifest; still denies 
       mkdirSync(dirname(join(root, path)), { recursive: true });
       writeFileSync(join(root, path), JSON.stringify(value));
     }
+    mkdirSync(join(root, ".morro/changesets"), { recursive: true });
     mkdirSync(dirname(join(root, ordinary)), { recursive: true });
     writeFileSync(join(root, ordinary), "base");
     git("add", ".");
@@ -86,6 +102,16 @@ test("real hook allows ordinary edit without registry or manifest; still denies 
         toolArgs: { path: ".morro/risk-policy.json" },
       }),
     );
+    for (const path of operationalDocuments)
+      assert.throws(
+        () =>
+          evaluatePreToolUse({
+            cwd: root,
+            toolName: "edit",
+            toolArgs: { path },
+          }),
+        /ACTIVE_CHANGESET_RESOLUTION_FAILED/u,
+      );
     // Altered candidate policy cannot broaden its own ordinary scope.
     writeFileSync(
       join(root, ".morro/risk-policy.json"),
@@ -98,6 +124,26 @@ test("real hook allows ordinary edit without registry or manifest; still denies 
         toolArgs: { path: "packages/auth/src/a.ts" },
       }),
     );
+    // Engineering documents prove that the hook uses Git main, not weakened candidate policy.
+    for (const path of operationalDocuments.slice(0, 2))
+      assert.equal(
+        ordinaryPrScope(
+          [path],
+          { ...risk, highPaths: [], criticalPaths: [] },
+          ownership,
+        ),
+        true,
+      );
+    for (const path of operationalDocuments)
+      assert.throws(
+        () =>
+          evaluatePreToolUse({
+            cwd: root,
+            toolName: "edit",
+            toolArgs: { path },
+          }),
+        /ACTIVE_CHANGESET_RESOLUTION_FAILED/u,
+      );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -41,7 +41,9 @@
     "tooling/payments/",
     ".github/workflows/production-",
     ".github/workflows/release-",
-    "render"
+    "render",
+    "docs/operations/PRODUCTION-RELEASE-READINESS.md",
+    "docs/operations/PRODUCTION-GO-CHECKLIST.md"
   ],
   "highPaths": [
     "packages/auth/",
@@ -73,7 +75,10 @@
     "tooling/ci/build-entry-css.test.mjs",
     "tooling/ci/entry-css-manifest.json",
     "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
-    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts"
+    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts",
+    "docs/engineering/MORRO_ENGINEERING_FABRIC.md",
+    "docs/engineering/MORRO_ENGINEERING_FABRIC_V2.md",
+    "docs/operations/workspace-lifecycle.md"
   ],
   "semanticRiskFloor": {
     "commerce-offering-identity": "high",

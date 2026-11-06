@@ -251,6 +251,11 @@
         "tooling/performance/check-morro-digital-budget.test.mjs",
         "apps/morro-digital-platform/package.json",
         "docs/operations/STAGING-NODE-EXCEPTION.md",
+        "docs/engineering/MORRO_ENGINEERING_FABRIC.md",
+        "docs/engineering/MORRO_ENGINEERING_FABRIC_V2.md",
+        "docs/operations/workspace-lifecycle.md",
+        "docs/operations/PRODUCTION-RELEASE-READINESS.md",
+        "docs/operations/PRODUCTION-GO-CHECKLIST.md",
         "turbo.json"
       ],
       "contracts": []

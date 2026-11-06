@@ -15,6 +15,65 @@ import { buildChangeEnvelope } from "../mdctl/change-envelope.mjs";
 import { assertOwnershipCoverage } from "../ci/local-fast-gate.mjs";
 
 const exact = "packages/design-system/package.json";
+const operationalDocumentRisks = [
+  ["docs/engineering/MORRO_ENGINEERING_FABRIC.md", "high"],
+  ["docs/engineering/MORRO_ENGINEERING_FABRIC_V2.md", "high"],
+  ["docs/operations/workspace-lifecycle.md", "high"],
+  ["docs/operations/PRODUCTION-RELEASE-READINESS.md", "critical"],
+  ["docs/operations/PRODUCTION-GO-CHECKLIST.md", "critical"],
+];
+
+test("operational documents have exact ownership and explicit risk without widening other owners", () => {
+  const canonical = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+  const risk = JSON.parse(readFileSync(".morro/risk-policy.json", "utf8"));
+  const owners = (file, registry) =>
+    registry.domains
+      .filter((domain) =>
+        domain.pathPrefixes.some((prefix) =>
+          prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix,
+        ),
+      )
+      .map((domain) => domain.id);
+  const documents = operationalDocumentRisks.map(([path]) => path);
+  for (const [file, level] of operationalDocumentRisks) {
+    assert.deepEqual(owners(file, canonical), ["ci-release"], file);
+    assert.deepEqual(assertOwnershipCoverage([file], canonical), {
+      covered: 1,
+    });
+    assert.ok(risk[level + "Paths"].includes(file), file);
+    for (const alias of [
+      file + ".backup",
+      file + "/nested.md",
+      file.replace(/\.md$/u, "-other.md"),
+    ]) {
+      assert.deepEqual(owners(alias, canonical), [], alias);
+      assert.throws(
+        () => assertOwnershipCoverage([alias], canonical),
+        /FAST_GATE_OWNERSHIP_UNCOVERED/u,
+      );
+    }
+  }
+  const before = structuredClone(canonical);
+  before.domains.find((domain) => domain.id === "ci-release").pathPrefixes =
+    before.domains
+      .find((domain) => domain.id === "ci-release")
+      .pathPrefixes.filter((path) => !documents.includes(path));
+  const tracked = execFileSync("git", ["ls-files", "-z"], {
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean);
+  for (const file of tracked.filter((path) => !documents.includes(path)))
+    assert.deepEqual(owners(file, canonical), owners(file, before), file);
+  assert.deepEqual(
+    canonical.domains.find((domain) => domain.id === "auth").contracts,
+    ["platform-authz"],
+  );
+  assert.equal(risk.semanticRiskFloor["platform-authz"], "critical");
+  assert.equal(risk.semanticRiskFloor["verified-payment-outcome"], "critical");
+  assert.equal(risk.semanticRiskFloor["ticket-fulfillment"], "critical");
+});
+
 const controlCenterKeyboardPaths = [
   "apps/control-center/public/control-center-business-cms.js",
   "apps/morro-digital-platform/src/ux/control-center-business-cms-contract.test.ts",
@@ -190,7 +249,7 @@ function git(root, ...args) {
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
-function fixture(path) {
+function fixture(path, policy = { ownership, riskPolicy, graph }) {
   const root = mkdtempSync(join(tmpdir(), "tdp-ownership-boundary-"));
   const write = (path, value) => {
     const target = join(root, path);
@@ -201,9 +260,9 @@ function fixture(path) {
     git(root, "init", "-q");
     git(root, "config", "user.name", "Boundary fixture");
     git(root, "config", "user.email", "boundary@example.invalid");
-    write(".morro/ownership.json", JSON.stringify(ownership));
-    write(".morro/risk-policy.json", JSON.stringify(riskPolicy));
-    write(".morro/contract-graph.json", JSON.stringify(graph));
+    write(".morro/ownership.json", JSON.stringify(policy.ownership));
+    write(".morro/risk-policy.json", JSON.stringify(policy.riskPolicy));
+    write(".morro/contract-graph.json", JSON.stringify(policy.graph));
     git(root, "add", ".");
     git(
       root,
@@ -313,6 +372,66 @@ for (const [path, owned] of cases) {
         );
     });
   });
+}
+
+for (const [path, expectedRisk] of operationalDocumentRisks) {
+  test(
+    "operational document consumers retain the registered risk: " + path,
+    (t) => {
+      const policy = {
+        ownership: JSON.parse(readFileSync(".morro/ownership.json", "utf8")),
+        riskPolicy: JSON.parse(readFileSync(".morro/risk-policy.json", "utf8")),
+        graph: JSON.parse(readFileSync(".morro/contract-graph.json", "utf8")),
+      };
+      const { root, base } = fixture(path, policy);
+      t.after(() => rmSync(root, { recursive: true, force: true }));
+      const run = (script, args) =>
+        JSON.parse(
+          execFileSync(
+            process.execPath,
+            [fileURLToPath(new URL(script, import.meta.url)), ...args],
+            { cwd: root, encoding: "utf8" },
+          ),
+        );
+      const planned = run("./plan-change.mjs", [
+        "--base",
+        base,
+        "--head",
+        "HEAD",
+      ]);
+      assert.deepEqual(planned.changedFiles, [path]);
+      assert.deepEqual(planned.ownedDomains, ["ci-release"]);
+      assert.equal(planned.risk, expectedRisk);
+      assert.deepEqual(
+        planned.requiredEvidence,
+        policy.riskPolicy.levels[expectedRisk].required,
+      );
+      const impact = run("./compute-impact.mjs", [base]);
+      assert.deepEqual(impact.files, [path]);
+      assert.deepEqual(impact.ownedDomains, ["ci-release"]);
+      const changeSet = {
+        ...structuredClone(template),
+        id: "MD-OPERATIONAL-DOCUMENT-BOUNDARY-FIXTURE",
+        objective: "operational-document-risk-regression",
+        baseSha: base,
+        branch: "fix/operational-document-boundary-fixture",
+        state: "IMPLEMENTING",
+        risk: "low",
+        owns: { paths: [path], contracts: [] },
+        dependencies: [],
+      };
+      const envelope = buildChangeEnvelope({
+        rootCause: "operational document was outside the ownership catalog",
+        semanticImpact: "control policy must retain its declared risk floor",
+        probablePaths: [path],
+        changeSet,
+        ownership: policy.ownership,
+        riskPolicy: policy.riskPolicy,
+      });
+      assert.deepEqual(envelope.ownershipDomains, ["ci-release"]);
+      assert.equal(envelope.riskFloor, expectedRisk);
+    },
+  );
 }
 
 test("assistant and text voice UX ownership uses exact map literals", () => {
