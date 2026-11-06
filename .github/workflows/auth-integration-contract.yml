@@ -151,6 +151,7 @@ jobs:
           const inventories = new Map([
             ['6b1da0d3bb8844150cdb6787f40df80591b16e79ca4217d15f460a14e7a473e8', 34],
             ['dc07fe76d4d0ef83ffd65c731b207ff35b75eb4fb60dbb642ccbb21b3ce8b800', 48],
+            ['587af0915c94ec4ae1405d14d40d7c56670ee96fdcaa00be747a3e1ec52000aa', 48],
           ]);
           const inventorySha256 = createHash('sha256')
             .update(readFileSync('apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs'))
