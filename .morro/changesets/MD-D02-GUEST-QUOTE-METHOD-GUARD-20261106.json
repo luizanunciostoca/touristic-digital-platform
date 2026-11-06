@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-D02-GUEST-QUOTE-METHOD-GUARD-20261106",
   "objective": "preserve-guest-quote-get-method-denial-and-zero-inventory-reads-in-d02-authorization-regression",
-  "baseSha": "351ced2eb901d6f591ac8a6d5f4c943fa34481b1",
+  "baseSha": "c7ee8c19fb97fc8bb5093eb75aef1ab41d2d63f3",
   "branch": "fix/d02-guest-quote-method-guard-20261106",
   "state": "IMPLEMENTING",
   "risk": "critical",
