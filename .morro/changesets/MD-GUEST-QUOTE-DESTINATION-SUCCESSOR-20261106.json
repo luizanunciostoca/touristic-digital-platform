@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-GUEST-QUOTE-DESTINATION-SUCCESSOR-20261106",
+  "objective": "restore-guest-quote-with-server-destination-boundary-and-preserve-consumer-authorization",
+  "baseSha": "8fb13f903db6d8010e6995294704c9f61290db81",
+  "branch": "fix/guest-quote-destination-successor-20261106",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "services/ticketing/src/commerce-public-http-transport.ts",
+      "services/ticketing/src/commerce-public-http-transport.test.ts",
+      "services/ticketing/src/public-http-transport.ts",
+      ".morro/changesets/MD-GUEST-QUOTE-DESTINATION-SUCCESSOR-20261106.json"
+    ],
+    "contracts": ["ticket-fulfillment"]
+  },
+  "reads": {
+    "contracts": ["platform-authz", "TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-and-claim-invariants",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
