@@ -95,7 +95,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/policy-ci-cont-20261106",
-      "baseSha": "b3e1dceb4a56e30a84a955132563ee360f676800",
+      "baseSha": "575d01064ed5b283a48777a9c5e9ac092f1ce2d8",
       "paths": [
         ".github/workflows/quality.yml",
         ".github/workflows/control-center-visual-golden-v1.yml",

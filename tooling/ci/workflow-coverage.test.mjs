@@ -78,17 +78,17 @@ test("impact artifacts remain distinct across attempts of the same run", () => {
   assert.notEqual(artifact(1), artifact(2));
 });
 
-test("the reviewed foundation preserves seven workflows and all 37 original run bodies", () => {
+test("the reviewed foundation preserves twelve workflows and all 68 reviewed run bodies", () => {
   assert.deepEqual(
     validateCoverage(context.registry, context.coverage, context.workflows),
-    { workflows: 7, result: "PASS" },
+    { workflows: 12, result: "PASS" },
   );
   const commands = Object.values(context.coverage.workflows).flatMap(
     (item) => item.commands,
   );
-  assert.equal(commands.length, 37);
-  assert.equal(commands.filter((item) => item.required).length, 32);
-  assert.equal(commands.filter((item) => item.semantic).length, 19);
+  assert.equal(commands.length, 68);
+  assert.equal(commands.filter((item) => item.required).length, 57);
+  assert.equal(commands.filter((item) => item.semantic).length, 28);
   assert.equal(context.coverage.selector, "tooling/ci/scheduled-suites.json");
 });
 
@@ -242,6 +242,69 @@ test("Quality passes the exact scheduler selection and downloads isolated attemp
   );
 });
 
+test("MySQL1 preserves one-job MySQL boundaries without event-dependent execution", () => {
+  const cases = [
+    [
+      "control-center-affiliates-contract.yml",
+      "affiliates-admin-contract",
+      4,
+      true,
+    ],
+    ["control-center-catalog-drafts.yml", "mysql-acceptance", 3, false],
+  ];
+  for (const [workflow, jobId, count, dispatch] of cases) {
+    const document = context.workflows[workflow];
+    assert.deepEqual(
+      Object.keys(document.on).sort(),
+      dispatch ? ["workflow_call", "workflow_dispatch"] : ["workflow_call"],
+    );
+    assert.deepEqual(Object.keys(document.jobs), [jobId]);
+    assert.deepEqual(document.permissions, { contents: "read" });
+    const job = document.jobs[jobId];
+    assert.equal(job["runs-on"], "ubuntu-24.04");
+    assert.equal(job.services.mysql.image, "mysql:8.4");
+    assert.equal(job["timeout-minutes"], 20);
+    assert.equal(context.coverage.workflows[workflow].commands.length, count);
+    const originalSteps = job.steps.filter(
+      (step) => !step.id?.startsWith("ci_receipt"),
+    );
+    // Metadata-only ready/draft changes do not change this execution graph.
+    assert.doesNotMatch(
+      JSON.stringify({ ...job, steps: originalSteps }),
+      /github\.event|github\.ref|inputs\.|secrets\.|vars\./,
+    );
+    assert.equal(job.if, undefined);
+    assert.ok(originalSteps.every((step) => step.if === undefined));
+    assert.ok(
+      originalSteps.some(
+        (step) => step.run === "pnpm install --frozen-lockfile",
+      ),
+    );
+  }
+  const catalog = context.workflows[cases[1][0]].jobs["mysql-acceptance"];
+  assert.equal(
+    catalog.env.BUSINESS_DATABASE_URL,
+    "mysql://root:root@127.0.0.1:3306/morro_business",
+  );
+  const affiliates =
+    context.workflows[cases[0][0]].jobs["affiliates-admin-contract"];
+  assert.equal(
+    affiliates.env.AFFILIATES_DATABASE_URL,
+    "mysql://root@127.0.0.1:3306/control_center_affiliates_contract",
+  );
+  // Catalog now participates in central post-merge/composition/requested proof;
+  // it still has no separate manual entry or duplicate PR/push listener.
+  const quality = load(readFileSync(".github/workflows/quality.yml", "utf8"));
+  assert.deepEqual(quality.on.pull_request.types, [
+    "opened",
+    "synchronize",
+    "reopened",
+  ]);
+  assert.deepEqual(quality.on.push.branches, ["main"]);
+  assert.ok(Object.hasOwn(quality.on, "merge_group"));
+  assert.ok(Object.hasOwn(quality.on, "workflow_dispatch"));
+});
+
 test("all selected suites require actual commands and semantic assertions", () => {
   const plan = planFor();
   const receipts = receiptsFor(plan);
@@ -272,13 +335,106 @@ test("all selected suites require actual commands and semantic assertions", () =
       (sum, receipt) => sum + receipt.semanticAssertions.length,
       0,
     ),
-    19,
+    28,
   );
   assert.ok(
     receipts.every(
       (receipt) => receipt.authority === "execution-evidence-only",
     ),
   );
+});
+
+test("UI2 keeps browser, MySQL, cleanup and standalone dispatch contracts", () => {
+  const cases = [
+    [
+      "control-center-home-overview-v1-contract.yml",
+      "home-overview-v1",
+      20,
+      9,
+      7,
+      3,
+    ],
+    [
+      "control-center-responsive-accessibility-v1-contract.yml",
+      "responsive-accessibility-v1",
+      25,
+      7,
+      5,
+      1,
+    ],
+    ["control-center-shell-v1-contract.yml", "shell-v1", 20, 8, 6, 2],
+  ];
+  for (const [workflow, jobId, timeout, count, required, semantic] of cases) {
+    const document = context.workflows[workflow];
+    assert.deepEqual(Object.keys(document.on).sort(), [
+      "workflow_call",
+      "workflow_dispatch",
+    ]);
+    assert.deepEqual(Object.keys(document.jobs), [jobId]);
+    assert.deepEqual(document.permissions, { contents: "read" });
+    const job = document.jobs[jobId];
+    assert.equal(job["runs-on"], "ubuntu-24.04");
+    assert.equal(job["timeout-minutes"], timeout);
+    assert.equal(job.services.mysql.image, "mysql:8.4");
+    assert.equal(job.if, undefined);
+    const commands = context.coverage.workflows[workflow].commands;
+    assert.equal(commands.length, count);
+    assert.equal(
+      commands.filter((command) => command.required).length,
+      required,
+    );
+    assert.equal(
+      commands.filter((command) => command.semantic).length,
+      semantic,
+    );
+    const originalSteps = job.steps.slice(0, -2);
+    // Ready metadata never changes the executable graph or its environment.
+    assert.doesNotMatch(
+      JSON.stringify({ ...job, steps: originalSteps }),
+      /github\.event|github\.ref|inputs\.|secrets\.|vars\./,
+    );
+    assert.deepEqual(
+      originalSteps.find(
+        (step) => step.uses === "./.github/actions/ci-bootstrap",
+      ).with,
+      { browser: "true" },
+    );
+    assert.equal(
+      originalSteps.find((step) => step.name === "Show diagnostics").if,
+      "failure()",
+    );
+    assert.equal(originalSteps.at(-1).name, "Stop runtime");
+    assert.equal(originalSteps.at(-1).if, "always()");
+    const evidence = originalSteps.find((step) =>
+      step.uses?.startsWith("actions/upload-artifact@"),
+    );
+    assert.equal(evidence.if, "always()");
+    assert.ok(
+      evidence.with.name.endsWith(
+        "-${{ github.run_id }}-${{ github.run_attempt }}",
+      ),
+    );
+    assert.ok(
+      originalSteps.every(
+        (step) =>
+          step.if === undefined || ["always()", "failure()"].includes(step.if),
+      ),
+    );
+    const plan = planFor([workflow]);
+    const receipts = receiptsFor(plan);
+    assert.equal(
+      verifyReceipts(plan, receipts, needsFor([workflow]), context).result,
+      "PASS",
+    );
+    const caller = suiteManifest.suites.find(
+      (suite) => suite.workflow === workflow,
+    ).jobId;
+    for (const result of ["skipped", "failure", "cancelled"]) {
+      const needs = needsFor([workflow]);
+      needs[caller].result = result;
+      assert.throws(() => verifyReceipts(plan, receipts, needs, context));
+    }
+  }
 });
 
 test("diagnostics and cleanup never supply behavioral assertions", () => {
@@ -374,8 +530,14 @@ test("partial reruns reuse only matching source and plan with current successful
     needsFor(all),
     context,
   );
-  assert.equal(proof.receipts[0].runAttempt, 2);
-  assert.equal(proof.receipts[1].runAttempt, 1);
+  assert.equal(
+    proof.receipts.find((receipt) => receipt.workflow === all[0]).runAttempt,
+    2,
+  );
+  assert.equal(
+    proof.receipts.find((receipt) => receipt.workflow === all[1]).runAttempt,
+    1,
+  );
   for (const field of ["sourceSha", "treeSha", "runId", "repository"])
     assert.throws(() =>
       verifyReceipts(
@@ -561,5 +723,113 @@ test("impact selection remains runnable with no installed YAML dependency", () =
     { encoding: "utf8", cwd: process.cwd() },
   );
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), "7");
+  assert.equal(result.stdout.trim(), "12");
 });
+
+const focusedWorkflowCases = [
+  [
+    "shell-v1-i18n-browser-parity.yml",
+    "Unit coverage",
+    [
+      "shell-v1-i18n.test.ts",
+      "browser-locale.test.ts",
+      "public-onboarding-i18n.test.ts",
+      "assistant-voice-adapter.test.ts",
+    ],
+  ],
+  [
+    "weather-v1-i18n-browser-parity.yml",
+    "Unit coverage",
+    ["weather-i18n.test.ts", "weather-widget.test.ts"],
+  ],
+  [
+    "place-action-runtime-facts.yml",
+    "Verify Ticketing canonical binding boundary",
+    ["src/commerce-public-http-transport.test.ts"],
+  ],
+];
+
+for (const [workflow, stepName, filters] of focusedWorkflowCases) {
+  test(`${workflow} forwards focused filters and preserves prerequisites`, () => {
+    const root = mkdtempSync(join(tmpdir(), "focused-ci-command-"));
+    const observation = join(root, "calls.ndjson");
+    try {
+      writeFileSync(
+        join(root, "package.json"),
+        JSON.stringify({ private: true, packageManager: "pnpm@10.15.0" }),
+      );
+      writeFileSync(
+        join(root, "pnpm-workspace.yaml"),
+        "packages:\n  - packages/*\n",
+      );
+      for (const [name, path] of [
+        ["morro-digital-platform", "apps/morro-digital-platform"],
+        ["ticketing-server", "services/ticketing"],
+      ]) {
+        const scripts = JSON.parse(
+          readFileSync(`${path}/package.json`, "utf8"),
+        ).scripts;
+        const target = join(root, "packages", name);
+        mkdirSync(target, { recursive: true });
+        writeFileSync(
+          join(target, "package.json"),
+          JSON.stringify({ name: `@touristic/${name}`, scripts }),
+        );
+      }
+      for (const name of ["financial", "ordering", "ticketing"]) {
+        const target = join(root, "packages", name);
+        mkdirSync(target, { recursive: true });
+        writeFileSync(
+          join(target, "package.json"),
+          JSON.stringify({
+            name: `@touristic/${name}`,
+            scripts: { build: `node ../../record-build.mjs ${name}` },
+          }),
+        );
+      }
+      writeFileSync(
+        join(root, "record-build.mjs"),
+        'import { appendFileSync } from "node:fs"; appendFileSync(process.env.CI_ARGV_LOG, JSON.stringify({ build: process.argv[2] }) + "\\n");\n',
+      );
+      mkdirSync(join(root, "node_modules", ".bin"), { recursive: true });
+      writeFileSync(
+        join(root, "node_modules", ".bin", "vitest"),
+        '#!/usr/bin/env node\nrequire("node:fs").appendFileSync(process.env.CI_ARGV_LOG, JSON.stringify({ argv: process.argv.slice(2) }) + "\\n");\n',
+        { mode: 0o755 },
+      );
+      const doc = load(readFileSync(`.github/workflows/${workflow}`, "utf8"));
+      const step = Object.values(doc.jobs)
+        .flatMap((job) => job.steps)
+        .find((item) => item.name === stepName);
+      assert.ok(step, `${workflow}: missing focused step`);
+      const [command, ...args] = step.run.trim().split(/\s+/);
+      assert.equal(command, "pnpm");
+      const result = spawnSync(command, args, {
+        cwd: root,
+        env: { ...process.env, CI_ARGV_LOG: observation },
+        encoding: "utf8",
+        timeout: 30000,
+      });
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      const calls = readFileSync(observation, "utf8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      const ticketing = workflow === "place-action-runtime-facts.yml";
+      assert.deepEqual(calls, [
+        ...(ticketing
+          ? ["financial", "ordering", "ticketing"].map((build) => ({ build }))
+          : []),
+        {
+          argv: [
+            "run",
+            ...(ticketing ? ["--passWithNoTests"] : []),
+            ...filters,
+          ],
+        },
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+}

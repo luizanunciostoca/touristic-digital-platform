@@ -42,7 +42,7 @@ jobs:
       - name: Build workspace
         run: pnpm -w build
       - name: Unit coverage
-        run: pnpm --filter @touristic/morro-digital-platform test -- weather-i18n.test.ts weather-widget.test.ts
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run weather-i18n.test.ts weather-widget.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2

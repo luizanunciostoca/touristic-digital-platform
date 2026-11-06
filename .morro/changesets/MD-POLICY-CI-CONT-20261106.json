@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-POLICY-CI-CONT-20261106",
   "objective": "complete-ci-orchestration-and-exact-attempt-receipts-preserving-suite-coverage",
-  "baseSha": "b3e1dceb4a56e30a84a955132563ee360f676800",
+  "baseSha": "575d01064ed5b283a48777a9c5e9ac092f1ce2d8",
   "branch": "infra/policy-ci-cont-20261106",
   "state": "LOCAL_PROVEN",
   "risk": "high",
