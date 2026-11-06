@@ -1,21 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  realpathSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-  appendFileSync,
-} from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { lstatSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export const repository = "luizanunciostoca/touristic-digital-platform";
 export const workflowPath = ".github/workflows/merged-retirement-executor.yml";
@@ -141,11 +129,18 @@ export function isolatedEnvironment(environment, hooks, temporary) {
     GIT_CONFIG_NOSYSTEM: "1",
     GIT_CONFIG_GLOBAL: "/dev/null",
     GIT_NO_LAZY_FETCH: "1",
-    GIT_CONFIG_COUNT: "3",
+    GIT_CONFIG_COUNT: "2",
     GIT_CONFIG_KEY_0: "core.hooksPath",
     GIT_CONFIG_VALUE_0: hooks,
     GIT_CONFIG_KEY_1: "core.fsmonitor",
     GIT_CONFIG_VALUE_1: "false",
+  };
+}
+
+export function executorGitEnvironment(environment) {
+  return {
+    ...environment,
+    GIT_CONFIG_COUNT: "3",
     GIT_CONFIG_KEY_2: "protocol.file.allow",
     GIT_CONFIG_VALUE_2: "never",
   };
@@ -195,20 +190,31 @@ export async function runChecked(
       clearTimeout(timer);
       clearTimeout(exitTimer);
       activeCommands.delete(stop);
-      if (token && `${stdout}${stderr}`.includes(token))
+      if (
+        token &&
+        [stdout + stderr, stderr + stdout].some((value) =>
+          value.includes(token),
+        )
+      )
         failure = "RETIREMENT_TOKEN_IN_OUTPUT";
       if (interrupted) failure = "RETIREMENT_INTERRUPTED";
       const redaction =
         token.length >= 10 ? "[REDACTED]" : "*".repeat(token.length);
-      for (let length = 1; length < token.length; length++)
-        if (
-          stdout.endsWith(token.slice(0, length)) &&
-          stderr.startsWith(token.slice(length))
-        ) {
-          stdout = stdout.slice(0, -length) + redaction;
-          stderr = stderr.slice(token.length - length);
-          break;
-        }
+      const streams = [stdout, stderr];
+      for (const [first, second] of [
+        [0, 1],
+        [1, 0],
+      ])
+        for (let length = 1; length < token.length; length++)
+          if (
+            streams[first].endsWith(token.slice(0, length)) &&
+            streams[second].startsWith(token.slice(length))
+          ) {
+            streams[first] = streams[first].slice(0, -length) + redaction;
+            streams[second] = streams[second].slice(token.length - length);
+            break;
+          }
+      [stdout, stderr] = streams;
       const redact = (value) => {
         if (!token) return value;
         value = value.replaceAll(token, redaction);
@@ -224,7 +230,12 @@ export async function runChecked(
       };
       stdout = redact(stdout);
       stderr = redact(stderr);
-      if (token && `${stdout}${stderr}`.includes(token)) {
+      if (
+        token &&
+        [stdout + stderr, stderr + stdout].some((value) =>
+          value.includes(token),
+        )
+      ) {
         stdout = redaction;
         stderr = "";
       }
@@ -550,13 +561,6 @@ function plainFile(path) {
   );
   return readFileSync(path);
 }
-function snapshot(root, id) {
-  return {
-    registry: JSON.parse(plainFile(join(root, registryPath))),
-    manifest: JSON.parse(plainFile(join(root, manifestPath(id)))),
-    ledger: plainFile(join(root, ledgerPath)).toString(),
-  };
-}
 function writeEvidence(directory, name, value) {
   writeFileSync(
     join(directory, name),
@@ -590,579 +594,11 @@ export function sealEvidence(directory, token) {
   });
 }
 
-export async function prepareMergedRetirement(environment = process.env) {
-  const event = JSON.parse(plainFile(environment.GITHUB_EVENT_PATH));
-  const { request, origin } = validateInvocation(environment, event);
-  const base = request.expected_main;
-  const id = request.claim_id;
-  const paths = metadataPaths(id);
-  assert.ok(
-    process.versions.node.split(".")[0] === "22",
-    "RETIREMENT_NODE_VERSION",
-  );
-  const token = environment.GITHUB_TOKEN;
-  assert.ok(
-    typeof token === "string" && token.length > 0,
-    "RETIREMENT_READ_TOKEN_REQUIRED",
-  );
-  for (const key of ["RUNNER_TEMP", "GITHUB_WORKSPACE"]) {
-    assert.ok(
-      isAbsolute(environment[key] ?? "") &&
-        realpathSync(environment[key]) === environment[key],
-      "RETIREMENT_HOSTED_PATH",
-    );
-  }
-  plainFile(environment.GITHUB_OUTPUT);
-  const api = createGithubReader(token),
-    prefix = `/repos/${repository}`;
-  const capture = async () => {
-    const data = await Promise.all([
-      api.get(prefix),
-      api.get(prefix + "/git/ref/heads/main"),
-      api.get(prefix + "/pulls/" + request.merged_pr),
-      api.get(prefix + "/git/commits/" + request.material_head),
-    ]);
-    return validateRemote(request, origin, ...data);
-  };
-  const remote = await capture();
-  const task = mkdtempSync(join(environment.RUNNER_TEMP, "merged-retirement-"));
-  const repo = join(task, "repository"),
-    evidence = join(task, "evidence"),
-    stagedExports = join(task, "prepared"),
-    hooks = join(task, "hooks"),
-    temporary = join(task, "temporary");
-  for (const dir of [evidence, stagedExports, hooks, temporary])
-    mkdirSync(dir, { mode: 0o700 });
-  const safeEnv = isolatedEnvironment(environment, hooks, temporary);
-  const branch = `chore/retire-merged-${id.toLowerCase()}-${request.nonce}`;
-  const executions = [];
-  const run = async (name, command, args, options = {}) => {
-    const startedAt = new Date().toISOString();
-    const { logDirectory = evidence, ...executionOptions } = options;
-    let output, failure;
-    try {
-      output = await runChecked(command, args, {
-        cwd: repo,
-        env: safeEnv,
-        token,
-        ...executionOptions,
-      });
-    } catch (error) {
-      failure = error;
-      output = error.execution ?? {
-        stdout: "",
-        stderr: "",
-        exitCode: null,
-        signal: null,
-        failureCode: "RETIREMENT_COMMAND_NOT_STARTED",
-      };
-    }
-    executions.push({
-      name,
-      command,
-      args,
-      startedAt,
-      finishedAt: new Date().toISOString(),
-      exitCode: output.exitCode,
-      signal: output.signal,
-      failureCode: output.failureCode,
-      outputTruncated: output.outputTruncated ?? false,
-      outputSha256: digest(output.stdout + output.stderr),
-    });
-    writeEvidence(logDirectory, `${name}.log`, output.stdout + output.stderr);
-    if (failure && logDirectory === stagedExports)
-      writeEvidence(evidence, `${name}-failure.json`, {
-        exitCode: output.exitCode,
-        signal: output.signal,
-        failureCode: output.failureCode,
-        stdoutBytes: Buffer.byteLength(output.stdout),
-        stdoutSha256: digest(output.stdout),
-        // Do not turn a failed diff into a usable candidate export.
-        stderrDiagnostics: output.stderr
-          .split(/\r?\n/u)
-          .filter((line) => /^(?:fatal|error|warning): /u.test(line))
-          .slice(0, 20)
-          .map((line) => line.slice(0, 4096)),
-      });
-    if (failure) throw failure;
-    return output.stdout;
-  };
-  let sequence = 0;
-  const git = async (...args) =>
-    (await run(`git-${++sequence}`, "git", args)).trim();
-  const fresh = async () => {
-    assert.ok(!interrupted, "RETIREMENT_INTERRUPTED");
-    same(await capture(), remote, "RETIREMENT_PROVIDER_IDENTITY_CHANGED");
-    same(
-      (
-        await git("ls-remote", "--exit-code", "origin", "refs/heads/main")
-      ).split(/\s/u)[0],
-      base,
-      "RETIREMENT_REMOTE_MAIN_CHANGED",
-    );
-  };
-  const assertNoActiveWork = async () => {
-    const pulls = await api.list(prefix + "/pulls?state=open");
-    for (const pr of pulls) {
-      assert.ok(
-        Number.isSafeInteger(pr.number) && pr.number > 0,
-        "RETIREMENT_PR_NUMBER",
-      );
-      assert.ok(
-        isGitPath(pr.head?.ref) &&
-          isGitPath(pr.head?.repo?.full_name) &&
-          pr.head.repo.full_name.split("/").length === 2,
-        "RETIREMENT_OPEN_PR_IDENTITY",
-      );
-      assert.ok(
-        pr.head?.repo?.full_name !== repository ||
-          pr.head?.ref !== remote.materialBranch,
-        "RETIREMENT_MATERIAL_BRANCH_OPEN_PR",
-      );
-      const files = await api.list(prefix + `/pulls/${pr.number}/files`);
-      assert.ok(
-        files.every(
-          (file) =>
-            isGitPath(file.filename) &&
-            (!Object.hasOwn(file, "previous_filename") ||
-              isGitPath(file.previous_filename)),
-        ),
-        "RETIREMENT_API_FILE_IDENTITY",
-      );
-      assert.ok(
-        !files.some(
-          (file) =>
-            paths.includes(file.filename) ||
-            paths.includes(file.previous_filename),
-        ),
-        "RETIREMENT_OPEN_WORK_OVERLAP",
-      );
-    }
-    const ref = await api.get(
-      prefix + "/git/ref/heads/" + encodeURIComponent(remote.materialBranch),
-      true,
-    );
-    if (ref !== null) {
-      same(
-        ref.ref,
-        `refs/heads/${remote.materialBranch}`,
-        "RETIREMENT_MATERIAL_REF",
-      );
-      same(ref.object?.type, "commit", "RETIREMENT_MATERIAL_REF_TYPE");
-      same(
-        ref.object?.sha,
-        request.material_head,
-        "RETIREMENT_MATERIAL_BRANCH_ADVANCED",
-      );
-    }
-    return {
-      observedAt: new Date().toISOString(),
-      materialHead: ref?.object.sha ?? null,
-      openPulls: pulls.length,
-    };
-  };
-  const clean = async (head, tree = null) => {
-    same(await git("rev-parse", "HEAD"), head, "RETIREMENT_HEAD_CHANGED");
-    if (tree)
-      same(
-        await git("rev-parse", "HEAD^{tree}"),
-        tree,
-        "RETIREMENT_TREE_CHANGED",
-      );
-    same(
-      await git("branch", "--show-current"),
-      branch,
-      "RETIREMENT_BRANCH_CHANGED",
-    );
-    same(
-      await git("status", "--porcelain=v1", "--untracked-files=all"),
-      "",
-      "RETIREMENT_WORKTREE_DIRTY",
-    );
-    same(
-      realpathSync(resolve(repo, await git("rev-parse", "--git-common-dir"))),
-      realpathSync(join(repo, ".git")),
-      "RETIREMENT_STORE_SHARED",
-    );
-  };
-  const sourceBytes = async (
-    root,
-    sha,
-    paths = [
-      "tooling",
-      "package.json",
-      "pnpm-lock.yaml",
-      "pnpm-workspace.yaml",
-    ],
-  ) => {
-    const listing = (
-      await run(
-        `source-${++sequence}`,
-        "git",
-        ["ls-tree", "-rz", sha, "--", ...paths],
-        { cwd: root },
-      )
-    )
-      .split("\0")
-      .filter(Boolean);
-    const records = listing.map((line) => {
-      const [entry, path] = line.split("\t");
-      const [mode, type, oid] = entry.split(" ");
-      same(type, "blob", "RETIREMENT_SOURCE_TYPE");
-      assert.ok(
-        mode === "100644" || mode === "100755",
-        "RETIREMENT_SOURCE_MODE",
-      );
-      const bytes = plainFile(join(root, path));
-      same(
-        createHash("sha1")
-          .update(`blob ${bytes.length}\0`)
-          .update(bytes)
-          .digest("hex"),
-        oid,
-        "RETIREMENT_EXECUTED_BYTES_CHANGED",
-      );
-      return [path, mode, oid];
-    });
-    return digest(json(records));
-  };
-  const outcome = {
-    kind: "MERGED_RETIREMENT_PREPARATION",
-    classification: "VERIFICATION_INPUT_NOT_CERTIFICATE",
-    request,
-    origin,
-    remote,
-    branch,
-    status: "NOT_PROVEN",
-    publicationAuthorized: false,
-    independentReview: "PENDING",
-  };
-  try {
-    const trusted = environment.GITHUB_WORKSPACE;
-    same(
-      (
-        await run("trusted-head", "git", ["rev-parse", "HEAD"], {
-          cwd: trusted,
-        })
-      ).trim(),
-      base,
-      "RETIREMENT_TRUSTED_HEAD",
-    );
-    same(
-      (
-        await run(
-          "trusted-clean",
-          "git",
-          ["status", "--porcelain=v1", "--untracked-files=all"],
-          { cwd: trusted },
-        )
-      ).trim(),
-      "",
-      "RETIREMENT_TRUSTED_DIRTY",
-    );
-    same(
-      realpathSync(fileURLToPath(import.meta.url)),
-      realpathSync(join(trusted, "tooling/ci/merged-retirement-executor.mjs")),
-      "RETIREMENT_EXECUTOR_LOCATION",
-    );
-    const trustedBytes = await sourceBytes(trusted, base);
-    await run("git-init", "git", ["init", "--quiet", repo], { cwd: task });
-    await git(
-      "remote",
-      "add",
-      "origin",
-      `https://github.com/${repository}.git`,
-    );
-    await run(
-      "git-fetch",
-      "git",
-      [
-        "fetch",
-        "--no-tags",
-        "--no-recurse-submodules",
-        "origin",
-        "refs/heads/main:refs/remotes/origin/main",
-      ],
-      { timeout: 300000 },
-    );
-    same(
-      await git("rev-parse", "refs/remotes/origin/main"),
-      base,
-      "RETIREMENT_FETCH_STALE",
-    );
-    same(
-      await git("rev-parse", "--is-shallow-repository"),
-      "false",
-      "RETIREMENT_HISTORY_INCOMPLETE",
-    );
-    assert.ok(
-      !existsSync(join(repo, ".git/objects/info/alternates")),
-      "RETIREMENT_ALTERNATE_STORE",
-    );
-    await git("checkout", "-b", branch, base);
-    await clean(base);
-    same(
-      await sourceBytes(repo, base),
-      trustedBytes,
-      "RETIREMENT_TRUSTED_SOURCE_MISMATCH",
-    );
-    await git("merge-base", "--is-ancestor", request.merge_sha, base);
-    const before = snapshot(repo, id);
-    if (!Object.hasOwn(before.registry.claims, id)) {
-      outcome.readback = verifyAlreadyRetired(before, request);
-      await git("merge-base", "--is-ancestor", before.manifest.baseSha, base);
-      await fresh();
-      await clean(base);
-      outcome.status = outcome.readback.status;
-    } else {
-      same(
-        before.registry.claims[id].branch,
-        remote.materialBranch,
-        "RETIREMENT_CLAIM_BRANCH",
-      );
-      same(before.manifest.id, id, "RETIREMENT_MANIFEST_ID");
-      assert.ok(
-        (await api.get(
-          prefix + "/git/ref/heads/" + encodeURIComponent(branch),
-          true,
-        )) === null,
-        "RETIREMENT_REMOTE_BRANCH_EXISTS",
-      );
-      await assertNoActiveWork();
-      await run(
-        "dependencies",
-        "pnpm",
-        ["install", "--frozen-lockfile", "--ignore-scripts"],
-        { timeout: 300000 },
-      );
-      const ready = await run("workspace", process.execPath, [
-        "tooling/workspace/morro-workspace.mjs",
-        "ready",
-        repo,
-        base,
-      ]);
-      terminalObject(
-        ready,
-        {
-          ready: true,
-          exactBaseSha: base,
-          headSha: base,
-          branch,
-          runtime: "native",
-          fallbackUsed: false,
-          dependenciesReady: true,
-        },
-        "workspace",
-      );
-      await clean(base);
-      await fresh();
-      const authenticated = {
-        ...safeEnv,
-        GITHUB_TOKEN: token,
-        NODE_REDIRECT_WARNINGS: join(temporary, "warnings.log"),
-      };
-      const produced = await run(
-        "canonical-producer",
-        process.execPath,
-        [
-          "tooling/mdctl/mdctl.mjs",
-          "claim",
-          "retire",
-          manifestPath(id),
-          "--base-sha",
-          base,
-        ],
-        { env: authenticated, timeout: 180000 },
-      );
-      outcome.producer = terminalObject(produced, {
-        action: "retire",
-        changeSetId: id,
-        branch,
-        baseSha: base,
-        evidenceReason: "MERGED_PR",
-        state: "MERGED",
-        eventTypes: ["MERGED", "CLAIM_RELEASED"],
-        authority: "LOCAL_TRANSITION_REQUIRES_INDEPENDENT_GIT_PROOF",
-      });
-      const prepared = await run(
-        "prepare",
-        process.execPath,
-        ["tooling/ci/local-fast-gate.mjs", "--prepare", "--base", base],
-        { timeout: 180000 },
-      );
-      const terminal = terminalObject(prepared, {
-        mode: "PREPARED",
-        baseSha: base,
-        headSha: base,
-      });
-      same(terminal.files.slice().sort(), paths, "RETIREMENT_PREPARE_SCOPE");
-      outcome.transition = verifyTransition(
-        before,
-        snapshot(repo, id),
-        request,
-        branch,
-      );
-      same(
-        (await git("diff", "--name-only", base)).split("\n").sort(),
-        paths,
-        "RETIREMENT_DIFF_SCOPE",
-      );
-      await git("diff", "--check");
-      await git("add", "--", ...paths);
-      await git(
-        "-c",
-        "user.name=Morro Retirement Executor",
-        "-c",
-        "user.email=41898282+github-actions[bot]@users.noreply.github.com",
-        "commit",
-        "-m",
-        `chore(governance): retire merged ${id}`,
-      );
-      const head = await git("rev-parse", "HEAD"),
-        tree = await git("rev-parse", "HEAD^{tree}");
-      same(
-        await git("rev-list", "--parents", "-n", "1", head),
-        `${head} ${base}`,
-        "RETIREMENT_CANDIDATE_PARENT",
-      );
-      outcome.candidate = {
-        head,
-        tree,
-        base: base,
-        branch,
-        claimId: id,
-      };
-      outcome.candidate.metadataDigest = await sourceBytes(repo, head, paths);
-      for (const mode of ["admission", "certify"]) {
-        await clean(head, tree);
-        await fresh();
-        const output = await run(
-          mode,
-          process.execPath,
-          ["tooling/ci/local-fast-gate.mjs", `--${mode}`, "--base", base],
-          { env: authenticated, timeout: mode === "certify" ? 600000 : 180000 },
-        );
-        terminalObject(output, {
-          mode: "NON_RUNTIME",
-          baseSha: base,
-          headSha: head,
-          treeSha: tree,
-        });
-        outcome[mode] = terminalObject(output, {
-          mode: mode === "certify" ? "CERTIFIED" : "ADMISSION_PASS",
-          baseSha: base,
-          headSha: head,
-          treeSha: tree,
-          claimId: id,
-          workspaceRuntime: "native",
-          workspaceFallbackUsed: false,
-        });
-        if (mode === "certify") outcome.tests = tapSummary(output);
-      }
-      await clean(head, tree);
-      await fresh();
-      verifyTransition(before, snapshot(repo, id), request, branch);
-      same(
-        await sourceBytes(repo, head),
-        trustedBytes,
-        "RETIREMENT_SOURCE_AFTER_PROOF",
-      );
-      same(
-        await sourceBytes(repo, head, paths),
-        outcome.candidate.metadataDigest,
-        "RETIREMENT_METADATA_AFTER_PROOF",
-      );
-      writeEvidence(
-        stagedExports,
-        "candidate.patch",
-        await run(
-          "candidate-patch",
-          "git",
-          ["diff", "--binary", "--full-index", base, head],
-          { logDirectory: stagedExports },
-        ),
-      );
-      const bundle = join(stagedExports, "verification-input.bundle");
-      await git("bundle", "create", bundle, "HEAD", "^" + base);
-      await git("bundle", "verify", bundle);
-      same(
-        await git("bundle", "list-heads", bundle),
-        `${head} HEAD`,
-        "RETIREMENT_BUNDLE_HEAD",
-      );
-      const header = plainFile(bundle)
-        .subarray(0, plainFile(bundle).indexOf("\n\n"))
-        .toString();
-      same(
-        [...header.matchAll(/^-([a-f0-9]{40}) /gmu)].map((match) => match[1]),
-        [base],
-        "RETIREMENT_BUNDLE_PREREQUISITE",
-      );
-      await clean(head, tree);
-      assert.ok(
-        (await api.get(
-          prefix + "/git/ref/heads/" + encodeURIComponent(branch),
-          true,
-        )) === null,
-        "RETIREMENT_BRANCH_CREATED_DURING_PROOF",
-      );
-      outcome.finalWorkReadback = await assertNoActiveWork();
-      await fresh();
-      assert.ok(!interrupted, "RETIREMENT_INTERRUPTED");
-      for (const name of [
-        "candidate.patch",
-        "candidate-patch.log",
-        "verification-input.bundle",
-      ])
-        renameSync(join(stagedExports, name), join(evidence, name));
-      outcome.status = "LOCAL_CANONICAL_GATES_PASS_REVIEW_PENDING";
-    }
-    assert.ok(!interrupted, "RETIREMENT_INTERRUPTED");
-    writeEvidence(evidence, "result.json", { ...outcome, executions });
-    sealEvidence(evidence, token);
-    appendFileSync(environment.GITHUB_OUTPUT, `evidence_dir=${evidence}\n`);
-    return outcome;
-  } catch (error) {
-    rmSync(stagedExports, { recursive: true, force: true });
-    for (const name of [
-      "candidate.patch",
-      "candidate-patch.log",
-      "verification-input.bundle",
-      "result.json",
-      "artifact-manifest.json",
-    ])
-      rmSync(join(evidence, name), { force: true, recursive: true });
-    writeEvidence(evidence, "failure.json", {
-      ...outcome,
-      status: "NOT_PROVEN",
-      error: /^[A-Z_]+$/u.test(error.message)
-        ? error.message
-        : "RETIREMENT_FAILED",
-      executions,
-    });
-    try {
-      sealEvidence(evidence, token);
-      appendFileSync(environment.GITHUB_OUTPUT, `evidence_dir=${evidence}\n`);
-    } catch {
-      /* Failed artifact validation must never enable upload. */
-    }
-    throw new Error("MERGED_RETIREMENT_PREPARATION_FAILED");
-  }
-}
-
+// The hosted orchestrator is a separate, dependent delivery.
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 ) {
-  for (const signal of ["SIGINT", "SIGTERM"])
-    process.once(signal, () => {
-      interrupted = true;
-      for (const stop of activeCommands) stop("RETIREMENT_INTERRUPTED");
-    });
-  prepareMergedRetirement()
-    .then((result) => console.log(json(result)))
-    .catch(() => {
-      console.error("MERGED_RETIREMENT_PREPARATION_FAILED");
-      process.exitCode = 1;
-    });
+  console.error("MERGED_RETIREMENT_PREPARATION_NOT_IMPLEMENTED");
+  process.exitCode = 1;
 }
