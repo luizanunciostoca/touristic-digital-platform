@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import {
   collectObservedState,
   githubApi,
+  pullRequestIdentity,
   renderSummary,
 } from "../control-state/status.mjs";
 import {
@@ -106,18 +107,99 @@ export function attachLiveSchedulerState(observed, liveWork, policy) {
   };
 }
 
-async function snapshot(config) {
+export async function snapshot(config = {}) {
   const policy = await loadSchedulerPolicy();
-  const [observed, termux, liveWork] = await Promise.all([
-    collectObservedState(config),
-    collectTermuxHeartbeat(),
-    collectLivePullWork({ repository: config.repository, policy }),
-  ]);
-  const observedWithLive = attachLiveSchedulerState(observed, liveWork, policy);
-  const control = await loadInvariantContextAtMain({
-    repository: config.repository,
-    mainSha: observedWithLive.mainSha,
+  const api = config.api ?? githubApi;
+  const repository =
+    config.repository ?? "luizanunciostoca/touristic-digital-platform";
+  const root = "repos/" + repository;
+  const workPullLists = [];
+  const workPullDetails = new Map();
+  // Observe the identities actually consumed by the immutable producer. Its
+  // result omits PR base/state fields; another fetch could not reconstruct them.
+  const workApi = async (endpoint, options) => {
+    const value = await api(endpoint, options);
+    if (endpoint === root + "/pulls?state=open&base=main&per_page=100") {
+      if (
+        !Array.isArray(value) ||
+        value.length === 0 ||
+        value.some((page) => !Array.isArray(page))
+      )
+        throw new Error("WORK_PULL_PAGES_INVALID");
+      const pulls = value
+        .flat()
+        .map((pr) => pullRequestIdentity(pr, repository));
+      if (
+        pulls.some((pr) => pr.state !== "open" || pr.baseRef !== "main") ||
+        new Set(pulls.map((pr) => pr.number)).size !== pulls.length
+      )
+        throw new Error("WORK_PULL_LIST_INVALID");
+      workPullLists.push(pulls);
+    } else if (
+      endpoint.startsWith(root + "/pulls/") &&
+      /^\d+$/u.test(endpoint.slice((root + "/pulls/").length))
+    ) {
+      const pr = pullRequestIdentity(value, repository);
+      const previous = workPullDetails.get(pr.number);
+      if (
+        endpoint !== root + "/pulls/" + pr.number ||
+        (previous && JSON.stringify(previous) !== JSON.stringify(pr))
+      )
+        throw new Error("WORK_PULL_DETAIL_INVALID");
+      // Trust reconciliation legitimately rereads a PR. Preserve its first
+      // normalized identity and reject drift on every subsequent observation.
+      if (!previous) workPullDetails.set(pr.number, pr);
+    }
+    return value;
+  };
+  // Only provider transport is injectable; work/projection producers stay canonical.
+  const composition = Promise.all([
+    collectTermuxHeartbeat({ api }),
+    collectLivePullWork({ repository, policy, api: workApi }),
+  ]).then(
+    (values) => ({ values }),
+    (error) => ({ error }),
+  );
+  let termux, liveWork, control;
+  const observed = await collectObservedState({
+    ...config,
+    api,
+    beforeFinalReadback: async ({ mainSha, activePrs }) => {
+      const result = await composition;
+      if (result.error) throw result.error;
+      [termux, liveWork] = result.values;
+      const expected = activePrs.filter((pr) => pr.baseRef === "main");
+      const identity = (pulls) =>
+        JSON.stringify([...pulls].sort((a, b) => a.number - b.number));
+      const expectedIdentity = identity(expected);
+      if (
+        workPullLists.length < 2 ||
+        workPullDetails.size !== expected.length ||
+        workPullLists.some((pulls) => identity(pulls) !== expectedIdentity) ||
+        identity([...workPullDetails.values()]) !== expectedIdentity ||
+        liveWork.items.length !== expected.length ||
+        new Set(liveWork.items.map((item) => item.prNumber)).size !==
+          expected.length ||
+        liveWork.items.some((item) => {
+          const pr = expected.find((entry) => entry.number === item.prNumber);
+          return (
+            !pr ||
+            item.headSha !== pr.headSha ||
+            item.branch !== pr.branch ||
+            item.draft !== pr.draft ||
+            item.openPr !== true
+          );
+        })
+      )
+        throw new Error("COMPOSED_PULL_IDENTITY_MISMATCH");
+      control = await loadInvariantContextAtMain({
+        repository,
+        mainSha,
+        api,
+      });
+    },
   });
+  const observedWithLive = attachLiveSchedulerState(observed, liveWork, policy);
   const invariants = evaluateInvariants({
     observed: observedWithLive,
     termux,
