@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-POLICY-GOVERNANCE-CONT-20261106",
   "objective": "complete-governance-evidence-capacity-ready-ordinary-and-policy-consumers",
-  "baseSha": "b6dea9ac46fff1cfb64a28d35f2a873811933ee6",
+  "baseSha": "0c10a1d727c0339cf6afffdf9be22393a2db1239",
   "branch": "infra/policy-governance-cont-20261106",
   "state": "LOCAL_PROVEN",
   "risk": "critical",
