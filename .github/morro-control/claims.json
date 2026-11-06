@@ -166,6 +166,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-06T20:15:16.802Z"
+    },
+    "MD-AUTH-CONTRACT-D02-INVENTORY-PIN-20261106": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/auth-contract-inventory-pin-20261106",
+      "baseSha": "fb304a52514f775575d1c1074ed229e8009ad21a",
+      "paths": [
+        ".github/workflows/auth-integration-contract.yml",
+        ".morro/changesets/MD-AUTH-CONTRACT-D02-INVENTORY-PIN-20261106.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-06T21:31:03.791Z"
     }
   }
 }
