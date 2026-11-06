@@ -168,6 +168,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-06T18:46:44.818Z"
+    },
+    "MD-D02-GUEST-QUOTE-METHOD-GUARD-20261106": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/d02-guest-quote-method-guard-20261106",
+      "baseSha": "351ced2eb901d6f591ac8a6d5f4c943fa34481b1",
+      "paths": [
+        "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs",
+        ".morro/changesets/MD-D02-GUEST-QUOTE-METHOD-GUARD-20261106.json"
+      ],
+      "domains": ["ticketing"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-06T20:15:16.802Z"
     }
   }
 }
