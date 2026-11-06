@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-D02-GUEST-QUOTE-METHOD-GUARD-20261106",
+  "objective": "preserve-guest-quote-get-method-denial-and-zero-inventory-reads-in-d02-authorization-regression",
+  "baseSha": "351ced2eb901d6f591ac8a6d5f4c943fa34481b1",
+  "branch": "fix/d02-guest-quote-method-guard-20261106",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      "apps/morro-digital-platform/tooling/ticketing-operator-authorization.test.mjs",
+      ".morro/changesets/MD-D02-GUEST-QUOTE-METHOD-GUARD-20261106.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": [
+      "ticket-fulfillment",
+      "platform-authz",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ownership-and-claim-invariants",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
