@@ -171,7 +171,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/auth-contract-inventory-pin-20261106",
-      "baseSha": "fb304a52514f775575d1c1074ed229e8009ad21a",
+      "baseSha": "7c988465d14408ccfece93629c85d14e3d714c4e",
       "paths": [
         ".github/workflows/auth-integration-contract.yml",
         ".morro/changesets/MD-AUTH-CONTRACT-D02-INVENTORY-PIN-20261106.json"
