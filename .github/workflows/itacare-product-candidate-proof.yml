@@ -33,6 +33,8 @@ on:
       - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
       - "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs"
       - "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs"
+      - "tooling/ci/itacare-activation-census.mjs"
+      - "tooling/ci/itacare-activation-census.test.mjs"
       - ".github/workflows/itacare-product-candidate-proof.yml"
   workflow_dispatch:
     inputs:
@@ -101,6 +103,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Preserve branch assertions while making every census Git read raw.
+          git() {
+            local status=0
+            command git --no-replace-objects -c core.commitGraph=false "$@" || status=$?
+            if test "${1:-}" = diff && test "$status" -gt 1; then exit "$status"; fi
+            return "$status"
+          }
+          if test "${GIT_GRAFT_FILE+x}" = x; then echo 'ITACARE_GRAFTS_DENIED' >&2; exit 1; fi
+          graft_path="$(git rev-parse --git-path info/grafts)"
+          if test -e "$graft_path" || test -L "$graft_path"; then echo 'ITACARE_GRAFTS_DENIED' >&2; exit 1; fi
           if test -f apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs; then
             test ! -L apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs
             git ls-files --error-unmatch apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs >/dev/null
@@ -173,8 +185,38 @@ jobs:
             grep -Fq 'toCoreDestinationConfig' apps/morro-digital-platform/src/browser-entry.ts
             echo 'activated=true' >> "$GITHUB_OUTPUT"
           else
-            echo "PARTIAL_DESTINATION_ACTIVATION_DENIED changed=$changed/12" >&2
-            exit 1
+            # Only the exact BASE validator can classify this exception; never execute the candidate copy.
+            export ITACARE_BASE_VALIDATOR="$RUNNER_TEMP/itacare-product-evidence/base-validator.mjs"
+            node --input-type=module <<'JS'
+          import assert from "node:assert/strict";
+          import { execFileSync } from "node:child_process";
+          import { createHash } from "node:crypto";
+          import { closeSync, openSync, writeFileSync } from "node:fs";
+          const base = process.env.CANDIDATE_BASE;
+          assert.match(base, /^[a-f0-9]{40}$/u);
+          const path = "tooling/ci/itacare-activation-census.mjs";
+          const git = (...args) => execFileSync("git", ["--no-replace-objects", "-c", "core.commitGraph=false", ...args]);
+          const entry = git("ls-tree", base, "--", path).toString("utf8").trim();
+          const match = /^100644 blob ([a-f0-9]{40})\ttooling\/ci\/itacare-activation-census\.mjs$/u.exec(entry);
+          assert.ok(match, "ITACARE_BASE_VALIDATOR_ABSENT_OR_INVALID");
+          const bytes = git("cat-file", "blob", match[1]);
+          assert.ok(bytes.length <= 1024 * 1024, "ITACARE_BASE_VALIDATOR_TOO_LARGE");
+          const blob = createHash("sha1").update("blob " + bytes.length + "\0").update(bytes).digest("hex");
+          assert.equal(blob, match[1]);
+          const fd = openSync(process.env.ITACARE_BASE_VALIDATOR, "wx", 0o400);
+          try { writeFileSync(fd, bytes); } finally { closeSync(fd); }
+          const binding = { baseSha: base, path, blob, sha256: createHash("sha256").update(bytes).digest("hex") };
+          writeFileSync(process.env.ITACARE_BASE_VALIDATOR + ".identity.json", JSON.stringify(binding) + "\n", { flag: "wx", mode: 0o600 });
+          JS
+            if node "$ITACARE_BASE_VALIDATOR" \
+              --base "$CANDIDATE_BASE" --head "$CANDIDATE_HEAD" \
+              --receipt "$RUNNER_TEMP/itacare-product-evidence/neutral-maintenance.json"; then
+              echo 'activated=false' >> "$GITHUB_OUTPUT"
+              echo "NOT_APPLICABLE_PROVEN_CLOSED_COPY_RECIPE base=$CANDIDATE_BASE candidate=$CANDIDATE_HEAD changed=1/12 server_bound=$server_bound" > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
+            else
+              echo "PARTIAL_DESTINATION_ACTIVATION_DENIED changed=$changed/12" >&2
+              exit 1
+            fi
           fi
       - name: Build exact current dependencies for scoped Place or destination activation
         if: steps.phase.outputs.scoped_place == 'true' || steps.phase.outputs.server_bound == 'true' || steps.phase.outputs.activated == 'true'

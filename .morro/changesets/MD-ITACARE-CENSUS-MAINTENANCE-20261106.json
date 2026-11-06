@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ITACARE-CENSUS-MAINTENANCE-20261106",
   "objective": "classify-closed-non-activation-discover-copy-maintenance-without-weakening-itacare-boundaries",
-  "baseSha": "60a4d2969c4be0a88f79d9039239a3826706d49c",
+  "baseSha": "e9dffca8b9b1ce2ad60187a0a632f5f429be543e",
   "branch": "infra/ci-census-maintenance-20261106",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
