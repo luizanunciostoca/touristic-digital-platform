@@ -78,7 +78,11 @@ async function networkFirstStatic(request) {
   try {
     const response = await fetch(request);
     if (response.ok && response.type === "basic") {
-      await cache.put(request, response.clone());
+      try {
+        await cache.put(request, response.clone());
+      } catch {
+        // Cache persistence must not discard a usable network response.
+      }
     }
     return response;
   } catch {
@@ -92,7 +96,11 @@ async function staleWhileRevalidate(request, event) {
   const network = fetch(request)
     .then(async (response) => {
       if (response.ok && response.type === "basic") {
-        await cache.put(request, response.clone());
+        try {
+          await cache.put(request, response.clone());
+        } catch {
+          // Cache persistence must not discard a usable network response.
+        }
       }
       return response;
     })
@@ -111,7 +119,11 @@ async function networkFirstRootNavigation(request) {
     const response = await fetch(request);
     if (response.ok && response.type === "basic") {
       const cache = await caches.open(STATIC_CACHE);
-      await cache.put("/", response.clone());
+      try {
+        await cache.put("/", response.clone());
+      } catch {
+        // Cache persistence must not discard a usable network response.
+      }
     }
     return response;
   } catch {

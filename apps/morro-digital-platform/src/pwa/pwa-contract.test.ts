@@ -67,6 +67,133 @@ describe("PWA manifest", () => {
   });
 });
 
+describe("PWA cache write failure boundary", () => {
+  const strategies = [
+    { strategy: "network-first asset", path: "/assets/test.css", mode: "cors" },
+    {
+      strategy: "stale-while-revalidate image",
+      path: "/assets/test.png",
+      mode: "cors",
+    },
+    { strategy: "root navigation", path: "/", mode: "navigate" },
+  ];
+
+  async function fetchThroughWorker(
+    path: string,
+    mode: string,
+    cached: boolean,
+    network: "ok" | "offline" | "error" | "opaque" = "ok",
+  ) {
+    const handlers = new Map<string, (event: unknown) => void>();
+    let writes = 0;
+    let fetches = 0;
+    const live =
+      network === "opaque"
+        ? Response.error()
+        : new Response("live network", {
+            status: network === "error" ? 503 : 200,
+          });
+    Object.defineProperty(live, "type", {
+      value: network === "opaque" ? "opaque" : "basic",
+    });
+    const cache = {
+      put: async () => {
+        writes += 1;
+        throw new Error("FIXTURE_QUOTA_EXCEEDED");
+      },
+      match: async () => (cached ? new Response("cached fallback") : undefined),
+    };
+    runInNewContext(await readPublicFile("service-worker.js"), {
+      URL,
+      Request,
+      Response,
+      self: {
+        location: { origin: "https://morro.example" },
+        addEventListener: (name: string, handler: (event: unknown) => void) =>
+          handlers.set(name, handler),
+      },
+      caches: { open: async () => cache, match: cache.match },
+      fetch: async () => {
+        fetches += 1;
+        if (network === "offline") throw new Error("FIXTURE_OFFLINE");
+        return live;
+      },
+    });
+    let response: Promise<Response> | undefined;
+    const pending: Promise<unknown>[] = [];
+    handlers.get("fetch")!({
+      request: { method: "GET", url: "https://morro.example" + path, mode },
+      respondWith: (value: Promise<Response>) => {
+        response = value;
+      },
+      waitUntil: (value: Promise<unknown>) => pending.push(value),
+    });
+    const result = response ? await response : undefined;
+    await Promise.all(pending);
+    return { result, live, writes, fetches };
+  }
+
+  it.each(
+    strategies.flatMap((strategy) =>
+      [false, true].map((cached) => ({ ...strategy, cached })),
+    ),
+  )(
+    "retains a successful network response after cache.put fails: $strategy cached=$cached",
+    async ({ path, mode, cached, strategy }) => {
+      const result = await fetchThroughWorker(path, mode, cached);
+      expect(result.result?.status).toBe(200);
+      expect(await result.result!.text()).toBe(
+        strategy === "stale-while-revalidate image" && cached
+          ? "cached fallback"
+          : "live network",
+      );
+      expect(result.fetches).toBe(1);
+      expect(result.writes).toBe(1);
+    },
+  );
+
+  it.each(
+    strategies.flatMap((strategy) =>
+      [false, true].map((cached) => ({ ...strategy, cached })),
+    ),
+  )(
+    "preserves the offline fallback after network failure: $strategy cached=$cached",
+    async ({ path, mode, cached }) => {
+      const result = await fetchThroughWorker(path, mode, cached, "offline");
+      expect(result.result?.status).toBe(cached ? 200 : 0);
+      expect(await result.result!.text()).toBe(cached ? "cached fallback" : "");
+      expect(result.writes).toBe(0);
+    },
+  );
+
+  it.each(
+    strategies.flatMap((strategy) =>
+      (["error", "opaque"] as const).map((network) => ({
+        ...strategy,
+        network,
+      })),
+    ),
+  )(
+    "does not cache or reinterpret $network network responses: $strategy",
+    async ({ path, mode, network }) => {
+      const result = await fetchThroughWorker(path, mode, false, network);
+      expect(result.result).toBe(result.live);
+      expect(result.result?.status).toBe(network === "error" ? 503 : 0);
+      expect(result.writes).toBe(0);
+    },
+  );
+
+  it.each(["/api/payments", "/runtime-config.js", "/healthz", "/readyz"])(
+    "does not intercept network-only %s even if cache is unavailable for writes",
+    async (path) => {
+      const result = await fetchThroughWorker(path, "cors", true);
+      expect(result.result).toBeUndefined();
+      expect(result.fetches).toBe(0);
+      expect(result.writes).toBe(0);
+    },
+  );
+});
+
 describe("PWA offline authority boundary", () => {
   it("installs full feature styles before first intent and retains them offline after cache update", async () => {
     const origin = "https://morro.example";
