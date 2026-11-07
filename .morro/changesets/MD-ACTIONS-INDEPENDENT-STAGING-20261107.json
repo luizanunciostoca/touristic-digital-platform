@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ACTIONS-INDEPENDENT-STAGING-20261107",
+  "objective": "prepare-compatible-external-evidence-admission-for-staging-without-weakening-release-gates",
+  "baseSha": "c7ee8c19fb97fc8bb5093eb75aef1ab41d2d63f3",
+  "branch": "infra/actions-independent-admission-20261107",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ACTIONS-INDEPENDENT-STAGING-20261107.json",
+      "tooling/release/actions-independent/route.mjs",
+      "tooling/release/actions-independent/route.test.mjs",
+      "docs/operations/ACTIONS-INDEPENDENT-STAGING.md",
+      "docs/adr/0006-actions-independent-staging-evidence.md",
+      "tooling/release/oci-proof.mjs",
+      "tooling/release/oci-proof.test.mjs",
+      "tooling/ci/staging-oci-deployment-evidence.mjs",
+      "tooling/ci/staging-oci-deployment-evidence.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 4,
+      "maxSeconds": 1200
+    },
+    "commands": [
+      {
+        "id": "base-ownership-and-claim-invariants",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
