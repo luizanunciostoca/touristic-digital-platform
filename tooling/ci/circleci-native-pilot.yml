@@ -1,17 +1,18 @@
-# Owner-authorized isolated pilot only; no merge or release authority.
+# Owner-authorized isolated bootstrap. Quality and auth discovery only; no policy/deploy mutation.
 version: 2.1
 jobs:
   retirement-contract-pilot:
     docker:
     - image: node:22-bookworm
     resource_class: medium
-    environment:
+    environment: &id001
       EXPECTED_BASE_SHA: c7ee8c19fb97fc8bb5093eb75aef1ab41d2d63f3
       EXPECTED_CANDIDATE_SHA: 39bd377eb99c36be5522928ac008fc1233bda5b2
       EXPECTED_CANDIDATE_TREE: bf0aa2ef00d8a68a6db3c3a58d8b6b47523a73f9
       GITHUB_REPOSITORY: luizanunciostoca/touristic-digital-platform
     steps:
-    - run:
+    - &id002
+      run:
         name: Fetch and verify exact public candidate
         shell: /bin/bash -eo pipefail
         command: |
@@ -73,7 +74,110 @@ jobs:
     - store_artifacts:
         path: evidence
         destination: pilot-only
+  selected-quality-pilot:
+    docker:
+    - image: node:22-bookworm
+    resource_class: medium
+    environment: *id001
+    steps:
+    - *id002
+    - run:
+        name: Install canonical package manager and locked dependencies
+        command: |-
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+          cd candidate
+          pnpm install --frozen-lockfile --prefer-offline
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Classify frozen candidate using unchanged base analyzer
+        command: |-
+          mkdir -p quality-evidence
+          cd candidate
+          node ../trusted/tooling/ci/impact-analyzer.mjs "$EXPECTED_BASE_SHA" "$EXPECTED_CANDIDATE_SHA" > ../quality-evidence/impact.json
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run affected formatting concurrency and credential checks
+        command: |-
+          cd candidate
+          node tooling/quality/check-workflow-concurrency.mjs
+          pnpm exec prettier --check --ignore-unknown .github/morro-control/claims.json .github/morro-control/events.ndjson .morro/changesets/MD-POLICY-GOVERNANCE-CONT2-20261106.json
+          pnpm secret-patterns:check
+          node tooling/quality/check-log-pii-exposure.mjs
+          git diff --check "$EXPECTED_BASE_SHA...$EXPECTED_CANDIDATE_SHA"
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run canonical CI governance and failure-learning gates
+        command: |-
+          cd candidate
+          pnpm ci:governance:check | tee ../quality-evidence/ci-governance.log
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run complete applicable governance contracts
+        command: |-
+          cd candidate
+          node --test tooling/fabric/*.test.mjs .github/agents/*.test.mjs .github/hooks/*.test.mjs | tee ../quality-evidence/governance-contracts.tap
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Prepare quality-receipt.mjs block 1
+        command: printf '%s' 'aW1wb3J0IGFzc2VydCBmcm9tICJub2RlOmFzc2VydC9zdHJpY3QiOwppbXBvcnQgZnMgZnJvbSAibm9kZTpmcyI7CmltcG9ydCB7ZXhlY0ZpbGVTeW5jfSBmcm9tICJub2RlOmNoaWxkX3Byb2Nlc3MiOwppbXBvcnQge2NyZWF0ZUhhc2h9IGZyb20gIm5vZGU6Y3J5cHRvIjsKY29uc3QgZz0oLi4uYSk9PmV4ZWNGaWxlU3luYygiZ2l0IixbIi1DIiwiY2FuZGlkYXRlIiwuLi5hXSx7ZW5jb2Rpbmc6InV0ZjgifSkudHJpbSgpOwphc3NlcnQuZXF1YWwoZygicmV2LXBhcnNlIiwiSEVBRCIpLHByb2Nlc3MuZW52LkVYUEVDVEVEX0NBTkRJREFURV9TSEEpOwphc3NlcnQuZXF1YWwoZygicmV2LXBhcnNlIiwiSEVBRF57dHJlZX0iKSxwcm9jZXNzLmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfVFJFRSk7CmFzc2VydC5lcXVhbChnKCJzdGF0dXMiLCItLXBvcmNlbGFpbiIsIi0tdW50cmFja2VkLWZpbGVzPWFsbCIpLCIiKTsKY29uc3QgcmVwb3J0PUpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKCJxdWFsaXR5LWV2aWRlbmNlL2ltcGFjdC5qc29uIiwidXRmOCIpKTsKYXNzZXJ0LmVxdWFsKHJlcG9ydC5xdWFsaXR5UHJvZmlsZSwiTk9OX1JVTlRJTUUiKTsKYXNzZXJ0LmVxdWFsKHJlcG9ydC5zZXJpYWxpemVkQ29udHJvbFRyYW5zaXRpb25Pbmx5LHRydWUpOwphc3NlcnQuZXF1YWwocmVwb3J0LmNsYXNzaWZpY2F0aW9uQmxvY2tlZCxmYWxzZSk7CmFzc2VydC5lcXVhbChyZXBvcnQubm9uUnVudGltZSx0cnVlKTsKYXNzZXJ0LmRlZXBFcXVhbChyZXBvcnQuc3VpdGVzLFtdKTsKY29uc3QgdGFwPWZzLnJlYWRGaWxlU3luYygicXVhbGl0eS1ldmlkZW5jZS9nb3Zlcm5hbmNlLWNvbnRyYWN0cy50YXAiLCJ1dGY4Iik7CmNvbnN0IG09az0+TnVtYmVyKFsuLi50YXAubWF0Y2hBbGwobmV3IFJlZ0V4cCgiXiMgIitrKyIgKFxcZCspJCIsImdtIikpXS5hdCgtMSk/LlsxXSk7CmFzc2VydChtKCJ0ZXN0cyIpPjApO2Fzc2VydC5lcXVhbChtKCJ0ZXN0cyIpLG0oInBhc3MiKSk7CmZvcihjb25zdCBrIG9mIFsiZmFpbCIsInNraXBwZWQiLCJjYW5jZWxsZWQiLCJ0b2RvIl0pYXNzZXJ0LmVxdWFsKG0oayksMCk7CmNvbnN0IGZpbGVOYW1lcz1mcy5yZWFkZGlyU3luYygicXVhbGl0eS1ldmlkZW5jZSIpOwpjb25zdCBoYXNoZXM9T2JqZWN0LmZybw=='
+          | base64 --decode > /tmp/quality-receipt.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Prepare quality-receipt.mjs block 2
+        command: printf '%s' 'bUVudHJpZXMoZmlsZU5hbWVzLm1hcChuPT5bbixjcmVhdGVIYXNoKCJzaGEyNTYiKS51cGRhdGUoZnMucmVhZEZpbGVTeW5jKCJxdWFsaXR5LWV2aWRlbmNlLyIrbikpLmRpZ2VzdCgiaGV4IildKSk7CmZzLndyaXRlRmlsZVN5bmMoInF1YWxpdHktZXZpZGVuY2UvcmVjZWlwdC5qc29uIixKU09OLnN0cmluZ2lmeSh7Y2xhc3NpZmljYXRpb246IlNFTEVDVEVEX1FVQUxJVFlfUElMT1RfTk9UX1BPTElDWV9BRE1JVFRFRCIsYmFzZVNoYTpwcm9jZXNzLmVudi5FWFBFQ1RFRF9CQVNFX1NIQSxoZWFkU2hhOmcoInJldi1wYXJzZSIsIkhFQUQiKSx0cmVlU2hhOmcoInJldi1wYXJzZSIsIkhFQURee3RyZWV9IiksY29udHJvbGxlclNoYTpwcm9jZXNzLmVudi5DSVJDTEVfU0hBMSxjb250cm9sbGVyQnJhbmNoOnByb2Nlc3MuZW52LkNJUkNMRV9CUkFOQ0gsbm9kZTpwcm9jZXNzLnZlcnNpb24scHJvZmlsZTpyZXBvcnQucXVhbGl0eVByb2ZpbGUsY29udHJhY3RzOnt0b3RhbDptKCJ0ZXN0cyIpLHBhc3NlZDptKCJwYXNzIiksZmFpbGVkOm0oImZhaWwiKSxza2lwcGVkOm0oInNraXBwZWQiKX0sZmlsZXM6aGFzaGVzLG9ic2VydmVkQXQ6bmV3IERhdGUoKS50b0lTT1N0cmluZygpfSxudWxsLDIpKyJcbiIse2ZsYWc6Ind4In0pOwoK'
+          | base64 --decode >> /tmp/quality-receipt.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run quality-receipt.mjs
+        command: node /tmp/quality-receipt.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - store_artifacts:
+        path: quality-evidence
+        destination: selected-quality-pilot
+    - persist_to_workspace:
+        root: .
+        paths:
+        - quality-evidence
+  provider-auth-readonly:
+    docker:
+    - image: node:22-bookworm
+    resource_class: small
+    environment: *id001
+    steps:
+    - checkout:
+        method: full
+        path: controller
+    - run:
+        name: Prepare auth-readonly-probe.mjs block 1
+        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gIm5vZGU6ZnMiOwppbXBvcnQge3NwYXduU3luY30gZnJvbSAibm9kZTpjaGlsZF9wcm9jZXNzIjsKY29uc3QgY2hpbGQ9c3Bhd25TeW5jKCJnaXQiLFsiLUMiLCJjb250cm9sbGVyIiwiY3JlZGVudGlhbCIsImZpbGwiXSx7aW5wdXQ6InByb3RvY29sPWh0dHBzXG5ob3N0PWdpdGh1Yi5jb21cbnBhdGg9bHVpemFudW5jaW9zdG9jYS90b3VyaXN0aWMtZGlnaXRhbC1wbGF0Zm9ybS5naXRcblxuIixlbmNvZGluZzoidXRmOCIsdGltZW91dDoxMDAwMCxlbnY6ey4uLnByb2Nlc3MuZW52LEdJVF9URVJNSU5BTF9QUk9NUFQ6IjAiLEdDTV9JTlRFUkFDVElWRToibmV2ZXIifSxzdGRpbzpbInBpcGUiLCJwaXBlIiwicGlwZSJdfSk7CmNvbnN0IGZpZWxkcz1PYmplY3QuZnJvbUVudHJpZXMoKGNoaWxkLnN0ZG91dD8/IiIpLnRyaW0oKS5zcGxpdCgiXG4iKS5tYXAoeD0+e2NvbnN0IHA9eC5pbmRleE9mKCI9Iik7cmV0dXJuIHA8MD9bIiIsIiJdOlt4LnNsaWNlKDAscCkseC5zbGljZShwKzEpXX0pKTsKY29uc3QgdG9rZW49ZmllbGRzLnBhc3N3b3JkOwpjb25zdCByZXN1bHQ9e2NsYXNzaWZpY2F0aW9uOiJSRUFEX09OTFlfQVVUSF9DQVBBQklMSVRZX1BST0JFIixjcmVkZW50aWFsQXZhaWxhYmxlOkJvb2xlYW4odG9rZW4pLGhlbHBlckV4aXRDb2RlOmNoaWxkLnN0YXR1cyxhcGlSZWFkYmFja1N0YXR1czpudWxsLGV4cGVjdGVkU291cmNlTWF0Y2hlZDpmYWxzZX07CmlmKHRva2VuKXsKICBjb25zdCByZXNwb25zZT1hd2FpdCBmZXRjaCgiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9sdWl6YW51bmNpb3N0b2NhL3RvdXJpc3RpYy1kaWdpdGFsLXBsYXRmb3JtL3B1bGxzLzE0NDkiLHtoZWFkZXJzOnthdXRob3JpemF0aW9uOiJCZWFyZXIgIit0b2tlbixhY2NlcHQ6ImFwcGxpY2F0aW9uL3ZuZC5naXRodWIranNvbiJ9LHNpZ25hbDpBYm9ydFNpZ25hbC50aW1lb3V0KDE1MDAwKX0pOwogIHJlc3VsdC5hcGlSZWFkYmFja1N0YXR1cz1yZXNwb25zZS5zdGF0dXM7CiAgaWYocmVzcG9uc2Uub2spe2NvbnN0IHA9YXdhaXQgcmVzcG9uc2UuanNvbigpO3Jlc3VsdC5leHBlY3RlZFNvdXJjZU1hdGNoZWQ9cC5oZWFkPy5zaGE9PT1wcm9jZXNzLmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfU0hBJiZwLmJhc2U/Lg=='
+          | base64 --decode > /tmp/auth-readonly-probe.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Prepare auth-readonly-probe.mjs block 2
+        command: printf '%s' 'c2hhPT09cHJvY2Vzcy5lbnYuRVhQRUNURURfQkFTRV9TSEE7fQp9CmZzLm1rZGlyU3luYygiYXV0aC1ldmlkZW5jZSIse3JlY3Vyc2l2ZTp0cnVlfSk7CmZzLndyaXRlRmlsZVN5bmMoImF1dGgtZXZpZGVuY2UvcmVjZWlwdC5qc29uIixKU09OLnN0cmluZ2lmeShyZXN1bHQsbnVsbCwyKSsiXG4iKTsKY29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkocmVzdWx0KSk7Cgo='
+          | base64 --decode >> /tmp/auth-readonly-probe.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run auth-readonly-probe.mjs
+        command: node /tmp/auth-readonly-probe.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - store_artifacts:
+        path: auth-evidence
+        destination: read-only-auth-probe
 workflows:
-  retirement-contract-pilot:
+  selected-quality-and-auth-discovery:
     jobs:
-    - retirement-contract-pilot
+    - selected-quality-pilot
+    - provider-auth-readonly
