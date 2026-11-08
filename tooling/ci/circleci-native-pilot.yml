@@ -1,0 +1,256 @@
+# Protected main staging publisher. No production or Render credential.
+version: 2.1
+parameters:
+  mode:
+    type: enum
+    enum:
+      - verify
+      - release
+    default: verify
+  expected_sha:
+    type: string
+    default: ""
+jobs:
+  staging-quality:
+    docker:
+      - image: node:22-bookworm@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f
+    resource_class: medium
+    environment: &id001
+      EXPECTED_SOURCE_SHA: << pipeline.parameters.expected_sha >>
+      RELEASE_MODE: << pipeline.parameters.mode >>
+      TURBO_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+      GIT_PAGER: cat
+      FORCE_COLOR: "0"
+    steps:
+      - &id002
+        checkout:
+          method: full
+      - &id003
+        run:
+          name: Freeze expected source and fetched main
+          shell: /bin/bash -eo pipefail
+          command: 'test "$CIRCLE_SHA1" = "$EXPECTED_SOURCE_SHA"
+
+            test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+
+            test -z "$(git status --porcelain --untracked-files=all)"
+
+            git check-ref-format --branch "$CIRCLE_BRANCH"
+
+            git checkout -B "$CIRCLE_BRANCH" "$EXPECTED_SOURCE_SHA"
+
+            git fetch --no-tags origin main:refs/remotes/origin/main
+
+            mkdir -p /tmp/staging-evidence'
+          no_output_timeout: 20m
+      - run:
+          name: Install base-contract CLI dependency
+          shell: /bin/bash -eo pipefail
+          command: "apt-get update -qq
+
+            apt-get install -y --no-install-recommends jq
+
+            jq --version"
+      - run:
+          name: Install canonical package manager and locked dependencies
+          shell: /bin/bash -eo pipefail
+          command: "corepack enable
+
+            corepack prepare pnpm@10.15.0 --activate
+
+            pnpm install --frozen-lockfile --prefer-offline"
+          no_output_timeout: 20m
+      - run:
+          name: Verify sensitive candidate with unchanged current-base guard
+          shell: /bin/bash -eo pipefail
+          command: "git worktree add --detach /tmp/trusted-main refs/remotes/origin/main\nread -r preserved retired < <(node --input-type=module -e 'import {CSS_ENTRY_ORDER_CORRECTION as c} from \"/tmp/trusted-main/tooling/mdctl/task-correction-authority.mjs\"; console.log(c.preservedSha+\" \"+c.retirementSha)')\n[[ \"$preserved\" =~ ^[a-f0-9]{40}$ && \"$retired\" =~ ^[a-f0-9]{40}$ ]]\ngit fetch --no-tags origin \"$preserved\" \"$retired\"\nif [ \"$RELEASE_MODE\" = verify ]; then\n  node /tmp/trusted-main/tooling/ci/local-fast-gate.mjs --admission --base refs/remotes/origin/main\n  node /tmp/trusted-main/tooling/ci/local-fast-gate.mjs --certify --base refs/remotes/origin/main\nfi"
+          no_output_timeout: 20m
+      - run:
+          name: Complete canonical quality and release invariant checks
+          shell: /bin/bash -eo pipefail
+          command: "pnpm check | tee /tmp/staging-evidence/staging-quality.log
+
+            node --test tooling/ci/staging-oci-deployment-evidence.test.mjs"
+          no_output_timeout: 20m
+      - run:
+          name: Record main-only release quality identity
+          shell: /bin/bash -eo pipefail
+          command: "if [ \"$RELEASE_MODE\" = release ]; then\n  node tooling/ci/staging-oci-deployment-evidence.mjs --circleci-stage-record staging-quality /tmp/staging-evidence\nfi"
+          no_output_timeout: 20m
+      - store_artifacts:
+          path: /tmp/staging-evidence
+          destination: staging-quality
+      - persist_to_workspace:
+          root: /tmp/staging-evidence
+          paths:
+            - .
+  staging-build-image:
+    machine:
+      image: ubuntu-2204:2026.05.1
+    resource_class: medium
+    environment: *id001
+    steps:
+      - *id002
+      - *id003
+      - attach_workspace:
+          at: /tmp/staging-evidence
+      - run:
+          name: Build production image once without publisher credentials
+          shell: /bin/bash -eo pipefail
+          command: 'test "$CIRCLE_BRANCH" = main
+
+            test "$(git rev-parse refs/remotes/origin/main)" = "$EXPECTED_SOURCE_SHA"
+
+            docker build --pull --target production --build-arg MORRO_RELEASE_SHA="$EXPECTED_SOURCE_SHA" --build-arg MORRO_RELEASE_VERSION="$EXPECTED_SOURCE_SHA" --build-arg MORRO_RELEASE_IMAGE_RUN_ID="circleci:$CIRCLE_WORKFLOW_ID" --label org.opencontainers.image.revision="$EXPECTED_SOURCE_SHA" --label org.opencontainers.image.source=https://github.com/luizanunciostoca/touristic-digital-platform -t ghcr.io/luizanunciostoca/morro-digital-v2:"$EXPECTED_SOURCE_SHA" . 2>&1 | tee /tmp/staging-evidence/staging-build-image.log'
+          no_output_timeout: 20m
+      - run:
+          name: Export and bind unchanged runtime image
+          shell: /bin/bash -eo pipefail
+          command:
+            'docker image inspect ghcr.io/luizanunciostoca/morro-digital-v2:"$EXPECTED_SOURCE_SHA" > /tmp/staging-evidence/image-inspect.json
+
+            docker save ghcr.io/luizanunciostoca/morro-digital-v2:"$EXPECTED_SOURCE_SHA" | gzip -n > /tmp/staging-evidence/image.tar.gz
+
+            test "$(stat -c %s /tmp/staging-evidence/image.tar.gz)" -lt 1500000000
+
+            docker run --rm -v "$PWD:/source:ro" -v /tmp/staging-evidence:/evidence -w /source --env CIRCLE_BRANCH --env CIRCLE_SHA1 --env CIRCLE_WORKFLOW_ID --env CIRCLE_BUILD_NUM --env CIRCLE_BUILD_URL --env EXPECTED_SOURCE_SHA node:22-bookworm@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f node tooling/ci/staging-oci-deployment-evidence.mjs --circleci-stage-record staging-build-image /evidence'
+          no_output_timeout: 20m
+      - store_artifacts:
+          path: /tmp/staging-evidence/staging-build-image.json
+          destination: staging-build-image.json
+      - persist_to_workspace:
+          root: /tmp/staging-evidence
+          paths:
+            - image.tar.gz
+            - image-inspect.json
+            - staging-build-image.log
+            - staging-build-image.json
+  staging-publish-image:
+    machine:
+      image: ubuntu-2204:2026.05.1
+    resource_class: medium
+    environment: *id001
+    steps:
+      - *id002
+      - *id003
+      - attach_workspace:
+          at: /tmp/staging-evidence
+      - run:
+          name: Validate artifact before publisher access
+          shell: /bin/bash -eo pipefail
+          command: 'test "$CIRCLE_BRANCH" = main
+
+            test "$(git rev-parse refs/remotes/origin/main)" = "$EXPECTED_SOURCE_SHA"
+
+            docker run --rm -v "$PWD:/source:ro" -v /tmp/staging-evidence:/evidence -w /source --env CIRCLE_BRANCH --env CIRCLE_SHA1 --env CIRCLE_WORKFLOW_ID --env CIRCLE_BUILD_NUM --env CIRCLE_BUILD_URL --env EXPECTED_SOURCE_SHA node:22-bookworm@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f node tooling/ci/staging-oci-deployment-evidence.mjs --circleci-verify-archive /evidence
+
+            docker load -i /tmp/staging-evidence/image.tar.gz
+
+            docker image inspect ghcr.io/luizanunciostoca/morro-digital-v2:"$EXPECTED_SOURCE_SHA" > /tmp/staging-evidence/image-inspect.json
+
+            docker run --rm -v "$PWD:/source:ro" -v /tmp/staging-evidence:/evidence -w /source --env CIRCLE_BRANCH --env CIRCLE_SHA1 --env CIRCLE_WORKFLOW_ID --env CIRCLE_BUILD_NUM --env CIRCLE_BUILD_URL --env EXPECTED_SOURCE_SHA node:22-bookworm@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f node tooling/ci/staging-oci-deployment-evidence.mjs --circleci-verify-archive /evidence
+
+            docker pull aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e'
+          no_output_timeout: 20m
+      - run:
+          name: Publish exact archive and bind observed manifest
+          shell: /bin/bash -eo pipefail
+          command: 'export DOCKER_CONFIG="$(mktemp -d)"
+
+            chmod 700 "$DOCKER_CONFIG"
+
+            trap ''rm -rf "$DOCKER_CONFIG"'' EXIT
+
+            printf %s "$GHCR_WRITE_TOKEN" | docker login ghcr.io -u luizanunciostoca --password-stdin
+
+            docker push ghcr.io/luizanunciostoca/morro-digital-v2:"$EXPECTED_SOURCE_SHA" | tee /tmp/staging-evidence/staging-publish-image.log
+
+            docker buildx imagetools inspect ghcr.io/luizanunciostoca/morro-digital-v2:"$EXPECTED_SOURCE_SHA" --format ''{{.Manifest.Digest}}'' > /tmp/staging-evidence/registry-digest.txt
+
+            digest="$(cat /tmp/staging-evidence/registry-digest.txt)"
+
+            docker buildx imagetools inspect ghcr.io/luizanunciostoca/morro-digital-v2@"$digest" --raw > /tmp/staging-evidence/registry-manifest.json'
+          no_output_timeout: 20m
+      - run:
+          name: Smoke exact immutable image with release identity
+          shell: /bin/bash -eo pipefail
+          command: 'digest="$(cat /tmp/staging-evidence/registry-digest.txt)"
+
+            name="tdp-staging-smoke-$CIRCLE_BUILD_NUM"
+
+            trap ''docker rm -f "$name" >/dev/null 2>&1 || true'' EXIT
+
+            docker run -d --name "$name" -p 127.0.0.1:43173:4173 -e HOST=0.0.0.0 -e PORT=4173 -e NODE_ENV=production -e ANALYTICS_FEATURE_ENABLED=false ghcr.io/luizanunciostoca/morro-digital-v2@"$digest"
+
+            curl --retry 35 --retry-connrefused --retry-delay 1 --retry-max-time 60 --fail --silent --show-error http://127.0.0.1:43173/healthz -o /tmp/staging-evidence/health.json
+
+            docker image inspect ghcr.io/luizanunciostoca/morro-digital-v2@"$digest" > /tmp/staging-evidence/image-inspect.json'
+          no_output_timeout: 20m
+      - run:
+          name: Scan exact digest without excluding unfixed vulnerabilities
+          shell: /bin/bash -eo pipefail
+          command: 'digest="$(cat /tmp/staging-evidence/registry-digest.txt)"
+
+            ref="ghcr.io/luizanunciostoca/morro-digital-v2@$digest"
+
+            private_scan="$(mktemp -d)"
+
+            trap ''rm -rf "$private_scan"'' EXIT
+
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$private_scan:/private" aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --scanners secret --exit-code 1 --format json --output /private/image-secrets.json "$ref"
+
+            cp "$private_scan/image-secrets.json" /tmp/staging-evidence/image-secrets.json
+
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/.trivyignore.yaml:/trivyignore.yaml:ro" -v /tmp/staging-evidence:/evidence aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed=false --ignorefile /trivyignore.yaml --exit-code 1 --format json --output /evidence/image-vulnerabilities.json "$ref"
+
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/staging-evidence:/evidence aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --format cyclonedx --output /evidence/sbom.cdx.json "$ref"'
+          no_output_timeout: 20m
+      - run:
+          name: Seal source, archive, registry, smoke and security records
+          shell: /bin/bash -eo pipefail
+          command: docker run --rm -v "$PWD:/source:ro" -v /tmp/staging-evidence:/evidence -w /source --env CIRCLE_BRANCH --env CIRCLE_SHA1 --env CIRCLE_WORKFLOW_ID --env CIRCLE_BUILD_NUM --env CIRCLE_BUILD_URL --env EXPECTED_SOURCE_SHA node:22-bookworm@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f node tooling/ci/staging-oci-deployment-evidence.mjs --circleci-stage-record staging-publish-image /evidence
+          no_output_timeout: 20m
+      - run:
+          name: Collect bounded publication diagnostics without duplicating the image archive
+          shell: /bin/bash -eo pipefail
+          when: always
+          command: "mkdir -p /tmp/staging-published-evidence\nfor name in staging-quality.json staging-build-image.json staging-publish-image.json image-vulnerabilities.json registry-manifest.json registry-digest.txt health.json sbom.cdx.json; do\n  if [ -f \"/tmp/staging-evidence/$name\" ]; then cp \"/tmp/staging-evidence/$name\" /tmp/staging-published-evidence/; fi\ndone\nif [ -f /tmp/staging-evidence/staging-publish-image.json ]; then cp /tmp/staging-evidence/image-secrets.json /tmp/staging-published-evidence/; fi"
+      - store_artifacts:
+          path: /tmp/staging-published-evidence
+          destination: staging-published-evidence
+workflows:
+  verify-claimed-release-candidate:
+    when:
+      equal:
+        - verify
+        - << pipeline.parameters.mode >>
+    jobs:
+      - staging-quality
+  build-once-staging-image:
+    when:
+      equal:
+        - release
+        - << pipeline.parameters.mode >>
+    jobs:
+      - staging-quality:
+          filters:
+            branches:
+              only: main
+      - staging-build-image:
+          requires:
+            - staging-quality
+          filters:
+            branches:
+              only: main
+      - authorize-staging-image-publication:
+          type: approval
+          requires:
+            - staging-build-image
+      - staging-publish-image:
+          requires:
+            - authorize-staging-image-publication
+          context: tdp-staging-publisher
+          filters:
+            branches:
+              only: main
