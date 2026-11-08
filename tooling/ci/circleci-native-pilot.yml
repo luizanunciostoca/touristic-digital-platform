@@ -1,0 +1,97 @@
+# PREPARED ONLY: not published, provider-validated, or admitted. No release authority.
+version: 2.1
+jobs:
+  retirement-contract-pilot:
+    docker:
+    - image: node:22-bookworm
+    resource_class: medium
+    environment:
+      EXPECTED_BASE_SHA: c7ee8c19fb97fc8bb5093eb75aef1ab41d2d63f3
+      EXPECTED_CANDIDATE_SHA: 39bd377eb99c36be5522928ac008fc1233bda5b2
+      EXPECTED_CANDIDATE_TREE: bf0aa2ef00d8a68a6db3c3a58d8b6b47523a73f9
+      GITHUB_REPOSITORY: luizanunciostoca/touristic-digital-platform
+    steps:
+    - checkout:
+        method: full
+        path: candidate
+    - run:
+        name: Run unchanged base contracts against exact candidate data
+        shell: /bin/bash -eo pipefail
+        command: |+
+          #!/usr/bin/env bash
+          # Preparation only. A protected configuration source must be admitted before use.
+          set -euo pipefail
+          test "$(node -p 'process.versions.node.split(".")[0]')" = 22
+          test "${CIRCLE_SHA1:?}" = "${EXPECTED_CANDIDATE_SHA:?}"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+          test "$(git -C candidate rev-parse 'HEAD^{tree}')" = "${EXPECTED_CANDIDATE_TREE:?}"
+          test "$(git -C candidate rev-parse 'HEAD^')" = "${EXPECTED_BASE_SHA:?}"
+          test -z "$(git -C candidate status --porcelain --untracked-files=all)"
+          git -C candidate merge-base --is-ancestor "$EXPECTED_BASE_SHA" "$EXPECTED_CANDIDATE_SHA"
+          mkdir -p evidence
+          if [ ! -e trusted ]; then
+            git -C candidate worktree add --detach ../trusted "$EXPECTED_BASE_SHA"
+          fi
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+
+          (
+            cd trusted
+            node --test \
+              tooling/fabric/claim-guard.test.mjs \
+              tooling/fabric/claim-retirement-proof.test.mjs \
+              .github/hooks/morro-pretool-guard.test.mjs
+          ) | tee evidence/contracts.tap
+
+          node trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate \
+            | tee evidence/retirement.json
+
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import fs from "node:fs";
+          import { execFileSync } from "node:child_process";
+          import { createHash } from "node:crypto";
+          const env = process.env;
+          const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], {encoding:"utf8"}).trim();
+          const tap = fs.readFileSync("evidence/contracts.tap","utf8");
+          const metric = key => {
+            const all = [...tap.matchAll(new RegExp("^# " + key + " (\\d+)$","gm"))];
+            assert.equal(all.length,1,"TAP_SUMMARY_MISSING_OR_AMBIGUOUS:" + key);
+            return Number(all[0][1]);
+          };
+          assert(metric("tests") > 0);
+          assert.equal(metric("pass"),metric("tests"));
+          for (const key of ["fail","cancelled","skipped","todo"]) assert.equal(metric(key),0);
+          const result=JSON.parse(fs.readFileSync("evidence/retirement.json","utf8"));
+          assert.equal(result.contract,"MORRO-CLAIM-RETIREMENT-PROOF");
+          assert.equal(result.status,"pass");
+          assert.equal(result.exactHead,env.EXPECTED_CANDIDATE_SHA);
+          assert.equal(result.currentBaseSha,env.EXPECTED_BASE_SHA);
+          assert.equal(git("candidate","rev-parse","HEAD"),env.EXPECTED_CANDIDATE_SHA);
+          assert.equal(git("candidate","rev-parse","HEAD^{tree}"),env.EXPECTED_CANDIDATE_TREE);
+          for (const root of ["trusted","candidate"]) assert.equal(git(root,"status","--porcelain","--untracked-files=all"),"");
+          const hash = p => createHash("sha256").update(fs.readFileSync(p)).digest("hex");
+          const files=["contracts.tap","retirement.json"];
+          fs.writeFileSync("evidence/receipt.json",JSON.stringify({
+            classification:"PILOT_ONLY_NOT_MERGE_OR_RELEASE_ACCEPTANCE",
+            sourceSha:env.EXPECTED_CANDIDATE_SHA,
+            treeSha:env.EXPECTED_CANDIDATE_TREE,
+            baseSha:env.EXPECTED_BASE_SHA,
+            validatorSha:git("trusted","rev-parse","HEAD"),
+            validatorBlob:git("trusted","rev-parse","HEAD:tooling/fabric/claim-retirement-proof.mjs"),
+            node:process.version,
+            tests:{total:metric("tests"),passed:metric("pass"),failed:metric("fail"),skipped:metric("skipped")},
+            files:Object.fromEntries(files.map(f=>[f,hash("evidence/"+f)])),
+            observedAt:new Date().toISOString(),
+            externalProviderIdentityVerified:false,
+            requiredNext:["protected config publication/admission","provider execution and authenticated readback","complete equivalent quality","review and administrative check-origin transition"],
+          },null,2)+"\n",{flag:"wx"});
+          NODE
+
+        no_output_timeout: 5m
+    - store_artifacts:
+        path: evidence
+        destination: pilot-only
+workflows:
+  retirement-contract-pilot:
+    jobs:
+    - retirement-contract-pilot
