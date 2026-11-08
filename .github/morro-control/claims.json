@@ -106,6 +106,28 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-11-06T23:00:02.307Z"
+    },
+    "MD-EXTERNAL-STAGING-ADMISSION-20261108": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/external-staging-admission-20261108",
+      "baseSha": "02c2af6d91456e64efa31646d0439b5e39ae8ea1",
+      "paths": [
+        ".morro/changesets/MD-EXTERNAL-STAGING-ADMISSION-20261108.json",
+        "tooling/release/actions-independent/route.mjs",
+        "tooling/release/actions-independent/route.test.mjs",
+        "docs/operations/ACTIONS-INDEPENDENT-STAGING.md",
+        "docs/adr/0006-actions-independent-staging-evidence.md",
+        "tooling/release/oci-proof.mjs",
+        "tooling/release/oci-proof.test.mjs",
+        "tooling/ci/staging-oci-deployment-evidence.mjs",
+        "tooling/ci/staging-oci-deployment-evidence.test.mjs",
+        "tooling/ci/circleci-native-pilot.yml"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-11-09T09:06:31.931Z"
     }
   }
 }
