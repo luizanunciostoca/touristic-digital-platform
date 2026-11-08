@@ -1,52 +1,45 @@
-# Owner-authorized isolated bootstrap. Diagnostic status is not main policy admission.
+# Owner-authorized isolated controller. No main-rule or release authority mutation.
 version: 2.1
 jobs:
-  retirement-contract-pilot:
+  ordinary-exact-quality:
     docker:
     - image: node:22-bookworm
+    working_directory: /root/project
     resource_class: medium
     environment: &id001
-      EXPECTED_BASE_SHA: c7ee8c19fb97fc8bb5093eb75aef1ab41d2d63f3
-      EXPECTED_CANDIDATE_SHA: 39bd377eb99c36be5522928ac008fc1233bda5b2
-      EXPECTED_CANDIDATE_TREE: bf0aa2ef00d8a68a6db3c3a58d8b6b47523a73f9
+      EXPECTED_BASE_SHA: 0af2b0eb68efbd7fcfe0398c21567d224ec33fb6
+      EXPECTED_CANDIDATE_SHA: 7ef966af30e31d76bcda3fe5fc290db68201f8f0
+      EXPECTED_CANDIDATE_TREE: ceb6e91d0b38dfccff115176dbb2bc2ef976e2bc
       GITHUB_REPOSITORY: luizanunciostoca/touristic-digital-platform
+      TURBO_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      GIT_PAGER: cat
     steps:
-    - &id002
-      run:
+    - run:
         name: Fetch and verify exact public candidate
-        shell: /bin/bash -eo pipefail
-        command: "#!/usr/bin/env bash\n# Preparation only. A protected configuration source must be admitted before use.\nset -euo pipefail\ntest \"$(node -p 'process.versions.node.split(\".\")[0]')\" = 22\ntest \"${CIRCLE_BRANCH:?}\" = \"infra/circleci-controller-bootstrap-20261108\"\ngit init candidate\ngit -C candidate remote add origin https://github.com/luizanunciostoca/touristic-digital-platform.git\ngit -C candidate fetch --depth=2 origin \"${EXPECTED_CANDIDATE_SHA:?}\"\ngit -C candidate checkout --detach FETCH_HEAD\ntest \"$(git -C candidate rev-parse HEAD)\" = \"$EXPECTED_CANDIDATE_SHA\"\ntest \"$(git -C candidate rev-parse 'HEAD^{tree}')\" = \"${EXPECTED_CANDIDATE_TREE:?}\"\ntest \"$(git -C candidate rev-parse 'HEAD^')\" = \"${EXPECTED_BASE_SHA:?}\"\ntest -z \"$(git -C candidate status --porcelain --untracked-files=all)\"\ngit -C candidate merge-base --is-ancestor \"$EXPECTED_BASE_SHA\" \"$EXPECTED_CANDIDATE_SHA\"\nmkdir -p evidence\nif [ ! -e trusted ]; then\n  git -C candidate worktree add --detach ../trusted \"$EXPECTED_BASE_SHA\"\nfi\ntest \"$(git -C trusted rev-parse HEAD)\" = \"$EXPECTED_BASE_SHA\"\n"
-        no_output_timeout: 5m
-    - run:
-        name: Run unchanged base contracts and retirement proof
-        shell: /bin/bash -eo pipefail
-        command: "set -euo pipefail\n\n(\n  cd trusted\n  node --test \\\n    tooling/fabric/claim-guard.test.mjs \\\n    tooling/fabric/claim-retirement-proof.test.mjs \\\n    .github/hooks/morro-pretool-guard.test.mjs\n) | tee evidence/contracts.tap\n\nnode trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate \\\n  | tee evidence/retirement.json\n\n"
-        no_output_timeout: 5m
-    - run:
-        name: Prepare verified recorder block 1
-        command: printf '%s' 'aW1wb3J0IGFzc2VydCBmcm9tICJub2RlOmFzc2VydC9zdHJpY3QiOwppbXBvcnQgZnMgZnJvbSAibm9kZTpmcyI7CmltcG9ydCB7IGV4ZWNGaWxlU3luYyB9IGZyb20gIm5vZGU6Y2hpbGRfcHJvY2VzcyI7CmltcG9ydCB7IGNyZWF0ZUhhc2ggfSBmcm9tICJub2RlOmNyeXB0byI7CmNvbnN0IGVudiA9IHByb2Nlc3MuZW52Owpjb25zdCBnaXQgPSAocm9vdCwgLi4uYXJncykgPT4gZXhlY0ZpbGVTeW5jKCJnaXQiLCBbIi1DIiwgcm9vdCwgLi4uYXJnc10sIHtlbmNvZGluZzoidXRmOCJ9KS50cmltKCk7CmNvbnN0IHRhcCA9IGZzLnJlYWRGaWxlU3luYygiZXZpZGVuY2UvY29udHJhY3RzLnRhcCIsInV0ZjgiKTsKY29uc3QgbWV0cmljID0ga2V5ID0+IHsKICBjb25zdCBhbGwgPSBbLi4udGFwLm1hdGNoQWxsKG5ldyBSZWdFeHAoIl4jICIgKyBrZXkgKyAiIChcXGQrKSQiLCJnbSIpKV07CiAgYXNzZXJ0LmVxdWFsKGFsbC5sZW5ndGgsMSwiVEFQX1NVTU1BUllfTUlTU0lOR19PUl9BTUJJR1VPVVM6IiArIGtleSk7CiAgcmV0dXJuIE51bWJlcihhbGxbMF1bMV0pOwp9Owphc3NlcnQobWV0cmljKCJ0ZXN0cyIpID4gMCk7CmFzc2VydC5lcXVhbChtZXRyaWMoInBhc3MiKSxtZXRyaWMoInRlc3RzIikpOwpmb3IgKGNvbnN0IGtleSBvZiBbImZhaWwiLCJjYW5jZWxsZWQiLCJza2lwcGVkIiwidG9kbyJdKSBhc3NlcnQuZXF1YWwobWV0cmljKGtleSksMCk7CmNvbnN0IHJlc3VsdD1KU09OLnBhcnNlKGZzLnJlYWRGaWxlU3luYygiZXZpZGVuY2UvcmV0aXJlbWVudC5qc29uIiwidXRmOCIpKTsKYXNzZXJ0LmVxdWFsKHJlc3VsdC5jb250cmFjdCwiTU9SUk8tQ0xBSU0tUkVUSVJFTUVOVC1QUk9PRiIpOwphc3NlcnQuZXF1YWwocmVzdWx0LnN0YXR1cywicGFzcyIpOwphc3NlcnQuZXF1YWwocmVzdWx0LmV4YWN0SGVhZCxlbnYuRVhQRUNURURfQ0FORElEQVRFX1NIQSk7CmFzc2VydC5lcXVhbChyZXN1bHQuY3VycmVudEJhc2VTaGEsZW52LkVYUEVDVEVEX0JBU0VfU0hBKTsKYXNzZXJ0LmVxdWFsKGdpdCgiY2FuZGlkYXRlIiwicmV2LXBhcnNlIiwiSEVBRCIpLGVudi5FWFBFQ1RFRF9DQU5ESURBVEVfU0hBKTsKYXNzZXJ0LmVxdWFsKGdpdCgiY2FuZGlkYXRlIiwicmV2LXBhcnNlIiwiSEVBRF57dHJlZX0iKSxlbnYuRVhQRUNURURfQ0FORElEQVRFX1RSRUUpOwpmb3IgKGNvbnN0IHJvb3Qgb2YgWyJ0cnVzdGVkIiwi' | base64 --decode > /tmp/tdp-pilot-recorder.mjs
-        shell: /bin/bash -eo pipefail
-    - run:
-        name: Prepare verified recorder block 2
-        command: printf '%s' 'Y2FuZGlkYXRlIl0pIGFzc2VydC5lcXVhbChnaXQocm9vdCwic3RhdHVzIiwiLS1wb3JjZWxhaW4iLCItLXVudHJhY2tlZC1maWxlcz1hbGwiKSwiIik7CmNvbnN0IGhhc2ggPSBwID0+IGNyZWF0ZUhhc2goInNoYTI1NiIpLnVwZGF0ZShmcy5yZWFkRmlsZVN5bmMocCkpLmRpZ2VzdCgiaGV4Iik7CmNvbnN0IGZpbGVzPVsiY29udHJhY3RzLnRhcCIsInJldGlyZW1lbnQuanNvbiJdOwpmcy53cml0ZUZpbGVTeW5jKCJldmlkZW5jZS9yZWNlaXB0Lmpzb24iLEpTT04uc3RyaW5naWZ5KHsKICBjbGFzc2lmaWNhdGlvbjoiUElMT1RfT05MWV9OT1RfTUVSR0VfT1JfUkVMRUFTRV9BQ0NFUFRBTkNFIiwKICBjb250cm9sbGVyU2hhOmVudi5DSVJDTEVfU0hBMSwKICBjb250cm9sbGVyQnJhbmNoOmVudi5DSVJDTEVfQlJBTkNILAogIHNvdXJjZVNoYTplbnYuRVhQRUNURURfQ0FORElEQVRFX1NIQSwKICB0cmVlU2hhOmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfVFJFRSwKICBiYXNlU2hhOmVudi5FWFBFQ1RFRF9CQVNFX1NIQSwKICB2YWxpZGF0b3JTaGE6Z2l0KCJ0cnVzdGVkIiwicmV2LXBhcnNlIiwiSEVBRCIpLAogIHZhbGlkYXRvckJsb2I6Z2l0KCJ0cnVzdGVkIiwicmV2LXBhcnNlIiwiSEVBRDp0b29saW5nL2ZhYnJpYy9jbGFpbS1yZXRpcmVtZW50LXByb29mLm1qcyIpLAogIG5vZGU6cHJvY2Vzcy52ZXJzaW9uLAogIHRlc3RzOnt0b3RhbDptZXRyaWMoInRlc3RzIikscGFzc2VkOm1ldHJpYygicGFzcyIpLGZhaWxlZDptZXRyaWMoImZhaWwiKSxza2lwcGVkOm1ldHJpYygic2tpcHBlZCIpfSwKICBmaWxlczpPYmplY3QuZnJvbUVudHJpZXMoZmlsZXMubWFwKGY9PltmLGhhc2goImV2aWRlbmNlLyIrZildKSksCiAgb2JzZXJ2ZWRBdDpuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCksCiAgZXh0ZXJuYWxQcm92aWRlcklkZW50aXR5VmVyaWZpZWQ6ZmFsc2UsCiAgcmVxdWlyZWROZXh0OlsicHJvdGVjdGVkIGNvbmZpZyBwdWJsaWNhdGlvbi9hZG1pc3Npb24iLCJwcm92aWRlciBleGVjdXRpb24gYW5kIGF1dGhlbnRpY2F0ZWQgcmVhZGJhY2siLCJjb21wbGV0ZSBlcXVpdmFsZW50IHF1YWxpdHkiLCJyZXZpZXcgYW5kIGFkbWluaXN0cmF0aXZlIGNoZWNrLW9yaWdpbiB0cmFuc2l0aW9uIl0sCn0sbnVsbCwyKSsiXG4iLHtmbGFnOiJ3eCJ9KTs=' | base64 --decode >> /tmp/tdp-pilot-recorder.mjs
-        shell: /bin/bash -eo pipefail
-    - run:
-        name: Assert complete proof and record identities
-        shell: /bin/bash -eo pipefail
-        command: 'set -euo pipefail
+        command: 'test "$CIRCLE_BRANCH" = infra/circleci-controller-bootstrap-20261108
 
-          node /tmp/tdp-pilot-recorder.mjs'
-        no_output_timeout: 5m
-    - store_artifacts:
-        path: evidence
-        destination: pilot-only
-  selected-quality-pilot:
-    docker:
-    - image: node:22-bookworm
-    resource_class: medium
-    environment: *id001
-    steps:
-    - *id002
+          git init -q candidate
+
+          git -C candidate remote add origin https://github.com/luizanunciostoca/touristic-digital-platform.git
+
+          git -C candidate fetch --no-tags --depth=3 origin "$EXPECTED_CANDIDATE_SHA"
+
+          git -C candidate checkout -q -b fix/six-ordinary-staging-20261108 FETCH_HEAD
+
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+
+          test "$(git -C candidate rev-parse ''HEAD^{tree}'')" = "$EXPECTED_CANDIDATE_TREE"
+
+          test "$(git -C candidate rev-parse ''HEAD^'')" = "$EXPECTED_BASE_SHA"
+
+          test -z "$(git -C candidate status --porcelain --untracked-files=all)"
+
+          git -C candidate update-ref refs/heads/main "$EXPECTED_BASE_SHA"
+
+          git -C candidate worktree add -q --detach ../trusted "$EXPECTED_BASE_SHA"'
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
     - run:
         name: Install canonical package manager and locked dependencies
         command: 'corepack enable
@@ -68,14 +61,21 @@ jobs:
         shell: /bin/bash -eo pipefail
         no_output_timeout: 10m
     - run:
-        name: Run affected formatting concurrency and credential checks
+        name: Execute unchanged exact-head local admission and certification remotely
+        command: 'cd candidate
+
+          node ../trusted/tooling/ci/local-fast-gate.mjs --admission --base "$EXPECTED_BASE_SHA" | tee ../quality-evidence/admission.log
+
+          node ../trusted/tooling/ci/local-fast-gate.mjs --certify --base "$EXPECTED_BASE_SHA" | tee ../quality-evidence/certify.log'
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run concurrency supply-chain and log-PII controls
         command: 'cd candidate
 
           node tooling/quality/check-workflow-concurrency.mjs
 
-          pnpm exec prettier --check --ignore-unknown .github/morro-control/claims.json .github/morro-control/events.ndjson .morro/changesets/MD-POLICY-GOVERNANCE-CONT2-20261106.json
-
-          pnpm secret-patterns:check
+          node tooling/quality/check-workflow-supply-chain.mjs --strict
 
           node tooling/quality/check-log-pii-exposure.mjs
 
@@ -83,102 +83,115 @@ jobs:
         shell: /bin/bash -eo pipefail
         no_output_timeout: 10m
     - run:
-        name: Run canonical CI governance and failure-learning gates
+        name: Complete reusable workspace build
         command: 'cd candidate
 
-          pnpm ci:governance:check | tee ../quality-evidence/ci-governance.log'
+          pnpm -w build | tee ../quality-evidence/workspace-build.log'
         shell: /bin/bash -eo pipefail
         no_output_timeout: 10m
     - run:
-        name: Run complete applicable governance contracts
-        command: 'cd candidate
-
-          node --test tooling/fabric/*.test.mjs .github/agents/*.test.mjs .github/hooks/*.test.mjs | tee ../quality-evidence/governance-contracts.tap'
+        name: Prepare ordinary-quality-receipt.mjs block 1
+        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnO2ltcG9ydCBhc3NlcnQgZnJvbSAnbm9kZTphc3NlcnQvc3RyaWN0JztpbXBvcnQge2V4ZWNGaWxlU3luY30gZnJvbSAnbm9kZTpjaGlsZF9wcm9jZXNzJztpbXBvcnQge2NyZWF0ZUhhc2h9IGZyb20gJ25vZGU6Y3J5cHRvJzsKY29uc3QgZz0oLi4uYSk9PmV4ZWNGaWxlU3luYygnZ2l0JyxbJy1DJywnY2FuZGlkYXRlJywuLi5hXSx7ZW5jb2Rpbmc6J3V0ZjgnfSkudHJpbSgpO2NvbnN0IHA9SlNPTi5wYXJzZShmcy5yZWFkRmlsZVN5bmMoJ3F1YWxpdHktZXZpZGVuY2UvaW1wYWN0Lmpzb24nKSk7CmFzc2VydC5lcXVhbChnKCdyZXYtcGFyc2UnLCdIRUFEJykscHJvY2Vzcy5lbnYuRVhQRUNURURfQ0FORElEQVRFX1NIQSk7YXNzZXJ0LmVxdWFsKGcoJ3Jldi1wYXJzZScsJ0hFQURee3RyZWV9JykscHJvY2Vzcy5lbnYuRVhQRUNURURfQ0FORElEQVRFX1RSRUUpO2Fzc2VydC5lcXVhbChnKCdzdGF0dXMnLCctLXBvcmNlbGFpbicsJy0tdW50cmFja2VkLWZpbGVzPWFsbCcpLCcnKTthc3NlcnQuZXF1YWwocC5xdWFsaXR5UHJvZmlsZSwnVUlfQlVHRklYX0ZBU1QnKTthc3NlcnQuZXF1YWwocC5jbGFzc2lmaWNhdGlvbkJsb2NrZWQsZmFsc2UpO2Fzc2VydC5lcXVhbChwLm5lZWRzRGF0YWJhc2UsZmFsc2UpOwpjb25zdCBsb2c9ZnMucmVhZEZpbGVTeW5jKCdxdWFsaXR5LWV2aWRlbmNlL2NlcnRpZnkubG9nJywndXRmOCcpO2NvbnN0IGNlcnRpZmljYXRlPWxvZy50cmltKCkuc3BsaXQoJ1xuJykubWFwKGw9Pnt0cnl7cmV0dXJuIEpTT04ucGFyc2UobCl9Y2F0Y2h7cmV0dXJuIG51bGx9fSkuZmlsdGVyKHg9Png/Lm1vZGU9PT0nQ0VSVElGSUVEJykuYXQoLTEpO2Fzc2VydChjZXJ0aWZpY2F0ZSk7YXNzZXJ0LmVxdWFsKGNlcnRpZmljYXRlLmhlYWRTaGEscHJvY2Vzcy5lbnYuRVhQRUNURURfQ0FORElEQVRFX1NIQSk7YXNzZXJ0LmVxdWFsKGNlcnRpZmljYXRlLmJhc2VTaGEscHJvY2Vzcy5lbnYuRVhQRUNURURfQkFTRV9TSEEpO2Fzc2VydC5lcXVhbChjZXJ0aWZpY2F0ZS50cmVlU2hhLHByb2Nlc3MuZW52LkVYUEVDVEVEX0NBTkRJREFURV9UUkVFKTsKY29uc3QgZmlsZXM9T2JqZWN0LmZyb21FbnRyaWVzKGZzLnJlYWRkaXJTeW5jKCdxdWFsaXR5LWV2aWRlbmNlJykubWFwKG49PltuLGNyZWF0ZUhhc2goJ3NoYTI1NicpLnVwZGF0ZShmcy5yZWFkRmlsZVN5bmMoJ3F1YWxpdHktZXZpZGVuY2UvJytuKSkuZGlnZXN0KCdoZXgnKV0pKTtmcy53cml0ZUZpbGVTeW5jKCdxdWFsaXR5LWV2aWRlbmNlL3JlY2VpcHQuanNvbicsSlNPTi5zdHJpbmdpZnkoe2NsYXNzaWZpY2F0aW9uOidPUkRJTkFSWV9FWEFDVF9IRUFEX05BVElWRV9RVUFM' | base64 --decode > /tmp/ordinary-quality-receipt.mjs
         shell: /bin/bash -eo pipefail
         no_output_timeout: 10m
     - run:
-        name: Prepare quality-receipt.mjs block 1
-        command: printf '%s' 'aW1wb3J0IGFzc2VydCBmcm9tICJub2RlOmFzc2VydC9zdHJpY3QiOwppbXBvcnQgZnMgZnJvbSAibm9kZTpmcyI7CmltcG9ydCB7ZXhlY0ZpbGVTeW5jfSBmcm9tICJub2RlOmNoaWxkX3Byb2Nlc3MiOwppbXBvcnQge2NyZWF0ZUhhc2h9IGZyb20gIm5vZGU6Y3J5cHRvIjsKY29uc3QgZz0oLi4uYSk9PmV4ZWNGaWxlU3luYygiZ2l0IixbIi1DIiwiY2FuZGlkYXRlIiwuLi5hXSx7ZW5jb2Rpbmc6InV0ZjgifSkudHJpbSgpOwphc3NlcnQuZXF1YWwoZygicmV2LXBhcnNlIiwiSEVBRCIpLHByb2Nlc3MuZW52LkVYUEVDVEVEX0NBTkRJREFURV9TSEEpOwphc3NlcnQuZXF1YWwoZygicmV2LXBhcnNlIiwiSEVBRF57dHJlZX0iKSxwcm9jZXNzLmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfVFJFRSk7CmFzc2VydC5lcXVhbChnKCJzdGF0dXMiLCItLXBvcmNlbGFpbiIsIi0tdW50cmFja2VkLWZpbGVzPWFsbCIpLCIiKTsKY29uc3QgcmVwb3J0PUpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKCJxdWFsaXR5LWV2aWRlbmNlL2ltcGFjdC5qc29uIiwidXRmOCIpKTsKYXNzZXJ0LmVxdWFsKHJlcG9ydC5xdWFsaXR5UHJvZmlsZSwiTk9OX1JVTlRJTUUiKTsKYXNzZXJ0LmVxdWFsKHJlcG9ydC5zZXJpYWxpemVkQ29udHJvbFRyYW5zaXRpb25Pbmx5LHRydWUpOwphc3NlcnQuZXF1YWwocmVwb3J0LmNsYXNzaWZpY2F0aW9uQmxvY2tlZCxmYWxzZSk7CmFzc2VydC5lcXVhbChyZXBvcnQubm9uUnVudGltZSx0cnVlKTsKYXNzZXJ0LmRlZXBFcXVhbChyZXBvcnQuc3VpdGVzLFtdKTsKY29uc3QgdGFwPWZzLnJlYWRGaWxlU3luYygicXVhbGl0eS1ldmlkZW5jZS9nb3Zlcm5hbmNlLWNvbnRyYWN0cy50YXAiLCJ1dGY4Iik7CmNvbnN0IG09az0+TnVtYmVyKFsuLi50YXAubWF0Y2hBbGwobmV3IFJlZ0V4cCgiXiMgIitrKyIgKFxcZCspJCIsImdtIikpXS5hdCgtMSk/LlsxXSk7CmFzc2VydChtKCJ0ZXN0cyIpPjApO2Fzc2VydC5lcXVhbChtKCJ0ZXN0cyIpLG0oInBhc3MiKSk7CmZvcihjb25zdCBrIG9mIFsiZmFpbCIsInNraXBwZWQiLCJjYW5jZWxsZWQiLCJ0b2RvIl0pYXNzZXJ0LmVxdWFsKG0oayksMCk7CmNvbnN0IGZpbGVOYW1lcz1mcy5yZWFkZGlyU3luYygicXVhbGl0eS1ldmlkZW5jZSIpOwpjb25zdCBoYXNoZXM9T2JqZWN0LmZybw==' | base64 --decode > /tmp/quality-receipt.mjs
+        name: Prepare ordinary-quality-receipt.mjs block 2
+        command: printf '%s' 'SVRZX05PVF9SRUxFQVNFX0FETUlTU0lPTicsaGVhZDpwcm9jZXNzLmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfU0hBLGJhc2U6cHJvY2Vzcy5lbnYuRVhQRUNURURfQkFTRV9TSEEsdHJlZTpwcm9jZXNzLmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfVFJFRSxjb250cm9sbGVyOnByb2Nlc3MuZW52LkNJUkNMRV9TSEExLHByb2ZpbGU6cC5xdWFsaXR5UHJvZmlsZSxjZXJ0aWZpY2F0ZSxmaWxlcyxvYnNlcnZlZEF0Om5ldyBEYXRlKCkudG9JU09TdHJpbmcoKX0sbnVsbCwyKSsnXG4nKTsK' | base64 --decode >> /tmp/ordinary-quality-receipt.mjs
         shell: /bin/bash -eo pipefail
         no_output_timeout: 10m
     - run:
-        name: Prepare quality-receipt.mjs block 2
-        command: printf '%s' 'bUVudHJpZXMoZmlsZU5hbWVzLm1hcChuPT5bbixjcmVhdGVIYXNoKCJzaGEyNTYiKS51cGRhdGUoZnMucmVhZEZpbGVTeW5jKCJxdWFsaXR5LWV2aWRlbmNlLyIrbikpLmRpZ2VzdCgiaGV4IildKSk7CmZzLndyaXRlRmlsZVN5bmMoInF1YWxpdHktZXZpZGVuY2UvcmVjZWlwdC5qc29uIixKU09OLnN0cmluZ2lmeSh7Y2xhc3NpZmljYXRpb246IlNFTEVDVEVEX1FVQUxJVFlfUElMT1RfTk9UX1BPTElDWV9BRE1JVFRFRCIsYmFzZVNoYTpwcm9jZXNzLmVudi5FWFBFQ1RFRF9CQVNFX1NIQSxoZWFkU2hhOmcoInJldi1wYXJzZSIsIkhFQUQiKSx0cmVlU2hhOmcoInJldi1wYXJzZSIsIkhFQURee3RyZWV9IiksY29udHJvbGxlclNoYTpwcm9jZXNzLmVudi5DSVJDTEVfU0hBMSxjb250cm9sbGVyQnJhbmNoOnByb2Nlc3MuZW52LkNJUkNMRV9CUkFOQ0gsbm9kZTpwcm9jZXNzLnZlcnNpb24scHJvZmlsZTpyZXBvcnQucXVhbGl0eVByb2ZpbGUsY29udHJhY3RzOnt0b3RhbDptKCJ0ZXN0cyIpLHBhc3NlZDptKCJwYXNzIiksZmFpbGVkOm0oImZhaWwiKSxza2lwcGVkOm0oInNraXBwZWQiKX0sZmlsZXM6aGFzaGVzLG9ic2VydmVkQXQ6bmV3IERhdGUoKS50b0lTT1N0cmluZygpfSxudWxsLDIpKyJcbiIse2ZsYWc6Ind4In0pOwoK' | base64 --decode >> /tmp/quality-receipt.mjs
-        shell: /bin/bash -eo pipefail
-        no_output_timeout: 10m
-    - run:
-        name: Run quality-receipt.mjs
-        command: node /tmp/quality-receipt.mjs
+        name: Seal exact-head quality receipt
+        command: node /tmp/ordinary-quality-receipt.mjs
         shell: /bin/bash -eo pipefail
         no_output_timeout: 10m
     - store_artifacts:
         path: quality-evidence
-        destination: selected-quality-pilot
+        destination: ordinary-exact-quality
     - persist_to_workspace:
         root: .
         paths:
+        - candidate
+        - trusted
         - quality-evidence
-  provider-auth-readonly:
+  ordinary-browser-acceptance:
     docker:
-    - image: node:22-bookworm
-    resource_class: small
+    - image: mcr.microsoft.com/playwright:v1.54.2-noble
+    working_directory: /root/project
+    resource_class: medium
     environment: *id001
     steps:
-    - checkout:
-        method: full
-        path: controller
-    - run:
-        name: Prepare auth-readonly-probe.mjs block 1
-        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gIm5vZGU6ZnMiOwppbXBvcnQge3NwYXduU3luY30gZnJvbSAibm9kZTpjaGlsZF9wcm9jZXNzIjsKY29uc3QgY2hpbGQ9c3Bhd25TeW5jKCJnaXQiLFsiLUMiLCJjb250cm9sbGVyIiwiY3JlZGVudGlhbCIsImZpbGwiXSx7aW5wdXQ6InByb3RvY29sPWh0dHBzXG5ob3N0PWdpdGh1Yi5jb21cbnBhdGg9bHVpemFudW5jaW9zdG9jYS90b3VyaXN0aWMtZGlnaXRhbC1wbGF0Zm9ybS5naXRcblxuIixlbmNvZGluZzoidXRmOCIsdGltZW91dDoxMDAwMCxlbnY6ey4uLnByb2Nlc3MuZW52LEdJVF9URVJNSU5BTF9QUk9NUFQ6IjAiLEdDTV9JTlRFUkFDVElWRToibmV2ZXIifSxzdGRpbzpbInBpcGUiLCJwaXBlIiwicGlwZSJdfSk7CmNvbnN0IGZpZWxkcz1PYmplY3QuZnJvbUVudHJpZXMoKGNoaWxkLnN0ZG91dD8/IiIpLnRyaW0oKS5zcGxpdCgiXG4iKS5tYXAoeD0+e2NvbnN0IHA9eC5pbmRleE9mKCI9Iik7cmV0dXJuIHA8MD9bIiIsIiJdOlt4LnNsaWNlKDAscCkseC5zbGljZShwKzEpXX0pKTsKY29uc3QgdG9rZW49ZmllbGRzLnBhc3N3b3JkOwpjb25zdCByZXN1bHQ9e2NsYXNzaWZpY2F0aW9uOiJSRUFEX09OTFlfQVVUSF9DQVBBQklMSVRZX1BST0JFIixjcmVkZW50aWFsQXZhaWxhYmxlOkJvb2xlYW4odG9rZW4pLGhlbHBlckV4aXRDb2RlOmNoaWxkLnN0YXR1cyxhcGlSZWFkYmFja1N0YXR1czpudWxsLGV4cGVjdGVkU291cmNlTWF0Y2hlZDpmYWxzZX07CmlmKHRva2VuKXsKICBjb25zdCByZXNwb25zZT1hd2FpdCBmZXRjaCgiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9sdWl6YW51bmNpb3N0b2NhL3RvdXJpc3RpYy1kaWdpdGFsLXBsYXRmb3JtL3B1bGxzLzE0NDkiLHtoZWFkZXJzOnthdXRob3JpemF0aW9uOiJCZWFyZXIgIit0b2tlbixhY2NlcHQ6ImFwcGxpY2F0aW9uL3ZuZC5naXRodWIranNvbiJ9LHNpZ25hbDpBYm9ydFNpZ25hbC50aW1lb3V0KDE1MDAwKX0pOwogIHJlc3VsdC5hcGlSZWFkYmFja1N0YXR1cz1yZXNwb25zZS5zdGF0dXM7CiAgaWYocmVzcG9uc2Uub2spe2NvbnN0IHA9YXdhaXQgcmVzcG9uc2UuanNvbigpO3Jlc3VsdC5leHBlY3RlZFNvdXJjZU1hdGNoZWQ9cC5oZWFkPy5zaGE9PT1wcm9jZXNzLmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfU0hBJiZwLmJhc2U/Lg==' | base64 --decode > /tmp/auth-readonly-probe.mjs
-        shell: /bin/bash -eo pipefail
-        no_output_timeout: 10m
-    - run:
-        name: Prepare auth-readonly-probe.mjs block 2
-        command: printf '%s' 'c2hhPT09cHJvY2Vzcy5lbnYuRVhQRUNURURfQkFTRV9TSEE7fQp9CmZzLm1rZGlyU3luYygiYXV0aC1ldmlkZW5jZSIse3JlY3Vyc2l2ZTp0cnVlfSk7CmZzLndyaXRlRmlsZVN5bmMoImF1dGgtZXZpZGVuY2UvcmVjZWlwdC5qc29uIixKU09OLnN0cmluZ2lmeShyZXN1bHQsbnVsbCwyKSsiXG4iKTsKY29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkocmVzdWx0KSk7Cgo=' | base64 --decode >> /tmp/auth-readonly-probe.mjs
-        shell: /bin/bash -eo pipefail
-        no_output_timeout: 10m
-    - run:
-        name: Run auth-readonly-probe.mjs
-        command: node /tmp/auth-readonly-probe.mjs
-        shell: /bin/bash -eo pipefail
-        no_output_timeout: 10m
-    - store_artifacts:
-        path: auth-evidence
-        destination: read-only-auth-probe
-  candidate-pilot-reporter:
-    docker:
-    - image: node:22-bookworm
-    resource_class: small
-    environment: *id001
-    steps:
-    - checkout:
-        method: full
-        path: controller
     - attach_workspace:
         at: .
     - run:
-        name: Prepare quality reporter block 1
-        command: printf '%s' 'aW1wb3J0IGFzc2VydCBmcm9tICdub2RlOmFzc2VydC9zdHJpY3QnOwppbXBvcnQgZnMgZnJvbSAnbm9kZTpmcyc7CmltcG9ydCB7Y3JlYXRlSGFzaH0gZnJvbSAnbm9kZTpjcnlwdG8nOwppbXBvcnQge3NwYXduU3luY30gZnJvbSAnbm9kZTpjaGlsZF9wcm9jZXNzJzsKY29uc3Qgcm9vdD0ncXVhbGl0eS1ldmlkZW5jZS8nOwpjb25zdCByZWNlaXB0PUpTT04ucGFyc2UoZnMucmVhZEZpbGVTeW5jKHJvb3QrJ3JlY2VpcHQuanNvbicsJ3V0ZjgnKSk7CmFzc2VydC5lcXVhbChyZWNlaXB0LmNsYXNzaWZpY2F0aW9uLCdTRUxFQ1RFRF9RVUFMSVRZX1BJTE9UX05PVF9QT0xJQ1lfQURNSVRURUQnKTsKZm9yKGNvbnN0IFtmaWVsZCxlbnZdIG9mIFtbJ2Jhc2VTaGEnLCdFWFBFQ1RFRF9CQVNFX1NIQSddLFsnaGVhZFNoYScsJ0VYUEVDVEVEX0NBTkRJREFURV9TSEEnXSxbJ3RyZWVTaGEnLCdFWFBFQ1RFRF9DQU5ESURBVEVfVFJFRSddXSkgYXNzZXJ0LmVxdWFsKHJlY2VpcHRbZmllbGRdLHByb2Nlc3MuZW52W2Vudl0pOwphc3NlcnQuZXF1YWwocmVjZWlwdC5jb250cm9sbGVyU2hhLHByb2Nlc3MuZW52LkNJUkNMRV9TSEExKTsKYXNzZXJ0LmVxdWFsKHJlY2VpcHQucHJvZmlsZSwnTk9OX1JVTlRJTUUnKTsKYXNzZXJ0KHJlY2VpcHQuY29udHJhY3RzLnRvdGFsPjApOwphc3NlcnQuZXF1YWwocmVjZWlwdC5jb250cmFjdHMudG90YWwscmVjZWlwdC5jb250cmFjdHMucGFzc2VkKTsKYXNzZXJ0LmVxdWFsKHJlY2VpcHQuY29udHJhY3RzLmZhaWxlZCwwKTthc3NlcnQuZXF1YWwocmVjZWlwdC5jb250cmFjdHMuc2tpcHBlZCwwKTsKZm9yKGNvbnN0IFtuYW1lLGhhc2hdIG9mIE9iamVjdC5lbnRyaWVzKHJlY2VpcHQuZmlsZXMpKSB7CiBhc3NlcnQoL15bYS16MC05Li1dKyQvLnRlc3QobmFtZSkpOwogYXNzZXJ0LmVxdWFsKGNyZWF0ZUhhc2goJ3NoYTI1NicpLnVwZGF0ZShmcy5yZWFkRmlsZVN5bmMocm9vdCtuYW1lKSkuZGlnZXN0KCdoZXgnKSxoYXNoKTsKfQpjb25zdCBwcm9jPXNwYXduU3luYygnZ2l0JyxbJy1DJywnY29udHJvbGxlcicsJ2NyZWRlbnRpYWwnLCdmaWxsJ10se2lucHV0Oidwcm90b2NvbD1odHRwc1xuaG9zdD1naXRodWIuY29tXG5wYXRoPWx1aXphbnVuY2lvc3RvY2EvdG91cmlzdGljLWRpZ2l0YWwtcGxhdGZvcm0uZ2l0XG5cbicsZW5jb2Rpbmc6J3V0ZjgnLHRpbWVvdXQ6MTAwMDAsZW52OnsuLi5wcm9jZXNzLmVudixHSVRfVEVSTUlOQUxfUFJPTVBUOicwJyxHQ01fSU5URVJBQ1RJVkU6J25ldmVyJ30sc3RkaW86WydwaXBlJywncGlwZScsJ3BpcGUnXX0pOwpjb25zdCBmaWVsZHM9T2JqZWN0LmZyb21FbnRyaWVzKChwcm9jLnN0ZG91dD8/JycpLnRyaW0o' | base64 --decode > /tmp/quality-reporter.mjs
+        name: Prepare pinned package manager and browser API
+        command: 'corepack enable
+
+          corepack prepare pnpm@10.15.0 --activate
+
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2'
         shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
     - run:
-        name: Prepare quality reporter block 2
-        command: printf '%s' 'KS5zcGxpdCgnXG4nKS5tYXAoeD0+e2NvbnN0IHA9eC5pbmRleE9mKCc9Jyk7cmV0dXJuIHA8MD9bJycsJyddOlt4LnNsaWNlKDAscCkseC5zbGljZShwKzEpXX0pKTsKYXNzZXJ0LmVxdWFsKHByb2Muc3RhdHVzLDApO2Fzc2VydChmaWVsZHMucGFzc3dvcmQpOwpjb25zdCBlbmRwb2ludD0naHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9sdWl6YW51bmNpb3N0b2NhL3RvdXJpc3RpYy1kaWdpdGFsLXBsYXRmb3JtJzsKY29uc3QgaGVhZGVycz17YXV0aG9yaXphdGlvbjonQmVhcmVyICcrZmllbGRzLnBhc3N3b3JkLGFjY2VwdDonYXBwbGljYXRpb24vdm5kLmdpdGh1Yitqc29uJywnY29udGVudC10eXBlJzonYXBwbGljYXRpb24vanNvbid9Owphc3luYyBmdW5jdGlvbiBhcGkocGF0aCxpbml0PXt9KSB7Y29uc3Qgcj1hd2FpdCBmZXRjaChlbmRwb2ludCtwYXRoLHsuLi5pbml0LGhlYWRlcnMsc2lnbmFsOkFib3J0U2lnbmFsLnRpbWVvdXQoMjAwMDApfSk7YXNzZXJ0KHIub2ssJ0dpdEh1YiBBUEkgc3RhdHVzICcrci5zdGF0dXMpO3JldHVybiByLmpzb24oKTt9CmFzeW5jIGZ1bmN0aW9uIHNvdXJjZSgpIHtjb25zdCBwPWF3YWl0IGFwaSgnL3B1bGxzLzE0NDknKTthc3NlcnQuZXF1YWwocC5zdGF0ZSwnb3BlbicpO2Fzc2VydC5lcXVhbChwLmhlYWQuc2hhLHJlY2VpcHQuaGVhZFNoYSk7YXNzZXJ0LmVxdWFsKHAuYmFzZS5zaGEscmVjZWlwdC5iYXNlU2hhKTthc3NlcnQuZXF1YWwoKGF3YWl0IGFwaSgnL2dpdC9yZWYvaGVhZHMvbWFpbicpKS5vYmplY3Quc2hhLHJlY2VpcHQuYmFzZVNoYSk7fQphd2FpdCBzb3VyY2UoKTsKY29uc3QgY29udGV4dD0ndGRwL2NpcmNsZWNpLXF1YWxpdHktcGlsb3QnOwpjb25zdCB0YXJnZXQ9cHJvY2Vzcy5lbnYuQ0lSQ0xFX0JVSUxEX1VSTDsKYXNzZXJ0KHRhcmdldD8uc3RhcnRzV2l0aCgnaHR0cHM6Ly9jaXJjbGVjaS5jb20vJyl8fHRhcmdldD8uc3RhcnRzV2l0aCgnaHR0cHM6Ly9hcHAuY2lyY2xlY2kuY29tLycpKTsKY29uc3Qgc3RhdHVzPWF3YWl0IGFwaSgnL3N0YXR1c2VzLycrcmVjZWlwdC5oZWFkU2hhLHttZXRob2Q6J1BPU1QnLGJvZHk6SlNPTi5zdHJpbmdpZnkoe3N0YXRlOidzdWNjZXNzJyxjb250ZXh0LHRhcmdldF91cmw6dGFyZ2V0LGRlc2NyaXB0aW9uOidOT05fUlVOVElNRSBxdWFsaXR5IHBhc3NlZDsgcGlsb3QgZXZpZGVuY2UsIG5vdCByZWxlYXNlIGFkbWlzc2lvbid9KX0pOwpjb25zdCByZWFkYmFjaz1hd2FpdCBhcGkoJy9jb21taXRzLycrcmVjZWlwdC5oZWFkU2hhKycvc3RhdHVzZXM/cGVyX3BhZ2U9MTAwJyk7CmFzc2VydChyZWFkYmFjay5zb21lKHM9PnMuaWQ9PT1zdGF0dXMuaWQmJnMuY29udGV4dD09' | base64 --decode >> /tmp/quality-reporter.mjs
+        name: Prepare ordinary-browser-runner.cjs block 1
+        command: printf '%s' 'Y29uc3QgYXNzZXJ0PXJlcXVpcmUoJ25vZGU6YXNzZXJ0L3N0cmljdCcpOwpjb25zdCBmcz1yZXF1aXJlKCdub2RlOmZzJyk7Y29uc3QgcGF0aD1yZXF1aXJlKCdub2RlOnBhdGgnKTsKY29uc3Qge2NyZWF0ZVJlcXVpcmV9PXJlcXVpcmUoJ25vZGU6bW9kdWxlJyk7Y29uc3Qge3NwYXduU3luYyxleGVjRmlsZVN5bmN9PXJlcXVpcmUoJ25vZGU6Y2hpbGRfcHJvY2VzcycpOwpjb25zdCByb290PXByb2Nlc3MuY3dkKCksY2FuZGlkYXRlPXBhdGguam9pbihyb290LCdjYW5kaWRhdGUnKSx0cnVzdGVkPXBhdGguam9pbihyb290LCd0cnVzdGVkJyk7CmNvbnN0IHlhbWw9Y3JlYXRlUmVxdWlyZShwYXRoLmpvaW4oY2FuZGlkYXRlLCdwYWNrYWdlLmpzb24nKSkoJ2pzLXlhbWwnKTsKY29uc3QgZz0oLi4uYSk9PmV4ZWNGaWxlU3luYygnZ2l0JyxbJy1DJyxjYW5kaWRhdGUsLi4uYV0se2VuY29kaW5nOid1dGY4J30pLnRyaW0oKTsKY29uc3QgZXhwZWN0ZWQ9cHJvY2Vzcy5lbnYuRVhQRUNURURfQ0FORElEQVRFX1NIQTsKYXNzZXJ0LmVxdWFsKGcoJ3Jldi1wYXJzZScsJ0hFQUQnKSxleHBlY3RlZCk7YXNzZXJ0LmVxdWFsKGcoJ3Jldi1wYXJzZScsJ0hFQURee3RyZWV9JykscHJvY2Vzcy5lbnYuRVhQRUNURURfQ0FORElEQVRFX1RSRUUpOwpjb25zdCByZXBvcnQ9SlNPTi5wYXJzZShmcy5yZWFkRmlsZVN5bmMoJ3F1YWxpdHktZXZpZGVuY2UvaW1wYWN0Lmpzb24nKSk7CmFzc2VydC5lcXVhbChyZXBvcnQucXVhbGl0eVByb2ZpbGUsJ1VJX0JVR0ZJWF9GQVNUJyk7YXNzZXJ0LmVxdWFsKHJlcG9ydC5uZWVkc0RhdGFiYXNlLGZhbHNlKTthc3NlcnQuZXF1YWwocmVwb3J0LmNsYXNzaWZpY2F0aW9uQmxvY2tlZCxmYWxzZSk7CmNvbnN0IHN1aXRlcz1yZXBvcnQuc3VpdGVzLmZpbHRlcihuPT5uIT09J3F1YWxpdHkueW1sJyk7YXNzZXJ0LmVxdWFsKHN1aXRlcy5sZW5ndGgsMTEpOwpjb25zdCBvdXRwdXQ9cGF0aC5qb2luKHJvb3QsJ2Jyb3dzZXItZXZpZGVuY2UnKTtmcy5ta2RpclN5bmMob3V0cHV0LHtyZWN1cnNpdmU6dHJ1ZX0pOwpjb25zdCByZXN1bHRzPVtdO2xldCBwdWJsaWNNYXBUb2tlbj0nJzsKY29uc3QgcmVkYWN0PXM9PnMuc3BsaXQocHVibGljTWFwVG9rZW58fCdcMCcpLmpvaW4oJ1tSRURBQ1RFRF9QVUJMSUNfTUFQX1RPS0VOXScpLnJlcGxhY2UoLyhbPyZdYWNjZXNzX3Rva2VuPSlbXiZccyInXSsvZywnJDFbUkVEQUNURURdJyk7CmZ1bmN0aW9uIHNhdmUoKXtmcy53cml0ZUZpbGVTeW5jKHBhdGguam9pbihvdXRwdXQsJ3JlY2VpcHQuanNvbicpLEpTT04uc3RyaW5naWZ5KHtjbGFzc2lmaWNhdGlvbjonTkFUSVZFX0JBU0VfQlJPV1NFUl9DT01NQU5EX0FDQ0VQVEFO' | base64 --decode > /tmp/ordinary-browser-runner.cjs
         shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
     - run:
-        name: Prepare quality reporter block 3
-        command: printf '%s' 'PWNvbnRleHQmJnMuc3RhdGU9PT0nc3VjY2VzcycmJnMudGFyZ2V0X3VybD09PXRhcmdldCkpOwphd2FpdCBzb3VyY2UoKTsKZnMubWtkaXJTeW5jKCdyZXBvcnRlci1ldmlkZW5jZScse3JlY3Vyc2l2ZTp0cnVlfSk7CmNvbnN0IHJlc3VsdD17Y2xhc3NpZmljYXRpb246J1BJTE9UX1NUQVRVU19QUk9WSURFUl9SRUFEQkFDS19OT1RfUE9MSUNZX0FETUlTU0lPTicsaGVhZFNoYTpyZWNlaXB0LmhlYWRTaGEsYmFzZVNoYTpyZWNlaXB0LmJhc2VTaGEsY29udHJvbGxlclNoYTpwcm9jZXNzLmVudi5DSVJDTEVfU0hBMSxjb250ZXh0LHN0YXR1c0lkOnN0YXR1cy5pZCxzdGF0ZTpzdGF0dXMuc3RhdGUsY3JlYXRvcjpzdGF0dXMuY3JlYXRvcj8ubG9naW4sdGFyZ2V0VXJsOnRhcmdldCxyZWNlaXB0U2hhMjU2OmNyZWF0ZUhhc2goJ3NoYTI1NicpLnVwZGF0ZShmcy5yZWFkRmlsZVN5bmMocm9vdCsncmVjZWlwdC5qc29uJykpLmRpZ2VzdCgnaGV4Jyksb2JzZXJ2ZWRBdDpuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCl9Owpmcy53cml0ZUZpbGVTeW5jKCdyZXBvcnRlci1ldmlkZW5jZS9yZWNlaXB0Lmpzb24nLEpTT04uc3RyaW5naWZ5KHJlc3VsdCxudWxsLDIpKydcbicpO2NvbnNvbGUubG9nKEpTT04uc3RyaW5naWZ5KHJlc3VsdCkpOwo=' | base64 --decode >> /tmp/quality-reporter.mjs
+        name: Prepare ordinary-browser-runner.cjs block 2
+        command: printf '%s' 'Q0VfTk9UX1JFTEVBU0VfQURNSVNTSU9OJyxoZWFkOmV4cGVjdGVkLGJhc2U6cHJvY2Vzcy5lbnYuRVhQRUNURURfQkFTRV9TSEEsdHJlZTpwcm9jZXNzLmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfVFJFRSxjb250cm9sbGVyOnByb2Nlc3MuZW52LkNJUkNMRV9TSEExLHJlc3VsdHMsYWxsQXNzZXJ0aW9uc1Bhc3NlZDpyZXN1bHRzLmxlbmd0aD09PXN1aXRlcy5sZW5ndGgmJnJlc3VsdHMuZXZlcnkocj0+ci5wYXNzZWQpLG9ic2VydmVkQXQ6bmV3IERhdGUoKS50b0lTT1N0cmluZygpfSxudWxsLDIpKydcbicpO30KKGFzeW5jKCk9PnsKY29uc3QgcmVzcG9uc2U9YXdhaXQgZmV0Y2goJ2h0dHBzOi8vbW9ycm8tZGlnaXRhbC12Mi1zdGFnaW5nLm9ucmVuZGVyLmNvbS9ydW50aW1lLWNvbmZpZy5qcycse3NpZ25hbDpBYm9ydFNpZ25hbC50aW1lb3V0KDMwMDAwKX0pO2Fzc2VydChyZXNwb25zZS5vayk7Y29uc3QgY29uZmlnPWF3YWl0IHJlc3BvbnNlLnRleHQoKTsKcHVibGljTWFwVG9rZW49Y29uZmlnLm1hdGNoKC9wa1wuW0EtWmEtejAtOS5fLV0rLyk/LlswXXx8Jyc7YXNzZXJ0KHB1YmxpY01hcFRva2VuLCdFWElTVElOR19QVUJMSUNfTUFQX1RPS0VOX1VOQVZBSUxBQkxFJyk7CmZvcihjb25zdCBzdWl0ZSBvZiBzdWl0ZXMpewogY29uc29sZS5sb2coJ0JST1dTRVJfU1VJVEVfU1RBUlQgJytzdWl0ZSk7CiBjb25zdCBzb3VyY2U9ZnMucmVhZEZpbGVTeW5jKHBhdGguam9pbih0cnVzdGVkLCcuZ2l0aHViL3dvcmtmbG93cycsc3VpdGUpLCd1dGY4Jyk7Y29uc3QgZG9jdW1lbnQ9eWFtbC5sb2FkKHNvdXJjZSk7Y29uc3QgcmVjb3JkPXtzdWl0ZSx3b3JrZmxvd1NoYTI1NjpyZXF1aXJlKCdub2RlOmNyeXB0bycpLmNyZWF0ZUhhc2goJ3NoYTI1NicpLnVwZGF0ZShzb3VyY2UpLmRpZ2VzdCgnaGV4JykscGFzc2VkOmZhbHNlLHN0ZXBzOltdfTtjb25zdCBncm91cHM9W107CiB0cnl7CiAgZm9yKGNvbnN0IGpvYiBvZiBPYmplY3QudmFsdWVzKGRvY3VtZW50LmpvYnMpKWZvcihjb25zdCBzdGVwIG9mIGpvYi5zdGVwc3x8W10pewogICBpZighc3RlcC5ydW4pY29udGludWU7CiAgIGNvbnN0IG5hbWU9c3RlcC5uYW1lfHwndW5uYW1lZCc7CiAgIGlmKHN0ZXAuaWY9PT0nZmFpbHVyZSgpJyl7cmVjb3JkLnN0ZXBzLnB1c2goe25hbWUsc3RhdGU6J05PVF9ORUVERURfT05fU1VDQ0VTU19ESUFHTk9TVElDJ30pO2NvbnRpbnVlO30KICAgaWYobmFtZT09PSdJbnN0YWxsIGRldGVybWluaXN0aWMgQ2hyb21pdW0nKSB7YXNzZXJ0KHN0ZXAucnVuLmluY2x1ZGVzKCdwbGF5d3JpZ2h0QDEuNTQuMicpKTtyZWNvcmQuc3RlcHMucHVzaCh7bmFtZSxzdGF0ZTonUkVVU0VEX1BJTk5FRF9PRkZJ' | base64 --decode >> /tmp/ordinary-browser-runner.cjs
         shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
     - run:
-        name: Publish bounded candidate pilot status with source and provider readback
-        command: node /tmp/quality-reporter.mjs
+        name: Prepare ordinary-browser-runner.cjs block 3
+        command: printf '%s' 'Q0lBTF9QTEFZV1JJR0hUX0lNQUdFX0FORF9QQUNLQUdFJ30pO2NvbnRpbnVlO30KICAgaWYoc3RlcC5ydW4udHJpbSgpPT09J3BucG0gLXcgYnVpbGQnKXtyZWNvcmQuc3RlcHMucHVzaCh7bmFtZSxzdGF0ZTonUkVVU0VEX0VYQUNUX1NPVVJDRV9RVUFMSVRZX1dPUktTUEFDRV9CVUlMRCd9KTtjb250aW51ZTt9CiAgIGlmKG5hbWU9PT0nUmVjb3ZlciBwcmUtY29udmVyZ2VuY2UgbWFudWFsLWF1dGhvcml0eSBldmlkZW5jZScpe2Fzc2VydChzdGVwLnJ1bi5pbmNsdWRlcygnMTA2Nzg1MDE2OTEnKSYmc3RlcC5ydW4uaW5jbHVkZXMoJzEwNjc3ODQ5MjY0JykpO3JlY29yZC5zdGVwcy5wdXNoKHtuYW1lLHN0YXRlOidISVNUT1JJQ0FMX0RPV05MT0FEX1JFUExBQ0VEX0JZX0NVUlJFTlRfQkFTRV9TT1VSQ0VfSURFTlRJVFknLHJlYXNvbjonSGlzdG9yaWNhbCBiZWZvcmUtaW1hZ2UgZG93bmxvYWRzIGFyZSBkaWFnbm9zdGljIHByb3ZlbmFuY2UgYW5kIGFyZSBub3QgcmVhZCBieSBlaXRoZXIgY2Fub25pY2FsIGFzc2VydGlvbiBzY3JpcHQ7IGN1cnJlbnQgYmFzZS9oZWFkIGFyZSBpbmRlcGVuZGVudGx5IGZyb3plbi4gTm90IGNsYWltaW5nIHRoZSBoaXN0b3JpY2FsIGV2aWRlbmNlIHdhcyBkb3dubG9hZGVkLid9KTtjb250aW51ZTt9CiAgIGNvbnN0IHN0ZXBFbnY9ey4uLnByb2Nlc3MuZW52LC4uLihqb2IuZW52fHx7fSksLi4uKHN0ZXAuZW52fHx7fSksTUFQQk9YX1BVQkxJQ19UT0tFTl9DSTpwdWJsaWNNYXBUb2tlbixHSVRIVUJfUkVQT1NJVE9SWTonbHVpemFudW5jaW9zdG9jYS90b3VyaXN0aWMtZGlnaXRhbC1wbGF0Zm9ybScsR0lUSFVCX1NIQTpleHBlY3RlZCxUVVJCT19URUxFTUVUUllfRElTQUJMRUQ6JzEnLERPX05PVF9UUkFDSzonMScsR0lUX1BBR0VSOidjYXQnfTsKICAgZm9yKGNvbnN0IFtrLHZdb2YgT2JqZWN0LmVudHJpZXMoc3RlcEVudikpaWYodHlwZW9mIHY9PT0nc3RyaW5nJyYmdi5pbmNsdWRlcygnJHt7JykpdGhyb3cgRXJyb3IoJ1VOUkVTT0xWRURfV09SS0ZMT1dfRVhQUkVTU0lPTjonK2spOwogICBjb25zb2xlLmxvZygnQlJPV1NFUl9TVEVQICcrc3VpdGUrJyA6OiAnK25hbWUpOwogICBjb25zdCBwPXNwYXduU3luYygnL2Jpbi9iYXNoJyxbJy1lbycsJ3BpcGVmYWlsJywnLWMnLHN0ZXAucnVuXSx7Y3dkOmNhbmRpZGF0ZSxlbnY6c3RlcEVudixlbmNvZGluZzondXRmOCcsdGltZW91dDo2MDAwMDAsbWF4QnVmZmVyOjY0KjEwMjQqMTAyNCxkZXRhY2hlZDp0cnVlfSk7CiAgIGlmKHAucGlkKWdyb3Vwcy5wdXNoKHAucGlkKTsKICAgY29uc3QgZmlsZT1zdWl0ZS5yZXBsYWNlKCcueW1sJywnJykrJy0nK3JlY29yZC5zdGVwcy5sZW5ndGgrJy5s' | base64 --decode >> /tmp/ordinary-browser-runner.cjs
         shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Prepare ordinary-browser-runner.cjs block 4
+        command: printf '%s' 'b2cnO2ZzLndyaXRlRmlsZVN5bmMocGF0aC5qb2luKG91dHB1dCxmaWxlKSxyZWRhY3QoKHAuc3Rkb3V0fHwnJykrJ1xuJysocC5zdGRlcnJ8fCcnKSkpOwogICByZWNvcmQuc3RlcHMucHVzaCh7bmFtZSxzdGF0ZTpwLnN0YXR1cz09PTA/J0FTU0VSVEVEX1BBU1MnOidGQUlMRUQnLGV4aXQ6cC5zdGF0dXMsc2lnbmFsOnAuc2lnbmFsLGxvZzpmaWxlfSk7CiAgIGlmKHAuc3RhdHVzIT09MCl0aHJvdyBFcnJvcignQlJPV1NFUl9TVEVQX0ZBSUxFRDonK25hbWUrJzonK3Auc3RhdHVzKTsKICB9CiAgcmVjb3JkLnBhc3NlZD10cnVlOwogfWNhdGNoKGUpe3JlY29yZC5lcnJvcj1yZWRhY3QoU3RyaW5nKGUpKTt9CiBmaW5hbGx5e2Zvcihjb25zdCBwaWQgb2YgZ3JvdXBzKXt0cnl7cHJvY2Vzcy5raWxsKC1waWQsJ1NJR1RFUk0nKX1jYXRjaHt9fXJlc3VsdHMucHVzaChyZWNvcmQpO3NhdmUoKTt9CiBjb25zb2xlLmxvZygnQlJPV1NFUl9TVUlURV9SRVNVTFQgJytzdWl0ZSsnICcrKHJlY29yZC5wYXNzZWQ/J1BBU1MnOidGQUlMJykpOwp9CmFzc2VydChyZXN1bHRzLmV2ZXJ5KHI9PnIucGFzc2VkKSwnT05FX09SX01PUkVfQlJPV1NFUl9TVUlURVNfRkFJTEVEJyk7CmFzc2VydC5lcXVhbChnKCdzdGF0dXMnLCctLXBvcmNlbGFpbicsJy0tdW50cmFja2VkLWZpbGVzPWFsbCcpLCcnKTsKfSkoKS5jYXRjaChlPT57c2F2ZSgpO2NvbnNvbGUuZXJyb3IocmVkYWN0KFN0cmluZyhlKSkpO3Byb2Nlc3MuZXhpdENvZGU9MTt9KTsK' | base64 --decode >> /tmp/ordinary-browser-runner.cjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run selected unchanged base browser assertions against candidate workspace
+        command: node /tmp/ordinary-browser-runner.cjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
     - store_artifacts:
-        path: reporter-evidence
-        destination: candidate-pilot-status
+        path: browser-evidence
+        destination: ordinary-browser-acceptance
+  registry-auth-readonly:
+    docker:
+    - image: node:22-bookworm
+    working_directory: /root/project
+    resource_class: medium
+    environment: *id001
+    steps:
+    - checkout:
+        method: full
+        path: controller
+    - run:
+        name: Prepare ghcr-readonly-probe.mjs block 1
+        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnO2ltcG9ydCB7c3Bhd25TeW5jfSBmcm9tICdub2RlOmNoaWxkX3Byb2Nlc3MnOwpjb25zdCBwPXNwYXduU3luYygnZ2l0JyxbJy1DJywnY29udHJvbGxlcicsJ2NyZWRlbnRpYWwnLCdmaWxsJ10se2lucHV0Oidwcm90b2NvbD1odHRwc1xuaG9zdD1naXRodWIuY29tXG5wYXRoPWx1aXphbnVuY2lvc3RvY2EvdG91cmlzdGljLWRpZ2l0YWwtcGxhdGZvcm0uZ2l0XG5cbicsZW5jb2Rpbmc6J3V0ZjgnLHRpbWVvdXQ6MTAwMDAsZW52OnsuLi5wcm9jZXNzLmVudixHSVRfVEVSTUlOQUxfUFJPTVBUOicwJ30sc3RkaW86WydwaXBlJywncGlwZScsJ3BpcGUnXX0pOwpjb25zdCBmaWVsZHM9T2JqZWN0LmZyb21FbnRyaWVzKChwLnN0ZG91dHx8JycpLnRyaW0oKS5zcGxpdCgnXG4nKS5tYXAobD0+e2NvbnN0IGk9bC5pbmRleE9mKCc9Jyk7cmV0dXJuW2wuc2xpY2UoMCxpKSxsLnNsaWNlKGkrMSldfSkpOwpjb25zdCByZXN1bHQ9e2NsYXNzaWZpY2F0aW9uOidHSENSX0FVVEhfUkVBRF9PTkxZX0NBUEFCSUxJVFlfTk9fUEFDS0FHRV9NVVRBVElPTicsY3JlZGVudGlhbEF2YWlsYWJsZTpCb29sZWFuKGZpZWxkcy5wYXNzd29yZCksYXV0aFN0YXR1czpudWxsLGFjdGlvbnM6W10scHVzaEF2YWlsYWJsZTpmYWxzZX07CmlmKGZpZWxkcy5wYXNzd29yZCl7CiBjb25zdCBiYXNpYz1CdWZmZXIuZnJvbSgoZmllbGRzLnVzZXJuYW1lfHwneC1hY2Nlc3MtdG9rZW4nKSsnOicrZmllbGRzLnBhc3N3b3JkKS50b1N0cmluZygnYmFzZTY0Jyk7CiBjb25zdCByZXNwb25zZT1hd2FpdCBmZXRjaCgnaHR0cHM6Ly9naGNyLmlvL3Rva2VuP3NlcnZpY2U9Z2hjci5pbyZzY29wZT1yZXBvc2l0b3J5JTNBbHVpemFudW5jaW9zdG9jYSUyRm1vcnJvLWRpZ2l0YWwtdjIlM0FwdXNoJTJDcHVsbCcse2hlYWRlcnM6e2F1dGhvcml6YXRpb246J0Jhc2ljICcrYmFzaWN9LHNpZ25hbDpBYm9ydFNpZ25hbC50aW1lb3V0KDIwMDAwKX0pO3Jlc3VsdC5hdXRoU3RhdHVzPXJlc3BvbnNlLnN0YXR1czsKIGlmKHJlc3BvbnNlLm9rKXtjb25zdCByPWF3YWl0IHJlc3BvbnNlLmpzb24oKTt0cnl7Y29uc3QgY2xhaW1zPUpTT04ucGFyc2UoQnVmZmVyLmZyb20oKHIudG9rZW58fHIuYWNjZXNzX3Rva2VuKS5zcGxpdCgnLicpWzFdLCdiYXNlNjR1cmwnKS50b1N0cmluZygpKTtyZXN1bHQuYWN0aW9ucz0oY2xhaW1zLmFjY2Vzc3x8W10pLmZpbHRlcihhPT5hLm5hbWU9PT0nbHVpemFudW5jaW9zdG9jYS9tb3Jyby1kaWdpdGFsLXYyJykuZmxhdE1hcChhPT5hLmFjdGlvbnN8fFtdKTtyZXN1bHQucHVzaEF2YWlsYWJsZT1yZXN1bHQuYWN0aW9ucy5pbmNsdWRlcygncHVzaCcpO31jYXRj' | base64 --decode > /tmp/ghcr-readonly-probe.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Prepare ghcr-readonly-probe.mjs block 2
+        command: printf '%s' 'aHtyZXN1bHQudG9rZW5DbGFpbXNSZWFkYWJsZT1mYWxzZTt9fQp9CmZzLm1rZGlyU3luYygncmVnaXN0cnktZXZpZGVuY2UnLHtyZWN1cnNpdmU6dHJ1ZX0pO2ZzLndyaXRlRmlsZVN5bmMoJ3JlZ2lzdHJ5LWV2aWRlbmNlL3JlY2VpcHQuanNvbicsSlNPTi5zdHJpbmdpZnkocmVzdWx0LG51bGwsMikrJ1xuJyk7Y29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkocmVzdWx0KSk7Cg==' | base64 --decode >> /tmp/ghcr-readonly-probe.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Discover existing registry authentication capability without package writes
+        command: node /tmp/ghcr-readonly-probe.mjs
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - store_artifacts:
+        path: registry-evidence
+        destination: ghcr-readonly-capability
 workflows:
-  selected-quality-and-candidate-status:
+  ordinary-six-quality-and-browser:
     jobs:
-    - selected-quality-pilot
-    - candidate-pilot-reporter:
+    - ordinary-exact-quality
+    - ordinary-browser-acceptance:
         requires:
-        - selected-quality-pilot
+        - ordinary-exact-quality
+    - registry-auth-readonly
