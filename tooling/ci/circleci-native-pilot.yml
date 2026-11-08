@@ -54,61 +54,15 @@ jobs:
 
         no_output_timeout: 5m
     - run:
-        name: Prepare bounded recorder section 1
+        name: Prepare verified recorder block 1
+        command: printf '%s' 'aW1wb3J0IGFzc2VydCBmcm9tICJub2RlOmFzc2VydC9zdHJpY3QiOwppbXBvcnQgZnMgZnJvbSAibm9kZTpmcyI7CmltcG9ydCB7IGV4ZWNGaWxlU3luYyB9IGZyb20gIm5vZGU6Y2hpbGRfcHJvY2VzcyI7CmltcG9ydCB7IGNyZWF0ZUhhc2ggfSBmcm9tICJub2RlOmNyeXB0byI7CmNvbnN0IGVudiA9IHByb2Nlc3MuZW52Owpjb25zdCBnaXQgPSAocm9vdCwgLi4uYXJncykgPT4gZXhlY0ZpbGVTeW5jKCJnaXQiLCBbIi1DIiwgcm9vdCwgLi4uYXJnc10sIHtlbmNvZGluZzoidXRmOCJ9KS50cmltKCk7CmNvbnN0IHRhcCA9IGZzLnJlYWRGaWxlU3luYygiZXZpZGVuY2UvY29udHJhY3RzLnRhcCIsInV0ZjgiKTsKY29uc3QgbWV0cmljID0ga2V5ID0+IHsKICBjb25zdCBhbGwgPSBbLi4udGFwLm1hdGNoQWxsKG5ldyBSZWdFeHAoIl4jICIgKyBrZXkgKyAiIChcXGQrKSQiLCJnbSIpKV07CiAgYXNzZXJ0LmVxdWFsKGFsbC5sZW5ndGgsMSwiVEFQX1NVTU1BUllfTUlTU0lOR19PUl9BTUJJR1VPVVM6IiArIGtleSk7CiAgcmV0dXJuIE51bWJlcihhbGxbMF1bMV0pOwp9Owphc3NlcnQobWV0cmljKCJ0ZXN0cyIpID4gMCk7CmFzc2VydC5lcXVhbChtZXRyaWMoInBhc3MiKSxtZXRyaWMoInRlc3RzIikpOwpmb3IgKGNvbnN0IGtleSBvZiBbImZhaWwiLCJjYW5jZWxsZWQiLCJza2lwcGVkIiwidG9kbyJdKSBhc3NlcnQuZXF1YWwobWV0cmljKGtleSksMCk7CmNvbnN0IHJlc3VsdD1KU09OLnBhcnNlKGZzLnJlYWRGaWxlU3luYygiZXZpZGVuY2UvcmV0aXJlbWVudC5qc29uIiwidXRmOCIpKTsKYXNzZXJ0LmVxdWFsKHJlc3VsdC5jb250cmFjdCwiTU9SUk8tQ0xBSU0tUkVUSVJFTUVOVC1QUk9PRiIpOwphc3NlcnQuZXF1YWwocmVzdWx0LnN0YXR1cywicGFzcyIpOwphc3NlcnQuZXF1YWwocmVzdWx0LmV4YWN0SGVhZCxlbnYuRVhQRUNURURfQ0FORElEQVRFX1NIQSk7CmFzc2VydC5lcXVhbChyZXN1bHQuY3VycmVudEJhc2VTaGEsZW52LkVYUEVDVEVEX0JBU0VfU0hBKTsKYXNzZXJ0LmVxdWFsKGdpdCgiY2FuZGlkYXRlIiwicmV2LXBhcnNlIiwiSEVBRCIpLGVudi5FWFBFQ1RFRF9DQU5ESURBVEVfU0hBKTsKYXNzZXJ0LmVxdWFsKGdpdCgiY2FuZGlkYXRlIiwicmV2LXBhcnNlIiwiSEVBRF57dHJlZX0iKSxlbnYuRVhQRUNURURfQ0FORElEQVRFX1RSRUUpOwpmb3IgKGNvbnN0IHJvb3Qgb2YgWyJ0cnVzdGVkIiwi'
+          | base64 --decode > /tmp/tdp-pilot-recorder.mjs
         shell: /bin/bash -eo pipefail
-        command: |
-          cat > /tmp/tdp-pilot-recorder.mjs <<'PILOT_NODE'
-          import assert from "node:assert/strict";
-          import fs from "node:fs";
-          import { execFileSync } from "node:child_process";
-          import { createHash } from "node:crypto";
-          const env = process.env;
-          const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], {encoding:"utf8"}).trim();
-          const tap = fs.readFileSync("evidence/contracts.tap","utf8");
-          const metric = key => {
-            const all = [...tap.matchAll(new RegExp("^# " + key + " (\\d+)$","gm"))];
-            assert.equal(all.length,1,"TAP_SUMMARY_MISSING_OR_AMBIGUOUS:" + key);
-            return Number(all[0][1]);
-          };
-          assert(metric("tests") > 0);
-          assert.equal(metric("pass"),metric("tests"));
-          for (const key of ["fail","cancelled","skipped","todo"]) assert.equal(metric(key),0);
-          const result=JSON.parse(fs.readFileSync("evidence/retirement.json","utf8"));
-          assert.equal(result.contract,"MORRO-CLAIM-RETIREMENT-PROOF");
-          assert.equal(result.status,"pass");
-          assert.equal(result.exactHead,env.EXPECTED_CANDIDATE_SHA);
-          assert.equal(result.currentBaseSha,env.EXPECTED_BASE_SHA);
-          assert.equal(git("candidate","rev-parse","HEAD"),env.EXPECTED_CANDIDATE_SHA);
-          assert.equal(git("candidate","rev-parse","HEAD^{tree}"),env.EXPECTED_CANDIDATE_TREE);
-          for (const root of ["trusted","candidate"]) assert.equal(git(root,"status","--porcelain","--untracked-files=all"),"");
-          const hash = p => createHash("sha256").update(fs.readFileSync(p)).digest("hex");
-
-          PILOT_NODE
-        no_output_timeout: 5m
     - run:
-        name: Prepare bounded recorder section 2
+        name: Prepare verified recorder block 2
+        command: printf '%s' 'Y2FuZGlkYXRlIl0pIGFzc2VydC5lcXVhbChnaXQocm9vdCwic3RhdHVzIiwiLS1wb3JjZWxhaW4iLCItLXVudHJhY2tlZC1maWxlcz1hbGwiKSwiIik7CmNvbnN0IGhhc2ggPSBwID0+IGNyZWF0ZUhhc2goInNoYTI1NiIpLnVwZGF0ZShmcy5yZWFkRmlsZVN5bmMocCkpLmRpZ2VzdCgiaGV4Iik7CmNvbnN0IGZpbGVzPVsiY29udHJhY3RzLnRhcCIsInJldGlyZW1lbnQuanNvbiJdOwpmcy53cml0ZUZpbGVTeW5jKCJldmlkZW5jZS9yZWNlaXB0Lmpzb24iLEpTT04uc3RyaW5naWZ5KHsKICBjbGFzc2lmaWNhdGlvbjoiUElMT1RfT05MWV9OT1RfTUVSR0VfT1JfUkVMRUFTRV9BQ0NFUFRBTkNFIiwKICBjb250cm9sbGVyU2hhOmVudi5DSVJDTEVfU0hBMSwKICBjb250cm9sbGVyQnJhbmNoOmVudi5DSVJDTEVfQlJBTkNILAogIHNvdXJjZVNoYTplbnYuRVhQRUNURURfQ0FORElEQVRFX1NIQSwKICB0cmVlU2hhOmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfVFJFRSwKICBiYXNlU2hhOmVudi5FWFBFQ1RFRF9CQVNFX1NIQSwKICB2YWxpZGF0b3JTaGE6Z2l0KCJ0cnVzdGVkIiwicmV2LXBhcnNlIiwiSEVBRCIpLAogIHZhbGlkYXRvckJsb2I6Z2l0KCJ0cnVzdGVkIiwicmV2LXBhcnNlIiwiSEVBRDp0b29saW5nL2ZhYnJpYy9jbGFpbS1yZXRpcmVtZW50LXByb29mLm1qcyIpLAogIG5vZGU6cHJvY2Vzcy52ZXJzaW9uLAogIHRlc3RzOnt0b3RhbDptZXRyaWMoInRlc3RzIikscGFzc2VkOm1ldHJpYygicGFzcyIpLGZhaWxlZDptZXRyaWMoImZhaWwiKSxza2lwcGVkOm1ldHJpYygic2tpcHBlZCIpfSwKICBmaWxlczpPYmplY3QuZnJvbUVudHJpZXMoZmlsZXMubWFwKGY9PltmLGhhc2goImV2aWRlbmNlLyIrZildKSksCiAgb2JzZXJ2ZWRBdDpuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCksCiAgZXh0ZXJuYWxQcm92aWRlcklkZW50aXR5VmVyaWZpZWQ6ZmFsc2UsCiAgcmVxdWlyZWROZXh0OlsicHJvdGVjdGVkIGNvbmZpZyBwdWJsaWNhdGlvbi9hZG1pc3Npb24iLCJwcm92aWRlciBleGVjdXRpb24gYW5kIGF1dGhlbnRpY2F0ZWQgcmVhZGJhY2siLCJjb21wbGV0ZSBlcXVpdmFsZW50IHF1YWxpdHkiLCJyZXZpZXcgYW5kIGFkbWluaXN0cmF0aXZlIGNoZWNrLW9yaWdpbiB0cmFuc2l0aW9uIl0sCn0sbnVsbCwyKSsiXG4iLHtmbGFnOiJ3eCJ9KTs='
+          | base64 --decode >> /tmp/tdp-pilot-recorder.mjs
         shell: /bin/bash -eo pipefail
-        command: |
-          cat >> /tmp/tdp-pilot-recorder.mjs <<'PILOT_NODE'
-          const files=["contracts.tap","retirement.json"];
-          fs.writeFileSync("evidence/receipt.json",JSON.stringify({
-            classification:"PILOT_ONLY_NOT_MERGE_OR_RELEASE_ACCEPTANCE",
-            controllerSha:env.CIRCLE_SHA1,
-            controllerBranch:env.CIRCLE_BRANCH,
-            sourceSha:env.EXPECTED_CANDIDATE_SHA,
-            treeSha:env.EXPECTED_CANDIDATE_TREE,
-            baseSha:env.EXPECTED_BASE_SHA,
-            validatorSha:git("trusted","rev-parse","HEAD"),
-            validatorBlob:git("trusted","rev-parse","HEAD:tooling/fabric/claim-retirement-proof.mjs"),
-            node:process.version,
-            tests:{total:metric("tests"),passed:metric("pass"),failed:metric("fail"),skipped:metric("skipped")},
-            files:Object.fromEntries(files.map(f=>[f,hash("evidence/"+f)])),
-            observedAt:new Date().toISOString(),
-            externalProviderIdentityVerified:false,
-            requiredNext:["protected config publication/admission","provider execution and authenticated readback","complete equivalent quality","review and administrative check-origin transition"],
-          },null,2)+"\n",{flag:"wx"});
-          PILOT_NODE
-        no_output_timeout: 5m
     - run:
         name: Assert complete proof and record identities
         shell: /bin/bash -eo pipefail
