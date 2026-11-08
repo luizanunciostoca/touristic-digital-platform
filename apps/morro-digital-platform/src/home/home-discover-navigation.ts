@@ -456,7 +456,18 @@ export function installHomeDiscoverNavigation({
       try {
         const storage = document.defaultView?.localStorage;
         // Profile manager load normally updates visits; prevent writes from this read-only surface.
-        const snapshot = storage?.getItem("morro_user_profile") ?? null;
+        if (!storage) throw new Error("Saved storage is unavailable");
+        const snapshot = storage.getItem("morro_user_profile");
+        if (snapshot !== null) {
+          const storedProfile: unknown = JSON.parse(snapshot);
+          if (
+            storedProfile === null ||
+            typeof storedProfile !== "object" ||
+            Array.isArray(storedProfile)
+          ) {
+            throw new Error("Saved profile is unreadable");
+          }
+        }
         const places = createAssistantUserProfileManager({
           storage: { getItem: () => snapshot, setItem: () => {} },
         })
