@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-EXTERNAL-STAGING-ADMISSION-20261108",
+  "objective": "admit-bound-external-circleci-staging-evidence-and-protected-publisher-without-changing-production-or-weakening-release-invariants",
+  "baseSha": "02c2af6d91456e64efa31646d0439b5e39ae8ea1",
+  "branch": "infra/external-staging-admission-20261108",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EXTERNAL-STAGING-ADMISSION-20261108.json",
+      "tooling/release/actions-independent/route.mjs",
+      "tooling/release/actions-independent/route.test.mjs",
+      "docs/operations/ACTIONS-INDEPENDENT-STAGING.md",
+      "docs/adr/0006-actions-independent-staging-evidence.md",
+      "tooling/release/oci-proof.mjs",
+      "tooling/release/oci-proof.test.mjs",
+      "tooling/ci/staging-oci-deployment-evidence.mjs",
+      "tooling/ci/staging-oci-deployment-evidence.test.mjs",
+      "tooling/ci/circleci-native-pilot.yml"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "owner-scope-resolution"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 4,
+      "maxSeconds": 1200
+    },
+    "commands": [
+      {
+        "id": "base-ownership-and-claim-invariants",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
