@@ -1,7 +1,128 @@
-# Owner-authorized bounded relay. No registry credential, candidate execution or release authority.
+# Prospective metadata acquisition only: no GHCR context, image push, deploy or canonical authority.
 version: 2.1
 jobs:
-  first-batch-status-relay:
+  external-claim-base-proof:
+    docker:
+    - image: node:22-bookworm
+    working_directory: /root/project
+    resource_class: medium
+    environment:
+      EXPECTED_BASE_SHA: 02c2af6d91456e64efa31646d0439b5e39ae8ea1
+      EXPECTED_CANDIDATE_SHA: 378aa60dd9c0c9d156e0effc622a5d996ca50633
+      EXPECTED_CANDIDATE_TREE: ca884f5a09a1e10e0f9a389688c74246f761109b
+      GITHUB_REPOSITORY: luizanunciostoca/touristic-digital-platform
+      TURBO_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      GIT_PAGER: cat
+    steps:
+    - run:
+        name: Fetch and verify exact public candidate
+        command: 'test "$CIRCLE_BRANCH" = infra/circleci-controller-bootstrap-20261108
+
+          git init -q candidate
+
+          git -C candidate remote add origin https://github.com/luizanunciostoca/touristic-digital-platform.git
+
+          git -C candidate fetch --no-tags --depth=3 origin "$EXPECTED_CANDIDATE_SHA"
+
+          git -C candidate checkout -q -b infra/external-staging-admission-20261108 FETCH_HEAD
+
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+
+          test "$(git -C candidate rev-parse ''HEAD^{tree}'')" = "$EXPECTED_CANDIDATE_TREE"
+
+          test "$(git -C candidate rev-parse ''HEAD^'')" = "$EXPECTED_BASE_SHA"
+
+          test -z "$(git -C candidate status --porcelain --untracked-files=all)"
+
+          git -C candidate update-ref refs/heads/main "$EXPECTED_BASE_SHA"
+
+          git -C candidate worktree add -q --detach ../trusted "$EXPECTED_BASE_SHA"
+
+          git -C candidate update-ref refs/remotes/origin/main "$EXPECTED_BASE_SHA"'
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Install canonical package manager and locked dependencies
+        command: 'corepack enable
+
+          corepack prepare pnpm@10.15.0 --activate
+
+          cd candidate
+
+          pnpm install --frozen-lockfile --prefer-offline'
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Classify frozen candidate using unchanged base analyzer
+        command: 'mkdir -p quality-evidence
+
+          cd candidate
+
+          node ../trusted/tooling/ci/impact-analyzer.mjs "$EXPECTED_BASE_SHA" "$EXPECTED_CANDIDATE_SHA" > ../quality-evidence/impact.json'
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Execute unchanged exact-head local admission and certification remotely
+        command: 'cd candidate
+
+          node ../trusted/tooling/ci/local-fast-gate.mjs --admission --base "$EXPECTED_BASE_SHA" | tee ../quality-evidence/admission.log
+
+          node ../trusted/tooling/ci/local-fast-gate.mjs --certify --base "$EXPECTED_BASE_SHA" | tee ../quality-evidence/certify.log'
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - run:
+        name: Run concurrency supply-chain and log-PII controls
+        command: 'cd candidate
+
+          node tooling/quality/check-workflow-concurrency.mjs
+
+          node tooling/quality/check-workflow-supply-chain.mjs --strict
+
+          node tooling/quality/check-log-pii-exposure.mjs
+
+          git --no-pager diff --check "$EXPECTED_BASE_SHA...$EXPECTED_CANDIDATE_SHA"'
+        shell: /bin/bash -eo pipefail
+        no_output_timeout: 10m
+    - store_artifacts:
+        path: quality-evidence
+        destination: ordinary-exact-quality
+    - persist_to_workspace:
+        root: .
+        paths:
+        - candidate
+        - trusted
+        - quality-evidence
+    - run:
+        name: Execute unchanged base acquisition contracts independently
+        shell: /bin/bash -eo pipefail
+        command: 'cd trusted
+
+          node --test tooling/fabric/claim-guard.test.mjs tooling/fabric/ownership-path.test.mjs tooling/control-state/mdctl-claim-lifecycle.test.mjs | tee ../quality-evidence/base-contracts.tap'
+    - run:
+        name: Prepare fresh-claim-provider-receipt.mjs block 1
+        shell: /bin/bash -eo pipefail
+        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnOwppbXBvcnQgYXNzZXJ0IGZyb20gJ25vZGU6YXNzZXJ0L3N0cmljdCc7CmltcG9ydCB7ZXhlY0ZpbGVTeW5jfSBmcm9tICdub2RlOmNoaWxkX3Byb2Nlc3MnOwppbXBvcnQge2NyZWF0ZUhhc2h9IGZyb20gJ25vZGU6Y3J5cHRvJzsKaW1wb3J0IHtidWlsZENsYWltR3VhcmRQcm9vZn0gZnJvbSAnLi4vcm9vdC9wcm9qZWN0L3RydXN0ZWQvdG9vbGluZy9mYWJyaWMvY2xhaW0tZ3VhcmQubWpzJzsKY29uc3QgZW52PXByb2Nlc3MuZW52Owpjb25zdCBnaXQ9KC4uLmFyZ3MpPT5leGVjRmlsZVN5bmMoJ2dpdCcsWyctQycsJ2NhbmRpZGF0ZScsLi4uYXJnc10se2VuY29kaW5nOid1dGY4J30pLnRyaW0oKTsKYXNzZXJ0LmVxdWFsKGdpdCgncmV2LXBhcnNlJywnSEVBRCcpLGVudi5FWFBFQ1RFRF9DQU5ESURBVEVfU0hBKTsKYXNzZXJ0LmVxdWFsKGdpdCgncmV2LXBhcnNlJywnSEVBRF57dHJlZX0nKSxlbnYuRVhQRUNURURfQ0FORElEQVRFX1RSRUUpOwphc3NlcnQuZXF1YWwoZ2l0KCdyZXYtcGFyc2UnLCdIRUFEXicpLGVudi5FWFBFQ1RFRF9CQVNFX1NIQSk7CmFzc2VydC5lcXVhbChnaXQoJ3N0YXR1cycsJy0tcG9yY2VsYWluJywnLS11bnRyYWNrZWQtZmlsZXM9YWxsJyksJycpOwpjb25zdCBpbXBhY3Q9SlNPTi5wYXJzZShmcy5yZWFkRmlsZVN5bmMoJ3F1YWxpdHktZXZpZGVuY2UvaW1wYWN0Lmpzb24nKSk7CmFzc2VydC5lcXVhbChpbXBhY3QucXVhbGl0eVByb2ZpbGUsJ05PTl9SVU5USU1FJyk7YXNzZXJ0LmVxdWFsKGltcGFjdC5zZXJpYWxpemVkQ29udHJvbFRyYW5zaXRpb25Pbmx5LHRydWUpOwphc3NlcnQuZXF1YWwoaW1wYWN0Lm5lZWRzRGF0YWJhc2UsZmFsc2UpO2Fzc2VydC5lcXVhbChpbXBhY3QuY2xhc3NpZmljYXRpb25CbG9ja2VkLGZhbHNlKTsKY29uc3QgcHJvb2Y9YnVpbGRDbGFpbUd1YXJkUHJvb2YoJ2NhbmRpZGF0ZScse0VYUEVDVEVEX0JBU0VfU0hBOmVudi5FWFBFQ1RFRF9CQVNFX1NIQSxFWFBFQ1RFRF9DQU5ESURBVEVfU0hBOmVudi5FWFBFQ1RFRF9DQU5ESURBVEVfU0hBLEVYUEVDVEVEX0JSQU5DSDonaW5mcmEvZXh0ZXJuYWwtc3RhZ2luZy1hZG1pc3Npb24tMjAyNjExMDgnLE1BTklGRVNUX1BBVEg6Jy5tb3Jyby9jaGFuZ2VzZXRzL01ELUVYVEVSTkFMLVNUQUdJTkctQURNSVNTSU9OLTIwMjYxMTA4Lmpzb24nLENMQUlNX0dVQVJEX0FVVEhPUklUWTonT1JDSEVTVFJBVE9SJ30pOwphc3NlcnQuZXF1YWwocHJvb2Yuc3RhdHVzLCdwYXNzJyk7YXNzZXJ0LmVxdWFsKHBy' | base64 --decode > /tmp/fresh-claim-provider-receipt.mjs
+    - run:
+        name: Prepare fresh-claim-provider-receipt.mjs block 2
+        shell: /bin/bash -eo pipefail
+        command: printf '%s' 'b29mLmFjcXVpc2l0aW9uLHRydWUpO2Fzc2VydC5lcXVhbChwcm9vZi5jb2xsaXNpb25zLDApOwpjb25zdCB0YXA9ZnMucmVhZEZpbGVTeW5jKCdxdWFsaXR5LWV2aWRlbmNlL2Jhc2UtY29udHJhY3RzLnRhcCcsJ3V0ZjgnKTsKY29uc3QgbWV0cmljPWs9Pntjb25zdCBtPVsuLi50YXAubWF0Y2hBbGwobmV3IFJlZ0V4cCgnXiMgJytrKycgKFxcZCspJCcsJ2dtJykpXTthc3NlcnQuZXF1YWwobS5sZW5ndGgsMSk7cmV0dXJuIE51bWJlcihtWzBdWzFdKTt9Owphc3NlcnQuZXF1YWwobWV0cmljKCd0ZXN0cycpLDI0OCk7YXNzZXJ0LmVxdWFsKG1ldHJpYygncGFzcycpLDI0OCk7CmZvcihjb25zdCBrIG9mIFsnZmFpbCcsJ2NhbmNlbGxlZCcsJ3NraXBwZWQnLCd0b2RvJ10pYXNzZXJ0LmVxdWFsKG1ldHJpYyhrKSwwKTsKY29uc3QgY2VydGlmaWNhdGU9ZnMucmVhZEZpbGVTeW5jKCdxdWFsaXR5LWV2aWRlbmNlL2NlcnRpZnkubG9nJywndXRmOCcpLnRyaW0oKS5zcGxpdCgnXG4nKS5tYXAobD0+e3RyeXtyZXR1cm4gSlNPTi5wYXJzZShsKX1jYXRjaHtyZXR1cm4gbnVsbH19KS5maWx0ZXIoeD0+eD8ubW9kZT09PSdDRVJUSUZJRUQnKS5hdCgtMSk7CmFzc2VydChjZXJ0aWZpY2F0ZSk7YXNzZXJ0LmVxdWFsKGNlcnRpZmljYXRlLmhlYWRTaGEsZW52LkVYUEVDVEVEX0NBTkRJREFURV9TSEEpO2Fzc2VydC5lcXVhbChjZXJ0aWZpY2F0ZS5iYXNlU2hhLGVudi5FWFBFQ1RFRF9CQVNFX1NIQSk7YXNzZXJ0LmVxdWFsKGNlcnRpZmljYXRlLnRyZWVTaGEsZW52LkVYUEVDVEVEX0NBTkRJREFURV9UUkVFKTsKY29uc3QgZmlsZXM9T2JqZWN0LmZyb21FbnRyaWVzKGZzLnJlYWRkaXJTeW5jKCdxdWFsaXR5LWV2aWRlbmNlJykubWFwKHA9PltwLGNyZWF0ZUhhc2goJ3NoYTI1NicpLnVwZGF0ZShmcy5yZWFkRmlsZVN5bmMoJ3F1YWxpdHktZXZpZGVuY2UvJytwKSkuZGlnZXN0KCdoZXgnKV0pKTsKZnMud3JpdGVGaWxlU3luYygncXVhbGl0eS1ldmlkZW5jZS9yZWNlaXB0Lmpzb24nLEpTT04uc3RyaW5naWZ5KHtjbGFzc2lmaWNhdGlvbjonRVhBQ1RfQkFTRV9OQVRJVkVfQ0xBSU1fQk9PVFNUUkFQX1BST1BPU0FMX05PVF9DQU5PTklDQUxfQUNUSU9OU19BRE1JU1NJT04nLGhlYWQ6ZW52LkVYUEVDVEVEX0NBTkRJREFURV9TSEEsYmFzZTplbnYuRVhQRUNURURfQkFTRV9TSEEsdHJlZTplbnYuRVhQRUNURURfQ0FORElEQVRFX1RSRUUsY29udHJvbGxlcjplbnYuQ0lSQ0xFX1NIQTEsd29ya2Zsb3c6ZW52LkNJUkNMRV9XT1JLRkxPV19JRCxwcm92aWRlckpv' | base64 --decode >> /tmp/fresh-claim-provider-receipt.mjs
+    - run:
+        name: Prepare fresh-claim-provider-receipt.mjs block 3
+        shell: /bin/bash -eo pipefail
+        command: printf '%s' 'YlVybDplbnYuQ0lSQ0xFX0JVSUxEX1VSTCxwcm9vZixjZXJ0aWZpY2F0ZSx0ZXN0czp7dG90YWw6MjQ4LHBhc3NlZDoyNDgsc2tpcHBlZDowfSxmaWxlcyxjYW5vbmljYWxFbnZlbG9wZUFkbWl0dGVkOmZhbHNlLG9ic2VydmVkQXQ6bmV3IERhdGUoKS50b0lTT1N0cmluZygpfSxudWxsLDIpKydcbicpOwo=' | base64 --decode >> /tmp/fresh-claim-provider-receipt.mjs
+    - run:
+        name: Seal prospective exact-head acquisition evidence
+        shell: /bin/bash -eo pipefail
+        command: node /tmp/fresh-claim-provider-receipt.mjs
+    - store_artifacts:
+        path: quality-evidence
+        destination: external-claim-base-proof
+    - persist_to_workspace:
+        root: .
+        paths:
+        - quality-evidence
+  external-claim-proposal-relay:
     docker:
     - image: node:22-bookworm
     working_directory: /root/project
@@ -10,46 +131,31 @@ jobs:
     - checkout:
         method: full
         path: controller
+    - attach_workspace:
+        at: .
     - run:
-        name: Prepare first-quality-receipt.json block 1
-        command: printf '%s' 'ewogICJjbGFzc2lmaWNhdGlvbiI6ICJPUkRJTkFSWV9FWEFDVF9IRUFEX05BVElWRV9RVUFMSVRZX05PVF9SRUxFQVNFX0FETUlTU0lPTiIsCiAgImhlYWQiOiAiNTNhYTdjMGUzODY0ZDBjN2E0NWQ5NzcyYjQ5ZGI4N2M4NmIwYTFlMSIsCiAgImJhc2UiOiAiMGFmMmIwZWI2OGVmYmQ3ZmNmZTAzOThjMjE1NjdkMjI0ZWMzM2ZiNiIsCiAgInRyZWUiOiAiYjZiY2FkMDYzODc5OWU4MTc5NWRjZmM0ODg5ZWMyMTFiMGY4ODQzZiIsCiAgImNvbnRyb2xsZXIiOiAiNmQ2MWU2Y2Y2MTM2YjQyMTY3ZWQyNWMyYmNlNzUyMmU0ZmIzNzMyNiIsCiAgInByb2ZpbGUiOiAiVUlfQlVHRklYX0ZBU1QiLAogICJjZXJ0aWZpY2F0ZSI6IHsKICAgICJtb2RlIjogIkNFUlRJRklFRCIsCiAgICAiYmFzZVNoYSI6ICIwYWYyYjBlYjY4ZWZiZDdmY2ZlMDM5OGMyMTU2N2QyMjRlYzMzZmI2IiwKICAgICJoZWFkU2hhIjogIjUzYWE3YzBlMzg2NGQwYzdhNDVkOTc3MmI0OWRiODdjODZiMGExZTEiLAogICAgInRyZWVTaGEiOiAiYjZiY2FkMDYzODc5OWU4MTc5NWRjZmM0ODg5ZWMyMTFiMGY4ODQzZiIsCiAgICAiY2xhaW1JZCI6IG51bGwsCiAgICAid29ya3NwYWNlUnVudGltZSI6ICJuYXRpdmUiLAogICAgIndvcmtzcGFjZUZhbGxiYWNrVXNlZCI6IGZhbHNlCiAgfSwKICAiZmlsZXMiOiB7CiAgICAiYWRtaXNzaW9uLmxvZyI6ICJmZmJlOGVjZmYyNjg1NWQyYWI3YjE4OTgwZmE2MjgxNDc3MDNjOWUyYmMwM2VhMTliMDdjNDI2ZGM2Y2U3NjU5IiwKICAgICJjZXJ0aWZ5LmxvZyI6ICI4Njg4NjJkOThjMWEwZTIxYzFhN2U0NTM5ZGJkZGZjMTU1ZDc0N2EwNmQ2MDBhYTBiZGMzNDk0NmUyZDczNDA5IiwKICAgICJpbXBhY3QuanNvbiI6ICJhNTMyNTAyYmRkMDM0NDU4YTVhYWVlOTZkZDRkZTZmODRmNGZmMDRiNDU3NmI0NjZmOTg4ZThkNmQ5N2ZmZWY1IiwKICAgICJ3b3Jrc3BhY2UtYnVpbGQubG9nIjogIjNlMWE0YjlhZDY1YTZlNjZhOTQ0NzM5ZmViMWI4NTlkZWYzYmJkM2VjNmFhNjZlODRjNjkzZmFhYzYyOGUwNjUiCiAgfSwKICAib2JzZXJ2ZWRBdCI6ICIyMDI2LTExLTA4VDA4OjA2OjI4LjE0N1oiCn0K' | base64 --decode > /tmp/first-quality-receipt.json
+        name: Prepare fresh-claim-provider-relay.mjs block 1
         shell: /bin/bash -eo pipefail
+        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnO2ltcG9ydCBhc3NlcnQgZnJvbSAnbm9kZTphc3NlcnQvc3RyaWN0JztpbXBvcnQge3NwYXduU3luY30gZnJvbSAnbm9kZTpjaGlsZF9wcm9jZXNzJzsKY29uc3QgcmVwbz0nbHVpemFudW5jaW9zdG9jYS90b3VyaXN0aWMtZGlnaXRhbC1wbGF0Zm9ybScsaGVhZD0nMzc4YWE2MGRkOWMwYzlkMTU2ZTBlZmZjNjIyYTVkOTk2Y2E1MDYzMycsYmFzZT0nMDJjMmFmNmQ5MTQ1NmU2NGVmYTMxNjQ2ZDA0MzliNWUzOWFlOGVhMScsdHJlZT0nY2E4ODRmNWEwOWExZTEwZTBmOWEzODk2ODhjNzQyNDZmNzYxMTA5Yic7CmNvbnN0IHJlY2VpcHQ9SlNPTi5wYXJzZShmcy5yZWFkRmlsZVN5bmMoJ3F1YWxpdHktZXZpZGVuY2UvcmVjZWlwdC5qc29uJykpOwpmb3IoY29uc3Rbayx2XW9mIE9iamVjdC5lbnRyaWVzKHtoZWFkLGJhc2UsdHJlZSxjb250cm9sbGVyOnByb2Nlc3MuZW52LkNJUkNMRV9TSEExLHdvcmtmbG93OnByb2Nlc3MuZW52LkNJUkNMRV9XT1JLRkxPV19JRH0pKWFzc2VydC5lcXVhbChyZWNlaXB0W2tdLHYpOwphc3NlcnQuZXF1YWwocmVjZWlwdC5wcm9vZi5zdGF0dXMsJ3Bhc3MnKTthc3NlcnQuZXF1YWwocmVjZWlwdC5wcm9vZi5hY3F1aXNpdGlvbix0cnVlKTthc3NlcnQuZXF1YWwocmVjZWlwdC5wcm9vZi5jb2xsaXNpb25zLDApO2Fzc2VydC5lcXVhbChyZWNlaXB0LmNlcnRpZmljYXRlLm1vZGUsJ0NFUlRJRklFRCcpO2Fzc2VydC5lcXVhbChyZWNlaXB0LnRlc3RzLnBhc3NlZCwyNDgpO2Fzc2VydC5lcXVhbChyZWNlaXB0LnRlc3RzLnNraXBwZWQsMCk7YXNzZXJ0LmVxdWFsKHJlY2VpcHQuY2Fub25pY2FsRW52ZWxvcGVBZG1pdHRlZCxmYWxzZSk7CmNvbnN0IHA9c3Bhd25TeW5jKCdnaXQnLFsnLUMnLCdjb250cm9sbGVyJywnY3JlZGVudGlhbCcsJ2ZpbGwnXSx7aW5wdXQ6J3Byb3RvY29sPWh0dHBzXG5ob3N0PWdpdGh1Yi5jb21cbnBhdGg9JytyZXBvKycuZ2l0XG5cbicsZW5jb2Rpbmc6J3V0ZjgnLHRpbWVvdXQ6MTAwMDAsZW52OnsuLi5wcm9jZXNzLmVudixHSVRfVEVSTUlOQUxfUFJPTVBUOicwJ30sc3RkaW86WydwaXBlJywncGlwZScsJ3BpcGUnXX0pOwphc3NlcnQuZXF1YWwocC5zdGF0dXMsMCk7Y29uc3QgZmllbGRzPU9iamVjdC5mcm9tRW50cmllcyhwLnN0ZG91dC50cmltKCkuc3BsaXQoJ1xuJykubWFwKGw9Pntjb25zdCBpPWwuaW5kZXhPZignPScpO3JldHVybltsLnNsaWNlKDAsaSksbC5zbGljZShpKzEpXX0pKTthc3NlcnQoZmllbGRzLnBhc3N3b3JkKTsKYXN5bmMgZnVu' | base64 --decode > /tmp/fresh-claim-provider-relay.mjs
     - run:
-        name: Prepare first-browser-receipt.json block 1
-        command: printf '%s' 'ewogICJjbGFzc2lmaWNhdGlvbiI6ICJOQVRJVkVfQkFTRV9CUk9XU0VSX0NPTU1BTkRfQUNDRVBUQU5DRV9OT1RfUkVMRUFTRV9BRE1JU1NJT04iLAogICJoZWFkIjogIjUzYWE3YzBlMzg2NGQwYzdhNDVkOTc3MmI0OWRiODdjODZiMGExZTEiLAogICJiYXNlIjogIjBhZjJiMGViNjhlZmJkN2ZjZmUwMzk4YzIxNTY3ZDIyNGVjMzNmYjYiLAogICJ0cmVlIjogImI2YmNhZDA2Mzg3OTllODE3OTVkY2ZjNDg4OWVjMjExYjBmODg0M2YiLAogICJjb250cm9sbGVyIjogIjZkNjFlNmNmNjEzNmI0MjE2N2VkMjVjMmJjZTc1MjJlNGZiMzczMjYiLAogICJyZXN1bHRzIjogWwogICAgewogICAgICAic3VpdGUiOiAiaG9tZS1kaXNjb3Zlci1tYW51YWwtY29uZm9ybWFuY2UueW1sIiwKICAgICAgIndvcmtmbG93U2hhMjU2IjogIjkyYzlkMDU0ZWVkYWNhZjczNTg3ZWM0MmRiNWQ4YjQzOGMyZTJjMzhlN2YwMjBkNDVkZmFlYzdlNjdiMzJmNzYiLAogICAgICAicGFzc2VkIjogdHJ1ZSwKICAgICAgInN0ZXBzIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIkluc3RhbGwgZGV0ZXJtaW5pc3RpYyBDaHJvbWl1bSIsCiAgICAgICAgICAic3RhdGUiOiAiUkVVU0VEX1BJTk5FRF9PRkZJQ0lBTF9QTEFZV1JJR0hUX0lNQUdFX0FORF9QQUNLQUdFX1dJVEhfQ0FOT05JQ0FMX0RJUkVDVE9SSUVTIgogICAgICAgIH0sCiAgICAgICAgewogICAgICAgICAgIm5hbWUiOiAiUHJvdmUgcG9pbnRlciBnZXN0dXJlIGhhcm5lc3MgYWxnb3JpdGhtcyAobm90IHByb3ZpZGVyIGFjY2VwdGFuY2UpIiwKICAgICAgICAgICJzdGF0ZSI6ICJBU1NFUlRFRF9QQVNTIiwKICAgICAgICAgICJleGl0IjogMCwKICAgICAgICAgICJzaWduYWwiOiBudWxsLAogICAgICAgICAgImxvZyI6ICJob21lLWRpc2NvdmVyLW1hbnVhbC1jb25mb3JtYW5jZS0xLmxvZyIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIkJ1aWxkIHdvcmtzcGFjZSIsCiAgICAgICAgICAic3RhdGUiOiAiUkVVU0VEX0VYQUNUX1NPVVJDRV9RVUFMSVRZX1dPUktTUEFDRV9CVUlMRCIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIlJlY292ZXIgcHJlLWNvbnZlcmdlbmNlIG1hbnVhbC1hdXRob3JpdHkgZXZpZGVuY2UiLAogICAgICAgICAgInN0YXRlIjogIkhJU1RPUklDQUxfRE9XTkxPQURfUkVQTEFDRURfQllfQ1VSUkVOVF9CQVNFX1NPVVJDRV9JREVOVElUWSIsCiAgICAgICAgICAicmVhc29uIjogIkhpc3RvcmljYWwgYmVmb3JlLWltYWdlIGRvd25sb2FkcyBhcmUgZGlhZ25vc3RpYyBwcm92ZW5hbmNlIGFuZCBhcmUgbm90IHJlYWQgYnkgZWl0aGVyIGNhbm9uaWNhbCBhc3NlcnRp' | base64 --decode > /tmp/first-browser-receipt.json
+        name: Prepare fresh-claim-provider-relay.mjs block 2
         shell: /bin/bash -eo pipefail
+        command: printf '%s' 'Y3Rpb24gYXBpKHBhdGgsaW5pdD17fSl7Y29uc3Qgcj1hd2FpdCBmZXRjaCgnaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy8nK3JlcG8rcGF0aCx7Li4uaW5pdCxoZWFkZXJzOnthdXRob3JpemF0aW9uOidCZWFyZXIgJytmaWVsZHMucGFzc3dvcmQsYWNjZXB0OidhcHBsaWNhdGlvbi92bmQuZ2l0aHViK2pzb24nLCdjb250ZW50LXR5cGUnOidhcHBsaWNhdGlvbi9qc29uJ30sc2lnbmFsOkFib3J0U2lnbmFsLnRpbWVvdXQoMjAwMDApfSk7YXNzZXJ0KHIub2ssJ0dJVEhVQl9BUElfU1RBVFVTXycrci5zdGF0dXMpO3JldHVybiByLmpzb24oKTt9CmFzeW5jIGZ1bmN0aW9uIHNvdXJjZSgpe2NvbnN0IHByPWF3YWl0IGFwaSgnL3B1bGxzLzE0NTEnKTthc3NlcnQuZXF1YWwocHIuc3RhdGUsJ29wZW4nKTthc3NlcnQuZXF1YWwocHIuaGVhZC5zaGEsaGVhZCk7YXNzZXJ0LmVxdWFsKHByLmJhc2Uuc2hhLGJhc2UpO2Fzc2VydC5lcXVhbChwci5jaGFuZ2VkX2ZpbGVzLDMpO2Fzc2VydC5lcXVhbCgoYXdhaXQgYXBpKCcvZ2l0L3JlZi9oZWFkcy9tYWluJykpLm9iamVjdC5zaGEsYmFzZSk7fQphd2FpdCBzb3VyY2UoKTtjb25zdCBzdGF0dXNlcz1hd2FpdCBhcGkoJy9jb21taXRzLycrcHJvY2Vzcy5lbnYuQ0lSQ0xFX1NIQTErJy9zdGF0dXNlcz9wZXJfcGFnZT0xMDAnKTsKY29uc3QgcHJpb3I9c3RhdHVzZXMuZmluZChzPT5zLmNvbnRleHQ9PT0nY2kvY2lyY2xlY2k6IGV4dGVybmFsLWNsYWltLWJhc2UtcHJvb2YnKTthc3NlcnQocHJpb3IpO2Fzc2VydC5lcXVhbChwcmlvci5zdGF0ZSwnc3VjY2VzcycpO2Fzc2VydC5lcXVhbChwcmlvci5jcmVhdG9yLmxvZ2luLCdjaXJjbGVjaS1hcHBbYm90XScpO2Fzc2VydC5lcXVhbChwcmlvci5jcmVhdG9yLmlkLDEyNzM1MDY4MCk7YXNzZXJ0KHByaW9yLnRhcmdldF91cmwuc3RhcnRzV2l0aCgnaHR0cHM6Ly9hcHAuY2lyY2xlY2kuY29tL3dvcmtmbG93LycrcHJvY2Vzcy5lbnYuQ0lSQ0xFX1dPUktGTE9XX0lEKycvam9iLycpKTsKY29uc3QgY29udGV4dD0ndGRwL2NpcmNsZWNpLWNsYWltLWJvb3RzdHJhcCc7Y29uc3Qgc3RhdHVzPWF3YWl0IGFwaSgnL3N0YXR1c2VzLycraGVhZCx7bWV0aG9kOidQT1NUJyxib2R5OkpTT04uc3RyaW5naWZ5KHtzdGF0ZTonc3VjY2VzcycsY29udGV4dCx0YXJnZXRfdXJsOnByb2Nlc3MuZW52LkNJUkNMRV9CVUlMRF9VUkwsZGVzY3JpcHRpb246J1VuY2hhbmdlZCBiYXNlIGFjcXVpc2l0aW9uIGFuZCBzZWxlY3RlZCBOT05fUlVOVElNRSBxdWFsaXR5IHBhc3NlZDsg' | base64 --decode >> /tmp/fresh-claim-provider-relay.mjs
     - run:
-        name: Prepare first-browser-receipt.json block 2
-        command: printf '%s' 'b24gc2NyaXB0OyBjdXJyZW50IGJhc2UvaGVhZCBhcmUgaW5kZXBlbmRlbnRseSBmcm96ZW4uIE5vdCBjbGFpbWluZyB0aGUgaGlzdG9yaWNhbCBldmlkZW5jZSB3YXMgZG93bmxvYWRlZC4iCiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJTdGFydCBhdXRoZW50aWNhdGVkIE1hcGJveCBydW50aW1lIiwKICAgICAgICAgICJzdGF0ZSI6ICJBU1NFUlRFRF9QQVNTIiwKICAgICAgICAgICJleGl0IjogMCwKICAgICAgICAgICJzaWduYWwiOiBudWxsLAogICAgICAgICAgImxvZyI6ICJob21lLWRpc2NvdmVyLW1hbnVhbC1jb25mb3JtYW5jZS00LmxvZyIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIlZhbGlkYXRlIEhvbWUgLyBEaXNjb3ZlciBhZ2FpbnN0IG1hbnVhbCBhdXRob3JpdHkiLAogICAgICAgICAgInN0YXRlIjogIkFTU0VSVEVEX1BBU1MiLAogICAgICAgICAgImV4aXQiOiAwLAogICAgICAgICAgInNpZ25hbCI6IG51bGwsCiAgICAgICAgICAibG9nIjogImhvbWUtZGlzY292ZXItbWFudWFsLWNvbmZvcm1hbmNlLTUubG9nIgogICAgICAgIH0sCiAgICAgICAgewogICAgICAgICAgIm5hbWUiOiAiVmFsaWRhdGUgV2F2ZSBBIERpc2NvdmVyIGNvbnZlcmdlbmNlIiwKICAgICAgICAgICJzdGF0ZSI6ICJBU1NFUlRFRF9QQVNTIiwKICAgICAgICAgICJleGl0IjogMCwKICAgICAgICAgICJzaWduYWwiOiBudWxsLAogICAgICAgICAgImxvZyI6ICJob21lLWRpc2NvdmVyLW1hbnVhbC1jb25mb3JtYW5jZS02LmxvZyIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIlNob3cgc2VydmVyIGRpYWdub3N0aWNzIiwKICAgICAgICAgICJzdGF0ZSI6ICJOT1RfTkVFREVEX09OX1NVQ0NFU1NfRElBR05PU1RJQyIKICAgICAgICB9CiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAgICJzdWl0ZSI6ICJwbGFjZS1leHBsb3JlLXYyLXZpc3VhbC1yZWdyZXNzaW9uLnltbCIsCiAgICAgICJ3b3JrZmxvd1NoYTI1NiI6ICJkZWNiY2RkYWNhN2RiNGMzMWE1NjE1MjczMWFiNTNmOTUyYzQ4ZTZmZTU0NzgxMTRkMjU5ZTY1MzRmMDQxMzZjIiwKICAgICAgInBhc3NlZCI6IHRydWUsCiAgICAgICJzdGVwcyI6IFsKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJJbnN0YWxsIGRldGVybWluaXN0aWMgQ2hyb21pdW0iLAogICAgICAgICAgInN0YXRlIjogIlJFVVNFRF9QSU5ORURfT0ZGSUNJQUxfUExBWVdSSUdIVF9JTUFHRV9BTkRfUEFDS0FHRV9XSVRIX0NBTk9OSUNBTF9ESVJFQ1RPUklFUyIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIkJ1aWxkIHdvcmtzcGFjZSIsCiAgICAgICAgICAi' | base64 --decode >> /tmp/first-browser-receipt.json
+        name: Prepare fresh-claim-provider-relay.mjs block 3
         shell: /bin/bash -eo pipefail
+        command: printf '%s' 'b3duZXIgYm9vdHN0cmFwIGFkbWlzc2lvbiBzdGlsbCByZXF1aXJlZCd9KX0pOwpjb25zdCBvYnNlcnZlZD1hd2FpdCBhcGkoJy9jb21taXRzLycraGVhZCsnL3N0YXR1c2VzP3Blcl9wYWdlPTEwMCcpO2Fzc2VydChvYnNlcnZlZC5zb21lKHM9PnMuaWQ9PT1zdGF0dXMuaWQmJnMuY29udGV4dD09PWNvbnRleHQmJnMuc3RhdGU9PT0nc3VjY2VzcycmJnMuY3JlYXRvci5sb2dpbj09PSdjaXJjbGVjaS1hcHBbYm90XScpKTthd2FpdCBzb3VyY2UoKTsKZnMubWtkaXJTeW5jKCdyZWxheS1ldmlkZW5jZScse3JlY3Vyc2l2ZTp0cnVlfSk7ZnMud3JpdGVGaWxlU3luYygncmVsYXktZXZpZGVuY2UvcmVjZWlwdC5qc29uJyxKU09OLnN0cmluZ2lmeSh7Y2xhc3NpZmljYXRpb246J1BST1NQRUNUSVZFX09XTkVSX0JPT1RTVFJBUF9DSEVDS19OT1RfQ0FOT05JQ0FMX1JFTEVBU0VfQVVUSE9SSVRZJyxoZWFkLGJhc2UsdHJlZSxjb250cm9sbGVyOnByb2Nlc3MuZW52LkNJUkNMRV9TSEExLHdvcmtmbG93OnByb2Nlc3MuZW52LkNJUkNMRV9XT1JLRkxPV19JRCx1cHN0cmVhbVN0YXR1czp7aWQ6cHJpb3IuaWQsY29udGV4dDpwcmlvci5jb250ZXh0LHRhcmdldFVybDpwcmlvci50YXJnZXRfdXJsfSxzdGF0dXM6e2lkOnN0YXR1cy5pZCxjb250ZXh0LHN0YXRlOnN0YXR1cy5zdGF0ZSxjcmVhdG9yOnN0YXR1cy5jcmVhdG9yLmxvZ2lufSxjYW5vbmljYWxFbnZlbG9wZUFkbWl0dGVkOmZhbHNlLG9ic2VydmVkQXQ6bmV3IERhdGUoKS50b0lTT1N0cmluZygpfSxudWxsLDIpKydcbicpOwo=' | base64 --decode >> /tmp/fresh-claim-provider-relay.mjs
     - run:
-        name: Prepare first-browser-receipt.json block 3
-        command: printf '%s' 'c3RhdGUiOiAiUkVVU0VEX0VYQUNUX1NPVVJDRV9RVUFMSVRZX1dPUktTUEFDRV9CVUlMRCIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIlN0YXJ0IGF1dGhlbnRpY2F0ZWQgTWFwYm94IHJ1bnRpbWUiLAogICAgICAgICAgInN0YXRlIjogIkFTU0VSVEVEX1BBU1MiLAogICAgICAgICAgImV4aXQiOiAwLAogICAgICAgICAgInNpZ25hbCI6IG51bGwsCiAgICAgICAgICAibG9nIjogInBsYWNlLWV4cGxvcmUtdjItdmlzdWFsLXJlZ3Jlc3Npb24tMi5sb2ciCiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJWYWxpZGF0ZSBjYW5vbmljYWwgUGxhY2UgKyBTZWFyY2gvRXhwbG9yZSBWMiBtYXRyaXgiLAogICAgICAgICAgInN0YXRlIjogIkFTU0VSVEVEX1BBU1MiLAogICAgICAgICAgImV4aXQiOiAwLAogICAgICAgICAgInNpZ25hbCI6IG51bGwsCiAgICAgICAgICAibG9nIjogInBsYWNlLWV4cGxvcmUtdjItdmlzdWFsLXJlZ3Jlc3Npb24tMy5sb2ciCiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJTaG93IHNlcnZlciBkaWFnbm9zdGljcyIsCiAgICAgICAgICAic3RhdGUiOiAiTk9UX05FRURFRF9PTl9TVUNDRVNTX0RJQUdOT1NUSUMiCiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgewogICAgICAic3VpdGUiOiAicHdhLW9mZmxpbmUtYnJvd3Nlci1jb250cmFjdC55bWwiLAogICAgICAid29ya2Zsb3dTaGEyNTYiOiAiMDU5NjZlMGUyMzE3NDM3NTE1ZGI1ZjgwYjBmYzIyZTcxNmY2MzE3NTIzOGJlNWFkNTUzMjYyZDA0NGIzNGM4ZCIsCiAgICAgICJwYXNzZWQiOiB0cnVlLAogICAgICAic3RlcHMiOiBbCiAgICAgICAgewogICAgICAgICAgIm5hbWUiOiAiSW5zdGFsbCBkZXRlcm1pbmlzdGljIENocm9taXVtIiwKICAgICAgICAgICJzdGF0ZSI6ICJSRVVTRURfUElOTkVEX09GRklDSUFMX1BMQVlXUklHSFRfSU1BR0VfQU5EX1BBQ0tBR0VfV0lUSF9DQU5PTklDQUxfRElSRUNUT1JJRVMiCiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJWYWxpZGF0ZSBQV0EgdW5pdCBjb250cmFjdHMiLAogICAgICAgICAgInN0YXRlIjogIkFTU0VSVEVEX1BBU1MiLAogICAgICAgICAgImV4aXQiOiAwLAogICAgICAgICAgInNpZ25hbCI6IG51bGwsCiAgICAgICAgICAibG9nIjogInB3YS1vZmZsaW5lLWJyb3dzZXItY29udHJhY3QtMS5sb2ciCiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJCdWlsZCB3b3Jrc3BhY2UiLAogICAgICAgICAgInN0YXRlIjogIlJFVVNFRF9FWEFDVF9TT1VSQ0VfUVVBTElUWV9XT1JLU1BBQ0VfQlVJTEQiCiAgICAgICAgfSwKICAg' | base64 --decode >> /tmp/first-browser-receipt.json
+        name: Relay independently completed base proof to exact proposal
         shell: /bin/bash -eo pipefail
-    - run:
-        name: Prepare first-browser-receipt.json block 4
-        command: printf '%s' 'ICAgICB7CiAgICAgICAgICAibmFtZSI6ICJTdGFydCBydW50aW1lIiwKICAgICAgICAgICJzdGF0ZSI6ICJBU1NFUlRFRF9QQVNTIiwKICAgICAgICAgICJleGl0IjogMCwKICAgICAgICAgICJzaWduYWwiOiBudWxsLAogICAgICAgICAgImxvZyI6ICJwd2Etb2ZmbGluZS1icm93c2VyLWNvbnRyYWN0LTMubG9nIgogICAgICAgIH0sCiAgICAgICAgewogICAgICAgICAgIm5hbWUiOiAiVmFsaWRhdGUgaW5zdGFsbCBhbmQgb2ZmbGluZSBhdXRob3JpdHkgYm91bmRhcnkiLAogICAgICAgICAgInN0YXRlIjogIkFTU0VSVEVEX1BBU1MiLAogICAgICAgICAgImV4aXQiOiAwLAogICAgICAgICAgInNpZ25hbCI6IG51bGwsCiAgICAgICAgICAibG9nIjogInB3YS1vZmZsaW5lLWJyb3dzZXItY29udHJhY3QtNC5sb2ciCiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJTaG93IGRpYWdub3N0aWNzIiwKICAgICAgICAgICJzdGF0ZSI6ICJOT1RfTkVFREVEX09OX1NVQ0NFU1NfRElBR05PU1RJQyIKICAgICAgICB9CiAgICAgIF0KICAgIH0KICBdLAogICJhbGxBc3NlcnRpb25zUGFzc2VkIjogdHJ1ZSwKICAib2JzZXJ2ZWRBdCI6ICIyMDI2LTExLTA4VDA4OjE0OjQ2LjM4OVoiCn0K' | base64 --decode >> /tmp/first-browser-receipt.json
-        shell: /bin/bash -eo pipefail
-    - run:
-        name: Prepare first-result-relay.mjs block 1
-        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnO2ltcG9ydCBhc3NlcnQgZnJvbSAnbm9kZTphc3NlcnQvc3RyaWN0JztpbXBvcnQge3NwYXduU3luY30gZnJvbSAnbm9kZTpjaGlsZF9wcm9jZXNzJztpbXBvcnQge2NyZWF0ZUhhc2h9IGZyb20gJ25vZGU6Y3J5cHRvJzsKY29uc3QgcmVwbz0nbHVpemFudW5jaW9zdG9jYS90b3VyaXN0aWMtZGlnaXRhbC1wbGF0Zm9ybScsaGVhZD0nNTNhYTdjMGUzODY0ZDBjN2E0NWQ5NzcyYjQ5ZGI4N2M4NmIwYTFlMScsYmFzZT0nMGFmMmIwZWI2OGVmYmQ3ZmNmZTAzOThjMjE1NjdkMjI0ZWMzM2ZiNicsdHJlZT0nYjZiY2FkMDYzODc5OWU4MTc5NWRjZmM0ODg5ZWMyMTFiMGY4ODQzZicsY29udHJvbGxlcj0nNmQ2MWU2Y2Y2MTM2YjQyMTY3ZWQyNWMyYmNlNzUyMmU0ZmIzNzMyNic7CmNvbnN0IHE9SlNPTi5wYXJzZShmcy5yZWFkRmlsZVN5bmMoJy90bXAvZmlyc3QtcXVhbGl0eS1yZWNlaXB0Lmpzb24nKSk7Y29uc3QgYj1KU09OLnBhcnNlKGZzLnJlYWRGaWxlU3luYygnL3RtcC9maXJzdC1icm93c2VyLXJlY2VpcHQuanNvbicpKTsKZm9yKGNvbnN0IHIgb2ZbcSxiXSl7YXNzZXJ0LmVxdWFsKHIuaGVhZCxoZWFkKTthc3NlcnQuZXF1YWwoci5iYXNlLGJhc2UpO2Fzc2VydC5lcXVhbChyLnRyZWUsdHJlZSk7YXNzZXJ0LmVxdWFsKHIuY29udHJvbGxlcixjb250cm9sbGVyKTt9CmFzc2VydC5lcXVhbChxLmNlcnRpZmljYXRlLm1vZGUsJ0NFUlRJRklFRCcpO2Fzc2VydC5lcXVhbChxLnByb2ZpbGUsJ1VJX0JVR0ZJWF9GQVNUJyk7YXNzZXJ0LmVxdWFsKGIuYWxsQXNzZXJ0aW9uc1Bhc3NlZCx0cnVlKTsKYXNzZXJ0LmRlZXBFcXVhbChiLnJlc3VsdHMubWFwKHg9Pnguc3VpdGUpLFsnaG9tZS1kaXNjb3Zlci1tYW51YWwtY29uZm9ybWFuY2UueW1sJywncGxhY2UtZXhwbG9yZS12Mi12aXN1YWwtcmVncmVzc2lvbi55bWwnLCdwd2Etb2ZmbGluZS1icm93c2VyLWNvbnRyYWN0LnltbCddKTsKZm9yKGNvbnN0IHN1aXRlIG9mIGIucmVzdWx0cyl7YXNzZXJ0LmVxdWFsKHN1aXRlLnBhc3NlZCx0cnVlKTthc3NlcnQoc3VpdGUuc3RlcHMuc29tZShzPT5zLnN0YXRlPT09J0FTU0VSVEVEX1BBU1MnKSk7Zm9yKGNvbnN0IHMgb2Ygc3VpdGUuc3RlcHMpaWYocy5leGl0IT09dW5kZWZpbmVkKWFzc2VydC5lcXVhbChzLmV4aXQsMCk7fQpjb25zdCBwPXNwYXduU3luYygnZ2l0JyxbJy1DJywnY29udHJvbGxlcicsJ2NyZWRlbnRpYWwnLCdmaWxsJ10se2lucHV0Oidwcm90b2NvbD1odHRwc1xuaG9zdD1naXRodWIuY29tXG5wYXRoPScrcmVwbysnLmdpdFxuXG4nLGVuY29kaW5nOid1dGY4Jyx0aW1lb3V0OjEwMDAwLGVudjp7Li4ucHJvY2Vzcy5lbnYsR0lU' | base64 --decode > /tmp/first-result-relay.mjs
-        shell: /bin/bash -eo pipefail
-    - run:
-        name: Prepare first-result-relay.mjs block 2
-        command: printf '%s' 'X1RFUk1JTkFMX1BST01QVDonMCd9LHN0ZGlvOlsncGlwZScsJ3BpcGUnLCdwaXBlJ119KTsKYXNzZXJ0LmVxdWFsKHAuc3RhdHVzLDApO2NvbnN0IGZpZWxkcz1PYmplY3QuZnJvbUVudHJpZXMocC5zdGRvdXQudHJpbSgpLnNwbGl0KCdcbicpLm1hcChsPT57Y29uc3QgaT1sLmluZGV4T2YoJz0nKTtyZXR1cm5bbC5zbGljZSgwLGkpLGwuc2xpY2UoaSsxKV19KSk7YXNzZXJ0KGZpZWxkcy5wYXNzd29yZCk7CmFzeW5jIGZ1bmN0aW9uIGFwaShwYXRoLGluaXQ9e30pe2NvbnN0IHI9YXdhaXQgZmV0Y2goJ2h0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3MvJytyZXBvK3BhdGgsey4uLmluaXQsaGVhZGVyczp7YXV0aG9yaXphdGlvbjonQmVhcmVyICcrZmllbGRzLnBhc3N3b3JkLGFjY2VwdDonYXBwbGljYXRpb24vdm5kLmdpdGh1Yitqc29uJywnY29udGVudC10eXBlJzonYXBwbGljYXRpb24vanNvbid9LHNpZ25hbDpBYm9ydFNpZ25hbC50aW1lb3V0KDIwMDAwKX0pO2Fzc2VydChyLm9rLCdHSVRIVUJfQVBJX1NUQVRVU18nK3Iuc3RhdHVzKTtyZXR1cm4gci5qc29uKCk7fQphc3luYyBmdW5jdGlvbiBzb3VyY2UoKXtjb25zdCBwPWF3YWl0IGFwaSgnL3B1bGxzLzE0NTAnKTthc3NlcnQuZXF1YWwocC5zdGF0ZSwnb3BlbicpO2Fzc2VydC5lcXVhbChwLmhlYWQuc2hhLGhlYWQpO2Fzc2VydC5lcXVhbChwLmJhc2Uuc2hhLGJhc2UpO2Fzc2VydC5lcXVhbChwLmNoYW5nZWRfZmlsZXMsNik7YXNzZXJ0LmVxdWFsKHAuYWRkaXRpb25zK3AuZGVsZXRpb25zLDY0NSk7YXNzZXJ0LmVxdWFsKChhd2FpdCBhcGkoJy9naXQvcmVmL2hlYWRzL21haW4nKSkub2JqZWN0LnNoYSxiYXNlKTt9CmF3YWl0IHNvdXJjZSgpO2NvbnN0IHN0YXR1c2VzPWF3YWl0IGFwaSgnL2NvbW1pdHMvJytjb250cm9sbGVyKycvc3RhdHVzZXM/cGVyX3BhZ2U9MTAwJyk7Y29uc3QgcHJvb2ZzPVtdOwpmb3IoY29uc3RbbmFtZSxqb2Jdb2ZbWydvcmRpbmFyeS1leGFjdC1xdWFsaXR5JywnZDllMDMxOGItN2I0ZC00NmI1LWFiMGUtZmZiMDhiMmYwMTBjJ10sWydvcmRpbmFyeS1icm93c2VyLWFjY2VwdGFuY2UnLCdiNmI0MTRhMS05OWJiLTQwOGYtYjNkYi0wZDdkZjY4NjUyZTcnXV0pewogY29uc3Qgcz1zdGF0dXNlcy5maW5kKHg9PnguY29udGV4dD09PSdjaS9jaXJjbGVjaTogJytuYW1lKTthc3NlcnQocyk7YXNzZXJ0LmVxdWFsKHMuc3RhdGUsJ3N1Y2Nlc3MnKTthc3NlcnQuZXF1YWwocy5jcmVhdG9yLmxvZ2luLCdjaXJjbGVjaS1hcHBbYm90XScpO2Fzc2VydC5lcXVhbChzLmNyZWF0b3IuaWQsMTI3MzUwNjgwKTthc3NlcnQuZXF1YWwocy50YXJnZXRfdXJsLCdodHRwczovL2FwcC5jaXJjbGVjaS5jb20v' | base64 --decode >> /tmp/first-result-relay.mjs
-        shell: /bin/bash -eo pipefail
-    - run:
-        name: Prepare first-result-relay.mjs block 3
-        command: printf '%s' 'd29ya2Zsb3cvNGY1ZDgyNzQtZDEyYi00OWY5LThmYzAtZTQzZjQwN2U2NDA1L2pvYi8nK2pvYik7cHJvb2ZzLnB1c2goe2lkOnMuaWQsY29udGV4dDpzLmNvbnRleHQsdGFyZ2V0VXJsOnMudGFyZ2V0X3VybH0pO30KY29uc3QgY29udGV4dD0ndGRwL2NpcmNsZWNpLWZpcnN0LWJhdGNoJztjb25zdCBzdGF0dXM9YXdhaXQgYXBpKCcvc3RhdHVzZXMvJytoZWFkLHttZXRob2Q6J1BPU1QnLGJvZHk6SlNPTi5zdHJpbmdpZnkoe3N0YXRlOidzdWNjZXNzJyxjb250ZXh0LHRhcmdldF91cmw6cHJvY2Vzcy5lbnYuQ0lSQ0xFX0JVSUxEX1VSTCxkZXNjcmlwdGlvbjonRXhhY3Qgc291cmNlOiBjZXJ0aWZpZWQgcXVhbGl0eSBhbmQgYWxsIDMgc2VsZWN0ZWQgYnJvd3NlciBzdWl0ZXMgcGFzc2VkJ30pfSk7CmNvbnN0IHJlYWRiYWNrPWF3YWl0IGFwaSgnL2NvbW1pdHMvJytoZWFkKycvc3RhdHVzZXM/cGVyX3BhZ2U9MTAwJyk7YXNzZXJ0KHJlYWRiYWNrLnNvbWUocz0+cy5pZD09PXN0YXR1cy5pZCYmcy5jb250ZXh0PT09Y29udGV4dCYmcy5zdGF0ZT09PSdzdWNjZXNzJyYmcy5jcmVhdG9yLmxvZ2luPT09J2NpcmNsZWNpLWFwcFtib3RdJykpO2F3YWl0IHNvdXJjZSgpOwpmcy5ta2RpclN5bmMoJ3JlbGF5LWV2aWRlbmNlJyx7cmVjdXJzaXZlOnRydWV9KTtjb25zdCBoYXNoPXA9PmNyZWF0ZUhhc2goJ3NoYTI1NicpLnVwZGF0ZShmcy5yZWFkRmlsZVN5bmMocCkpLmRpZ2VzdCgnaGV4Jyk7Y29uc3QgcmVzdWx0PXtjbGFzc2lmaWNhdGlvbjonRVhBQ1RfRklSU1RfQkFUQ0hfT1dORVJfQVVUSE9SSVpFRF9TVEFUVVNfUkVMQVknLHJlcG9zaXRvcnk6cmVwbyxoZWFkLGJhc2UsdHJlZSxzb3VyY2VDb250cm9sbGVyOmNvbnRyb2xsZXIscmVsYXlDb250cm9sbGVyOnByb2Nlc3MuZW52LkNJUkNMRV9TSEExLHByb3ZpZGVyUHJvb2ZzOnByb29mcyxyZWNlaXB0SGFzaGVzOntxdWFsaXR5Omhhc2goJy90bXAvZmlyc3QtcXVhbGl0eS1yZWNlaXB0Lmpzb24nKSxicm93c2VyOmhhc2goJy90bXAvZmlyc3QtYnJvd3Nlci1yZWNlaXB0Lmpzb24nKX0sc3RhdHVzOntpZDpzdGF0dXMuaWQsY29udGV4dCxzdGF0ZTpzdGF0dXMuc3RhdGUsY3JlYXRvcjpzdGF0dXMuY3JlYXRvci5sb2dpbn0sb2JzZXJ2ZWRBdDpuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCl9O2ZzLndyaXRlRmlsZVN5bmMoJ3JlbGF5LWV2aWRlbmNlL3JlY2VpcHQuanNvbicsSlNPTi5zdHJpbmdpZnkocmVzdWx0LG51bGwsMikrJ1xuJyk7Y29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkocmVzdWx0KSk7Cg==' | base64 --decode >> /tmp/first-result-relay.mjs
-        shell: /bin/bash -eo pipefail
-    - run:
-        name: Bind authenticated provider results to exact PR candidate
-        command: node /tmp/first-result-relay.mjs
-        shell: /bin/bash -eo pipefail
+        command: node /tmp/fresh-claim-provider-relay.mjs
     - store_artifacts:
         path: relay-evidence
-        destination: first-batch-status-relay
+        destination: external-claim-proposal-relay
 workflows:
-  first-batch-result-relay:
+  external-claim-bootstrap-proposal:
     jobs:
-    - first-batch-status-relay
+    - external-claim-base-proof
+    - external-claim-proposal-relay:
+        requires:
+        - external-claim-base-proof
