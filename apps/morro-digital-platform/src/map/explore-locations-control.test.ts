@@ -1557,3 +1557,140 @@ describe("confirmed details locale refresh", () => {
     },
   );
 });
+
+describe("public place sharing URL boundary", () => {
+  function shareConsumer(
+    href: string,
+    options: {
+      nativeShare?: boolean;
+      abort?: boolean;
+      missingPlace?: boolean;
+      missingView?: boolean;
+    } = {},
+  ) {
+    const source = readFileSync(
+      new URL("./explore-locations-control.ts", import.meta.url),
+      "utf8",
+    );
+    const start = source.indexOf("  const shareActivePlace = (): void => {");
+    const end = source.indexOf("  const readActivePlaceDetail =", start);
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    const compiled = ts.transpileModule(
+      `${source.slice(start, end)}\nreturn shareActivePlace;`,
+      {
+        compilerOptions: {
+          module: ts.ModuleKind.None,
+          target: ts.ScriptTarget.ES2022,
+        },
+      },
+    ).outputText;
+    const payloads: ShareData[] = [];
+    const copied: string[] = [];
+    const navigator = {
+      ...(options.nativeShare !== false
+        ? {
+            share: async (payload: ShareData) => {
+              payloads.push(payload);
+              if (options.abort)
+                throw new DOMException("Cancelled", "AbortError");
+            },
+          }
+        : {}),
+      clipboard: {
+        writeText: async (text: string) => {
+          copied.push(text);
+        },
+      },
+    };
+    const document = {
+      defaultView: options.missingView
+        ? null
+        : { location: { href }, navigator },
+    };
+    const location = options.missingPlace
+      ? undefined
+      : { name: "Primeira Praia", area: "Morro de São Paulo" };
+    const createShare = compileFunction(compiled, [
+      "document",
+      "activePlaceLocation",
+      "DOMException",
+      "URL",
+    ]) as (...args: unknown[]) => () => void;
+    const share = createShare(document, location, DOMException, URL);
+    return { share, payloads, copied };
+  }
+
+  it.each([
+    "https://morro.example/?session=sentinel-test-only&return=%2Fprivate",
+    "https://morro.example/#transient-state",
+  ])("shares a public URL without transient query or fragment: %s", (href) => {
+    const consumer = shareConsumer(href);
+    consumer.share();
+    expect(consumer.payloads).toEqual([
+      {
+        title: "Primeira Praia",
+        text: "Primeira Praia · Morro de São Paulo",
+        url: "https://morro.example/",
+      },
+    ]);
+    expect(consumer.copied).toEqual([]);
+  });
+
+  it.each([
+    "https://morro.example/?session=sentinel-test-only&return=%2Fprivate",
+    "https://morro.example/#transient-state",
+  ])("copies only the public URL in the clipboard fallback: %s", (href) => {
+    const consumer = shareConsumer(href, { nativeShare: false });
+    consumer.share();
+    expect(consumer.copied).toEqual([
+      "Primeira Praia · Morro de São Paulo\nhttps://morro.example/",
+    ]);
+    expect(consumer.payloads).toEqual([]);
+  });
+
+  it("preserves the public origin, port, encoded path and current place copy", () => {
+    const consumer = shareConsumer(
+      "https://morro.example:8443/pt/lugares%20publicos/",
+    );
+    consumer.share();
+    expect(consumer.payloads[0]).toEqual({
+      title: "Primeira Praia",
+      text: "Primeira Praia · Morro de São Paulo",
+      url: "https://morro.example:8443/pt/lugares%20publicos/",
+    });
+  });
+
+  it("does not copy another payload after the native share is cancelled", async () => {
+    const consumer = shareConsumer("https://morro.example/", { abort: true });
+    consumer.share();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(consumer.payloads).toHaveLength(1);
+    expect(consumer.copied).toEqual([]);
+  });
+
+  it.each(["not a URL", "javascript:sentinel-test-only"])(
+    "omits a non-public URL while retaining the selected place: %s",
+    (href) => {
+      const consumer = shareConsumer(href);
+      consumer.share();
+      expect(consumer.payloads).toEqual([
+        {
+          title: "Primeira Praia",
+          text: "Primeira Praia · Morro de São Paulo",
+        },
+      ]);
+    },
+  );
+
+  it.each([{ missingPlace: true }, { missingView: true }])(
+    "does nothing without a selected place or a view: %j",
+    (options) => {
+      const consumer = shareConsumer("https://morro.example/", options);
+      consumer.share();
+      expect(consumer.payloads).toEqual([]);
+      expect(consumer.copied).toEqual([]);
+    },
+  );
+});
