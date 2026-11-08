@@ -170,7 +170,11 @@ jobs:
 
             digest="$(cat /tmp/staging-evidence/registry-digest.txt)"
 
-            docker buildx imagetools inspect ghcr.io/luizanunciostoca/morro-digital-v2@"$digest" --raw > /tmp/staging-evidence/registry-manifest.json'
+            docker buildx imagetools inspect ghcr.io/luizanunciostoca/morro-digital-v2@"$digest" --raw > /tmp/staging-evidence/registry-manifest.json
+
+            platform_digest="$(docker run --rm -v "$PWD:/source:ro" -v /tmp/staging-evidence:/evidence:ro -w /source node:22-bookworm@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f node tooling/ci/staging-oci-deployment-evidence.mjs --circleci-runtime-manifest /evidence)"
+
+            docker buildx imagetools inspect ghcr.io/luizanunciostoca/morro-digital-v2@"$platform_digest" --raw > /tmp/staging-evidence/registry-runtime-manifest.json'
           no_output_timeout: 20m
       - run:
           name: Smoke exact immutable image with release identity
@@ -179,11 +183,11 @@ jobs:
 
             name="tdp-staging-smoke-$CIRCLE_BUILD_NUM"
 
-            trap ''docker rm -f "$name" >/dev/null 2>&1 || true'' EXIT
+            trap ''result=$?; if [ "$result" -ne 0 ]; then docker logs "$name" >&2 || true; fi; docker rm -f "$name" >/dev/null 2>&1 || true; exit "$result"'' EXIT
 
             docker run -d --name "$name" -p 127.0.0.1:43173:4173 -e HOST=0.0.0.0 -e PORT=4173 -e NODE_ENV=production -e ANALYTICS_FEATURE_ENABLED=false ghcr.io/luizanunciostoca/morro-digital-v2@"$digest"
 
-            curl --retry 35 --retry-connrefused --retry-delay 1 --retry-max-time 60 --fail --silent --show-error http://127.0.0.1:43173/healthz -o /tmp/staging-evidence/health.json
+            curl --retry 35 --retry-connrefused --retry-all-errors --retry-delay 1 --retry-max-time 60 --connect-timeout 2 --max-time 5 --fail --silent --show-error http://127.0.0.1:43173/healthz -o /tmp/staging-evidence/health.json
 
             docker image inspect ghcr.io/luizanunciostoca/morro-digital-v2@"$digest" > /tmp/staging-evidence/image-inspect.json'
           no_output_timeout: 20m
@@ -198,13 +202,13 @@ jobs:
 
             trap ''rm -rf "$private_scan"'' EXIT
 
-            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$private_scan:/private" aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --scanners secret --exit-code 1 --format json --output /private/image-secrets.json "$ref"
+            docker run --rm -v "$private_scan:/private" aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --image-src remote --scanners secret --exit-code 1 --format json --output /private/image-secrets.json "$ref"
 
             cp "$private_scan/image-secrets.json" /tmp/staging-evidence/image-secrets.json
 
-            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/.trivyignore.yaml:/trivyignore.yaml:ro" -v /tmp/staging-evidence:/evidence aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed=false --ignorefile /trivyignore.yaml --exit-code 1 --format json --output /evidence/image-vulnerabilities.json "$ref"
+            docker run --rm -v "$PWD/.trivyignore.yaml:/trivyignore.yaml:ro" -v /tmp/staging-evidence:/evidence aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --image-src remote --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed=false --ignorefile /trivyignore.yaml --exit-code 1 --format json --output /evidence/image-vulnerabilities.json "$ref"
 
-            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/staging-evidence:/evidence aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --format cyclonedx --output /evidence/sbom.cdx.json "$ref"'
+            docker run --rm -v /tmp/staging-evidence:/evidence aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --image-src remote --format cyclonedx --output /evidence/sbom.cdx.json "$ref"'
           no_output_timeout: 20m
       - run:
           name: Seal source, archive, registry, smoke and security records
@@ -215,7 +219,7 @@ jobs:
           name: Collect bounded publication diagnostics without duplicating the image archive
           shell: /bin/bash -eo pipefail
           when: always
-          command: "mkdir -p /tmp/staging-published-evidence\nfor name in staging-quality.json staging-build-image.json staging-publish-image.json image-vulnerabilities.json registry-manifest.json registry-digest.txt health.json sbom.cdx.json; do\n  if [ -f \"/tmp/staging-evidence/$name\" ]; then cp \"/tmp/staging-evidence/$name\" /tmp/staging-published-evidence/; fi\ndone\nif [ -f /tmp/staging-evidence/staging-publish-image.json ]; then cp /tmp/staging-evidence/image-secrets.json /tmp/staging-published-evidence/; fi"
+          command: "mkdir -p /tmp/staging-published-evidence\nfor name in staging-quality.json staging-build-image.json staging-publish-image.json image-vulnerabilities.json registry-manifest.json registry-runtime-manifest.json image-inspect.json registry-digest.txt health.json sbom.cdx.json; do\n  if [ -f \"/tmp/staging-evidence/$name\" ]; then cp \"/tmp/staging-evidence/$name\" /tmp/staging-published-evidence/; fi\ndone\nif [ -f /tmp/staging-evidence/staging-publish-image.json ]; then cp /tmp/staging-evidence/image-secrets.json /tmp/staging-published-evidence/; fi"
       - store_artifacts:
           path: /tmp/staging-published-evidence
           destination: staging-published-evidence

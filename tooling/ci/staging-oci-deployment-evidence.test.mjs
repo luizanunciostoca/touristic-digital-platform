@@ -114,11 +114,15 @@ function externalFixture() {
   );
   Object.assign(records["staging-build-image"], {
     archiveDigest: digest,
-    imageConfigDigest: digest,
+    dockerImageId: digest,
+    dockerImageIdKind: "config",
   });
   Object.assign(records["staging-publish-image"], {
     archiveDigest: digest,
+    dockerImageId: digest,
+    dockerImageIdKind: "config",
     imageConfigDigest: digest,
+    registryRuntimeManifestDigest: digest,
     registryObservedDigest: digest,
     runtimeSourceSha: live.mainSha,
     runtimeImageRunId: `circleci:${workflow}`,
@@ -347,9 +351,13 @@ const { mkdtempSync, writeFileSync, rmSync, readFileSync } =
 const { tmpdir } = await import("node:os");
 const { join } = await import("node:path");
 const { createHash } = await import("node:crypto");
-const { circleCIStageRecord, verifyCircleCIArchive, circleCISourceIdentity } =
-  await import("./staging-oci-deployment-evidence.mjs");
-function archiveFixture(t) {
+const {
+  circleCIStageRecord,
+  verifyCircleCIArchive,
+  circleCISourceIdentity,
+  circleCIRegistryRuntimeDigest,
+} = await import("./staging-oci-deployment-evidence.mjs");
+function archiveFixture(t, kind = "config") {
   const directory = mkdtempSync(join(tmpdir(), "tdp-circle-archive-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const f = externalFixture();
@@ -366,9 +374,68 @@ function archiveFixture(t) {
     CIRCLE_BUILD_NUM: "2",
     CIRCLE_BUILD_URL: `https://app.circleci.com/jobs/circleci/${organization}/${project}/2`,
   };
+  const manifest = {
+    schemaVersion: 2,
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    config: {
+      mediaType: "application/vnd.oci.image.config.v1+json",
+      digest,
+      size: 123,
+    },
+    layers: [
+      {
+        mediaType: "application/vnd.oci.image.layer.v1.tar+gzip",
+        digest,
+        size: 456,
+      },
+    ],
+  };
+  const manifestBytes = JSON.stringify(manifest);
+  const runtimeDigest =
+    "sha256:" + createHash("sha256").update(manifestBytes).digest("hex");
+  const indexed = kind === "index" || kind === "legacy-containerd";
+  const root = indexed
+    ? {
+        schemaVersion: 2,
+        mediaType: "application/vnd.oci.image.index.v1+json",
+        manifests: [
+          {
+            mediaType: manifest.mediaType,
+            digest: runtimeDigest,
+            size: Buffer.byteLength(manifestBytes),
+            platform: { os: "linux", architecture: "amd64" },
+          },
+          {
+            mediaType: manifest.mediaType,
+            digest,
+            size: 42,
+            platform: { os: "unknown", architecture: "unknown" },
+            annotations: {
+              "vnd.docker.reference.type": "attestation-manifest",
+            },
+          },
+        ],
+      }
+    : manifest;
+  const registryDigest =
+    "sha256:" + createHash("sha256").update(JSON.stringify(root)).digest("hex");
+  const localId =
+    kind === "index"
+      ? registryDigest
+      : kind === "manifest"
+        ? runtimeDigest
+        : digest;
   const image = [
     {
-      Id: digest,
+      Id: localId,
+      ...(kind === "config"
+        ? {}
+        : {
+            Descriptor: {
+              digest: indexed ? registryDigest : runtimeDigest,
+              mediaType: root.mediaType,
+            },
+          }),
       Config: {
         User: "65532:65532",
         Env: [
@@ -382,6 +449,9 @@ function archiveFixture(t) {
     writeFileSync(join(directory, name), JSON.stringify(value));
   writeFileSync(join(directory, "image.tar.gz"), "immutable archive fixture");
   json("image-inspect.json", image);
+  json("registry-manifest.json", root);
+  json("registry-runtime-manifest.json", manifest);
+  writeFileSync(join(directory, "registry-digest.txt"), registryDigest);
   writeFileSync(
     join(directory, "staging-build-image.log"),
     "build completed once",
@@ -392,7 +462,18 @@ function archiveFixture(t) {
     env,
     () => source,
   );
-  return { directory, source, env, image, json, record };
+  return {
+    directory,
+    source,
+    env,
+    image,
+    json,
+    record,
+    manifest,
+    root,
+    registryDigest,
+    runtimeDigest,
+  };
 }
 test("archive receipt hashes actual bytes and refuses mutation before publication", (t) => {
   const f = archiveFixture(t);
@@ -448,15 +529,12 @@ test("record writer cannot overwrite previously frozen provenance", (t) => {
     /EEXIST/,
   );
 });
-test("publisher record requires exact registry config, semantic runtime and executed scans", (t) => {
-  const f = archiveFixture(t);
+function preparePublication(f) {
   const env = {
     ...f.env,
     CIRCLE_BUILD_NUM: "3",
     CIRCLE_BUILD_URL: `https://app.circleci.com/jobs/circleci/${organization}/${project}/3`,
   };
-  f.json("registry-manifest.json", { config: { digest } });
-  writeFileSync(join(f.directory, "registry-digest.txt"), digest);
   writeFileSync(
     join(f.directory, "staging-publish-image.log"),
     "pushed exact archive",
@@ -467,12 +545,17 @@ test("publisher record requires exact registry config, semantic runtime and exec
   });
   for (const kind of ["secrets", "vulnerabilities"])
     f.json(`image-${kind}.json`, {
-      ArtifactName: `ghcr.io/luizanunciostoca/morro-digital-v2@${digest}`,
+      ArtifactName: `ghcr.io/luizanunciostoca/morro-digital-v2@${f.registryDigest}`,
       ArtifactType: "container_image",
       Metadata: { ImageID: digest },
       Results:
         kind === "secrets" ? [] : [{ Target: "alpine", Vulnerabilities: [] }],
     });
+  return env;
+}
+test("publisher record requires exact registry config, semantic runtime and executed scans", (t) => {
+  const f = archiveFixture(t);
+  const env = preparePublication(f);
   const record = circleCIStageRecord(
     "staging-publish-image",
     f.directory,
@@ -488,6 +571,115 @@ test("source recording refuses candidate branches before accessing Git or creden
     () =>
       circleCISourceIdentity("/nonexistent", { CIRCLE_BRANCH: "candidate" }),
     /PROTECTED_MAIN_REQUIRED/,
+  );
+});
+
+for (const kind of ["config", "manifest", "index", "legacy-containerd"])
+  test(`registry identity binds the original archive with Docker ${kind} IDs`, (t) => {
+    const f = archiveFixture(t, kind);
+    verifyCircleCIArchive(f.directory, f.env, () => f.source);
+    const record = circleCIStageRecord(
+      "staging-publish-image",
+      f.directory,
+      preparePublication(f),
+      () => f.source,
+    );
+    assert.equal(circleCIRegistryRuntimeDigest(f.directory), f.runtimeDigest);
+    assert.equal(record.dockerImageId, f.record.dockerImageId);
+    assert.equal(record.registryObservedDigest, f.registryDigest);
+    assert.equal(record.registryRuntimeManifestDigest, f.runtimeDigest);
+    assert.equal(record.imageConfigDigest, digest);
+    assert.equal(record.archiveDigest, f.record.archiveDigest);
+  });
+
+test("an OCI index ID is never mistaken for its platform config digest", () => {
+  const f = externalFixture();
+  for (const name of ["staging-build-image", "staging-publish-image"]) {
+    f.bundle.records[name].dockerImageIdKind = "index";
+    f.bundle.records[name].dockerDescriptorDigest = digest;
+    f.bundle.records[name].dockerDescriptorKind = "index";
+  }
+  const record = f.bundle.records["staging-publish-image"];
+  record.imageConfigDigest = "sha256:" + "f".repeat(64);
+  record.registryRuntimeManifestDigest = "sha256:" + "a".repeat(64);
+  assert.equal(
+    circleCIStagingImageEvidence(f.bundle, f.live).runtimeAccepted,
+    false,
+  );
+  record.registryObservedDigest = "sha256:" + "e".repeat(64);
+  assert.throws(
+    () => circleCIStagingImageEvidence(f.bundle, f.live),
+    /SUBSTITUTED/,
+  );
+});
+
+for (const file of ["registry-manifest.json", "registry-runtime-manifest.json"])
+  test(`registry bytes cannot be replaced in ${file}`, (t) => {
+    const f = archiveFixture(t, "index");
+    writeFileSync(join(f.directory, file), "{}");
+    assert.throws(
+      () =>
+        circleCIStageRecord(
+          "staging-publish-image",
+          f.directory,
+          preparePublication(f),
+          () => f.source,
+        ),
+      /DOCUMENT_SUBSTITUTED/,
+    );
+  });
+
+test("index selection rejects missing and ambiguous runtime platforms", (t) => {
+  for (const ambiguous of [false, true]) {
+    const f = archiveFixture(t, "index");
+    f.root.manifests = ambiguous
+      ? [f.root.manifests[0], f.root.manifests[0]]
+      : [f.root.manifests[1]];
+    const raw = JSON.stringify(f.root);
+    writeFileSync(join(f.directory, "registry-manifest.json"), raw);
+    writeFileSync(
+      join(f.directory, "registry-digest.txt"),
+      "sha256:" + createHash("sha256").update(raw).digest("hex"),
+    );
+    assert.throws(
+      () => circleCIRegistryRuntimeDigest(f.directory),
+      /PLATFORM_AMBIGUOUS/,
+    );
+  }
+});
+
+test("a changed config cannot be admitted by recomputing the registry envelope", (t) => {
+  const f = archiveFixture(t);
+  f.manifest.config.digest = "sha256:" + "f".repeat(64);
+  const raw = JSON.stringify(f.manifest);
+  f.json("registry-manifest.json", f.manifest);
+  f.json("registry-runtime-manifest.json", f.manifest);
+  writeFileSync(
+    join(f.directory, "registry-digest.txt"),
+    "sha256:" + createHash("sha256").update(raw).digest("hex"),
+  );
+  assert.throws(
+    () =>
+      circleCIStageRecord(
+        "staging-publish-image",
+        f.directory,
+        preparePublication(f),
+        () => f.source,
+      ),
+    /IMAGE_SUBSTITUTED/,
+  );
+});
+
+test("one CLI newline is accepted without allowing registry whitespace substitution", (t) => {
+  const f = archiveFixture(t, "index");
+  const path = join(f.directory, "registry-manifest.json");
+  const original = readFileSync(path);
+  writeFileSync(path, Buffer.concat([original, Buffer.from("\n")]));
+  assert.equal(circleCIRegistryRuntimeDigest(f.directory), f.runtimeDigest);
+  writeFileSync(path, Buffer.concat([original, Buffer.from("\n\n")]));
+  assert.throws(
+    () => circleCIRegistryRuntimeDigest(f.directory),
+    /DOCUMENT_SUBSTITUTED/,
   );
 });
 
@@ -533,6 +725,9 @@ test("release uses full canonical quality, immutable tooling, one Docker build a
   assert(commands.some((s) => s.includes("--ignore-unfixed=false")));
   assert(commands.some((s) => s.includes("--scanners secret")));
   assert(commands.some((s) => s.includes("--format cyclonedx")));
+  const scans = commands.find((s) => s.includes("--scanners secret"));
+  assert.equal((scans.match(/--image-src remote/gu) ?? []).length, 3);
+  assert(!scans.includes("/var/run/docker.sock"));
   for (const cmd of commands) assert(cmd.length < 2048);
   for (const job of Object.values(c.jobs))
     if (job.docker) assert.match(job.docker[0].image, /@sha256:[a-f0-9]{64}$/u);
@@ -566,4 +761,59 @@ test("artifact replacement is checked before credential access and failed secret
   const all = JSON.stringify(nativeConfig());
   assert(!all.includes("RENDER_API_KEY"));
   assert(!all.includes("production-oci"));
+});
+
+test("image smoke retries a startup TCP reset and still rejects persistent resets", async () => {
+  const { createServer } = await import("node:http");
+  const { spawn } = await import("node:child_process");
+  const command = nativeConfig().jobs["staging-publish-image"].steps.find(
+    (step) =>
+      step.run?.name === "Smoke exact immutable image with release identity",
+  ).run.command;
+  const match = command.match(
+    /\bcurl\s+(.+?)\s+http:\/\/127\.0\.0\.1:43173\/healthz/u,
+  );
+  assert(match, "the probe must execute the production curl command");
+  async function probe(persistent) {
+    let attempts = 0;
+    const server = createServer((request, response) => {
+      attempts += 1;
+      if (persistent || attempts === 1) {
+        request.socket.resetAndDestroy();
+        return;
+      }
+      response.writeHead(200, {
+        "content-type": "application/json",
+        connection: "close",
+      });
+      response.end(JSON.stringify({ status: "live" }));
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const args = match[1].split(/\s+/u);
+      if (persistent) {
+        args[args.indexOf("--retry") + 1] = "1";
+        args[args.indexOf("--retry-max-time") + 1] = "2";
+      }
+      args.push(`http://127.0.0.1:${server.address().port}/healthz`);
+      let stdout = "";
+      const code = await new Promise((resolve, reject) => {
+        const child = spawn("curl", args);
+        child.stdout.on("data", (chunk) => (stdout += chunk));
+        child.stderr.resume();
+        child.once("error", reject);
+        child.once("close", resolve);
+      });
+      return { code, attempts, stdout };
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  }
+  const startup = await probe(false);
+  assert.equal(startup.code, 0, "startup reset must be retried");
+  assert.equal(startup.attempts, 2);
+  assert.equal(JSON.parse(startup.stdout).status, "live");
+  const persistent = await probe(true);
+  assert.equal(persistent.code, 56, "persistent reset must remain a failure");
+  assert.equal(persistent.attempts, 2);
 });

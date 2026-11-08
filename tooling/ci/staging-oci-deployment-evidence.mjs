@@ -49,6 +49,159 @@ const REPOSITORY = "luizanunciostoca/touristic-digital-platform";
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u;
 const SHA = /^[a-f0-9]{40}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const INDEX_TYPES = new Set([
+  "application/vnd.oci.image.index.v1+json",
+  "application/vnd.docker.distribution.manifest.list.v2+json",
+]);
+const MANIFEST_TYPES = new Set([
+  "application/vnd.oci.image.manifest.v1+json",
+  "application/vnd.docker.distribution.manifest.v2+json",
+]);
+const CONFIG_TYPES = new Set([
+  "application/vnd.oci.image.config.v1+json",
+  "application/vnd.docker.container.image.v1+json",
+]);
+
+// Docker's containerd store can report a target/index ID instead of a config
+// ID. Preserve that identity explicitly; never relabel it as a config digest.
+function dockerIdentity(image) {
+  assert.match(image?.Id ?? "", DIGEST, "CIRCLE_IMAGE_ID_REQUIRED");
+  const result = { dockerImageId: image.Id, dockerImageIdKind: "config" };
+  if (image.Descriptor) {
+    const { digest, mediaType } = image.Descriptor;
+    assert.match(digest ?? "", DIGEST, "CIRCLE_DESCRIPTOR_DIGEST_INVALID");
+    const kind = INDEX_TYPES.has(mediaType)
+      ? "index"
+      : MANIFEST_TYPES.has(mediaType)
+        ? "manifest"
+        : null;
+    assert(kind, "CIRCLE_DESCRIPTOR_TYPE_INVALID");
+    result.dockerDescriptorDigest = digest;
+    result.dockerDescriptorKind = kind;
+    if (image.Id === digest) result.dockerImageIdKind = kind;
+  }
+  return result;
+}
+
+function readRegistryDocument(directory, file, expectedDigest) {
+  assert.match(expectedDigest ?? "", DIGEST, "CIRCLE_REGISTRY_DIGEST_INVALID");
+  const raw = readFileSync(join(directory, file));
+  const digestOf = (bytes) =>
+    "sha256:" + createHash("sha256").update(bytes).digest("hex");
+  // Some CLI versions append one newline to the raw registry response.
+  const bytes =
+    digestOf(raw) === expectedDigest
+      ? raw
+      : raw.at(-1) === 10 && digestOf(raw.subarray(0, -1)) === expectedDigest
+        ? raw.subarray(0, -1)
+        : null;
+  assert(bytes, "CIRCLE_REGISTRY_DOCUMENT_SUBSTITUTED");
+  const document = JSON.parse(bytes.toString("utf8"));
+  assert.equal(document.schemaVersion, 2, "CIRCLE_REGISTRY_SCHEMA_INVALID");
+  return { document, size: bytes.length };
+}
+
+function registryTarget(directory) {
+  const digest = readFileSync(
+    join(directory, "registry-digest.txt"),
+    "utf8",
+  ).trim();
+  const { document } = readRegistryDocument(
+    directory,
+    "registry-manifest.json",
+    digest,
+  );
+  if (MANIFEST_TYPES.has(document.mediaType))
+    return { digest, runtimeDigest: digest };
+  assert(INDEX_TYPES.has(document.mediaType), "CIRCLE_REGISTRY_TYPE_INVALID");
+  assert(Array.isArray(document.manifests), "CIRCLE_INDEX_MANIFESTS_REQUIRED");
+  const runtime = document.manifests.filter(
+    (entry) =>
+      entry.platform?.os === "linux" &&
+      entry.platform.architecture === "amd64" &&
+      !entry.artifactType &&
+      entry.annotations?.["vnd.docker.reference.type"] !==
+        "attestation-manifest",
+  );
+  assert.equal(runtime.length, 1, "CIRCLE_RUNTIME_PLATFORM_AMBIGUOUS");
+  assert(
+    MANIFEST_TYPES.has(runtime[0].mediaType),
+    "CIRCLE_RUNTIME_MANIFEST_TYPE_INVALID",
+  );
+  assert.match(
+    runtime[0].digest ?? "",
+    DIGEST,
+    "CIRCLE_RUNTIME_DIGEST_INVALID",
+  );
+  assert(
+    Number.isSafeInteger(runtime[0].size) && runtime[0].size > 0,
+    "CIRCLE_RUNTIME_SIZE_INVALID",
+  );
+  return {
+    digest,
+    runtimeDigest: runtime[0].digest,
+    runtimeSize: runtime[0].size,
+  };
+}
+
+export function circleCIRegistryRuntimeDigest(directory) {
+  return registryTarget(directory).runtimeDigest;
+}
+
+function assertRegistryBinding(build, publication) {
+  assert.match(
+    publication.imageConfigDigest ?? "",
+    DIGEST,
+    "CIRCLE_CONFIG_DIGEST_REQUIRED",
+  );
+  assert.match(
+    publication.registryRuntimeManifestDigest ?? "",
+    DIGEST,
+    "CIRCLE_RUNTIME_DIGEST_INVALID",
+  );
+  const expected = {
+    config: publication.imageConfigDigest,
+    manifest: publication.registryRuntimeManifestDigest,
+    index: publication.registryObservedDigest,
+  };
+  assert(
+    Object.hasOwn(expected, build.dockerImageIdKind),
+    "CIRCLE_IMAGE_ID_KIND_INVALID",
+  );
+  assert.equal(
+    build.dockerDescriptorDigest === undefined,
+    build.dockerDescriptorKind === undefined,
+    "CIRCLE_DESCRIPTOR_PAIR_REQUIRED",
+  );
+  if (build.dockerImageIdKind !== "config") {
+    assert.equal(
+      build.dockerDescriptorDigest,
+      build.dockerImageId,
+      "CIRCLE_DESCRIPTOR_ID_MISMATCH",
+    );
+    assert.equal(
+      build.dockerDescriptorKind,
+      build.dockerImageIdKind,
+      "CIRCLE_DESCRIPTOR_ID_MISMATCH",
+    );
+  }
+  assert.equal(
+    expected[build.dockerImageIdKind],
+    build.dockerImageId,
+    "CIRCLE_REGISTRY_IMAGE_SUBSTITUTED",
+  );
+  if (build.dockerDescriptorDigest !== undefined) {
+    assert(
+      ["index", "manifest"].includes(build.dockerDescriptorKind),
+      "CIRCLE_DESCRIPTOR_TYPE_INVALID",
+    );
+    assert.equal(
+      expected[build.dockerDescriptorKind],
+      build.dockerDescriptorDigest,
+      "CIRCLE_REGISTRY_DESCRIPTOR_SUBSTITUTED",
+    );
+  }
+}
 
 export function circleCISourceIdentity(
   root = process.cwd(),
@@ -144,7 +297,7 @@ export function circleCIStageRecord(
   if (stage !== "staging-quality") {
     record.archiveDigest = hash("image.tar.gz");
     const image = json("image-inspect.json")[0];
-    assert.match(image?.Id ?? "", DIGEST, "CIRCLE_IMAGE_CONFIG_REQUIRED");
+    Object.assign(record, dockerIdentity(image));
     assert.equal(
       image.Config.Env.find((value) => value.startsWith("MORRO_RELEASE_SHA=")),
       `MORRO_RELEASE_SHA=${source.sourceSha}`,
@@ -157,7 +310,6 @@ export function circleCIStageRecord(
       `MORRO_RELEASE_IMAGE_RUN_ID=${record.imageRunId}`,
       "CIRCLE_IMAGE_RUN_MISMATCH",
     );
-    record.imageConfigDigest = image.Id;
     assert.ok(
       ["65532", "65532:65532", "nonroot"].includes(image.Config.User),
       "CIRCLE_NONROOT_REQUIRED",
@@ -170,22 +322,38 @@ export function circleCIStageRecord(
       build.archiveDigest,
       "CIRCLE_ARCHIVE_SUBSTITUTED",
     );
-    assert.equal(
-      record.imageConfigDigest,
-      build.imageConfigDigest,
-      "CIRCLE_IMAGE_REBUILT",
+    for (const key of [
+      "dockerImageId",
+      "dockerImageIdKind",
+      "dockerDescriptorDigest",
+      "dockerDescriptorKind",
+    ])
+      assert.equal(record[key], build[key], "CIRCLE_IMAGE_REBUILT:" + key);
+    const target = registryTarget(directory);
+    const runtimeManifest = readRegistryDocument(
+      directory,
+      "registry-runtime-manifest.json",
+      target.runtimeDigest,
     );
-    const digest = readFileSync(
-      join(directory, "registry-digest.txt"),
-      "utf8",
-    ).trim();
-    assert.match(digest, DIGEST, "CIRCLE_REGISTRY_DIGEST_INVALID");
-    const manifest = json("registry-manifest.json");
-    assert.equal(
-      manifest.config?.digest,
-      record.imageConfigDigest,
-      "CIRCLE_REGISTRY_IMAGE_SUBSTITUTED",
+    if (target.runtimeSize !== undefined)
+      assert.equal(
+        runtimeManifest.size,
+        target.runtimeSize,
+        "CIRCLE_RUNTIME_SIZE_MISMATCH",
+      );
+    assert(
+      MANIFEST_TYPES.has(runtimeManifest.document.mediaType),
+      "CIRCLE_RUNTIME_MANIFEST_TYPE_INVALID",
     );
+    assert(
+      CONFIG_TYPES.has(runtimeManifest.document.config?.mediaType),
+      "CIRCLE_CONFIG_TYPE_INVALID",
+    );
+    const digest = target.digest;
+    record.registryObservedDigest = digest;
+    record.registryRuntimeManifestDigest = target.runtimeDigest;
+    record.imageConfigDigest = runtimeManifest.document.config.digest;
+    assertRegistryBinding(build, record);
     const runtime = json("health.json");
     assert.equal(runtime.status, "live", "CIRCLE_IMAGE_SMOKE_FAILED");
     assert.equal(
@@ -286,7 +454,14 @@ export function verifyCircleCIArchive(
   const image = JSON.parse(
     readFileSync(join(directory, "image-inspect.json"), "utf8"),
   )[0];
-  assert.equal(image?.Id, build.imageConfigDigest, "CIRCLE_IMAGE_REBUILT");
+  const loaded = dockerIdentity(image);
+  for (const key of [
+    "dockerImageId",
+    "dockerImageIdKind",
+    "dockerDescriptorDigest",
+    "dockerDescriptorKind",
+  ])
+    assert.equal(loaded[key], build[key], "CIRCLE_IMAGE_REBUILT:" + key);
   assert.equal(
     image.Config.Env.find((value) => value.startsWith("MORRO_RELEASE_SHA=")),
     `MORRO_RELEASE_SHA=${source.sourceSha}`,
@@ -301,7 +476,7 @@ export function verifyCircleCIArchive(
   );
   return {
     archiveDigest: digest,
-    imageConfigDigest: image.Id,
+    ...loaded,
     sourceSha: source.sourceSha,
   };
 }
@@ -446,15 +621,22 @@ export function circleCIStagingImageEvidence(bundle, live) {
     "CIRCLE_ARCHIVE_SUBSTITUTED",
   );
   assert.match(
-    build.imageConfigDigest ?? "",
+    build.dockerImageId ?? "",
     DIGEST,
     "CIRCLE_IMAGE_CONFIG_REQUIRED",
   );
   assert.equal(
-    publication.imageConfigDigest,
-    build.imageConfigDigest,
+    publication.dockerImageId,
+    build.dockerImageId,
     "CIRCLE_IMAGE_REBUILT",
   );
+  for (const key of [
+    "dockerImageIdKind",
+    "dockerDescriptorDigest",
+    "dockerDescriptorKind",
+  ])
+    assert.equal(publication[key], build[key], "CIRCLE_IMAGE_REBUILT:" + key);
+  assertRegistryBinding(build, publication);
   assert.equal(
     publication.registryObservedDigest,
     identity.digest,
@@ -504,7 +686,10 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  if (process.argv[2] === "--circleci-verify-archive") {
+  if (process.argv[2] === "--circleci-runtime-manifest") {
+    assert.equal(process.argv.length, 4, "CIRCLE_REGISTRY_ARGUMENT_REQUIRED");
+    console.log(circleCIRegistryRuntimeDigest(process.argv[3]));
+  } else if (process.argv[2] === "--circleci-verify-archive") {
     assert.equal(process.argv.length, 4, "CIRCLE_ARCHIVE_ARGUMENT_REQUIRED");
     console.log(
       JSON.stringify(verifyCircleCIArchive(process.argv[3]), null, 2),
