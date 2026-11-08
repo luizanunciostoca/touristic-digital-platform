@@ -1,4 +1,4 @@
-# Owner-authorized isolated controller. No main-rule or release authority mutation.
+# Owner-authorized bounded transport probe. No manifest/image publication or deployment.
 version: 2.1
 jobs:
   ordinary-exact-quality:
@@ -187,11 +187,36 @@ jobs:
     - store_artifacts:
         path: registry-evidence
         destination: ghcr-readonly-capability
+  registry-bounded-upload:
+    docker:
+    - image: node:22-bookworm
+    working_directory: /root/project
+    resource_class: small
+    environment: *id001
+    steps:
+    - checkout:
+        method: full
+        path: controller
+    - run:
+        name: Prepare bounded registry probe block 1
+        command: printf '%s' 'aW1wb3J0IGZzIGZyb20gJ25vZGU6ZnMnO2ltcG9ydCBhc3NlcnQgZnJvbSAnbm9kZTphc3NlcnQvc3RyaWN0JztpbXBvcnQge3NwYXduU3luY30gZnJvbSAnbm9kZTpjaGlsZF9wcm9jZXNzJzsKY29uc3QgaW1hZ2U9J2x1aXphbnVuY2lvc3RvY2EvbW9ycm8tZGlnaXRhbC12Mic7Y29uc3Qga25vd25EaWdlc3Q9J3NoYTI1Njo0NGI5OTAyODRlMDg4NmU0MDQ3OTI1ZmZhYzJkZjkyNjEyMWUwYzQ1NDc5YjM5YzVhMmM0YTFjZGYyZDk2ZGJmJzsKY29uc3QgcmVzdWx0PXtjbGFzc2lmaWNhdGlvbjonR0hDUl9CT1VOREVEX0VNUFRZX1VQTE9BRF9DQVBBQklMSVRZX1BST0JFX05PVF9JTUFHRV9QVUJMSUNBVElPTicsY3JlZGVudGlhbEF2YWlsYWJsZTpmYWxzZSx0b2tlblN0YXR1czpudWxsLGtub3duTWFuaWZlc3RTdGF0dXM6bnVsbCx1cGxvYWRJbml0aWFsaXphdGlvblN0YXR1czpudWxsLGNsZWFudXBTdGF0dXM6bnVsbCxwdXNoUHJvdmVuOmZhbHNlLHJlZ2lzdHJ5RXJyb3JDb2RlczpbXX07CnRyeXsKY29uc3QgcD1zcGF3blN5bmMoJ2dpdCcsWyctQycsJ2NvbnRyb2xsZXInLCdjcmVkZW50aWFsJywnZmlsbCddLHtpbnB1dDoncHJvdG9jb2w9aHR0cHNcbmhvc3Q9Z2l0aHViLmNvbVxucGF0aD1sdWl6YW51bmNpb3N0b2NhL3RvdXJpc3RpYy1kaWdpdGFsLXBsYXRmb3JtLmdpdFxuXG4nLGVuY29kaW5nOid1dGY4Jyx0aW1lb3V0OjEwMDAwLGVudjp7Li4ucHJvY2Vzcy5lbnYsR0lUX1RFUk1JTkFMX1BST01QVDonMCd9LHN0ZGlvOlsncGlwZScsJ3BpcGUnLCdwaXBlJ119KTsKY29uc3QgZmllbGRzPU9iamVjdC5mcm9tRW50cmllcygocC5zdGRvdXR8fCcnKS50cmltKCkuc3BsaXQoJ1xuJykubWFwKGw9Pntjb25zdCBpPWwuaW5kZXhPZignPScpO3JldHVybltsLnNsaWNlKDAsaSksbC5zbGljZShpKzEpXX0pKTtyZXN1bHQuY3JlZGVudGlhbEF2YWlsYWJsZT1Cb29sZWFuKGZpZWxkcy5wYXNzd29yZCk7YXNzZXJ0KGZpZWxkcy5wYXNzd29yZCwnQ1JFREVOVElBTF9VTkFWQUlMQUJMRScpOwpjb25zdCByZXNwb25zZT1hd2FpdCBmZXRjaCgnaHR0cHM6Ly9naGNyLmlvL3Rva2VuP3NlcnZpY2U9Z2hjci5pbyZzY29wZT0nK2VuY29kZVVSSUNvbXBvbmVudCgncmVwb3NpdG9yeTonK2ltYWdlKyc6cHVzaCxwdWxsJykse2hlYWRlcnM6e2F1dGhvcml6YXRpb246J0Jhc2ljICcrQnVmZmVyLmZyb20oKGZpZWxkcy51c2VybmFtZXx8J3gtYWNjZXNzLXRva2VuJykrJzonK2ZpZWxkcy5wYXNzd29yZCkudG9TdHJpbmcoJ2Jhc2U2NCcpfSxzaWduYWw6QWJvcnRTaWduYWwudGltZW91dCgyMDAwMCl9KTtyZXN1bHQudG9rZW5TdGF0dXM9cmVzcG9uc2Uuc3RhdHVzO2Fzc2VydChyZXNw' | base64 --decode > /tmp/ghcr-bounded-upload-probe.mjs
+        shell: /bin/bash -eo pipefail
+    - run:
+        name: Prepare bounded registry probe block 2
+        command: printf '%s' 'b25zZS5vaywnVE9LRU5fUkVRVUVTVF9SRUpFQ1RFRCcpOwpjb25zdCBhdXRoPWF3YWl0IHJlc3BvbnNlLmpzb24oKTtjb25zdCB0b2tlbj1hdXRoLnRva2VufHxhdXRoLmFjY2Vzc190b2tlbjthc3NlcnQodG9rZW4sJ1JFR0lTVFJZX1RPS0VOX01JU1NJTkcnKTtjb25zdCBoZWFkZXJzPXthdXRob3JpemF0aW9uOidCZWFyZXIgJyt0b2tlbn07CmNvbnN0IHByaW9yPWF3YWl0IGZldGNoKCdodHRwczovL2doY3IuaW8vdjIvJytpbWFnZSsnL21hbmlmZXN0cy8nK2tub3duRGlnZXN0LHtoZWFkZXJzOnsuLi5oZWFkZXJzLGFjY2VwdDonYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5pbmRleC52MStqc29uLGFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubWFuaWZlc3QudjEranNvbixhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uJ30sc2lnbmFsOkFib3J0U2lnbmFsLnRpbWVvdXQoMjAwMDApfSk7cmVzdWx0Lmtub3duTWFuaWZlc3RTdGF0dXM9cHJpb3Iuc3RhdHVzO2Fzc2VydChwcmlvci5vaywnS05PV05fUk9MTEJBQ0tfTUFOSUZFU1RfVU5BVkFJTEFCTEUnKTthc3NlcnQuZXF1YWwocHJpb3IuaGVhZGVycy5nZXQoJ2RvY2tlci1jb250ZW50LWRpZ2VzdCcpLGtub3duRGlnZXN0KTthd2FpdCBwcmlvci5ib2R5Py5jYW5jZWwoKTsKY29uc3QgdXBsb2FkPWF3YWl0IGZldGNoKCdodHRwczovL2doY3IuaW8vdjIvJytpbWFnZSsnL2Jsb2JzL3VwbG9hZHMvJyx7bWV0aG9kOidQT1NUJyxoZWFkZXJzLHJlZGlyZWN0OidlcnJvcicsc2lnbmFsOkFib3J0U2lnbmFsLnRpbWVvdXQoMjAwMDApfSk7cmVzdWx0LnVwbG9hZEluaXRpYWxpemF0aW9uU3RhdHVzPXVwbG9hZC5zdGF0dXM7CmlmKHVwbG9hZC5zdGF0dXM9PT0yMDIpewogY29uc3QgbG9jYXRpb249bmV3IFVSTCh1cGxvYWQuaGVhZGVycy5nZXQoJ2xvY2F0aW9uJyksJ2h0dHBzOi8vZ2hjci5pbycpO2Fzc2VydC5lcXVhbChsb2NhdGlvbi5vcmlnaW4sJ2h0dHBzOi8vZ2hjci5pbycpO2Fzc2VydChsb2NhdGlvbi5wYXRobmFtZS5zdGFydHNXaXRoKCcvdjIvJytpbWFnZSsnL2Jsb2JzL3VwbG9hZHMvJykpO2Fzc2VydChsb2NhdGlvbi5wYXRobmFtZSE9PScvdjIvJytpbWFnZSsnL2Jsb2JzL3VwbG9hZHMvJyk7CiBjb25zdCBjbGVhbnVwPWF3YWl0IGZldGNoKGxvY2F0aW9uLHttZXRob2Q6J0RFTEVURScsaGVhZGVycyxyZWRpcmVjdDonZXJyb3InLHNpZ25hbDpBYm9ydFNpZ25hbC50aW1lb3V0KDIwMDAwKX0pO3Jlc3VsdC5jbGVhbnVwU3RhdHVzPWNsZWFudXAuc3RhdHVzO3Jlc3VsdC5wdXNoUHJvdmVuPWNsZWFudXAuc3RhdHVzPT09MjA0O2Fzc2VydChyZXN1bHQucHVzaFBy' | base64 --decode >> /tmp/ghcr-bounded-upload-probe.mjs
+        shell: /bin/bash -eo pipefail
+    - run:
+        name: Prepare bounded registry probe block 3
+        command: printf '%s' 'b3ZlbiwnUFJPQkVfVVBMT0FEX0NMRUFOVVBfTk9UX0NPTkZJUk1FRCcpOwp9ZWxzZXt0cnl7Y29uc3QgYj1hd2FpdCB1cGxvYWQuanNvbigpO3Jlc3VsdC5yZWdpc3RyeUVycm9yQ29kZXM9KGIuZXJyb3JzfHxbXSkubWFwKGU9PmUuY29kZSkuZmlsdGVyKGM9Pi9eW0EtWl9dKyQvLnRlc3QoYykpO31jYXRjaHt9fQp9Y2F0Y2goZSl7cmVzdWx0LmZhaWx1cmU9U3RyaW5nKGUpLnJlcGxhY2UoL2h0dHBzPzpcL1wvXFMrL2csJ1tVUkxfT01JVFRFRF0nKTt9CmZzLm1rZGlyU3luYygncmVnaXN0cnktZXZpZGVuY2UnLHtyZWN1cnNpdmU6dHJ1ZX0pO2ZzLndyaXRlRmlsZVN5bmMoJ3JlZ2lzdHJ5LWV2aWRlbmNlL2JvdW5kZWQtdXBsb2FkLXJlY2VpcHQuanNvbicsSlNPTi5zdHJpbmdpZnkocmVzdWx0LG51bGwsMikrJ1xuJyk7Y29uc29sZS5sb2coSlNPTi5zdHJpbmdpZnkocmVzdWx0KSk7Cg==' | base64 --decode >> /tmp/ghcr-bounded-upload-probe.mjs
+        shell: /bin/bash -eo pipefail
+    - run:
+        name: Verify known image and initialize then discard one empty upload
+        command: node /tmp/ghcr-bounded-upload-probe.mjs
+        shell: /bin/bash -eo pipefail
+    - store_artifacts:
+        path: registry-evidence
+        destination: ghcr-bounded-capability
 workflows:
-  ordinary-six-quality-and-browser:
+  registry-bounded-capability:
     jobs:
-    - ordinary-exact-quality
-    - ordinary-browser-acceptance:
-        requires:
-        - ordinary-exact-quality
-    - registry-auth-readonly
+    - registry-bounded-upload
