@@ -297,3 +297,125 @@ describe("short viewport map controls", () => {
     },
   );
 });
+
+describe("saved places read feedback", () => {
+  async function readSaved(
+    snapshot: string | null,
+    locale = "pt",
+    unavailable = false,
+    denied = false,
+  ) {
+    const [home, profile] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+      ),
+      readRepository("packages/assistant/src/user-profile.ts"),
+    ]);
+    const copyStart = home.indexOf("const MANUAL_COPY = {");
+    const copyEnd =
+      home.indexOf("} as const;", copyStart) + "} as const;".length;
+    const start = home.indexOf('    if (action === "saved") {');
+    const end = home.indexOf(
+      '    const form = document.createElement("form");',
+      start,
+    );
+    expect(copyStart).toBeGreaterThan(-1);
+    expect(copyEnd).toBeGreaterThan(copyStart);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const statuses: string[] = [];
+    const rows: { name: string; category?: string }[] = [];
+    let writes = 0;
+    let focused = 0;
+    const managerExports = {};
+    runInNewContext(
+      transpileModule(profile, { compilerOptions: { module: 1 } }).outputText,
+      { exports: managerExports },
+    );
+    const storage = {
+      getItem: () => {
+        if (denied) throw new Error("Storage denied");
+        return snapshot;
+      },
+      setItem: () => {
+        writes++;
+      },
+    };
+    runInNewContext(
+      transpileModule(
+        `${home.slice(copyStart, copyEnd)}
+const copy = MANUAL_COPY[locale];
+const createAssistantUserProfileManager = managerExports.createAssistantUserProfileManager;
+function consumeSaved() { const action = "saved"; ${home.slice(start, end)} }
+consumeSaved();`,
+        {},
+      ).outputText,
+      {
+        locale,
+        managerExports,
+        document: {
+          defaultView: { localStorage: unavailable ? undefined : storage },
+        },
+        showStatus: (copy: () => string) => statuses.push(copy()),
+        addRow: (row: { name: string; category?: string }) => rows.push(row),
+        close: {
+          focus: () => {
+            focused++;
+          },
+        },
+      },
+    );
+    return { statuses, rows, writes, focused };
+  }
+
+  it.each(["pt", "en", "es", "he"])(
+    "reports unavailable storage as a localized read error in %s",
+    async (locale) => {
+      const unavailable = await readSaved(null, locale, true);
+      const denied = await readSaved(null, locale, false, true);
+      const empty = await readSaved(null, locale);
+      expect(unavailable.statuses).toEqual(denied.statuses);
+      expect(unavailable.statuses).not.toEqual(empty.statuses);
+      expect(unavailable.rows).toEqual([]);
+      expect(unavailable.writes).toBe(0);
+      expect(unavailable.focused).toBe(1);
+    },
+  );
+
+  it.each(["{broken profile", "null", "[]", '"profile"', "0", "true"])(
+    "reports unreadable profile %s without writing it",
+    async (snapshot) => {
+      const result = await readSaved(snapshot);
+      expect(result.statuses).toEqual(
+        (await readSaved(null, "pt", false, true)).statuses,
+      );
+      expect(result.rows).toEqual([]);
+      expect(result.writes).toBe(0);
+      expect(result.focused).toBe(1);
+    },
+  );
+
+  it.each([null, "{}", '{"favoritePlaces":[]}'])(
+    "preserves a genuinely empty profile %s",
+    async (snapshot) => {
+      const result = await readSaved(snapshot);
+      expect(result.statuses).toEqual((await readSaved(null)).statuses);
+      expect(result.rows).toEqual([]);
+      expect(result.writes).toBe(0);
+    },
+  );
+
+  it("reads saved names and categories without persisting visit updates", async () => {
+    const result = await readSaved(
+      JSON.stringify({
+        favoritePlaces: [{ name: "Primeira Praia", category: "beaches" }],
+      }),
+    );
+    expect(result.rows).toEqual([
+      { name: "Primeira Praia", category: "beaches" },
+    ]);
+    expect(result.statuses).not.toEqual((await readSaved(null)).statuses);
+    expect(result.writes).toBe(0);
+    expect(result.focused).toBe(1);
+  });
+});

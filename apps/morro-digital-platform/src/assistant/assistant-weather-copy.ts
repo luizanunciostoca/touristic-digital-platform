@@ -63,7 +63,7 @@ const CONDITIONS: Record<AssistantWeatherLanguage, Record<string, string>> = {
     cloudy: "cloudy",
     partly: "partly cloudy",
     clearDay: "clear skies",
-    clearNight: "clear skies tonight",
+    clearNight: "clear skies at night",
   },
   es: {
     thunder: "tormentas eléctricas",
@@ -122,13 +122,46 @@ export function formatAssistantWeather(
   };
 
   const text: Record<AssistantWeatherLanguage, string> = {
-    pt: `Agora em Morro de São Paulo: ${values.now}°C, ${state}. Hoje: máxima de ${values.max}°C, mínima de ${values.min}°C, umidade ${values.humidity}%, vento ${values.wind} km/h e chance de chuva de ${values.rain}%.`,
-    en: `Right now in Morro de São Paulo: ${values.now}°C, ${state}. Today: high ${values.max}°C, low ${values.min}°C, humidity ${values.humidity}%, wind ${values.wind} km/h, and ${values.rain}% chance of rain.`,
-    es: `Ahora en Morro de São Paulo: ${values.now}°C, ${state}. Hoy: máxima de ${values.max}°C, mínima de ${values.min}°C, humedad ${values.humidity}%, viento ${values.wind} km/h y ${values.rain}% de probabilidad de lluvia.`,
-    he: `עכשיו במורו דה סאו פאולו: ${values.now}°C, ${state}. היום: מקסימום ${values.max}°C, מינימום ${values.min}°C, לחות ${values.humidity}%, רוח ${values.wind} קמ״ש וסיכוי של ${values.rain}% לגשם.`,
+    pt: `Condições informadas para Morro de São Paulo: ${values.now}°C, ${state}. Previsão informada: máxima de ${values.max}°C, mínima de ${values.min}°C, umidade ${values.humidity}%, vento ${values.wind} km/h e chance de chuva de ${values.rain}%.`,
+    en: `Reported weather in Morro de São Paulo: ${values.now}°C, ${state}. Reported forecast: high ${values.max}°C, low ${values.min}°C, humidity ${values.humidity}%, wind ${values.wind} km/h, and ${values.rain}% chance of rain.`,
+    es: `Condiciones informadas para Morro de São Paulo: ${values.now}°C, ${state}. Pronóstico informado: máxima de ${values.max}°C, mínima de ${values.min}°C, humedad ${values.humidity}%, viento ${values.wind} km/h y ${values.rain}% de probabilidad de lluvia.`,
+    he: `נתוני מזג אוויר במורו דה סאו פאולו: ${values.now}°C, ${state}. תחזית שדווחה: מקסימום ${values.max}°C, מינימום ${values.min}°C, לחות ${values.humidity}%, רוח ${values.wind} קמ״ש וסיכוי של ${values.rain}% לגשם.`,
   };
 
-  return { text: text[language], options: OPTIONS[language] };
+  const freshness: Record<AssistantWeatherLanguage, string> = {
+    pt:
+      reading.cacheState === "stale"
+        ? " Dados de cache desatualizado; não foi possível atualizar. Horário da observação não informado."
+        : " Horário da observação não informado.",
+    en:
+      reading.cacheState === "stale"
+        ? " Stale cached data; refresh failed. Observation time is not provided."
+        : " Observation time is not provided.",
+    es:
+      reading.cacheState === "stale"
+        ? " Datos de caché desactualizados; no se pudo actualizar. Hora de observación no informada."
+        : " Hora de observación no informada.",
+    he:
+      reading.cacheState === "stale"
+        ? " נתוני מטמון ישנים; העדכון נכשל. מועד התצפית אינו ידוע."
+        : " מועד התצפית אינו ידוע.",
+  };
+  const provider =
+    reading.provider === "open-meteo"
+      ? "Open-Meteo"
+      : reading.provider === "visual-crossing"
+        ? "Visual Crossing"
+        : undefined;
+  const source: Record<AssistantWeatherLanguage, string> = {
+    pt: provider ? ` Fonte: ${provider}.` : " Fonte não informada.",
+    en: provider ? ` Source: ${provider}.` : " Source not provided.",
+    es: provider ? ` Fuente: ${provider}.` : " Fuente no informada.",
+    he: provider ? ` מקור: ${provider}.` : " המקור אינו ידוע.",
+  };
+  return {
+    text: text[language] + freshness[language] + source[language],
+    options: OPTIONS[language],
+  };
 }
 
 export function assistantWeatherFallback(

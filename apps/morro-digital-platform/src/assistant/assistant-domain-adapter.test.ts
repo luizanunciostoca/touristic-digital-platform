@@ -252,7 +252,7 @@ describe("assistant browser domain adapter", () => {
     const response = await handlers.weather?.(request("weather"));
 
     expect(response).toEqual({
-      text: "Agora em Morro de São Paulo: 28°C, parcialmente nublado. Hoje: máxima de 31°C, mínima de 24°C, umidade 78%, vento 18 km/h e chance de chuva de 42%.",
+      text: "Condições informadas para Morro de São Paulo: 28°C, parcialmente nublado. Previsão informada: máxima de 31°C, mínima de 24°C, umidade 78%, vento 18 km/h e chance de chuva de 42%. Horário da observação não informado. Fonte não informada.",
       options: [
         { label: "Temperatura agora", value: "temperatura agora" },
         { label: "Vai chover?", value: "vai chover" },
@@ -297,7 +297,7 @@ describe("assistant browser domain adapter", () => {
     const englishRequest = request("weather");
     englishRequest.intent.entities.language = "en";
     const response = await handlers.weather?.(englishRequest);
-    expect(response?.text).toContain("Right now in Morro de São Paulo");
+    expect(response?.text).toContain("Reported weather in Morro de São Paulo");
     expect(response?.text).toContain("humidity 78%");
     expect(response?.metadata).toEqual(
       expect.objectContaining({

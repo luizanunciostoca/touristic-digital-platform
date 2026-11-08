@@ -830,53 +830,60 @@ export function installBrowserAssistantRuntime(
           },
         },
       });
-  const controller = {
-    processUserInput(
-      input: string,
-      isCurrent: () => boolean = () => true,
-    ): Promise<AssistantDialogResponse> {
-      // Bind writes to this request: a late handler must not replace the
-      // context or append history after a newer shared conversation action.
-      return createAssistantDialogController({
-        context: {
-          getContext: () => context.getContext(),
-          updateContext: (updates) => {
-            if (isCurrent()) context.updateContext(updates);
+  const controller = (() => {
+    const navigationCoordination = { generation: 0 };
+    return {
+      processUserInput(
+        input: string,
+        isCurrent: () => boolean = () => true,
+        sequence?: number,
+      ): Promise<AssistantDialogResponse> {
+        // Bind writes to this request: a late handler must not replace the
+        // context or append history after a newer shared conversation action.
+        return createAssistantDialogController({
+          navigationCoordination,
+          navigationRequestSequence: sequence,
+          isCurrent,
+          context: {
+            getContext: () => context.getContext(),
+            updateContext: (updates) => {
+              if (isCurrent()) context.updateContext(updates);
+            },
+            addToHistory: (entry) => {
+              if (isCurrent()) context.addToHistory(entry);
+            },
           },
-          addToHistory: (entry) => {
-            if (isCurrent()) context.addToHistory(entry);
-          },
-        },
-        profile,
-        handlers: Object.fromEntries(
-          Object.entries({
-            ...domainHandlers,
-            ...intelligenceHandlers,
-            ...navigationHandlers,
-          }).map(([intent, handler]) => [
-            intent,
-            handler ? withPresentationLanguage(handler) : undefined,
-          ]),
-        ),
-        llm: withPresentationLanguage(
-          createAssistantLlmHandler({
-            ...(options.fetch ? { fetch: options.fetch } : {}),
-          }),
-        ),
-        defaultResponse: () =>
-          assistantRecoveryResponse(
+          profile,
+          handlers: Object.fromEntries(
+            Object.entries({
+              ...domainHandlers,
+              ...intelligenceHandlers,
+              ...navigationHandlers,
+            }).map(([intent, handler]) => [
+              intent,
+              handler ? withPresentationLanguage(handler) : undefined,
+            ]),
+          ),
+          llm: withPresentationLanguage(
+            createAssistantLlmHandler({
+              ...(options.fetch ? { fetch: options.fetch } : {}),
+            }),
+          ),
+          defaultResponse: () =>
+            assistantRecoveryResponse(
+              normalizeAssistantVoiceLanguage(
+                options.document.documentElement.lang,
+              ),
+            ),
+          errorResponse: runtimeErrorResponse,
+          getPresentationLanguage: () =>
             normalizeAssistantVoiceLanguage(
               options.document.documentElement.lang,
             ),
-          ),
-        errorResponse: runtimeErrorResponse,
-        getPresentationLanguage: () =>
-          normalizeAssistantVoiceLanguage(
-            options.document.documentElement.lang,
-          ),
-      }).processUserInput(input);
-    },
-  };
+        }).processUserInput(input);
+      },
+    };
+  })();
 
   const view = options.document.defaultView;
   let navigationActive = false;
@@ -1462,7 +1469,11 @@ export function installBrowserAssistantRuntime(
       conversation.isCurrentSequence(sequence);
     let response: AssistantDialogResponse;
     try {
-      response = await controller.processUserInput(value, isCurrentResponse);
+      response = await controller.processUserInput(
+        value,
+        isCurrentResponse,
+        sequence,
+      );
     } catch (error) {
       if (!isCurrentResponse()) return dropStaleResponse();
       throw error;

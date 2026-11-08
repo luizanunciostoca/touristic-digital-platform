@@ -73,26 +73,52 @@ async function cachePrecacheEntry(cache, url) {
   }
 }
 
+async function openRuntimeCache() {
+  try {
+    return await caches.open(STATIC_CACHE);
+  } catch {
+    // Runtime network access remains usable when local cache access is denied.
+    return null;
+  }
+}
+
+async function matchRuntimeCache(cache, request) {
+  try {
+    return cache ? await cache.match(request) : undefined;
+  } catch {
+    // An unavailable local cache entry is a miss, not a network failure.
+    return undefined;
+  }
+}
+
 async function networkFirstStatic(request) {
-  const cache = await caches.open(STATIC_CACHE);
+  const cache = await openRuntimeCache();
   try {
     const response = await fetch(request);
-    if (response.ok && response.type === "basic") {
-      await cache.put(request, response.clone());
+    if (cache && response.ok && response.type === "basic") {
+      try {
+        await cache.put(request, response.clone());
+      } catch {
+        // Cache persistence must not discard a usable network response.
+      }
     }
     return response;
   } catch {
-    return (await cache.match(request)) ?? Response.error();
+    return (await matchRuntimeCache(cache, request)) ?? Response.error();
   }
 }
 
 async function staleWhileRevalidate(request, event) {
-  const cache = await caches.open(STATIC_CACHE);
-  const cached = await cache.match(request);
+  const cache = await openRuntimeCache();
+  const cached = await matchRuntimeCache(cache, request);
   const network = fetch(request)
     .then(async (response) => {
-      if (response.ok && response.type === "basic") {
-        await cache.put(request, response.clone());
+      if (cache && response.ok && response.type === "basic") {
+        try {
+          await cache.put(request, response.clone());
+        } catch {
+          // Cache persistence must not discard a usable network response.
+        }
       }
       return response;
     })
@@ -110,14 +136,18 @@ async function networkFirstRootNavigation(request) {
   try {
     const response = await fetch(request);
     if (response.ok && response.type === "basic") {
-      const cache = await caches.open(STATIC_CACHE);
-      await cache.put("/", response.clone());
+      const cache = await openRuntimeCache();
+      try {
+        if (cache) await cache.put("/", response.clone());
+      } catch {
+        // Cache persistence must not discard a usable network response.
+      }
     }
     return response;
   } catch {
     return (
-      (await caches.match("/")) ??
-      (await caches.match(OFFLINE_URL)) ??
+      (await matchRuntimeCache(caches, "/")) ??
+      (await matchRuntimeCache(caches, OFFLINE_URL)) ??
       Response.error()
     );
   }

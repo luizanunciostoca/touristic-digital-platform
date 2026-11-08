@@ -175,10 +175,14 @@ export function installAssistantVoiceSettings(
   const open = (): void => featureStyles.run(openReady);
 
   const close = (): void => {
+    const restoreFocus = panel.contains(options.document.activeElement);
     featureStyles.cancel();
     panel.classList.add("hidden");
     panel.setAttribute("aria-hidden", "true");
     configButton.setAttribute("aria-expanded", "false");
+    if (restoreFocus && configButton.isConnected && !configButton.disabled) {
+      configButton.focus();
+    }
   };
 
   const onConfigClick = (): void => {

@@ -285,25 +285,32 @@ export function installDiscoverLocation({
     }
     button.setAttribute("aria-busy", "true");
     status.show("locating");
-    geo.getCurrentPosition(
-      (position) => {
-        if (destroyed || request !== generation) return;
-        try {
-          onLocation([position.coords.longitude, position.coords.latitude]);
-          report("granted", "located");
-        } catch {
-          report("error", "locationError");
-        }
-      },
-      (error) => {
-        if (destroyed || request !== generation) return;
-        report(
-          error.code === 1 ? "denied" : "error",
-          error.code === 1 ? "denied" : "locationError",
-        );
-      },
-      { enableHighAccuracy: true, maximumAge: 15000, timeout: 8000 },
-    );
+    try {
+      geo.getCurrentPosition(
+        (position) => {
+          if (destroyed || request !== generation) return;
+          try {
+            onLocation([position.coords.longitude, position.coords.latitude]);
+            report("granted", "located");
+          } catch {
+            report("error", "locationError");
+          }
+        },
+        (error) => {
+          if (destroyed || request !== generation) return;
+          report(
+            error.code === 1 ? "denied" : "error",
+            error.code === 1 ? "denied" : "locationError",
+          );
+        },
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 8000 },
+      );
+    } catch {
+      if (!destroyed && request === generation) {
+        generation += 1;
+        report("error", "locationError");
+      }
+    }
   };
   button.addEventListener("click", click);
   return () => {

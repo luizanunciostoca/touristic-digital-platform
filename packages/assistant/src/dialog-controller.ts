@@ -46,8 +46,26 @@ export type AssistantDialogIntentHandler = (
   request: AssistantDialogIntentHandlerContext,
 ) => Promise<AssistantDialogResponse | null> | AssistantDialogResponse | null;
 
+interface AssistantNavigationConfirmationFlight {
+  generation: number;
+  requestSequence?: number | undefined;
+  result: Promise<AssistantDialogResponse | null>;
+  context: AssistantContext;
+  isCurrent: () => boolean;
+  phase: "pending" | "fulfilled" | "rejected";
+}
+
+/** Transient UI coordination owned by one runtime, never persisted or shared globally. */
+export interface AssistantDialogNavigationCoordination {
+  generation: number;
+  pending?: AssistantNavigationConfirmationFlight | undefined;
+}
+
 export interface AssistantDialogControllerOptions {
   context: AssistantDialogContextPort;
+  navigationCoordination?: AssistantDialogNavigationCoordination;
+  navigationRequestSequence?: number | undefined;
+  isCurrent?: () => boolean;
   profile?: AssistantDialogProfilePort;
   handlers?: Partial<
     Record<AssistantIntentResult["intent"], AssistantDialogIntentHandler>
@@ -361,11 +379,24 @@ export function createAssistantDialogController(
 ) {
   const defaultResponse = options.defaultResponse ?? defaultDialogResponse;
   const errorResponse = options.errorResponse ?? defaultErrorResponse;
+  const coordination: AssistantDialogNavigationCoordination =
+    options.navigationCoordination ?? { generation: 0 };
+  const superseded = (): AssistantDialogResponse => ({
+    text: "",
+    metadata: { domain: "runtime", state: "superseded" },
+  });
 
   return {
     async processUserInput(input: string): Promise<AssistantDialogResponse> {
       if (!input || typeof input !== "string") return defaultResponse();
 
+      const previous = coordination.pending;
+      const generation = ++coordination.generation;
+      coordination.pending = undefined;
+      const isCurrent = () =>
+        coordination.generation === generation &&
+        (options.isCurrent?.() ?? true);
+      let confirmation: AssistantNavigationConfirmationFlight | undefined;
       try {
         const context = options.context.getContext();
         const intent = resolveIntentForContext(input, context);
@@ -392,11 +423,72 @@ export function createAssistantDialogController(
 
         let response: AssistantDialogResponse | null = null;
         const localHandler = options.handlers?.[intent.intent];
-        if (localHandler) response = await localHandler(request);
+        if (
+          intent.intent === "confirm" &&
+          previous?.generation === generation - 1 &&
+          (previous.requestSequence === undefined
+            ? options.navigationRequestSequence === undefined
+            : options.navigationRequestSequence ===
+              previous.requestSequence + 1) &&
+          !context.awaiting &&
+          context.pendingRoute === null
+        ) {
+          // A second confirmation owns the acknowledgement, not a second effect.
+          confirmation = previous;
+          confirmation.generation = generation;
+          confirmation.requestSequence = options.navigationRequestSequence;
+          confirmation.isCurrent = options.isCurrent ?? (() => true);
+          coordination.pending = confirmation;
+          response = await confirmation.result;
+        } else if (
+          localHandler &&
+          intent.intent === "confirm" &&
+          context.awaiting?.type === "confirmar_navegacao" &&
+          isPendingRoute(context.pendingRoute)
+        ) {
+          if (!isCurrent()) return superseded();
+          // Consume the navigation-only confirmation before yielding to its effect.
+          // A failed state write must deny the effect, rather than repeat it later.
+          options.context.updateContext({ awaiting: null, pendingRoute: null });
+          const flight: AssistantNavigationConfirmationFlight = {
+            generation,
+            requestSequence: options.navigationRequestSequence,
+            context,
+            phase: "pending",
+            isCurrent: options.isCurrent ?? (() => true),
+            result: Promise.resolve(null),
+          };
+          flight.result = Promise.resolve()
+            .then(() => {
+              if (
+                coordination.pending !== flight ||
+                coordination.generation !== flight.generation ||
+                !flight.isCurrent()
+              ) {
+                return superseded();
+              }
+              return localHandler(request);
+            })
+            .then(
+              (value) => {
+                flight.phase = "fulfilled";
+                return value;
+              },
+              (error: unknown) => {
+                flight.phase = "rejected";
+                throw error;
+              },
+            );
+          confirmation = flight;
+          coordination.pending = flight;
+          response = await flight.result;
+        } else if (localHandler) response = await localHandler(request);
 
+        if (!isCurrent()) return superseded();
         if (!response && assistantRequiresLLM(input, intent) && options.llm) {
           response = await options.llm(request);
         }
+        if (!isCurrent()) return superseded();
 
         let fallbackCount = 0;
         if (!response) {
@@ -424,7 +516,28 @@ export function createAssistantDialogController(
 
         return response;
       } catch {
+        if (!isCurrent()) return superseded();
+        if (
+          confirmation?.phase === "rejected" &&
+          coordination.pending === confirmation
+        ) {
+          try {
+            options.context.updateContext({
+              awaiting: confirmation.context.awaiting,
+              pendingRoute: confirmation.context.pendingRoute,
+            });
+          } catch {
+            // Keep the existing error response when recovery storage is unavailable.
+          }
+        }
         return errorResponse();
+      } finally {
+        if (
+          coordination.generation === generation &&
+          coordination.pending === confirmation
+        ) {
+          coordination.pending = undefined;
+        }
       }
     },
   };

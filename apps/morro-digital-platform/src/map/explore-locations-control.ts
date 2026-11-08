@@ -1523,7 +1523,17 @@ export function installExploreLocationsControl({
     const shareText = [location.name, location.area]
       .filter(Boolean)
       .join(" · ");
-    const shareUrl = view.location.href;
+    const shareUrl = (() => {
+      try {
+        const url = new URL(view.location.href);
+        // Share the public page, never transient session/referral query or hash.
+        return url.protocol === "https:" || url.protocol === "http:"
+          ? `${url.origin}${url.pathname}`
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
     const navigator = view.navigator as Navigator & {
       share?: (data: ShareData) => Promise<void>;
       clipboard?: Clipboard;
