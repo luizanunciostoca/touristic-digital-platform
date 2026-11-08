@@ -14,7 +14,7 @@ jobs:
   staging-quality:
     docker:
       - image: node:22-bookworm@sha256:7702d8aa4d5910871692af4480eb3ba86f23047a6417a44d857d06c95d060d3f
-    resource_class: small
+    resource_class: medium
     environment: &id001
       EXPECTED_SOURCE_SHA: << pipeline.parameters.expected_sha >>
       RELEASE_MODE: << pipeline.parameters.mode >>
@@ -35,14 +35,6 @@ jobs:
             test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
 
             test -z "$(git status --porcelain --untracked-files=all)"
-
-            git check-ref-format --branch "$CIRCLE_BRANCH"
-
-            git checkout -B "$CIRCLE_BRANCH" "$EXPECTED_SOURCE_SHA"
-
-            git check-ref-format --branch "$CIRCLE_BRANCH"
-
-            git checkout -B "$CIRCLE_BRANCH" "$EXPECTED_SOURCE_SHA"
 
             git check-ref-format --branch "$CIRCLE_BRANCH"
 
