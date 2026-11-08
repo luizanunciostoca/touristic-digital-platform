@@ -21,6 +21,7 @@ jobs:
       TURBO_TELEMETRY_DISABLED: "1"
       DO_NOT_TRACK: "1"
       GIT_PAGER: cat
+      FORCE_COLOR: "0"
     steps:
       - &id002
         checkout:
@@ -51,6 +52,14 @@ jobs:
 
             mkdir -p /tmp/staging-evidence'
           no_output_timeout: 20m
+      - run:
+          name: Install base-contract CLI dependency
+          shell: /bin/bash -eo pipefail
+          command: "apt-get update -qq
+
+            apt-get install -y --no-install-recommends jq
+
+            jq --version"
       - run:
           name: Install canonical package manager and locked dependencies
           shell: /bin/bash -eo pipefail
