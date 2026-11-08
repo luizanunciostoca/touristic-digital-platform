@@ -1,4 +1,4 @@
-# PREPARED ONLY: not published, provider-validated, or admitted. No release authority.
+# Owner-authorized isolated pilot only; no merge or release authority.
 version: 2.1
 jobs:
   retirement-contract-pilot:
@@ -11,18 +11,19 @@ jobs:
       EXPECTED_CANDIDATE_TREE: bf0aa2ef00d8a68a6db3c3a58d8b6b47523a73f9
       GITHUB_REPOSITORY: luizanunciostoca/touristic-digital-platform
     steps:
-    - checkout:
-        method: full
-        path: candidate
     - run:
-        name: Run unchanged base contracts against exact candidate data
+        name: Fetch exact candidate anonymously and run base contracts
         shell: /bin/bash -eo pipefail
         command: |+
           #!/usr/bin/env bash
           # Preparation only. A protected configuration source must be admitted before use.
           set -euo pipefail
           test "$(node -p 'process.versions.node.split(".")[0]')" = 22
-          test "${CIRCLE_SHA1:?}" = "${EXPECTED_CANDIDATE_SHA:?}"
+          test "${CIRCLE_BRANCH:?}" = "infra/circleci-controller-bootstrap-20261108"
+          git init candidate
+          git -C candidate remote add origin https://github.com/luizanunciostoca/touristic-digital-platform.git
+          git -C candidate fetch --depth=2 origin "${EXPECTED_CANDIDATE_SHA:?}"
+          git -C candidate checkout --detach FETCH_HEAD
           test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
           test "$(git -C candidate rev-parse 'HEAD^{tree}')" = "${EXPECTED_CANDIDATE_TREE:?}"
           test "$(git -C candidate rev-parse 'HEAD^')" = "${EXPECTED_BASE_SHA:?}"
@@ -73,6 +74,8 @@ jobs:
           const files=["contracts.tap","retirement.json"];
           fs.writeFileSync("evidence/receipt.json",JSON.stringify({
             classification:"PILOT_ONLY_NOT_MERGE_OR_RELEASE_ACCEPTANCE",
+            controllerSha:env.CIRCLE_SHA1,
+            controllerBranch:env.CIRCLE_BRANCH,
             sourceSha:env.EXPECTED_CANDIDATE_SHA,
             treeSha:env.EXPECTED_CANDIDATE_TREE,
             baseSha:env.EXPECTED_BASE_SHA,
