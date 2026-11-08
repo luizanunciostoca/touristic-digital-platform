@@ -12,9 +12,9 @@ jobs:
       GITHUB_REPOSITORY: luizanunciostoca/touristic-digital-platform
     steps:
     - run:
-        name: Fetch exact candidate anonymously and run base contracts
+        name: Fetch and verify exact public candidate
         shell: /bin/bash -eo pipefail
-        command: |+
+        command: |
           #!/usr/bin/env bash
           # Preparation only. A protected configuration source must be admitted before use.
           set -euo pipefail
@@ -34,6 +34,12 @@ jobs:
             git -C candidate worktree add --detach ../trusted "$EXPECTED_BASE_SHA"
           fi
           test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+        no_output_timeout: 5m
+    - run:
+        name: Run unchanged base contracts and retirement proof
+        shell: /bin/bash -eo pipefail
+        command: |+
+          set -euo pipefail
 
           (
             cd trusted
@@ -46,7 +52,12 @@ jobs:
           node trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate \
             | tee evidence/retirement.json
 
-          node --input-type=module <<'NODE'
+        no_output_timeout: 5m
+    - run:
+        name: Prepare bounded recorder section 1
+        shell: /bin/bash -eo pipefail
+        command: |
+          cat > /tmp/tdp-pilot-recorder.mjs <<'PILOT_NODE'
           import assert from "node:assert/strict";
           import fs from "node:fs";
           import { execFileSync } from "node:child_process";
@@ -71,6 +82,14 @@ jobs:
           assert.equal(git("candidate","rev-parse","HEAD^{tree}"),env.EXPECTED_CANDIDATE_TREE);
           for (const root of ["trusted","candidate"]) assert.equal(git(root,"status","--porcelain","--untracked-files=all"),"");
           const hash = p => createHash("sha256").update(fs.readFileSync(p)).digest("hex");
+
+          PILOT_NODE
+        no_output_timeout: 5m
+    - run:
+        name: Prepare bounded recorder section 2
+        shell: /bin/bash -eo pipefail
+        command: |
+          cat >> /tmp/tdp-pilot-recorder.mjs <<'PILOT_NODE'
           const files=["contracts.tap","retirement.json"];
           fs.writeFileSync("evidence/receipt.json",JSON.stringify({
             classification:"PILOT_ONLY_NOT_MERGE_OR_RELEASE_ACCEPTANCE",
@@ -88,8 +107,14 @@ jobs:
             externalProviderIdentityVerified:false,
             requiredNext:["protected config publication/admission","provider execution and authenticated readback","complete equivalent quality","review and administrative check-origin transition"],
           },null,2)+"\n",{flag:"wx"});
-          NODE
-
+          PILOT_NODE
+        no_output_timeout: 5m
+    - run:
+        name: Assert complete proof and record identities
+        shell: /bin/bash -eo pipefail
+        command: |-
+          set -euo pipefail
+          node /tmp/tdp-pilot-recorder.mjs
         no_output_timeout: 5m
     - store_artifacts:
         path: evidence
