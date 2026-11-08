@@ -51,7 +51,7 @@ jobs:
       - run:
           name: Verify sensitive candidate with unchanged current-base guard
           shell: /bin/bash -eo pipefail
-          command: "if [ \"$RELEASE_MODE\" = verify ]; then\n  git worktree add --detach /tmp/trusted-main refs/remotes/origin/main\n  node /tmp/trusted-main/tooling/ci/local-fast-gate.mjs --admission --base refs/remotes/origin/main\n  node /tmp/trusted-main/tooling/ci/local-fast-gate.mjs --certify --base refs/remotes/origin/main\nfi"
+          command: "git worktree add --detach /tmp/trusted-main refs/remotes/origin/main\nread -r preserved retired < <(node --input-type=module -e 'import {CSS_ENTRY_ORDER_CORRECTION as c} from \"/tmp/trusted-main/tooling/mdctl/task-correction-authority.mjs\"; console.log(c.preservedSha+\" \"+c.retirementSha)')\n[[ \"$preserved\" =~ ^[a-f0-9]{40}$ && \"$retired\" =~ ^[a-f0-9]{40}$ ]]\ngit fetch --no-tags origin \"$preserved\" \"$retired\"\nif [ \"$RELEASE_MODE\" = verify ]; then\n  node /tmp/trusted-main/tooling/ci/local-fast-gate.mjs --admission --base refs/remotes/origin/main\n  node /tmp/trusted-main/tooling/ci/local-fast-gate.mjs --certify --base refs/remotes/origin/main\nfi"
           no_output_timeout: 20m
       - run:
           name: Complete canonical quality and release invariant checks
