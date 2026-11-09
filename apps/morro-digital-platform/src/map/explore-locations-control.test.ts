@@ -420,6 +420,7 @@ interface PlaceDetailConsumer {
   holdPosition(): () => void;
   listenerCount(type: string): number;
   click(value: string): void;
+  readState(): { placeId?: string | null; stage: string };
   rails: Array<Array<{ label: string; value: string }>>;
   messages: Array<{ name: string; description: string }>;
   events: Array<{ type: string; detail: Record<string, unknown> }>;
@@ -444,6 +445,7 @@ function actualPlaceDetailConsumer(
     ts.ScriptTarget.Latest,
   );
   const names = new Set([
+    "stateSnapshot",
     "renderPlaceDetailMessage",
     "readActivePlaceDetail",
     "handlePlaceAction",
@@ -542,12 +544,12 @@ function actualPlaceDetailConsumer(
       const frameLocationsOnMap=()=>{},clearTourPresentation=()=>{},resetCategoryTriggerState=()=>{},showMainMenu=()=>{},clearExploreRuntimeStatus=()=>{};
       const renderFlow=(text)=>{let message=elements.get(ASSISTANT_FLOW_MESSAGE_ID);if(!message){message=new HTMLElement();message.id=ASSISTANT_FLOW_MESSAGE_ID;elements.set(message.id,message);}message.textContent=text;return null;};
       const setExploreRuntimeStatus=()=>{},emitStateChange=()=>{};
-      const shareActivePlace=()=>{},tourTicketingUrl=()=>null,startImmersiveTour=()=>{},returnFromPlaceDetail=()=>{};
+      const shareActivePlace=()=>{events.push({type:"share-observed",detail:{}});},tourTicketingUrl=()=>null,startImmersiveTour=()=>{},returnFromPlaceDetail=()=>{};
       const refreshCategoryPresentation=()=>{},restoreCategoryRail=()=>{},renderExploreRuntimeStatus=()=>{};
       const exploreRuntimeStatusDescriptor=null,immersiveTourController=null;
       ${functions.join("\n")}
       ${declarations.join("\n")}
-      return {document,execute,select:selectLocation,click:handlePlaceAction,rails,messages,events,
+      return {document,execute,select:selectLocation,click:handlePlaceAction,readState:stateSnapshot,rails,messages,events,
         listenerCount:type=>listeners.get(type)?.size??0,
         holdMarkers:()=>{let release;markerProviderReady=new Promise(resolve=>{release=resolve;});return ()=>{markerProviderReady=Promise.resolve();release();};},
         holdPosition:()=>{holdPosition=true;return ()=>{holdPosition=false;resolvePosition?.({coords:{latitude:-13.38,longitude:-38.91}});};},
@@ -1693,4 +1695,44 @@ describe("public place sharing URL boundary", () => {
       expect(consumer.copied).toEqual([]);
     },
   );
+});
+
+describe("canonical saved/share action routing", () => {
+  it("binds the selected canonical place ID in the runtime snapshot", async () => {
+    const consumer = actualPlaceDetailConsumer("pt", () =>
+      canonicalDetail("place-a"),
+    );
+    await consumer.select(canonicalLocation("place-a"));
+    expect(consumer.readState()).toMatchObject({
+      stage: "detail",
+      placeId: "place-a",
+    });
+  });
+  it("routes an issued canonical share token without treating it as search", async () => {
+    const detail = canonicalDetail("place-a");
+    detail.actions.secondaryActions.push({
+      id: "share",
+      label: "Compartilhar",
+      value: "place-action:share:place-a",
+      disabled: false,
+    });
+    const consumer = actualPlaceDetailConsumer("pt", () => detail);
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.click("place-action:share:place-a");
+    expect(
+      consumer.events.filter((e) => e.type === "share-observed"),
+    ).toHaveLength(1);
+    expect(
+      consumer.events.some((e) => e.type === "morro:assistant-option-selected"),
+    ).toBe(false);
+  });
+  it("discards canonical share tokens for another place or not issued in the active rail", async () => {
+    const consumer = actualPlaceDetailConsumer("pt", () =>
+      canonicalDetail("place-a"),
+    );
+    await consumer.select(canonicalLocation("place-a"));
+    consumer.click("place-action:share:place-b");
+    consumer.click("place-action:share:place-a");
+    expect(consumer.events).toEqual([]);
+  });
 });
