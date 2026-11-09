@@ -140,6 +140,7 @@ export interface ExploreActiveTourSnapshot {
 export interface ExploreLocationsStateSnapshot {
   readonly category: string | null;
   readonly place: string | null;
+  readonly placeId?: string | null;
   readonly source: "canonical" | "local" | "mapbox" | "legacy" | null;
   readonly stage: ExploreStage;
   readonly markerCount: number;
@@ -971,6 +972,14 @@ export function installExploreLocationsControl({
           ? (activePlaceLocation?.category ?? null)
           : null),
       place: activeStage === "detail" ? (activePlace ?? null) : null,
+      placeId:
+        activeStage === "detail" &&
+        activePlaceLocation &&
+        "source" in activePlaceLocation &&
+        activePlaceLocation.source === "canonical" &&
+        "placeId" in activePlaceLocation
+          ? activePlaceLocation.placeId
+          : null,
       source:
         activeStage === "detail" && activePlaceLocation
           ? "source" in activePlaceLocation
@@ -1575,6 +1584,21 @@ export function installExploreLocationsControl({
   };
 
   const handlePlaceAction = (value: string): void => {
+    if (value.startsWith("place-action:share:")) {
+      const location = activePlaceLocation;
+      if (
+        activeStage === "detail" &&
+        location &&
+        "source" in location &&
+        location.source === "canonical" &&
+        "placeId" in location &&
+        value === `place-action:share:${location.placeId}` &&
+        activePlaceActionValues.includes(value)
+      ) {
+        shareActivePlace();
+      }
+      return;
+    }
     if (value.startsWith("place-action:info:")) {
       const detail = readActivePlaceDetail(value);
       if (detail) {

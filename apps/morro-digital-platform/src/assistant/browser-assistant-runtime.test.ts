@@ -2,6 +2,8 @@ import { ensureFeatureStyles } from "../map/feature-styles.js";
 import { readFileSync } from "node:fs";
 import { compileFunction } from "node:vm";
 import {
+  ASSISTANT_PROFILE_STORAGE_KEY,
+  createAssistantUserProfileManager,
   createAssistantContextManager,
   createAssistantDialogController,
   createDefaultAssistantContext,
@@ -1371,5 +1373,207 @@ describe("actual assistant turn waits for feature styles", () => {
     expect((await old).metadata?.state).toBe("superseded");
     expect((await current).text).toBe("ready");
     expect(turn).toHaveBeenCalledOnce();
+  });
+});
+
+describe("canonical saved place action", () => {
+  function fixture() {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+    };
+    const profile = createAssistantUserProfileManager({ storage });
+    const javascript = ts.transpileModule(
+      runtimeFunction("saveCanonicalPlaceAction"),
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    ).outputText;
+    const createSave = compileFunction(
+      javascript + "; return saveCanonicalPlaceAction;",
+      ["ASSISTANT_PROFILE_STORAGE_KEY"],
+    ) as (
+      key: string,
+    ) => (
+      input: string,
+      state: unknown,
+      profile: unknown,
+      storage: unknown,
+      language: string,
+    ) => AssistantDialogResponse | null;
+    const save = createSave(ASSISTANT_PROFILE_STORAGE_KEY);
+    const state = {
+      stage: "detail",
+      source: "canonical",
+      placeId: "place-a",
+      place: "Toca do Morcego",
+      category: "nightlife",
+    };
+    return { save, state, storage, profile, values };
+  }
+  it.each(["pt", "en", "es", "he"])(
+    "persists through the shared profile and confirms in %s",
+    (language) => {
+      const f = fixture();
+      const response = f.save(
+        "place-action:save:place-a:add",
+        f.state,
+        f.profile,
+        f.storage,
+        language,
+      );
+      expect(response?.metadata?.state).toBe("saved");
+      expect(response?.text).not.toContain("place-action:");
+      expect(
+        createAssistantUserProfileManager({
+          storage: f.storage,
+        }).getFavoritePlaces(),
+      ).toContainEqual(
+        expect.objectContaining({
+          name: "Toca do Morcego",
+          category: "nightlife",
+        }),
+      );
+      f.profile.recordInteraction("next prompt");
+      expect(
+        JSON.parse(f.storage.getItem(ASSISTANT_PROFILE_STORAGE_KEY)!)
+          .favoritePlaces,
+      ).toHaveLength(1);
+      f.save(
+        "place-action:save:place-a:add",
+        f.state,
+        f.profile,
+        f.storage,
+        language,
+      );
+      expect(f.profile.getFavoritePlaces()).toHaveLength(1);
+    },
+  );
+  it("consumes the actual runtime option before residual or search dispatch", async () => {
+    const f = fixture();
+    const search = vi.fn();
+    const append = vi.fn();
+    const parameters = {
+      options: { document: {}, explore: { getState: () => f.state } },
+      profile: f.profile,
+      storage: f.storage,
+      syncExploreContext: () => {},
+      presentationLanguage: () => "pt",
+      commerceCheckoutUrl: () => null,
+      saveCanonicalPlaceAction: f.save,
+      clearAssistantDomOptions: () => {},
+      removePhotoPresentation: () => {},
+      appendStandardMessage: append,
+      snapshotPresentation: (text: string) => ({ text, options: [] }),
+      resolveAssistantV1ResidualCommand: search,
+    };
+    const source = `let destroyed=false,requestGeneration=0,assistantUiGeneration=0,currentPresentation=null; const voice=undefined;const processInput=${runtimeClosure("executeInputTurn")};return processInput;`;
+    const javascript = ts.transpileModule(source, {
+      compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const createProcess = compileFunction(
+      javascript,
+      Object.keys(parameters),
+    ) as (
+      ...args: unknown[]
+    ) => (input: string) => Promise<AssistantDialogResponse>;
+    const processInput = createProcess(...Object.values(parameters));
+    const response = await processInput("place-action:save:place-a:add");
+    expect(response.metadata?.state).toBe("saved");
+    expect(search).not.toHaveBeenCalled();
+    expect(append).toHaveBeenCalledWith(
+      "assistant",
+      "Local salvo neste dispositivo.",
+    );
+  });
+  it("removes the selected place and preserves other favorites", () => {
+    const f = fixture();
+    f.profile.addFavoritePlace({ name: "Farol" });
+    f.save(
+      "place-action:save:place-a:add",
+      f.state,
+      f.profile,
+      f.storage,
+      "pt",
+    );
+    expect(
+      f.save(
+        "place-action:save:place-a:remove",
+        f.state,
+        f.profile,
+        f.storage,
+        "pt",
+      )?.metadata?.state,
+    ).toBe("removed");
+    expect(f.profile.getFavoritePlaces().map((p) => p.name)).toEqual(["Farol"]);
+  });
+  it.each([
+    { placeId: "place-b" },
+    { stage: "menu" },
+    { source: "legacy" },
+    { placeId: null },
+  ])("refuses stale or noncanonical context %j", (change) => {
+    const f = fixture();
+    const before = f.storage.getItem(ASSISTANT_PROFILE_STORAGE_KEY);
+    expect(
+      f.save(
+        "place-action:save:place-a:add",
+        { ...f.state, ...change },
+        f.profile,
+        f.storage,
+        "pt",
+      )?.metadata?.state,
+    ).toBe("stale");
+    expect(f.storage.getItem(ASSISTANT_PROFILE_STORAGE_KEY)).toBe(before);
+    expect(f.profile.getFavoritePlaces()).toEqual([]);
+  });
+  it.each([
+    "place-action:save:place-a:add:extra",
+    "place-action:save:place-a:",
+    "place-action:save:place-b:add",
+  ])("does not turn invalid save tokens into search: %s", (value) => {
+    const f = fixture();
+    expect(
+      f.save(value, f.state, f.profile, f.storage, "pt")?.metadata?.state,
+    ).toBe("stale");
+  });
+  it("reports persistence failure without changing the in-memory favorites", () => {
+    const f = fixture();
+    const storage = {
+      getItem: f.storage.getItem,
+      setItem: () => {
+        throw Error("quota");
+      },
+    };
+    expect(
+      f.save("place-action:save:place-a:add", f.state, f.profile, storage, "pt")
+        ?.metadata?.state,
+    ).toBe("unavailable");
+    expect(f.profile.getFavoritePlaces()).toEqual([]);
+  });
+  it("requires persistent storage and rejects a silent failed write", () => {
+    const f = fixture();
+    for (const storage of [
+      undefined,
+      { getItem: f.storage.getItem, setItem: () => {} },
+    ]) {
+      expect(
+        f.save(
+          "place-action:save:place-a:add",
+          f.state,
+          f.profile,
+          storage,
+          "pt",
+        )?.metadata?.state,
+      ).toBe("unavailable");
+    }
+    expect(f.profile.getFavoritePlaces()).toEqual([]);
+  });
+  it("leaves ordinary prompts to their normal handler", () => {
+    const f = fixture();
+    expect(
+      f.save("Toca do Morcego", f.state, f.profile, f.storage, "pt"),
+    ).toBeNull();
   });
 });
