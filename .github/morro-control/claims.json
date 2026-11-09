@@ -111,7 +111,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/external-staging-admission-20261108",
-      "baseSha": "9f324a0654cbe2b87a4751906b65bdf123e60385",
+      "baseSha": "72c69c30e6e3af992abe8c46f220b1e0d9beece8",
       "paths": [
         ".morro/changesets/MD-EXTERNAL-STAGING-ADMISSION-20261108.json",
         "tooling/release/actions-independent/route.mjs",
