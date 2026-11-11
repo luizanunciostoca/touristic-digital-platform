@@ -98,6 +98,8 @@ export function createV1ImmersiveTourController(
 ): V1ImmersiveTourController {
   const { document } = options;
   let state = idleV1ImmersiveTourState;
+  let operationGeneration = 0;
+  let mapCleanup: Promise<void> | undefined;
   let narrationTimer: number | undefined;
   let finaleClearTimer: number | undefined;
   let narrationActive = false;
@@ -112,6 +114,22 @@ export function createV1ImmersiveTourController(
   const setState = (next: V1ImmersiveTourState): void => {
     state = next;
     options.onStateChange?.(state);
+  };
+
+  // Cleanup may finish asynchronously and clear map attributes. A newer
+  // activation must wait for it, rather than being erased by its completion.
+  const clearMap = (): Promise<void> => {
+    if (mapCleanup) return mapCleanup;
+    const cleanup = Promise.resolve()
+      .then(async () => {
+        await Promise.resolve(options.deactivateMap()).catch(() => undefined);
+      })
+      .catch(() => undefined);
+    mapCleanup = cleanup;
+    void cleanup.then(() => {
+      if (mapCleanup === cleanup) mapCleanup = undefined;
+    });
+    return cleanup;
   };
 
   const clearNarrationTimer = (): void => {
@@ -623,7 +641,7 @@ export function createV1ImmersiveTourController(
     if (!win) return;
     finaleClearTimer = win.setTimeout(() => {
       finaleClearTimer = undefined;
-      void Promise.resolve(options.deactivateMap()).catch(() => undefined);
+      void clearMap();
     }, FINALE_MAP_CLEAR_MS);
   };
 
@@ -637,15 +655,26 @@ export function createV1ImmersiveTourController(
     });
   };
 
-  const stop = async (showMessage = true): Promise<void> => {
-    if (state.stage === "idle") return;
+  const stopCurrent = async (
+    showMessage: boolean,
+    generation: number,
+  ): Promise<void> => {
+    if (state.stage === "idle") {
+      if (mapCleanup) await mapCleanup;
+      return;
+    }
     const tourTitle = currentTour()?.title ?? "passeio";
     stopNarration();
     clearFinaleTimer();
+    const cleanup = clearMap();
     setState(transitionV1ImmersiveTourState(state, { type: "stop" }));
-    await Promise.resolve(options.deactivateMap()).catch(() => undefined);
+    await cleanup;
+    if (generation !== operationGeneration) return;
     if (showMessage) renderEnded(tourTitle);
   };
+
+  const stop = (showMessage = true): Promise<void> =>
+    stopCurrent(showMessage, ++operationGeneration);
 
   const goToStop = (index: number): void => {
     const next = transitionV1ImmersiveTourState(state, {
@@ -725,7 +754,10 @@ export function createV1ImmersiveTourController(
       value === TOUR_EXPLORE_MAP ||
       value === TOUR_MAIN_MENU
     ) {
-      await stop(false);
+      const stopping = stop(false);
+      const generation = operationGeneration;
+      await stopping;
+      if (generation !== operationGeneration) return;
       if (value === TOUR_SEE_TOURS) options.onShowTours();
       if (value === TOUR_EXPLORE_MAP) options.onExploreMap();
       if (value === TOUR_MAIN_MENU) options.onMainMenu();
@@ -740,16 +772,24 @@ export function createV1ImmersiveTourController(
         return false;
       }
 
-      if (state.stage !== "idle") await stop(false);
+      const generation = ++operationGeneration;
+      if (state.stage !== "idle") await stopCurrent(false, generation);
+      if (mapCleanup) await mapCleanup;
+      if (generation !== operationGeneration) return false;
       clearFinaleTimer();
       setState(startV1ImmersiveTourState(tour.id, tour.stops.length));
+      if (generation !== operationGeneration) return false;
       try {
         await Promise.resolve(options.activateMap(tour.id));
       } catch (error) {
+        if (generation !== operationGeneration) return false;
+        const cleanup = clearMap();
         setState(idleV1ImmersiveTourState);
-        await Promise.resolve(options.deactivateMap()).catch(() => undefined);
+        await cleanup;
+        if (generation !== operationGeneration) return false;
         throw error;
       }
+      if (generation !== operationGeneration) return false;
       renderIntro();
       return true;
     },
@@ -780,6 +820,7 @@ export function createV1ImmersiveTourController(
     },
 
     destroy(): void {
+      operationGeneration++;
       stopNarration();
       clearFinaleTimer();
       setState(idleV1ImmersiveTourState);

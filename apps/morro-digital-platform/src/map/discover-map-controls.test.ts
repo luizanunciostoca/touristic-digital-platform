@@ -368,3 +368,78 @@ it("ignores superseded callbacks and reports asynchronous camera failure", () =>
   expect(move).toHaveBeenCalledTimes(1);
   expect(f.map.attrs.get("data-geolocation-state")).toBe("error");
 });
+
+it("reports a synchronous location API exception and clears its busy state", () => {
+  const f = fixture();
+  f.raw.defaultView.navigator.geolocation = {
+    getCurrentPosition() {
+      throw new Error("controlled geolocation exception");
+    },
+  };
+  const move = vi.fn();
+  const dispose = installDiscoverLocation({
+    document: f.document,
+    currentLocation: () => undefined,
+    onLocation: move,
+  });
+  expect(() => f.button.click()).not.toThrow();
+  expect(f.map.attrs.get("data-geolocation-state")).toBe("error");
+  expect(f.button.attrs.has("aria-busy")).toBe(false);
+  expect(
+    f.parent.children.some((e) => e.textContent.includes("Tente novamente")),
+  ).toBe(true);
+  expect(move).not.toHaveBeenCalled();
+  dispose();
+});
+
+it("permits retry after a synchronous location exception without duplicating movement", () => {
+  const f = fixture();
+  let attempts = 0;
+  f.raw.defaultView.navigator.geolocation = {
+    getCurrentPosition(
+      success: (p: { coords: { longitude: number; latitude: number } }) => void,
+    ) {
+      attempts += 1;
+      if (attempts === 1) throw new Error("first attempt fails");
+      success({ coords: { longitude: 1, latitude: 2 } });
+    },
+  };
+  const move = vi.fn();
+  const dispose = installDiscoverLocation({
+    document: f.document,
+    currentLocation: () => undefined,
+    onLocation: move,
+  });
+  expect(() => f.button.click()).not.toThrow();
+  f.button.click();
+  expect(attempts).toBe(2);
+  expect(move).toHaveBeenCalledExactlyOnceWith([1, 2]);
+  expect(f.map.attrs.get("data-geolocation-state")).toBe("granted");
+  expect(f.button.attrs.has("aria-busy")).toBe(false);
+  dispose();
+});
+
+it("ignores a callback captured by a request that subsequently throws", () => {
+  const f = fixture();
+  let late:
+    | ((p: { coords: { longitude: number; latitude: number } }) => void)
+    | undefined;
+  f.raw.defaultView.navigator.geolocation = {
+    getCurrentPosition(success: typeof late) {
+      late = success;
+      throw new Error("failed after callback registration");
+    },
+  };
+  const move = vi.fn();
+  const dispose = installDiscoverLocation({
+    document: f.document,
+    currentLocation: () => undefined,
+    onLocation: move,
+  });
+  expect(() => f.button.click()).not.toThrow();
+  late?.({ coords: { longitude: 3, latitude: 4 } });
+  expect(move).not.toHaveBeenCalled();
+  expect(f.map.attrs.get("data-geolocation-state")).toBe("error");
+  expect(f.button.attrs.has("aria-busy")).toBe(false);
+  dispose();
+});

@@ -235,7 +235,9 @@ describe("assistant presentation language at the real handler boundary", () => {
     expect(response.metadata).toEqual(
       expect.objectContaining({ language: "pt" }),
     );
-    expect(response.text).toContain("Agora em Morro de São Paulo");
+    expect(response.text).toContain(
+      "Condições informadas para Morro de São Paulo",
+    );
     expect(response.options?.[0]?.label).toBe("Temperatura agora");
     expect(fetchWeather).toHaveBeenCalledExactlyOnceWith(
       "/api/weather",
