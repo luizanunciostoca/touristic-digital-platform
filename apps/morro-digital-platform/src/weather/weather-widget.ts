@@ -16,6 +16,9 @@ export interface WeatherForecastDay {
 }
 
 export interface WeatherReading {
+  readonly provider?: "visual-crossing" | "open-meteo";
+  /** Runtime cache status, never a meteorological observation timestamp. */
+  readonly cacheState?: "fresh" | "refreshed" | "stale";
   readonly temperatureCelsius: number;
   readonly temperatureMaxCelsius: number;
   readonly temperatureMinCelsius: number;
@@ -156,7 +159,11 @@ function parseWeatherPayload(payload: unknown): WeatherReading {
     throw new Error("Weather runtime returned incomplete current conditions.");
   }
 
+  const provider: unknown = Reflect.get(payload, "provider");
   return Object.freeze({
+    ...(provider === "visual-crossing" || provider === "open-meteo"
+      ? { provider }
+      : {}),
     temperatureCelsius: Math.round(temperature),
     temperatureMaxCelsius: Math.round(temperatureMax),
     temperatureMinCelsius: Math.round(temperatureMin),
@@ -182,7 +189,16 @@ export async function fetchMorroWeather(
     );
   }
 
-  return parseWeatherPayload(await response.json());
+  const reading = parseWeatherPayload(await response.json());
+  const cacheState = response.headers?.get("X-Weather-Cache");
+  return Object.freeze({
+    ...reading,
+    ...(cacheState === "fresh" ||
+    cacheState === "refreshed" ||
+    cacheState === "stale"
+      ? { cacheState }
+      : {}),
+  });
 }
 
 function renderReading(
